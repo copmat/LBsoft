@@ -14,8 +14,8 @@ Massimo Bernaschi        IAC-CNR, Rome                     Italy
 Sauro Succi              IAC-CNR, Rome                     Italy        
                                                                         
 The software development process has received funding from the          
-European Research Council under the Horizon 2020 Programme 
-Grant Agreement n. 739964 (COPMAT).    
+European Research Council under the Horizon 2020 Programme              
+Grant Agreement n. 739964 (COPMAT).                                     
                                                                         
 This is an experimental code. The authors accept no responsibility      
 for the performance of the code or for the correctness of the results.  
