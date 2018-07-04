@@ -1,1 +1,24 @@
 # LBsoft
+
+LBsoft is a specific-purpose open-source software for electrospinning  
+simulations of nanofibers. The code was originally written by           
+                                                                        
+Fabio Bonaccorso         IIT-CLNS, Rome                    Italy        
+Marco Lauricella         IAC-CNR, Rome                     Italy        
+Andrea Montessori        IAC-CNR, Rome                     Italy      
+                                                                        
+                                                                                                                                                
+with contributions from:                                                
+                                                                               
+Massimo Bernaschi        IAC-CNR, Rome                     Italy        
+Sauro Succi              IAC-CNR, Rome                     Italy        
+                                                                        
+The software development process has received funding from the          
+European Research Council under the European Union's Seventh Framework  
+Programme (FP/2007-2013)/ERC Grant Agreement n. 306357 (NANO-JETS).     
+                                                                        
+This is an experimental code. The authors accept no responsibility      
+for the performance of the code or for the correctness of the results.  
+                                                                        
+The code is licensed under Open Software License v. 3.0 (OSL-3.0).      
+                                                                        
