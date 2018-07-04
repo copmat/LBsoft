@@ -1,7 +1,7 @@
 # LBsoft
 
-LBsoft is a specific-purpose open-source software for electrospinning  
-simulations of nanofibers. The code was originally written by           
+LBsoft is a specific-purpose open-source software for soft glassy       
+emulsion simulations. The code was originally written by                
                                                                         
 Fabio Bonaccorso         IIT-CLNS, Rome                    Italy        
 Marco Lauricella         IAC-CNR, Rome                     Italy        
