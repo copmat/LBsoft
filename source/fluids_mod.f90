@@ -257,7 +257,13 @@
   
   integer :: i,j,k
   
-  
+  do k=1,nz
+    do j=1,ny
+      do i=1,nx
+        continue
+      enddo
+    enddo
+  enddo
   
   return
   
