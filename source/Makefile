@@ -12,17 +12,17 @@ FFLAGSVTK=-O0 -g -fcheck=all -cpp -DPRC=4 -DIPRC=4 -c
 #FFLAGS= -O2 -cpp -I $(CURDIR) -c
 #LDFLAGS= -O2 -cpp -I $(CURDIR) -o
 #FFLAGSVTK= -O2 -cpp -DPRC=4 -DIPRC=4 -c
-EX=main.x
+EX=../execute/main.x
 SHELL=/bin/sh
 
 all: main
 
 main:IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
-	Lib_VTK_IO.o get_mem.o get_mem_mod.o serial_version_mod.o \
+	Lib_VTK_IO.o get_mem.o serial_version_mod.o \
 	profiling_mod.o parse_mod.o error_mod.o utility_mod.o \
 	fluids_mod.o integrator_mod.o io_mod.o main.o
 	$(FC) $(LDFLAGS) $(EX) IR_Precision.o \
-	Lib_Pack_Data.o Lib_Base64.o Lib_VTK_IO.o get_mem_mod.o \
+	Lib_Pack_Data.o Lib_Base64.o Lib_VTK_IO.o get_mem.o \
 	serial_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
 	utility_mod.o fluids_mod.o integrator_mod.o io_mod.o main.o
 	
@@ -40,9 +40,6 @@ Lib_VTK_IO.o:Lib_VTK_IO.f90
 	
 get_mem.o:get_mem.c
 	$(CC) $(CFLAGS) get_mem.c
-	
-get_mem_mod.o:get_mem_mod.f90
-	$(FC) $(FFLAGS) get_mem_mod.f90
 	
 serial_version_mod.o:serial_version_mod.f90
 	$(FC) $(FFLAGS) serial_version_mod.f90
@@ -75,5 +72,5 @@ main.o:main.f90
 	$(FC) $(FFLAGS) main.f90
 	
 clean:
-	rm -rf *.mod *.o main.x
+	rm -rf *.mod *.o $(EX)
 

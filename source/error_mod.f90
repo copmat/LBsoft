@@ -4,7 +4,7 @@
  
 !***********************************************************************
 !     
-!     JETSPIN module containing subroutines which print warning and
+!     LBsoft module containing subroutines which print warning and
 !     close the software if an error is occurred
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
@@ -28,7 +28,7 @@
  
 !***********************************************************************
 !     
-!     JETSPIN subroutine for printing error banners and close the
+!     LBsoft subroutine for printing error banners and close the
 !     program
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
@@ -55,47 +55,16 @@
         write(outp,outf) &
         'ERROR - dimension of simulation box not found in input file!'
       case (4)
-        write(outp,outf)'ERROR - ftype is wrong for this integrator.'
+        write(outp,outf)'ERROR - bad allocation in subroutine allocate_fluids.'
       case (5)
         write(outp,outf)'ERROR - error in reading input file'
-        write(outp,outf2)'ERROR - none FINISH directive found ', &
-         'in the input file.'
       case (6)
         write(outp,outf)'ERROR - unknown directive in input file.'
       case (7)
         write(outp,outf)'ERROR - incomplete input file.'
       case (8)
-        write(outp,outf2)'ERROR - the resolution of jet ', &
-         'discretization is too small.'
-      case (9)
-        write(outp,outf2)'ERROR - wrong selection of print dat ', &
-        'style in input file.'
-      case (10)
-        write(outp,outf)'ERROR - '
-      case (11)
-        write(outp,outf)'ERROR - '
-      case (12)
-        write(outp,outf2)'ERROR - requested a spline fitting beyond ', &
-         'the spline boundaries.'
-      case (13)
-        write(outp,outf2)'ERROR - in allocating jetptc in ', &
-         'allocate_array_jetptc_mod.'
-      case (14)
-        write(outp,outf2)'ERROR - numerical instability.', &
-         ' Please check the time step.'
-      case (15)
-        write(outp,outf)'ERROR - restart.dat file not found!'
-      case (16)
-        write(outp,outf2)'ERROR - dynamic refinement threshold too small!', &
-         ' Please increase the dynamic refinement threshold.'
-      case (17)
-        write(outp,outf2)'ERROR - multiple step error', &
-         ' Please check the input file.'
-      case (18)
-        write(outp,outf)'ERROR - the restart file is corrupted'
-      case (19)
-        write(outp,outf2)'ERROR - array yve not found in subroutine', &
-         ' compute_coulomelec_driver!'
+        write(outp,outf2)'ERROR - bad allocation in subroutine ', &
+         'allocate_array_buffservice3d.'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select
@@ -132,8 +101,14 @@
   
   select case (kode)
     case (1)
-      write(outp,'(/,a,/,a,g20.10,/)')"WARNING - the 'resolution' value is not a submultiple of the 'initial length'", &
-      "WARNING - the remaider is equal to",ddata
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,3a)')"WARNING - there is the following unknown directive at line ", &
+       trim(adjustl(r_char))," in the input file:"
+      write(outp,'(3a,/)')"'",trim(wstring),"'"
+    case (2)
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,3a,/)')"WARNING - the allocation number ", &
+       trim(adjustl(r_char))," exits with error"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

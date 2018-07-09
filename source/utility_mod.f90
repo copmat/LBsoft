@@ -15,6 +15,7 @@
 !***********************************************************************
  
  use version_mod, only : idrank
+ use error_mod
  
  implicit none
  
@@ -148,7 +149,8 @@
   
  end subroutine allocate_array_buffservice
  
- subroutine allocate_array_buffservice3d(imiomax_x,imiomax_y,imiomax_z)
+ subroutine allocate_array_buffservice3d(imiomin_x,imiomax_x,imiomin_y, &
+  imiomax_y,imiomin_z,imiomax_z)
 
 !***********************************************************************
 !     
@@ -164,7 +166,10 @@
  
   implicit none
   
-  integer, intent(in) :: imiomax_x,imiomax_y,imiomax_z
+  integer, intent(in) :: imiomin_x,imiomax_x,imiomin_y, &
+   imiomax_y,imiomin_z,imiomax_z
+   
+  integer :: ierr
   
   if(allocated(buffservice3d))then
     if(imiomax_x>nbuffservice_x .or. imiomax_y>nbuffservice_y .or. &
@@ -173,15 +178,23 @@
       nbuffservice_x=imiomax_x+100
       nbuffservice_y=imiomax_y+100
       nbuffservice_z=imiomax_z+100
-      allocate(buffservice3d(0:nbuffservice_x,0:nbuffservice_y, &
-       0:nbuffservice_z))
+      allocate(buffservice3d(imiomin_x:nbuffservice_x,imiomin_y:nbuffservice_y, &
+       imiomin_z:nbuffservice_z),stat=ierr)
+      if(ierr.ne.0)then
+        call warning(2,dble(1))
+        call error(8)
+      endif
     endif
   else
     nbuffservice_x=imiomax_x+100
     nbuffservice_y=imiomax_y+100
     nbuffservice_z=imiomax_z+100
-    allocate(buffservice3d(0:nbuffservice_x,0:nbuffservice_y, &
-     0:nbuffservice_z))
+    allocate(buffservice3d(imiomin_x:nbuffservice_x,imiomin_y:nbuffservice_y, &
+     imiomin_z:nbuffservice_z),stat=ierr)
+    if(ierr.ne.0)then
+      call warning(2,dble(1))
+      call error(8)
+    endif
   endif
   
   return

@@ -15,6 +15,7 @@
  
  use version_mod, only : idrank,mxrank
  
+ 
  implicit none
  
  private
@@ -72,14 +73,92 @@
   
  integer, protected :: itime_start = 1                    !< start of time counter
  integer, protected :: itime_counter = 0                          !< time counter
-  
+ 
+INTERFACE
+    FUNCTION get_mem ( ) bind ( C, name = "get_mem" )
+      USE ISO_C_BINDING, ONLY : c_double
+      REAL(kind=c_double) :: get_mem
+    END FUNCTION get_mem
+END INTERFACE
+ 
+ public :: memory_registration,get_memory
+ 
  public :: timer_init,startPreprocessingTime,reset_timing_partial
  public :: itime_start,print_timing_partial,printSimulationTime
  public :: print_timing_final,itime_counter,start_timing2,end_timing2
  
+ 
  contains
  
+ subroutine memory_registration(iselect,fout)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for register the memory usage
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     modified by: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  use iso_c_binding
+  
+  implicit none
+  integer, intent(in) :: iselect
+  
+  real(c_double), save :: memzero = 0.0_c_double
+  real(c_double), save :: memend = 0.0_c_double
+  
+  real(kind=PRC), intent(out), optional :: fout
+  
+  select case(iselect)
+  
+  case(1)
+    
+    memzero = get_mem()
+  
+  case(2)
+  
+    memend = get_mem()
+  
+  case(3)
+    
+    if(present(fout))fout = real( memend - memzero ,kind=PRC)
+  
+  case default
+    
+    memzero = get_mem()
+    
+  end select
+ 
+  return
+  
+ end subroutine memory_registration
+ 
+ subroutine get_memory(fout)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for register the memory usage
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     modified by: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  use iso_c_binding
+  
+  implicit none
+  
+  real(kind=PRC), intent(out) :: fout
 
+  fout = real( get_mem() ,kind=PRC)
+  
+  return
+  
+ end subroutine get_memory
  
   FUNCTION new_io_unit()
   

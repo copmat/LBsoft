@@ -13,13 +13,21 @@
 !     
 !***********************************************************************
  
+ use version_mod,    only : idrank
+ use error_mod
+ use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
+                   allocate_array_ibuffservice,buffservice, &
+                   allocate_array_buffservice,lbuffservice, &
+                   allocate_array_lbuffservice, &
+                   buffservice3d,allocate_array_buffservice3d
+ 
  implicit none
  
  private
  
- integer, save, protected, public :: nx=10
- integer, save, protected, public :: ny=10
- integer, save, protected, public :: nz=10
+ integer, save, protected, public :: nx=0
+ integer, save, protected, public :: ny=0
+ integer, save, protected, public :: nz=0
  
  integer, save, protected, public :: idistselect=0
  
@@ -56,15 +64,12 @@
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: fuB
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: fvB
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: fwB
- real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: psix
- real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: psiy
- real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: psiz
- 
- real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:,:) :: fR
- real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:,:) :: fB
- 
- real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:,:) :: fR_b
- real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:,:) :: fB_b
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: psixR
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: psiyR
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: psizR
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: psixB
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: psiyB
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: psizB
  
 #if LATTICE==319
  
@@ -100,6 +105,22 @@
   dez = real(ez,kind=PRC)
  
 #endif 
+
+
+
+#if LATTICE==319
+
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: & 
+  f00R,f01R,f02R,f03R,f04R,f05R,f06R,f07R,f08R
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: &
+  f00B,f01B,f02B,f03B,f04B,f05B,f06B,f07B,f08B
+ 
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: & 
+  f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: &
+  f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B
+
+#endif
  
  public :: set_random_dens_fluids
  public :: set_initial_dens_fluids
@@ -107,8 +128,140 @@
  public :: set_mean_value_dens_fluids
  public :: set_stdev_value_dens_fluids
  public :: set_initial_dist_type
+ public :: set_initial_dim_box
+ public :: set_mean_value_vel_fluids
+ public :: allocate_fluids
+ public :: initialize_fluids
  
  contains
+ 
+ subroutine allocate_fluids
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for allocating arrays which 
+!     describe the fluids
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, parameter :: nistatmax=100
+  integer, dimension(nistatmax) :: istat
+  integer :: myzero,mynx,myny,mynz
+  
+  integer :: i
+  
+  myzero=1-nbuff
+  mynx=nx+nbuff
+  myny=ny+nbuff
+  mynz=nz+nbuff
+  
+  istat=0
+  
+  allocate(rhoR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(1))
+  allocate(rhoB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(2))
+  
+  allocate(u(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(3))
+  allocate(v(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(4))
+  allocate(w(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(5))
+  
+  allocate(fuR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(6))
+  allocate(fvR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(7))
+  allocate(fwR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(8))
+  
+  allocate(fuB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(9))
+  allocate(fvB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(10))
+  allocate(fwB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(11))
+  
+  allocate(psixR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(12))
+  allocate(psiyR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(13))
+  allocate(psizR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(14))
+  
+  allocate(psixB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(15))
+  allocate(psiyB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(16))
+  allocate(psizB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(17))
+  
+  allocate(f00R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(30))
+  allocate(f01R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(31))
+  allocate(f02R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(32))
+  allocate(f03R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(33))
+  allocate(f04R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(34))
+  allocate(f05R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(35))
+  allocate(f06R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(36))
+  allocate(f07R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(37))
+  allocate(f08R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(38))
+  allocate(f09R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(39))
+  allocate(f10R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(40))
+  allocate(f11R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(41))
+  allocate(f12R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(42))
+  allocate(f13R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(43))
+  allocate(f14R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(44))
+  allocate(f15R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(45))
+  allocate(f16R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(46))
+  allocate(f17R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(47))
+  allocate(f18R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(48))
+  
+  allocate(f00B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(60))
+  allocate(f01B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(61))
+  allocate(f02B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(62))
+  allocate(f03B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(63))
+  allocate(f04B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(64))
+  allocate(f05B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(65))
+  allocate(f06B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(66))
+  allocate(f07B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(67))
+  allocate(f08B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(68))
+  allocate(f09B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(69))
+  allocate(f10B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(60))
+  allocate(f11B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(61))
+  allocate(f12B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(62))
+  allocate(f13B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(63))
+  allocate(f14B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(64))
+  allocate(f15B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(65))
+  allocate(f16B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(66))
+  allocate(f17B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(67))
+  allocate(f18B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(68))
+  
+  if(any(istat.ne.0))then
+    do i=1,nistatmax
+      if(istat(i).ne.0)exit
+    enddo
+    call warning(2,dble(i))
+    call error(4)
+  endif
+  
+  call allocate_array_buffservice3d(myzero,mynx,myzero,myny,myzero,mynz)
+  
+  return
+  
+ end subroutine allocate_fluids
+ 
+ subroutine initialize_fluids
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for initialize the fluids and read the
+!     restart file if requested
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  
+  
+  
+  return
+  
+ end subroutine initialize_fluids
  
  subroutine set_random_dens_fluids
  
@@ -274,5 +427,55 @@
   return
   
  end subroutine set_initial_dist_type
+ 
+ subroutine set_initial_dim_box(itemp1,itemp2,itemp3)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the initial dimensions of the
+!     simulation box
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: itemp1,itemp2,itemp3
+  
+  nx = itemp1
+  ny = itemp2
+  nz = itemp3
+  
+  return
+  
+ end subroutine set_initial_dim_box
+ 
+ subroutine set_mean_value_vel_fluids(dtemp1,dtemp2,dtemp3)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for change the mean velocity of fluids 
+!     inside this module
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3
+  
+  initial_u = dtemp1
+  initial_v = dtemp2
+  initial_w = dtemp3
+  
+  return
+  
+ end subroutine set_mean_value_vel_fluids
  
  end module fluids_mod

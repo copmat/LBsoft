@@ -4,7 +4,7 @@
  
 !***********************************************************************
 !     
-!     JETSPIN module for input/output routines
+!     LBsoft module for input/output routines
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -16,9 +16,10 @@
  use parse_module
  use error_mod
  use utility_mod,           only : write_fmtnumb,pi,get_prntime
- use fluids_mod,            only : set_initial_dist_type, &
+ use fluids_mod,            only : nx,ny,nz,set_initial_dist_type, &
   set_mean_value_dens_fluids,set_stdev_value_dens_fluids,idistselect, &
-  meanR,meanB,stdevR,stdevB
+  meanR,meanB,stdevR,stdevB,set_initial_dim_box,initial_u,initial_v, &
+  initial_w,set_mean_value_vel_fluids
   
  implicit none
 
@@ -33,6 +34,7 @@
  
  public :: print_logo
  public :: read_input
+ public :: print_memory_registration
  
  contains
  
@@ -40,7 +42,7 @@
  
 !***********************************************************************
 !     
-!     JETSPIN subroutine for printing the logo
+!     LBsoft subroutine for printing the logo
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -124,6 +126,51 @@
   
  end subroutine print_logo
  
+ subroutine print_memory_registration(iu,mybanner,mymemory)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for printing the memory registration
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: iu
+  character(len=*), intent(in) :: mybanner
+  real(kind=PRC), intent(in) :: mymemory
+  real(kind=PRC) :: mymemoryt,mymega,mykilo
+  
+  character(len=12) :: r_char,r_char2
+  
+  character(len=*),parameter :: of='(a)'
+  
+  real(kind=PRC), parameter :: convert1=real(1024.d0,kind=PRC)
+  real(kind=PRC), parameter :: convert2=real(1000.d0,kind=PRC)
+  
+  mymemoryt=mymemory/convert1
+  mymega=floor(mymemoryt)
+  mykilo=(mymemoryt-mymega)*convert2
+  
+  if(idrank/=0)return
+  write(iu,of)"                                                                               "
+  write(iu,of)"********************************MEMORY MONITOR*********************************"
+  write(iu,of)"                                                                               "
+  write (r_char,'(i12)')nint(mymemoryt)
+  write (r_char2,'(i12)')nint(mykilo)
+  write(iu,'(6a)')trim(mybanner)," = ",trim(adjustl(r_char)),".",trim(adjustl(r_char2))," (mb)"
+  write(iu,of)"                                                                               "
+  write(iu,of)"*******************************************************************************"
+  write(iu,of)"                                                                               "
+  
+  return
+  
+ end subroutine print_memory_registration
+ 
  subroutine read_input(inputunit,inputname)
  
 !***********************************************************************
@@ -158,8 +205,14 @@
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
   real(kind=PRC) :: dtemp_stdevB = ZERO
+  real(kind=PRC) :: dtemp_initial_u = ZERO
+  real(kind=PRC) :: dtemp_initial_v = ZERO
+  real(kind=PRC) :: dtemp_initial_w = ZERO
   real(kind=PRC) :: prntim = ZERO
   
+  integer, parameter :: dimprint=28
+  character(len=dimprint) :: mystring
+    
 ! initialize parameters  
 
   
@@ -184,7 +237,10 @@
 !   read the input file as long as the finish directive is read
     do while(lredo)
       call getline(safe,inputunit,maxlen,redstring)
-      if(.not.safe)call error(5)
+      if(.not.safe)then
+        call warning(1,dble(iline),redstring)
+        call error(5)
+      endif
       iline=iline+1
       call strip(redstring,maxlen)
       call lowcase(redstring,maxlen)
@@ -201,7 +257,10 @@
           lredo2=.true.
           do while(lredo2)
             call getline(safe,inputunit,maxlen,redstring)
-            if(.not.safe)call error(5)
+            if(.not.safe)then
+              call warning(1,dble(iline),redstring)
+              call error(5)
+            endif
             iline=iline+1
             call strip(redstring,maxlen)
             call lowcase(redstring,maxlen)
@@ -224,6 +283,9 @@
                   timjob=3.6d3*timjob
                 elseif(findstring('d',directive,inumchar,maxlen))then
                   timjob=8.64d4*timjob
+                else
+                  call warning(1,dble(iline),redstring)
+                  call error(6)
                 endif
               endif
             elseif(findstring('close time',directive,inumchar,maxlen))then
@@ -238,13 +300,19 @@
             elseif(findstring('[end',directive,inumchar,maxlen))then
               lredo=.false.
               lredo2=.false.
+            else
+              call warning(1,dble(iline),redstring)
+              call error(6)
             endif
           enddo
-        elseif(findstring('hydro_vals',directive,inumchar,maxlen))then
+        elseif(findstring('lb',directive,inumchar,maxlen))then
           lredo2=.true.
           do while(lredo2)
             call getline(safe,inputunit,maxlen,redstring)
-            if(.not.safe)call error(5)
+            if(.not.safe)then
+             call warning(1,dble(iline),redstring)
+             call error(5)
+            endif
             iline=iline+1
             call strip(redstring,maxlen)
             call lowcase(redstring,maxlen)
@@ -262,22 +330,37 @@
               elseif(findstring('stdev',directive,inumchar,maxlen))then
                 dtemp_stdevR=dblstr(directive,maxlen,inumchar)
                 dtemp_stdevB=dblstr(directive,maxlen,inumchar)
-              elseif(findstring('gaussian',directive,inumchar,maxlen))then
+              elseif(findstring('gauss',directive,inumchar,maxlen))then
                 temp_idistselect=1
+              else
+                call warning(1,dble(iline),redstring)
+                call error(6)
+              endif
+            elseif(findstring('veloc',directive,inumchar,maxlen))then
+              if(findstring('mean',directive,inumchar,maxlen))then
+                dtemp_initial_u=dblstr(directive,maxlen,inumchar)
+                dtemp_initial_v=dblstr(directive,maxlen,inumchar)
+                dtemp_initial_w=dblstr(directive,maxlen,inumchar)
+              else
+                call warning(1,dble(iline),redstring)
+                call error(6)
               endif
             elseif(findstring('[end room',directive,inumchar,maxlen))then
               lredo2=.false.
             elseif(findstring('[end',directive,inumchar,maxlen))then
               lredo=.false.
               lredo2=.false.
+            else
+              call warning(1,dble(iline),redstring)
+              call error(6)
             endif
           enddo
         endif
       elseif(findstring('[end',directive,inumchar,maxlen))then
          lredo=.false.
       else
-        call warning(37,1.d0,redstring)
-        call error(6)
+        call warning(1,dble(iline),redstring)
+        call error(4)
       endif
     enddo
     
@@ -285,13 +368,50 @@
     
   endif
   
+! send the read parameters to all the nodes and print them on terminal
   if(idrank==0)then
-    write(6,'(/,3a,/)')repeat('*',10),"parameters from input file",repeat('*',10)
+    write(6,'(/,3a,/)')repeat('*',26),"parameters from input file",repeat('*',27)
+  endif
+  
+  if(idrank==0)then
+    write(6,'(/,3a,/)')repeat('*',27),"parameters of system room",repeat('*',27)
   endif
   
   call bcast_world(lbox)
+  if(lbox)then
+    call bcast_world(temp_nx)
+    call bcast_world(temp_ny)
+    call bcast_world(temp_nz)
+    call set_initial_dim_box(temp_nx,temp_ny,temp_nz)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='system dimensions'
+      write(6,'(2a,3i8)')mystring,": ",nx,ny,nz
+    endif
+  else
+    call error(3)
+  endif
   
-! send the read parameters to all the nodes
+  if(.not. ltimjob)then
+    timjob=1.0d6*365.25d0*24.d0*60.d0*60.d0
+  else
+    call bcast_world(timjob)
+    if(idrank==0)then
+      call get_prntime(hms,timjob,prntim)
+      mystring=repeat(' ',dimprint)
+      mystring="user allocated job time ("//hms//") "
+      write(6,'(2a,f8.4)')mystring,": ",prntim
+      mystring=repeat(' ',dimprint)
+      mystring='job closure time (s) '
+      write(6,'(2a,f8.4)')mystring,": ",timcls
+    endif
+  endif
+  
+  if(idrank==0)then
+    write(6,'(/,3a,/)')repeat('*',29),"parameters of LB room",repeat('*',29)
+  endif
+  
+  call bcast_world(temp_idistselect)
   if(temp_idistselect>0)then
     call set_initial_dist_type(temp_idistselect)
     if(idrank==0)then
@@ -302,34 +422,46 @@
     endif
   endif
   
+  call bcast_world(dtemp_meanR)
+  call bcast_world(dtemp_meanB)
   if(dtemp_meanR>ZERO .or. dtemp_meanB>ZERO)then
     call set_mean_value_dens_fluids(dtemp_meanR,dtemp_meanB)
     if(idrank==0)then
-      write(6,'(a,2f16.8)')"initial density mean values: ",meanR,meanB
+      mystring=repeat(' ',dimprint)
+      mystring='initial density mean values'
+      write(6,'(2a,2f16.8)')mystring,": ",meanR,meanB
     endif
   endif
   
+  call bcast_world(dtemp_stdevR)
+  call bcast_world(dtemp_stdevB)
   if(dtemp_stdevR>ZERO .or. dtemp_stdevB>ZERO)then
     call set_stdev_value_dens_fluids(dtemp_stdevR,dtemp_stdevB)
     if(idrank==0)then
-      write(6,'(a,2f16.8)')"initial density stdev values: ",stdevR,stdevB
+      mystring=repeat(' ',dimprint)
+      mystring='initial density stdev values'
+      write(6,'(2a,2f16.8)')mystring,": ",stdevR,stdevB
     endif
   endif
   
-  if(.not. ltimjob)then
-    timjob=1.0d6*365.25d0*24.d0*60.d0*60.d0
-  else
+  call bcast_world(dtemp_initial_u)
+  call bcast_world(dtemp_initial_v)
+  call bcast_world(dtemp_initial_w)
+  if(dtemp_initial_u>ZERO .or. dtemp_initial_v>ZERO .or. &
+   dtemp_initial_w>ZERO)then
+    call set_mean_value_vel_fluids(dtemp_initial_u,dtemp_initial_v, &
+     dtemp_initial_w)
     if(idrank==0)then
-      call get_prntime(hms,timjob,prntim)
-      write(6,'(a,a1,a,3x,f8.4)')"user allocated job time (",hms,") ",prntim
-      write(6,'(a,a1,a,3x,f8.4)')"job closure time (","s",") ",timcls
+      mystring=repeat(' ',dimprint)
+      mystring='initial velocity mean values'
+      write(6,'(2a,3f16.8)')mystring,": ",initial_u,initial_v,initial_w
     endif
   endif
   
   if(idrank==0)then
-    write(6,'(/,3a,/)')repeat('*',16),"end input file",repeat('*',16)
+    write(6,'(/,3a,/)')repeat('*',32),"end input file",repeat('*',33)
   endif
-stop
+
 ! print warning and check error
   
   return

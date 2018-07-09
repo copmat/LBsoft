@@ -30,7 +30,7 @@ double get_mem()
     mem = 0;
 #else
     getrusage(RUSAGE_SELF,&usg2);
-    mem = ((double)usg2.ru_maxrss)/1024;
+    mem = ((double)usg2.ru_maxrss);
 //    time = usg2.ru_utime.tv_sec;
 //    fprintf(stdout," time --> %ld\n ",time);
 #endif

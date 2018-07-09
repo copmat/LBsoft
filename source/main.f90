@@ -45,18 +45,21 @@
   
   use version_mod,    only : init_world,get_rank_world,get_size_world,&
                        time_world,time_world,finalize_world
+  use profiling_mod,  only : get_memory
   use utility_mod,    only : init_random_seed
-  use integrator_mod, only : initime,endtime,tstep
+  use fluids_mod,     only : allocate_fluids
+  use integrator_mod, only : initime,endtime,tstep,set_nstep, &
+                       update_nstep,nstep
   use io_mod
   
   
   implicit none
   
-  integer:: nstep
-  integer :: nremoved
   
   real(kind=PRC) :: mytime=0.d0
   real(kind=PRC) :: itime,ctime,ftime
+  
+  real(kind=PRC) :: mymemory
   
   logical :: ladd,lrem,lremdat,ldorefinment,lrecycle
   
@@ -82,24 +85,28 @@
   
 ! set the seed
   call init_random_seed(317)
-  
+
 ! allocate arrays of the nanofiber quantities
-  !call allocate_jet()
+  call allocate_fluids
+
+! print memory
+  call get_memory(mymemory)
+  call print_memory_registration(6,'memory occupied after allocation', &
+   mymemory)
   
-! print the list of the output observables as requested in input file
-  !call print_legend_observables(6)
   
 ! allocate service arrays for printing modules
   !call allocate_print()
   
 ! initialize the counter of the integration steps  
-  nstep=0
+  call set_nstep(0)
   
 ! initialize the time of the integration steps  
   mytime=initime
+  stop
   
-  
-! read the restart file if requested
+! initialize and read the restart file if requested
+  call initialize_fluids
   !call read_restart_file(134,'restart.dat', &
   ! nstep,mytime)
   
@@ -121,7 +128,7 @@
   do while (lrecycle)
   
 !   update the counter
-    nstep=nstep+1
+    call update_nstep
     
 !   check recycle loop
     lrecycle=((dble(nstep)*tstep)<endtime)
