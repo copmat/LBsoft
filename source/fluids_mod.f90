@@ -89,7 +89,7 @@
  !lattice vectors
  integer, dimension(0:links), parameter, public :: &
   ex = (/0,1,-1,0,0,0,0,1,-1,-1, 1, 1,-1,-1, 1, 0, 0, 0, 0/)
-   !    0,1, 2,3,4,5,6,7, 8, 9,10,11,12,13,14,15,16,17,18
+   !     0,1, 2,3,4,5,6,7, 8, 9,10,11,12,13,14,15,16,17,18
  integer, dimension(0:links), parameter, public :: &
   ey = (/0,0,0,1,-1,0,0,1,-1,1,-1, 0, 0, 0, 0, 1,-1,-1, 1/)
  integer, dimension(0:links), parameter, public :: &
@@ -257,13 +257,14 @@
   
   integer :: i,j,k
   
-  do k=1,nz
-    do j=1,ny
-      do i=1,nx
-        continue
-      enddo
-    enddo
-  enddo
+  select case(idistselect)
+  case(1)
+    call set_random_dens_fluids
+  case default
+    call set_initial_dens_fluids
+  end select
+  
+  call set_initial_vel_fluids
   
   return
   
@@ -483,5 +484,914 @@
   return
   
  end subroutine set_mean_value_vel_fluids
+ 
+ subroutine apply_pbc_hvar
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to hydrodynamic variables
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 6
+  
+  !apply pbc at north 1
+  call apply_pbc_north(rhoR)
+  call apply_pbc_north(rhoB)
+  
+  call apply_pbc_north(u)
+  call apply_pbc_north(v)
+  call apply_pbc_north(w)
+  
+  !apply pbc at south 2
+  call apply_pbc_south(rhoR)
+  call apply_pbc_south(rhoB)
+  
+  call apply_pbc_south(u)
+  call apply_pbc_south(v)
+  call apply_pbc_south(w)
+  
+  !apply pbc at east 3
+  call apply_pbc_east(rhoR)
+  call apply_pbc_east(rhoB)
+  
+  call apply_pbc_east(u)
+  call apply_pbc_east(v)
+  call apply_pbc_east(w)
+  
+  !apply pbc at west 4
+  call apply_pbc_west(rhoR)
+  call apply_pbc_west(rhoB)
+  
+  call apply_pbc_west(u)
+  call apply_pbc_west(v)
+  call apply_pbc_west(w)
+  
+  !apply pbc at front 5
+  call apply_pbc_front(rhoR)
+  call apply_pbc_front(rhoB)
+  
+  call apply_pbc_front(u)
+  call apply_pbc_front(v)
+  call apply_pbc_front(w)
+  
+  !apply pbc at rear 6
+  call apply_pbc_rear(rhoR)
+  call apply_pbc_rear(rhoB)
+  
+  call apply_pbc_rear(u)
+  call apply_pbc_rear(v)
+  call apply_pbc_rear(w)
+  
+  !edges 12
+  
+  !apply pbc at front east 1
+  call apply_pbc_edge_front_east(rhoR)
+  call apply_pbc_edge_front_east(rhoB)
+  
+  call apply_pbc_edge_front_east(u)
+  call apply_pbc_edge_front_east(v)
+  call apply_pbc_edge_front_east(w)
+  
+  !apply pbc at front west 2
+  call apply_pbc_edge_front_west(rhoR)
+  call apply_pbc_edge_front_west(rhoB)
+  
+  call apply_pbc_edge_front_west(u)
+  call apply_pbc_edge_front_west(v)
+  call apply_pbc_edge_front_west(w)
+  
+  !apply pbc at north east 3
+  call apply_pbc_edge_north_east(rhoR)
+  call apply_pbc_edge_north_east(rhoB)
+  
+  call apply_pbc_edge_north_east(u)
+  call apply_pbc_edge_north_east(v)
+  call apply_pbc_edge_north_east(w)
+  
+  !apply pbc at north front 4
+  call apply_pbc_edge_north_front(rhoR)
+  call apply_pbc_edge_north_front(rhoB)
+  
+  call apply_pbc_edge_north_front(u)
+  call apply_pbc_edge_north_front(v)
+  call apply_pbc_edge_north_front(w)
+  
+  !apply pbc at north rear 5
+  call apply_pbc_edge_north_rear(rhoR)
+  call apply_pbc_edge_north_rear(rhoB)
+  
+  call apply_pbc_edge_north_rear(u)
+  call apply_pbc_edge_north_rear(v)
+  call apply_pbc_edge_north_rear(w)
+  
+  !apply pbc at north west 6
+  call apply_pbc_edge_north_west(rhoR)
+  call apply_pbc_edge_north_west(rhoB)
+  
+  call apply_pbc_edge_north_west(u)
+  call apply_pbc_edge_north_west(v)
+  call apply_pbc_edge_north_west(w)
+  
+  !apply pbc at rear east 7
+  call apply_pbc_edge_rear_east(rhoR)
+  call apply_pbc_edge_rear_east(rhoB)
+  
+  call apply_pbc_edge_rear_east(u)
+  call apply_pbc_edge_rear_east(v)
+  call apply_pbc_edge_rear_east(w)
+  
+  !apply pbc at rear west 8
+  call apply_pbc_edge_rear_west(rhoR)
+  call apply_pbc_edge_rear_west(rhoB)
+  
+  call apply_pbc_edge_rear_west(u)
+  call apply_pbc_edge_rear_west(v)
+  call apply_pbc_edge_rear_west(w)
+  
+  !apply pbc at south east 9
+  call apply_pbc_edge_south_east(rhoR)
+  call apply_pbc_edge_south_east(rhoB)
+  
+  call apply_pbc_edge_south_east(u)
+  call apply_pbc_edge_south_east(v)
+  call apply_pbc_edge_south_east(w)
+  
+  !apply pbc at south front 10
+  call apply_pbc_edge_south_front(rhoR)
+  call apply_pbc_edge_south_front(rhoB)
+  
+  call apply_pbc_edge_south_front(u)
+  call apply_pbc_edge_south_front(v)
+  call apply_pbc_edge_south_front(w)
+  
+  !apply pbc at south rear 11
+  call apply_pbc_edge_south_rear(rhoR)
+  call apply_pbc_edge_south_rear(rhoB)
+  
+  call apply_pbc_edge_south_rear(u)
+  call apply_pbc_edge_south_rear(v)
+  call apply_pbc_edge_south_rear(w)
+  
+  
+  !apply pbc at south west 12
+  call apply_pbc_edge_south_west(rhoR)
+  call apply_pbc_edge_south_west(rhoB)
+  
+  call apply_pbc_edge_south_west(u)
+  call apply_pbc_edge_south_west(v)
+  call apply_pbc_edge_south_west(w)
+  
+  !corner 8
+  
+  !apply pbc at north east front 1
+  call apply_pbc_corner_north_east_front(rhoR)
+  call apply_pbc_corner_north_east_front(rhoB)
+  
+  call apply_pbc_corner_north_east_front(u)
+  call apply_pbc_corner_north_east_front(v)
+  call apply_pbc_corner_north_east_front(w)
+  
+  !apply pbc at north east rear 2
+  call apply_pbc_corner_north_east_rear(rhoR)
+  call apply_pbc_corner_north_east_rear(rhoB)
+  
+  call apply_pbc_corner_north_east_rear(u)
+  call apply_pbc_corner_north_east_rear(v)
+  call apply_pbc_corner_north_east_rear(w)
+  
+  !apply pbc at north west rear 3
+  call apply_pbc_corner_north_west_rear(rhoR)
+  call apply_pbc_corner_north_west_rear(rhoB)
+  
+  call apply_pbc_corner_north_west_rear(u)
+  call apply_pbc_corner_north_west_rear(v)
+  call apply_pbc_corner_north_west_rear(w)
+  
+  !apply pbc at north west front 4
+  call apply_pbc_corner_north_west_front(rhoR)
+  call apply_pbc_corner_north_west_front(rhoB)
+  
+  call apply_pbc_corner_north_west_front(u)
+  call apply_pbc_corner_north_west_front(v)
+  call apply_pbc_corner_north_west_front(w)
+  
+  !apply pbc at north west front 5
+  call apply_pbc_corner_north_west_front(rhoR)
+  call apply_pbc_corner_north_west_front(rhoB)
+  
+  call apply_pbc_corner_north_west_front(u)
+  call apply_pbc_corner_north_west_front(v)
+  call apply_pbc_corner_north_west_front(w)
+  
+  !apply pbc at south east front 6
+  call apply_pbc_corner_south_east_front(rhoR)
+  call apply_pbc_corner_south_east_front(rhoB)
+  
+  call apply_pbc_corner_south_east_front(u)
+  call apply_pbc_corner_south_east_front(v)
+  call apply_pbc_corner_south_east_front(w)
+  
+  !apply pbc at south west front 7
+  call apply_pbc_corner_south_west_front(rhoR)
+  call apply_pbc_corner_south_west_front(rhoB)
+  
+  call apply_pbc_corner_south_west_front(u)
+  call apply_pbc_corner_south_west_front(v)
+  call apply_pbc_corner_south_west_front(w)
+  
+  !apply pbc at south west rear 8
+  call apply_pbc_corner_south_west_rear(rhoR)
+  call apply_pbc_corner_south_west_rear(rhoB)
+  
+  call apply_pbc_corner_south_west_rear(u)
+  call apply_pbc_corner_south_west_rear(v)
+  call apply_pbc_corner_south_west_rear(w)
+  
+  return
+  
+ end subroutine apply_pbc_hvar
+ 
+ subroutine apply_pbc_east(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the east side
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk
+  
+  forall(kk=1:nbuff,j=1:ny,k=1:nz)
+    dtemp(nx+kk,j,k)=dtemp(kk,j,k)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_east
+ 
+ subroutine apply_pbc_west(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the west side
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk
+
+  forall(kk=1:nbuff,j=1:ny,k=1:nz)
+    dtemp(1-kk,j,k)=dtemp(nx+1-kk,j,k)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_west
+ 
+ subroutine apply_pbc_north(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the north side
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk
+  
+  forall(i=1:nx,j=1:ny,kk=1:nbuff)
+    dtemp(i,j,nz+kk)= dtemp(i,j,kk)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_north
+ 
+ subroutine apply_pbc_south(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the south side
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk
+  
+  forall(i=1:nx,j=1:ny,kk=1:nbuff)
+    dtemp(i,j,1-kk)=dtemp(i,j,nz+1-kk)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_south
+ 
+ subroutine apply_pbc_front(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the front side
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk
+  
+  forall(i=1:nx,kk=1:nbuff,k=1:nz)
+    dtemp(i,1-kk,k)= dtemp(i,ny+1-kk,k)
+  end forall
+
+  return
+  
+ end subroutine apply_pbc_front
+ 
+ subroutine apply_pbc_rear(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the rear side
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk
+  
+  forall(i=1:nx,kk=1:nbuff,k=1:nz)
+    dtemp(i,ny+kk,k)= dtemp(i,kk,k)
+  end forall
+
+  return
+  
+ end subroutine apply_pbc_rear
+ 
+ subroutine apply_pbc_edge_front_east(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the front east edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk
+  
+  forall(kkk=1:nbuff,kk=1:nbuff,k=1:nz)
+    dtemp(nx+kkk,1-kk,k)=dtemp(kkk,ny+1-kk,k)
+  end forall
+
+  return
+  
+ end subroutine apply_pbc_edge_front_east
+ 
+ subroutine apply_pbc_edge_front_west(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the front west edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk
+  
+  forall(kkk=1:nbuff,kk=1:nbuff,k=1:nz)
+    dtemp(1-kkk,1-kk,k)=dtemp(nx+1-kkk,ny+1-kk,k)
+  end forall
+
+  return
+  
+ end subroutine apply_pbc_edge_front_west
+ 
+ subroutine apply_pbc_edge_north_east(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the north east edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk
+  
+  forall(kkk=1:nbuff,j=1:ny,kk=1:nbuff)
+    dtemp(nx+kkk,j,nz+kk)=dtemp(kkk,j,kk)
+  end forall
+
+  return
+  
+ end subroutine apply_pbc_edge_north_east
+ 
+ subroutine apply_pbc_edge_north_front(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the north front edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk
+  
+  forall(i=1:nx,kkk=1:nbuff,kk=1:nbuff)
+    dtemp(i,1-kkk,nz+kk)=dtemp(i,ny+1-kkk,kk)
+  end forall
+
+  return
+  
+ end subroutine apply_pbc_edge_north_front
+ 
+ subroutine apply_pbc_edge_north_rear(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the north rear edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk
+  
+  forall(i=1:nx,kkk=1:nbuff,kk=1:nbuff)
+    dtemp(i,ny+kkk,nz+kk)= dtemp(i,kkk,kk)
+  end forall
+
+  return
+  
+ end subroutine apply_pbc_edge_north_rear
+ 
+ subroutine apply_pbc_edge_north_west(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the north west edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk
+  
+  forall(kkk=1:nbuff,j=1:ny,kk=1:nbuff)
+    dtemp(1-kkk,j,nz+kk)= dtemp(nx+1-kkk,j,kk)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_edge_north_west
+ 
+ subroutine apply_pbc_edge_rear_east(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the rear east edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk
+  
+  forall(kkk=1:nbuff,kk=1:nbuff,k=1:nz)
+    dtemp(nx+kkk,ny+kk,k)= dtemp(kkk,kk,k)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_edge_rear_east
+ 
+ subroutine apply_pbc_edge_rear_west(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the rear west edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk
+  
+  forall(kkk=1:nbuff,kk=1:nbuff,k=1:nz)
+    dtemp(1-kkk,ny+kk,k)=dtemp(nx+1-kkk,kk,k)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_edge_rear_west
+ 
+ subroutine apply_pbc_edge_south_east(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the south east edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk
+  
+  forall(kkk=1:nbuff,j=1:ny,kk=1:nbuff)
+    dtemp(nx+kkk,j,1-kk)=dtemp(kkk,j,nz+1-kk)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_edge_south_east
+ 
+ subroutine apply_pbc_edge_south_front(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the south east edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk
+  
+  forall(i=1:nx,kkk=1:nbuff,kk=1:nbuff)
+    dtemp(i,1-kkk,1-kk)=dtemp(i,ny+1-kkk,nz+1-kk)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_edge_south_front
+ 
+ subroutine apply_pbc_edge_south_rear(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the south rear edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk
+  
+  forall(i=1:nx,kkk=1:nbuff,kk=1:nbuff)
+    dtemp(i,ny+kkk,1-kk)=dtemp(i,kkk,nz+1-kk)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_edge_south_rear
+ 
+ subroutine apply_pbc_edge_south_west(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the south rear edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk
+  
+  forall(kkk=1:nbuff,j=1:ny,kk=1:nbuff)
+    dtemp(1-kkk,j,1-kk)=dtemp(nx+1-kkk,j,nz+1-kk)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_edge_south_west
+ 
+ subroutine apply_pbc_corner_north_east_front(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the north east front corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk,kkkk
+  
+  forall(kk=1:nbuff,kkk=1:nbuff,kkkk=1:nbuff)
+    dtemp(nx+kk,1-kkk,nz+kkkk)=dtemp(kk,ny+1-kkk,kkkk)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_corner_north_east_front
+ 
+ subroutine apply_pbc_corner_north_east_rear(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the north east rear corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk,kkkk
+  
+  forall(kk=1:nbuff,kkk=1:nbuff,kkkk=1:nbuff)
+    dtemp(nx+kk,ny+kkk,nz+kkkk)=dtemp(kk,kkk,kkkk)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_corner_north_east_rear
+ 
+ subroutine apply_pbc_corner_north_west_rear(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the north west rear corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk,kkkk
+  
+  forall(kk=1:nbuff,kkk=1:nbuff,kkkk=1:nbuff)
+    dtemp(1-kk,ny+kkk,nz+kkkk)=dtemp(nx+1-kk,kkk,kkkk)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_corner_north_west_rear
+ 
+ subroutine apply_pbc_corner_north_west_front(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the north west front corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk,kkkk
+  
+  forall(kk=1:nbuff,kkk=1:nbuff,kkkk=1:nbuff)
+    dtemp(1-kk,1-kkk,nz+kkkk)=dtemp(nx+1-kk,ny+1-kkk,kkkk)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_corner_north_west_front
+ 
+ subroutine apply_pbc_corner_south_east_front(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the south east front corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk,kkkk
+  
+  forall(kk=1:nbuff,kkk=1:nbuff,kkkk=1:nbuff)
+    dtemp(nx+kk,1-kkk,1-kkkk)=dtemp(kk,ny+1-kkk,nz+1-kkkk)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_corner_south_east_front
+ 
+ subroutine apply_pbc_corner_south_west_front(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the south west front corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk,kkkk
+  
+  forall(kk=1:nbuff,kkk=1:nbuff,kkkk=1:nbuff)
+    dtemp(1-kk,1-kkk,1-kkkk)=dtemp(nx+1-kk,ny+1-kkk,nz+1-kkkk)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_corner_south_west_front
+ 
+ subroutine apply_pbc_corner_south_west_rear(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     condition at the south west rear corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk,kkkk
+  
+  forall(kk=1:nbuff,kkk=1:nbuff,kkkk=1:nbuff)
+    dtemp(1-kk,ny+kkk,1-kkkk)=dtemp(nx+1-kk,kkk,nz+1-kkkk)
+  end forall
+  
+  return
+  
+ end subroutine apply_pbc_corner_south_west_rear
  
  end module fluids_mod
