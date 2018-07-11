@@ -47,9 +47,9 @@
                        time_world,time_world,finalize_world
   use profiling_mod,  only : get_memory
   use utility_mod,    only : init_random_seed
-  use fluids_mod,     only : allocate_fluids
+  use fluids_mod,     only : allocate_fluids,initialize_fluids
   use integrator_mod, only : initime,endtime,tstep,set_nstep, &
-                       update_nstep,nstep
+                       update_nstep,nstep,driver_integrator
   use io_mod
   
   
@@ -84,7 +84,7 @@
   call read_input(600,'input.dat')
   
 ! set the seed
-  call init_random_seed(317)
+  call init_random_seed(init_seed)
 
 ! allocate arrays of the nanofiber quantities
   call allocate_fluids
@@ -103,12 +103,11 @@
   
 ! initialize the time of the integration steps  
   mytime=initime
-  stop
   
 ! initialize and read the restart file if requested
   call initialize_fluids
-  !call read_restart_file(134,'restart.dat', &
-  ! nstep,mytime)
+  
+  
   
 ! open the  output 'statdat.dat' file and print first record on terminal
 ! and output file
@@ -131,10 +130,10 @@
     call update_nstep
     
 !   check recycle loop
-    lrecycle=((dble(nstep)*tstep)<endtime)
+    lrecycle=((real(nstep,kind=PRC)*tstep)<endtime)
     
 !   integrate the system
-    !call driver_integrator(mytime,tstep,nstep,ldorefinment)
+    call driver_integrator(mytime)
     
     
 !   compute statistical quanities

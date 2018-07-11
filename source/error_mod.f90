@@ -65,6 +65,11 @@
       case (8)
         write(outp,outf2)'ERROR - bad allocation in subroutine ', &
          'allocate_array_buffservice3d.'
+      case (9)
+        write(outp,outf)'ERROR - wrong boundary conditions read in input file.'
+      case (10)
+        write(outp,outf2)'ERROR - boundary conditions not found in input file! ', &
+         'please set them in input.'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select
@@ -109,6 +114,9 @@
       write (r_char,'(i10)')nint(ddata)
       write(outp,'(/,3a,/)')"WARNING - the allocation number ", &
        trim(adjustl(r_char))," exits with error"
+    case (3)
+      write(outp,'(/,2a,/)')"WARNING - only full preiodic boundary ", &
+      "conditions are actualy implemented"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

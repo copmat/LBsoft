@@ -19,7 +19,8 @@
  use fluids_mod,            only : nx,ny,nz,set_initial_dist_type, &
   set_mean_value_dens_fluids,set_stdev_value_dens_fluids,idistselect, &
   meanR,meanB,stdevR,stdevB,set_initial_dim_box,initial_u,initial_v, &
-  initial_w,set_mean_value_vel_fluids
+  initial_w,set_mean_value_vel_fluids,set_boundary_conditions_type, &
+  ibctype,set_value_ext_force_fluids,ext_fu,ext_fv,ext_fw
   
  implicit none
 
@@ -27,7 +28,7 @@
  
  integer, parameter :: maxlen=150
  
- 
+ integer, public, protected, save :: init_seed=317
  
  real(kind=PRC), public, save :: timcls=0.d0
  real(kind=PRC), public, save :: timjob=0.d0
@@ -201,6 +202,11 @@
   integer :: temp_nx=0
   integer :: temp_ny=0
   integer :: temp_nz=0
+  integer :: temp_ibcx=0
+  integer :: temp_ibcy=0
+  integer :: temp_ibcz=0
+  logical :: temp_ibc=.false.
+  logical :: linit_seed=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -208,6 +214,9 @@
   real(kind=PRC) :: dtemp_initial_u = ZERO
   real(kind=PRC) :: dtemp_initial_v = ZERO
   real(kind=PRC) :: dtemp_initial_w = ZERO
+  real(kind=PRC) :: dtemp_ext_fu = ZERO
+  real(kind=PRC) :: dtemp_ext_fv = ZERO
+  real(kind=PRC) :: dtemp_ext_fw = ZERO
   real(kind=PRC) :: prntim = ZERO
   
   integer, parameter :: dimprint=28
@@ -288,6 +297,16 @@
                   call error(6)
                 endif
               endif
+            elseif(findstring('bound',directive,inumchar,maxlen))then
+              if(findstring('cond',directive,inumchar,maxlen))then
+                temp_ibc=.true.
+                temp_ibcx=intstr(directive,maxlen,inumchar)
+                temp_ibcy=intstr(directive,maxlen,inumchar)
+                temp_ibcz=intstr(directive,maxlen,inumchar)
+              endif
+            elseif(findstring('seed',directive,inumchar,maxlen))then
+              init_seed=intstr(directive,maxlen,inumchar)
+              linit_seed=.true.
             elseif(findstring('close time',directive,inumchar,maxlen))then
               timcls=dblstr(directive,maxlen,inumchar)
             elseif(findstring('box',directive,inumchar,maxlen))then
@@ -345,6 +364,15 @@
                 call warning(1,dble(iline),redstring)
                 call error(6)
               endif
+            elseif(findstring('ext',directive,inumchar,maxlen))then
+              if(findstring('force',directive,inumchar,maxlen))then
+                dtemp_ext_fu=dblstr(directive,maxlen,inumchar)
+                dtemp_ext_fv=dblstr(directive,maxlen,inumchar)
+                dtemp_ext_fw=dblstr(directive,maxlen,inumchar)
+              else
+                call warning(1,dble(iline),redstring)
+                call error(6)
+              endif
             elseif(findstring('[end room',directive,inumchar,maxlen))then
               lredo2=.false.
             elseif(findstring('[end',directive,inumchar,maxlen))then
@@ -390,6 +418,30 @@
     endif
   else
     call error(3)
+  endif
+  
+  call bcast_world(temp_ibc)
+  call bcast_world(temp_ibcx)
+  call bcast_world(temp_ibcy)
+  call bcast_world(temp_ibcz)
+  if(.not. temp_ibc)call error(10)
+  call set_boundary_conditions_type(temp_ibcx,temp_ibcy,temp_ibcz)
+  ! check only full periodic
+  if(ibctype.ne.7)then
+    call warning(3)
+    call error(9)
+  endif
+  if(idrank==0)then
+    mystring=repeat(' ',dimprint)
+    mystring='boundary conditions'
+    write(6,'(2a,3i8)')mystring,": ",temp_ibcx,temp_ibcy,temp_ibcz
+  endif
+  
+  call bcast_world(init_seed)
+  if(linit_seed)then
+    mystring=repeat(' ',dimprint)
+    mystring='initial random seed'
+    write(6,'(2a,i8)')mystring,": ",init_seed
   endif
   
   if(.not. ltimjob)then
@@ -455,6 +507,20 @@
       mystring=repeat(' ',dimprint)
       mystring='initial velocity mean values'
       write(6,'(2a,3f16.8)')mystring,": ",initial_u,initial_v,initial_w
+    endif
+  endif
+  
+  call bcast_world(dtemp_ext_fu)
+  call bcast_world(dtemp_ext_fv)
+  call bcast_world(dtemp_ext_fw)
+  if(dtemp_ext_fu/=ZERO .or. dtemp_ext_fv/=ZERO .or. &
+   dtemp_ext_fw/=ZERO)then
+    call set_value_ext_force_fluids(dtemp_ext_fu,dtemp_ext_fv, &
+     dtemp_ext_fw)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='external force on fluids'
+      write(6,'(2a,3f16.8)')mystring,": ",ext_fu,ext_fv,ext_fw
     endif
   endif
   

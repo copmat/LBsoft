@@ -14,7 +14,7 @@
 !     
 !***********************************************************************
  
- use version_mod, only : idrank
+ use version_mod, only : idrank,or_world_larr
  use error_mod
  
  implicit none
@@ -170,6 +170,7 @@
    imiomax_y,imiomin_z,imiomax_z
    
   integer :: ierr
+  logical, dimension(1) :: ltest=.false.
   
   if(allocated(buffservice3d))then
     if(imiomax_x>nbuffservice_x .or. imiomax_y>nbuffservice_y .or. &
@@ -180,9 +181,10 @@
       nbuffservice_z=imiomax_z+100
       allocate(buffservice3d(imiomin_x:nbuffservice_x,imiomin_y:nbuffservice_y, &
        imiomin_z:nbuffservice_z),stat=ierr)
+      ltest=.false.
       if(ierr.ne.0)then
         call warning(2,dble(1))
-        call error(8)
+        ltest=.true.
       endif
     endif
   else
@@ -191,11 +193,15 @@
     nbuffservice_z=imiomax_z+100
     allocate(buffservice3d(imiomin_x:nbuffservice_x,imiomin_y:nbuffservice_y, &
      imiomin_z:nbuffservice_z),stat=ierr)
+    ltest=.false.
     if(ierr.ne.0)then
       call warning(2,dble(1))
-      call error(8)
+      ltest=.true.
     endif
   endif
+  
+  call or_world_larr(ltest,1)
+  if(ltest(1))call error(8)
   
   return
   
