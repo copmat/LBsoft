@@ -15,7 +15,11 @@
  use version_mod,    only : idrank
  use error_mod
  use fluids_mod, only : initialize_fluid_force,compute_fluid_force_sc, &
-                        collision_fluids,driver_bc_hvars,driver_bc_pops
+                        collision_fluids,driver_bc_hvars,driver_bc_pops,&
+                        collision_fluids_unique_omega,lunique_omega, &
+                        compute_omega_bimix,streaming_fluids, &
+                        moments_fluids
+ use io_vtk_mod, only : write_vtk_frame
  
  implicit none
 
@@ -98,21 +102,26 @@
  
   new_time = real(nstep,kind=PRC)*tstep
   
+  call moments_fluids
+  
   call driver_bc_hvars
   
   call initialize_fluid_force
   
   call compute_fluid_force_sc
   
-  !output
+  call write_vtk_frame(nstep)
   
-  call collision_fluids
+  if(lunique_omega)then
+    call collision_fluids_unique_omega
+  else
+    call compute_omega_bimix
+    call collision_fluids
+  endif
   
   call driver_bc_pops
   
-  !call streaming
-  
-  !call moments
+  call streaming_fluids
   
   mytime = new_time
   

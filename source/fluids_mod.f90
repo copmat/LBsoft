@@ -37,28 +37,30 @@
  logical, save, protected, public :: lalloc_pops=.false.
  
  logical, save, protected, public :: lforce_add=.false.
+ logical, save, protected, public :: lpair_SC=.false.
+ 
+ logical, save, protected, public :: lunique_omega=.false.
  
  real(kind=PRC), save, protected, public :: t_LB = ONE
  
- real(kind=PRC), save, protected, public :: beta   = ZERO
- real(kind=PRC), save, protected, public :: akl    = ZERO
- real(kind=PRC), save, protected, public :: awall  = ZERO
- real(kind=PRC), save, protected, public :: tauR   = ZERO
- real(kind=PRC), save, protected, public :: tauB   = ZERO
- real(kind=PRC), save, protected, public :: omegaR = ZERO
- real(kind=PRC), save, protected, public :: omegaB = ZERO
- real(kind=PRC), save, protected, public :: viscR  = ZERO
- real(kind=PRC), save, protected, public :: viscB  = ZERO
- real(kind=PRC), save, protected, public :: meanR  = ZERO
- real(kind=PRC), save, protected, public :: meanB  = ZERO
- real(kind=PRC), save, protected, public :: stdevR  = ZERO
- real(kind=PRC), save, protected, public :: stdevB  = ZERO
- real(kind=PRC), save, protected, public :: initial_u = ZERO
- real(kind=PRC), save, protected, public :: initial_v = ZERO
- real(kind=PRC), save, protected, public :: initial_w = ZERO
- real(kind=PRC), save, protected, public :: ext_fu = ZERO
- real(kind=PRC), save, protected, public :: ext_fv = ZERO
- real(kind=PRC), save, protected, public :: ext_fw = ZERO
+ real(kind=PRC), save, protected, public :: beta         = ZERO
+ real(kind=PRC), save, protected, public :: akl          = ZERO
+ real(kind=PRC), save, protected, public :: awall        = ZERO
+ real(kind=PRC), save, protected, public :: tauR         = ZERO
+ real(kind=PRC), save, protected, public :: tauB         = ZERO
+ real(kind=PRC), save, protected, public :: unique_omega = ZERO
+ real(kind=PRC), save, protected, public :: viscR        = ZERO
+ real(kind=PRC), save, protected, public :: viscB        = ZERO
+ real(kind=PRC), save, protected, public :: meanR        = ZERO
+ real(kind=PRC), save, protected, public :: meanB        = ZERO
+ real(kind=PRC), save, protected, public :: stdevR       = ZERO
+ real(kind=PRC), save, protected, public :: stdevB       = ZERO
+ real(kind=PRC), save, protected, public :: initial_u    = ZERO
+ real(kind=PRC), save, protected, public :: initial_v    = ZERO
+ real(kind=PRC), save, protected, public :: initial_w    = ZERO
+ real(kind=PRC), save, protected, public :: ext_fu       = ZERO
+ real(kind=PRC), save, protected, public :: ext_fv       = ZERO
+ real(kind=PRC), save, protected, public :: ext_fw       = ZERO
  
  real(kind=PRC), save, protected, public :: pair_SC = ZERO
  
@@ -150,7 +152,14 @@
  public :: set_value_ext_force_fluids
  public :: compute_fluid_force_sc
  public :: collision_fluids
+ public :: collision_fluids_unique_omega
  public :: driver_bc_hvars
+ public :: set_fluid_force_sc
+ public :: set_value_viscosity
+ public :: set_value_tau
+ public :: compute_omega_bimix
+ public :: streaming_fluids
+ public :: moments_fluids
  
  contains
  
@@ -774,6 +783,129 @@
   return
   
  end subroutine set_mean_value_vel_fluids
+ 
+ subroutine set_fluid_force_sc(ltemp1,dtemp1)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the value of the pair ShanChen 
+!     force constant
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(in) :: ltemp1
+  real(kind=PRC), intent(in) :: dtemp1
+  
+  lpair_SC = ltemp1
+  pair_SC = dtemp1
+  
+  return
+  
+ end subroutine set_fluid_force_sc
+ 
+ subroutine set_value_viscosity(dtemp1,dtemp2)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the viscosity value and the relaxation 
+!     time tau
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2
+  
+  if(dtemp1==dtemp2)then
+    lunique_omega=.true.
+    viscR=dtemp1
+    viscB=dtemp2
+    tauR=viscR/cssq+HALF
+    tauB=viscB/cssq+HALF
+    unique_omega = viscosity_to_omega(viscR)
+  else
+    lunique_omega=.false.
+    viscR=dtemp1
+    viscB=dtemp2
+    tauR=viscR/cssq+HALF
+    tauB=viscB/cssq+HALF
+  endif
+  
+  return
+  
+ end subroutine set_value_viscosity
+ 
+ subroutine set_value_tau(dtemp1,dtemp2)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the relaxation taime tau value and 
+!     the viscosity
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2
+  
+  if(dtemp1==dtemp2)then
+    lunique_omega=.true.
+    tauR=dtemp1
+    tauB=dtemp2
+    viscR=cssq*(tauR-HALF)
+    viscB=cssq*(tauB-HALF)
+    unique_omega = viscosity_to_omega(viscR)
+  else
+    lunique_omega=.false.
+    tauR=dtemp1
+    tauB=dtemp2
+    viscR=cssq*(tauR-HALF)
+    viscB=cssq*(tauB-HALF)
+  endif
+  
+  return
+  
+ end subroutine set_value_tau
+ 
+ pure function viscosity_to_omega(dtemp1)
+ 
+!***********************************************************************
+!     
+!     LBsoft function to convert the viscosity to omega
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp1
+  
+  real(kind=PRC), parameter :: myfactor = TWO / cssq
+  
+  real(kind=PRC) :: viscosity_to_omega
+  
+  viscosity_to_omega = TWO / ( myfactor * dtemp1 + ONE )
+  
+  return
+ 
+ end function viscosity_to_omega
  
  subroutine driver_bc_hvars
  
@@ -3715,7 +3847,6 @@
   !occhio gli zeri su dex dey dez andrebbero tolti con pazienza
   forall(i=1:nx,j=1:ny,k=1:nz)
     mygradx(i,j,k)= &
-     myarr(i+ex(0),j+ey(0),k+ez(0))*p(0)*dex(0)+ & !00
      myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dex(1)+ & !01
      myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dex(2)+ & !02
      myarr(i+ex(3),j+ey(3),k+ez(3))*p(3)*dex(3)+ & !03
@@ -3738,7 +3869,6 @@
   
   forall(i=1:nx,j=1:ny,k=1:nz)
     mygrady(i,j,k)= &
-     myarr(i+ex(0),j+ey(0),k+ez(0))*p(0)*dey(0)+ & !00
      myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dey(1)+ & !01
      myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dey(2)+ & !02
      myarr(i+ex(3),j+ey(3),k+ez(3))*p(3)*dey(3)+ & !03
@@ -3761,7 +3891,6 @@
   
   forall(i=1:nx,j=1:ny,k=1:nz)
     mygradz(i,j,k)= &
-     myarr(i+ex(0),j+ey(0),k+ez(0))*p(0)*dez(0)+ & !00
      myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dez(1)+ & !01
      myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dez(2)+ & !02
      myarr(i+ex(3),j+ey(3),k+ez(3))*p(3)*dez(3)+ & !03
@@ -4240,5 +4369,1310 @@
   return
   
  end subroutine collision_fluids
+ 
+ subroutine collision_fluids_unique_omega
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the collisional step
+!     on the Boltzmann populations with a constant omega value
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer :: i,j,k
+  
+  if(lforce_add)then
+    
+    call convert_fluid_force_to_velshifted
+    
+    !red fluid
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f00R(i,j,k)=(ONE-unique_omega)*f00R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop00(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop00(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f01R(i,j,k)=(ONE-unique_omega)*f01R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop01(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop01(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f02R(i,j,k)=(ONE-unique_omega)*f02R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop02(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop02(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f03R(i,j,k)=(ONE-unique_omega)*f03R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop03(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop03(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f04R(i,j,k)=(ONE-unique_omega)*f04R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop04(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop04(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f05R(i,j,k)=(ONE-unique_omega)*f05R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop05(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop05(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f06R(i,j,k)=(ONE-unique_omega)*f06R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop06(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop06(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f07R(i,j,k)=(ONE-unique_omega)*f07R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop07(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop07(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f08R(i,j,k)=(ONE-unique_omega)*f08R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop08(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop08(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f09R(i,j,k)=(ONE-unique_omega)*f09R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop09(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop09(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f10R(i,j,k)=(ONE-unique_omega)*f10R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop10(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop10(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f11R(i,j,k)=(ONE-unique_omega)*f11R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop11(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop11(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f12R(i,j,k)=(ONE-unique_omega)*f12R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop12(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop12(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f13R(i,j,k)=(ONE-unique_omega)*f13R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop13(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop13(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f14R(i,j,k)=(ONE-unique_omega)*f14R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop14(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop14(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f15R(i,j,k)=(ONE-unique_omega)*f15R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop15(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop15(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f16R(i,j,k)=(ONE-unique_omega)*f16R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop16(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop16(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f17R(i,j,k)=(ONE-unique_omega)*f17R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop17(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop17(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f18R(i,j,k)=(ONE-unique_omega)*f18R(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop18(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop18(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
+    end forall
+    
+    !blue fluid
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f00B(i,j,k)=(ONE-unique_omega)*f00B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop00(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop00(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f01B(i,j,k)=(ONE-unique_omega)*f01B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop01(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop01(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f02B(i,j,k)=(ONE-unique_omega)*f02B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop02(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop02(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f03B(i,j,k)=(ONE-unique_omega)*f03B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop03(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop03(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f04B(i,j,k)=(ONE-unique_omega)*f04B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop04(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop04(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f05B(i,j,k)=(ONE-unique_omega)*f05B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop05(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop05(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f06B(i,j,k)=(ONE-unique_omega)*f06B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop06(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop06(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f07B(i,j,k)=(ONE-unique_omega)*f07B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop07(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop07(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f08B(i,j,k)=(ONE-unique_omega)*f08B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop08(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop08(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f09B(i,j,k)=(ONE-unique_omega)*f09B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop09(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop09(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f10B(i,j,k)=(ONE-unique_omega)*f10B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop10(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop10(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f11B(i,j,k)=(ONE-unique_omega)*f11B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop11(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop11(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f12B(i,j,k)=(ONE-unique_omega)*f12B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop12(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop12(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f13B(i,j,k)=(ONE-unique_omega)*f13B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop13(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop13(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f14B(i,j,k)=(ONE-unique_omega)*f14B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop14(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop14(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f15B(i,j,k)=(ONE-unique_omega)*f15B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop15(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop15(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f16B(i,j,k)=(ONE-unique_omega)*f16B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop16(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop16(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f17B(i,j,k)=(ONE-unique_omega)*f17B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop17(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop17(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f18B(i,j,k)=(ONE-unique_omega)*f18B(i,j,k)+ (unique_omega-ONE)* &
+       equil_pop18(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))+ &
+       equil_pop18(rhoB(i,j,k),fuB(i,j,k),fvB(i,j,k),fwB(i,j,k))
+    end forall
+     
+  else
+
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f00R(i,j,k)=f00R(i,j,k)+unique_omega* &
+       (equil_pop00(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f00R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f01R(i,j,k)=f01R(i,j,k)+unique_omega* &
+       (equil_pop01(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f01R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f02R(i,j,k)=f02R(i,j,k)+unique_omega* &
+       (equil_pop02(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f02R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f03R(i,j,k)=f03R(i,j,k)+unique_omega* &
+       (equil_pop03(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f03R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f04R(i,j,k)=f04R(i,j,k)+unique_omega* &
+       (equil_pop04(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f04R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f05R(i,j,k)=f05R(i,j,k)+unique_omega* &
+       (equil_pop05(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f05R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f06R(i,j,k)=f06R(i,j,k)+unique_omega* &
+       (equil_pop06(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f06R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f07R(i,j,k)=f07R(i,j,k)+unique_omega* &
+       (equil_pop07(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f07R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f08R(i,j,k)=f08R(i,j,k)+unique_omega* &
+       (equil_pop08(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f08R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f09R(i,j,k)=f09R(i,j,k)+unique_omega* &
+       (equil_pop09(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f09R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f10R(i,j,k)=f10R(i,j,k)+unique_omega* &
+       (equil_pop10(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f10R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f11R(i,j,k)=f11R(i,j,k)+unique_omega* &
+       (equil_pop11(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f11R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f12R(i,j,k)=f12R(i,j,k)+unique_omega* &
+       (equil_pop12(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f12R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f13R(i,j,k)=f13R(i,j,k)+unique_omega* &
+       (equil_pop13(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f13R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f14R(i,j,k)=f14R(i,j,k)+unique_omega* &
+       (equil_pop14(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f14R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f15R(i,j,k)=f15R(i,j,k)+unique_omega* &
+       (equil_pop15(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f15R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f16R(i,j,k)=f16R(i,j,k)+unique_omega* &
+       (equil_pop16(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f16R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f17R(i,j,k)=f17R(i,j,k)+unique_omega* &
+       (equil_pop17(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f17R(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f18R(i,j,k)=f18R(i,j,k)+unique_omega* &
+       (equil_pop18(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f18R(i,j,k))
+    end forall
+    
+    !blue fluid
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f00B(i,j,k)=f00B(i,j,k)+unique_omega* &
+       (equil_pop00(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f00B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f01B(i,j,k)=f01B(i,j,k)+unique_omega* &
+       (equil_pop01(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f01B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f02B(i,j,k)=f02B(i,j,k)+unique_omega* &
+       (equil_pop02(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f02B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f03B(i,j,k)=f03B(i,j,k)+unique_omega* &
+       (equil_pop03(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f03B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f04B(i,j,k)=f04B(i,j,k)+unique_omega* &
+       (equil_pop04(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f04B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f05B(i,j,k)=f05B(i,j,k)+unique_omega* &
+       (equil_pop05(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f05B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f06B(i,j,k)=f06B(i,j,k)+unique_omega* &
+       (equil_pop06(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f06B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f07B(i,j,k)=f07B(i,j,k)+unique_omega* &
+       (equil_pop07(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f07B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f08B(i,j,k)=f08B(i,j,k)+unique_omega* &
+       (equil_pop08(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f08B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f09B(i,j,k)=f09B(i,j,k)+unique_omega* &
+       (equil_pop09(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f09B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f10B(i,j,k)=f10B(i,j,k)+unique_omega* &
+       (equil_pop10(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f10B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f11B(i,j,k)=f11B(i,j,k)+unique_omega* &
+       (equil_pop11(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f11B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f12B(i,j,k)=f12B(i,j,k)+unique_omega* &
+       (equil_pop12(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f12B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f13B(i,j,k)=f13B(i,j,k)+unique_omega* &
+       (equil_pop13(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f13B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f14B(i,j,k)=f14B(i,j,k)+unique_omega* &
+       (equil_pop14(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f14B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f15B(i,j,k)=f15B(i,j,k)+unique_omega* &
+       (equil_pop15(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f15B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f16B(i,j,k)=f16B(i,j,k)+unique_omega* &
+       (equil_pop16(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f16B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f17B(i,j,k)=f17B(i,j,k)+unique_omega* &
+       (equil_pop17(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f17B(i,j,k))
+    end forall
+    
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      f18B(i,j,k)=f18B(i,j,k)+unique_omega* &
+       (equil_pop18(rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f18B(i,j,k))
+    end forall
+  
+  endif
+  
+  return
+  
+ end subroutine collision_fluids_unique_omega
+ 
+ subroutine compute_omega_bimix
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for computing the relative omega of a
+!     bi-component fluid system
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer :: i,j,k
+  
+  real(kind=PRC) :: dtemp1
+  
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    omega(i,j,k)=viscosity_to_omega( &
+     ONE/((rhoR(i,j,k)/(rhoB(i,j,k)+rhoR(i,j,k)))*(ONE/viscR) + &
+     (rhoB(i,j,k)/(rhoB(i,j,k)+rhoR(i,j,k)))*(ONE/viscB)) )
+  end forall
+  
+  return
+  
+ end subroutine compute_omega_bimix
+ 
+ subroutine streaming_fluids
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the streaming step
+!     on the Boltzmann populations
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer :: i,j,k,l,ishift,jshift,kshift
+  
+  !red fluid
+  
+  l=0
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f00R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f00R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=1
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f01R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f01R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=2
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f02R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f02R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=3
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f03R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f03R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=4
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f04R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f04R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=5
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f05R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f05R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=6
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f06R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f06R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=7
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f07R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f07R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=8
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f08R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f08R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=9
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f09R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f09R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=10
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f10R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f10R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=11
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f11R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f11R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=12
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f12R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f12R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=13
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f13R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f13R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=14
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f14R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f14R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=15
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f15R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f15R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=16
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f16R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f16R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=17
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f17R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f17R(i,j,k) = buffservice3d(i,j,k)
+  
+  l=18
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f18R(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f18R(i,j,k) = buffservice3d(i,j,k)
+  
+  !blue fluid
+  
+  l=0
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f00B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f00B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=1
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f01B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f01B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=2
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f02B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f02B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=3
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f03B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f03B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=4
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f04B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f04B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=5
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f05B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f05B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=6
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f06B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f06B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=7
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f07B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f07B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=8
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f08B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f08B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=9
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f09B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f09B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=10
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f10B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f10B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=11
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f11B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f11B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=12
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f12B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f12B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=13
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f13B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f13B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=14
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f14B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f14B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=15
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f15B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f15B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=16
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f16B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f16B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=17
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f17B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f17B(i,j,k) = buffservice3d(i,j,k)
+  
+  l=18
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f18B(i,j,k)
+  end forall
+  forall(i=1:nx,j=1:ny,k=1:nz)f18B(i,j,k) = buffservice3d(i,j,k)
+  
+  return
+  
+ end subroutine streaming_fluids
+ 
+ subroutine moments_fluids
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for computing the moments on the 
+!     Boltzmann populations and estimate the hydrodynamic variables
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer :: i,j,k,l
+  
+  real(kind=PRC) :: ddx,ddy,ddz
+  
+  integer :: ishift,jshift,kshift
+  
+  !compute density and accumulate mass flux
+  
+  !red fluid
+  
+  l=0
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f00R(i,j,k)
+    u(i,j,k)    = f00R(i,j,k)*ddx
+    v(i,j,k)    = f00R(i,j,k)*ddy
+    w(i,j,k)    = f00R(i,j,k)*ddz
+  end forall
+  
+  l=1
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f01R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f01R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f01R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f01R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=2
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f02R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f02R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f02R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f02R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=3
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f03R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f03R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f03R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f03R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=4
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f04R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f04R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f04R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f04R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=5
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f05R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f05R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f05R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f05R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=6
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f06R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f06R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f06R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f06R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=7
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f07R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f07R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f07R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f07R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=8
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f08R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f08R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f08R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f08R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=9
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f09R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f09R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f09R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f09R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=10
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f10R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f10R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f10R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f10R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=11
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f11R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f11R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f11R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f11R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=12
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f12R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f12R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f12R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f12R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=13
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f13R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f13R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f13R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f13R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=14
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f14R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f14R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f14R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f14R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=15
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f15R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f15R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f15R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f15R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=16
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f16R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f16R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f16R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f16R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=17
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f17R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f17R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f17R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f17R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=18
+  ddx=dex(l)/tauR
+  ddy=dey(l)/tauR
+  ddz=dez(l)/tauR
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoR(i,j,k) = f18R(i,j,k) + rhoR(i,j,k)
+    u(i,j,k)    = f18R(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f18R(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f18R(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  !blue fluid
+  
+  l=0
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f00B(i,j,k)
+    u(i,j,k)    = f00B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f00B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f00B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=1
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f01B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f01B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f01B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f01B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=2
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f02B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f02B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f02B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f02B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=3
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f03B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f03B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f03B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f03B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=4
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f04B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f04B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f04B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f04B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=5
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f05B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f05B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f05B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f05B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=6
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f06B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f06B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f06B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f06B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=7
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f07B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f07B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f07B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f07B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=8
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f08B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f08B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f08B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f08B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=9
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f09B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f09B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f09B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f09B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=10
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f10B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f10B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f10B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f10B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=11
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f11B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f11B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f11B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f11B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=12
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f12B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f12B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f12B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f12B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=13
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f13B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f13B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f13B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f13B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=14
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f14B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f14B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f14B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f14B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=15
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f15B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f15B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f15B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f15B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=16
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f16B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f16B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f16B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f16B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=17
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f17B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f17B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f17B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f17B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  l=18
+  ddx=dex(l)/tauB
+  ddy=dey(l)/tauB
+  ddz=dez(l)/tauB
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    rhoB(i,j,k) = f18B(i,j,k) + rhoB(i,j,k)
+    u(i,j,k)    = f18B(i,j,k)*ddx + u(i,j,k)
+    v(i,j,k)    = f18B(i,j,k)*ddy + v(i,j,k)
+    w(i,j,k)    = f18B(i,j,k)*ddz + w(i,j,k)
+  end forall
+  
+  !compute speed from mass flux
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    u(i,j,k) = u(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
+    v(i,j,k) = v(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
+    w(i,j,k) = w(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
+  end forall
+    
+  return
+ 
+ end subroutine moments_fluids
  
  end module fluids_mod

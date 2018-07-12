@@ -117,6 +117,9 @@
     case (3)
       write(outp,'(/,2a,/)')"WARNING - only full preiodic boundary ", &
       "conditions are actualy implemented"
+    case (4)
+      write(outp,'(/,2a,/)')"WARNING - viscosity or relaxation ", &
+      "time tau have to be defined in input file"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

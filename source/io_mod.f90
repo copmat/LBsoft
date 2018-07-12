@@ -20,7 +20,10 @@
   set_mean_value_dens_fluids,set_stdev_value_dens_fluids,idistselect, &
   meanR,meanB,stdevR,stdevB,set_initial_dim_box,initial_u,initial_v, &
   initial_w,set_mean_value_vel_fluids,set_boundary_conditions_type, &
-  ibctype,set_value_ext_force_fluids,ext_fu,ext_fv,ext_fw
+  ibctype,set_value_ext_force_fluids,ext_fu,ext_fv,ext_fw,lpair_SC, &
+  pair_SC,set_fluid_force_sc,set_value_viscosity,set_value_tau, &
+  viscR,viscB,tauR,tauB,lunique_omega
+  
   
  implicit none
 
@@ -207,6 +210,9 @@
   integer :: temp_ibcz=0
   logical :: temp_ibc=.false.
   logical :: linit_seed=.false.
+  logical :: temp_lpair_SC=.false.
+  logical :: lvisc=.false.
+  logical :: ltau=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -218,9 +224,16 @@
   real(kind=PRC) :: dtemp_ext_fv = ZERO
   real(kind=PRC) :: dtemp_ext_fw = ZERO
   real(kind=PRC) :: prntim = ZERO
+  real(kind=PRC) :: temp_pair_SC = ZERO
+  real(kind=PRC) :: dtemp_viscR = ZERO
+  real(kind=PRC) :: dtemp_viscB = ZERO
+  real(kind=PRC) :: dtemp_tauR = ZERO
+  real(kind=PRC) :: dtemp_tauB = ZERO
   
-  integer, parameter :: dimprint=28
+  integer, parameter :: dimprint=36
+  integer, parameter :: dimprint2=12
   character(len=dimprint) :: mystring
+  character(len=dimprint2) :: mystring12
     
 ! initialize parameters  
 
@@ -364,15 +377,31 @@
                 call warning(1,dble(iline),redstring)
                 call error(6)
               endif
-            elseif(findstring('ext',directive,inumchar,maxlen))then
-              if(findstring('force',directive,inumchar,maxlen))then
+            elseif(findstring('force',directive,inumchar,maxlen))then
+              if(findstring('ext',directive,inumchar,maxlen))then
                 dtemp_ext_fu=dblstr(directive,maxlen,inumchar)
                 dtemp_ext_fv=dblstr(directive,maxlen,inumchar)
                 dtemp_ext_fw=dblstr(directive,maxlen,inumchar)
+              elseif(findstring('shanc',directive,inumchar,maxlen))then
+                if(findstring('pair',directive,inumchar,maxlen))then
+                  temp_lpair_SC=.true.
+                  temp_pair_SC=dblstr(directive,maxlen,inumchar)
+                else
+                  call warning(1,dble(iline),redstring)
+                  call error(6)
+                endif
               else
                 call warning(1,dble(iline),redstring)
                 call error(6)
               endif
+            elseif(findstring('visc',directive,inumchar,maxlen))then
+              lvisc=.true.
+              dtemp_viscR=dblstr(directive,maxlen,inumchar)
+              dtemp_viscB=dblstr(directive,maxlen,inumchar)
+            elseif(findstring('tau',directive,inumchar,maxlen))then
+              ltau=.true.
+              dtemp_tauR=dblstr(directive,maxlen,inumchar)
+              dtemp_tauB=dblstr(directive,maxlen,inumchar)
             elseif(findstring('[end room',directive,inumchar,maxlen))then
               lredo2=.false.
             elseif(findstring('[end',directive,inumchar,maxlen))then
@@ -414,7 +443,7 @@
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='system dimensions'
-      write(6,'(2a,3i8)')mystring,": ",nx,ny,nz
+      write(6,'(2a,3i12)')mystring,": ",nx,ny,nz
     endif
   else
     call error(3)
@@ -434,14 +463,14 @@
   if(idrank==0)then
     mystring=repeat(' ',dimprint)
     mystring='boundary conditions'
-    write(6,'(2a,3i8)')mystring,": ",temp_ibcx,temp_ibcy,temp_ibcz
+    write(6,'(2a,3i12)')mystring,": ",temp_ibcx,temp_ibcy,temp_ibcz
   endif
   
   call bcast_world(init_seed)
   if(linit_seed)then
     mystring=repeat(' ',dimprint)
     mystring='initial random seed'
-    write(6,'(2a,i8)')mystring,": ",init_seed
+    write(6,'(2a,i12)')mystring,": ",init_seed
   endif
   
   if(.not. ltimjob)then
@@ -452,15 +481,48 @@
       call get_prntime(hms,timjob,prntim)
       mystring=repeat(' ',dimprint)
       mystring="user allocated job time ("//hms//") "
-      write(6,'(2a,f8.4)')mystring,": ",prntim
+      write(6,'(2a,f12.6)')mystring,": ",prntim
       mystring=repeat(' ',dimprint)
       mystring='job closure time (s) '
-      write(6,'(2a,f8.4)')mystring,": ",timcls
+      write(6,'(2a,f12.6)')mystring,": ",timcls
     endif
   endif
   
   if(idrank==0)then
     write(6,'(/,3a,/)')repeat('*',29),"parameters of LB room",repeat('*',29)
+  endif
+  
+  call bcast_world(lvisc)
+  call bcast_world(ltau)
+  if(.not. (lvisc.or.ltau))then
+    call warning(4)
+    call error(7)
+  endif
+  if(lvisc)then
+    call bcast_world(dtemp_viscR)
+    call bcast_world(dtemp_viscB)
+    call set_value_viscosity(dtemp_viscR,dtemp_viscB)
+  else
+    call bcast_world(dtemp_tauR)
+    call bcast_world(dtemp_tauB)
+    call set_value_tau(dtemp_tauR,dtemp_tauB)
+  endif
+  
+  if(idrank==0)then
+    mystring=repeat(' ',dimprint)
+    mystring='fluid viscosity'
+    write(6,'(2a,2f12.6)')mystring,": ",viscR,viscB
+    mystring=repeat(' ',dimprint)
+    mystring='fluid tau'
+    write(6,'(2a,2f12.6)')mystring,": ",tauR,tauB
+    if(lunique_omega)then
+      mystring=repeat(' ',dimprint)
+      mystring='constant omega mode'
+      mystring12=repeat(' ',dimprint2)
+      mystring12='yes'
+      mystring12=adjustr(mystring12)
+      write(6,'(3a)')mystring,": ",mystring12
+    endif
   endif
   
   call bcast_world(temp_idistselect)
@@ -469,7 +531,12 @@
     if(idrank==0)then
       select case(idistselect)
       case(1)
-        write(6,'(a)')"initial density distribution: gaussian"
+        mystring=repeat(' ',dimprint)
+        mystring='initial density distribution'
+        mystring12=repeat(' ',dimprint2)
+        mystring12='gaussian'
+        mystring12=adjustr(mystring12)
+        write(6,'(3a)')mystring,": ",mystring12
       end select
     endif
   endif
@@ -481,7 +548,7 @@
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='initial density mean values'
-      write(6,'(2a,2f16.8)')mystring,": ",meanR,meanB
+      write(6,'(2a,2f12.6)')mystring,": ",meanR,meanB
     endif
   endif
   
@@ -492,7 +559,7 @@
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='initial density stdev values'
-      write(6,'(2a,2f16.8)')mystring,": ",stdevR,stdevB
+      write(6,'(2a,2f12.6)')mystring,": ",stdevR,stdevB
     endif
   endif
   
@@ -506,7 +573,7 @@
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='initial velocity mean values'
-      write(6,'(2a,3f16.8)')mystring,": ",initial_u,initial_v,initial_w
+      write(6,'(2a,3f12.6)')mystring,": ",initial_u,initial_v,initial_w
     endif
   endif
   
@@ -520,7 +587,18 @@
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='external force on fluids'
-      write(6,'(2a,3f16.8)')mystring,": ",ext_fu,ext_fv,ext_fw
+      write(6,'(2a,3f12.6)')mystring,": ",ext_fu,ext_fv,ext_fw
+    endif
+  endif
+  
+  call bcast_world(temp_lpair_SC)
+  call bcast_world(temp_pair_SC)
+  if(temp_lpair_SC)then
+    call set_fluid_force_sc(temp_lpair_SC,temp_pair_SC)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='pair SC force constant on fluids'
+      write(6,'(2a,f12.6)')mystring,": ",pair_SC
     endif
   endif
   
