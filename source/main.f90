@@ -88,11 +88,6 @@
 
 ! allocate arrays of the nanofiber quantities
   call allocate_fluids
-
-! print memory
-  call get_memory(mymemory)
-  call print_memory_registration(6,'memory occupied after allocation', &
-   mymemory)
   
 ! allocate service arrays for printing modules
   !call allocate_print()
@@ -105,6 +100,11 @@
   
 ! initialize and read the restart file if requested
   call initialize_fluids
+  
+! print memory
+  call get_memory(mymemory)
+  call print_memory_registration(6,'memory occupied after allocation', &
+   mymemory)
   
 ! open the  output 'statdat.dat' file and print first record on terminal
 ! and output file

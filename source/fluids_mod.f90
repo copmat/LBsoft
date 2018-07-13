@@ -3783,7 +3783,7 @@
     fvB(i,j,k) = fvB(i,j,k) - pair_SC*rhoB(i,j,k)*gradpsiyR(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)
-    fwB(i,j,k) = fwB(i,j,k) - pair_SC*rhoB(i,j,k)*gradpsizB(i,j,k)
+    fwB(i,j,k) = fwB(i,j,k) - pair_SC*rhoB(i,j,k)*gradpsizR(i,j,k)
   end forall
   
   return

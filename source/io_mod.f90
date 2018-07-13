@@ -23,6 +23,7 @@
   ibctype,set_value_ext_force_fluids,ext_fu,ext_fv,ext_fw,lpair_SC, &
   pair_SC,set_fluid_force_sc,set_value_viscosity,set_value_tau, &
   viscR,viscB,tauR,tauB,lunique_omega,lforce_add
+ use write_output_mod,      only: set_value_idiagnostic
  use integrator_mod,        only : set_nstepmax,nstepmax
   
   
@@ -210,6 +211,7 @@
   integer :: temp_ibcy=0
   integer :: temp_ibcz=0
   integer :: temp_nstepmax=0
+  integer :: temp_idiagnostic=0
   logical :: temp_ibc=.false.
   logical :: linit_seed=.false.
   logical :: temp_lpair_SC=.false.
@@ -314,6 +316,7 @@
                 endif
               endif
             elseif(findstring('diagnostic',directive,inumchar,maxlen))then
+              temp_idiagnostic=intstr(directive,maxlen,inumchar)
             elseif(findstring('bound',directive,inumchar,maxlen))then
               if(findstring('cond',directive,inumchar,maxlen))then
                 temp_ibc=.true.
@@ -440,6 +443,9 @@
   if(idrank==0)then
     write(6,'(/,3a,/)')repeat('*',27),"parameters of system room",repeat('*',27)
   endif
+  
+  call bcast_world(temp_idiagnostic)
+  call set_value_idiagnostic(temp_idiagnostic)
   
   call bcast_world(lbox)
   if(lbox)then

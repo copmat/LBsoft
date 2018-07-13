@@ -20,10 +20,24 @@
   private
   
   character(len=*), parameter :: filenamevtk='output'
+  integer, save, public, protected :: idiagnostic=0
   
   public :: write_vtk_frame
+  public :: set_value_idiagnostic
   
  contains
+ 
+ subroutine set_value_idiagnostic(itemp)
+ 
+  implicit none
+  
+  integer, intent(in) :: itemp
+  
+  idiagnostic=itemp
+  
+  return
+  
+ end subroutine set_value_idiagnostic
   
  subroutine write_vtk_frame(nstepsub)
  

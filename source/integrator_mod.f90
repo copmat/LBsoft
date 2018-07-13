@@ -19,7 +19,7 @@
                         collision_fluids_unique_omega,lunique_omega, &
                         compute_omega_bimix,streaming_fluids, &
                         moments_fluids
- use write_output_mod, only : write_vtk_frame
+ use write_output_mod, only : write_vtk_frame,idiagnostic
  
  implicit none
 
@@ -135,8 +135,10 @@
   
   call compute_fluid_force_sc
   
-  call write_vtk_frame(nstep)
-  
+  if(mod(nstep,idiagnostic)==0)then
+    write(6,*)'scrivo vtk',nstep
+    call write_vtk_frame(nstep)
+  endif
   if(lunique_omega)then
     call collision_fluids_unique_omega
   else
