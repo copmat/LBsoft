@@ -49,7 +49,7 @@
   use utility_mod,    only : init_random_seed
   use fluids_mod,     only : allocate_fluids,initialize_fluids
   use integrator_mod, only : initime,endtime,tstep,set_nstep, &
-                       update_nstep,nstep,driver_integrator
+                       update_nstep,nstep,driver_integrator,nstepmax
   use io_mod
   
   
@@ -94,7 +94,6 @@
   call print_memory_registration(6,'memory occupied after allocation', &
    mymemory)
   
-  
 ! allocate service arrays for printing modules
   !call allocate_print()
   
@@ -106,8 +105,6 @@
   
 ! initialize and read the restart file if requested
   call initialize_fluids
-  
-  
   
 ! open the  output 'statdat.dat' file and print first record on terminal
 ! and output file
@@ -130,7 +127,7 @@
     call update_nstep
     
 !   check recycle loop
-    lrecycle=((real(nstep,kind=PRC)*tstep)<endtime)
+    lrecycle=(nstep<nstepmax)
     
 !   integrate the system
     call driver_integrator(mytime)
@@ -169,6 +166,11 @@
   
 ! stop clock
   call time_world(ftime)
+  
+! print final memory
+  call get_memory(mymemory)
+  call print_memory_registration(6,'memory occupied at the end', &
+   mymemory)
   
 ! print last record on terminal and close the output 'statdat.dat' file
   !call finish_print(nstep,mytime,itime,ftime)

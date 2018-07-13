@@ -22,7 +22,8 @@
   initial_w,set_mean_value_vel_fluids,set_boundary_conditions_type, &
   ibctype,set_value_ext_force_fluids,ext_fu,ext_fv,ext_fw,lpair_SC, &
   pair_SC,set_fluid_force_sc,set_value_viscosity,set_value_tau, &
-  viscR,viscB,tauR,tauB,lunique_omega
+  viscR,viscB,tauR,tauB,lunique_omega,lforce_add
+ use integrator_mod,        only : set_nstepmax,nstepmax
   
   
  implicit none
@@ -208,11 +209,13 @@
   integer :: temp_ibcx=0
   integer :: temp_ibcy=0
   integer :: temp_ibcz=0
+  integer :: temp_nstepmax=0
   logical :: temp_ibc=.false.
   logical :: linit_seed=.false.
   logical :: temp_lpair_SC=.false.
   logical :: lvisc=.false.
   logical :: ltau=.false.
+  logical :: lnstepmax=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -310,6 +313,7 @@
                   call error(6)
                 endif
               endif
+            elseif(findstring('diagnostic',directive,inumchar,maxlen))then
             elseif(findstring('bound',directive,inumchar,maxlen))then
               if(findstring('cond',directive,inumchar,maxlen))then
                 temp_ibc=.true.
@@ -317,6 +321,9 @@
                 temp_ibcy=intstr(directive,maxlen,inumchar)
                 temp_ibcz=intstr(directive,maxlen,inumchar)
               endif
+            elseif(findstring('steps',directive,inumchar,maxlen))then
+              lnstepmax=.true.
+              temp_nstepmax=intstr(directive,maxlen,inumchar)
             elseif(findstring('seed',directive,inumchar,maxlen))then
               init_seed=intstr(directive,maxlen,inumchar)
               linit_seed=.true.
@@ -447,6 +454,20 @@
     endif
   else
     call error(3)
+  endif
+  
+  call bcast_world(lnstepmax)
+  call bcast_world(temp_nstepmax)
+  if(lnstepmax)then
+    call set_nstepmax(temp_nstepmax)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='steps'
+      write(6,'(2a,i12)')mystring,": ",nstepmax
+    endif
+  else
+    call warning(5)
+    call error(7)
   endif
   
   call bcast_world(temp_ibc)
@@ -599,6 +620,17 @@
       mystring=repeat(' ',dimprint)
       mystring='pair SC force constant on fluids'
       write(6,'(2a,f12.6)')mystring,": ",pair_SC
+    endif
+  endif
+  
+  if(lforce_add)then
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='BGK force mode'
+      mystring12=repeat(' ',dimprint2)
+      mystring12='yes'
+      mystring12=adjustr(mystring12)
+      write(6,'(3a)')mystring,": ",mystring12
     endif
   endif
   

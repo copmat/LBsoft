@@ -182,7 +182,7 @@
   integer, dimension(nistatmax) :: istat
   integer :: myzero,mynx,myny,mynz
   
-  integer :: i
+  integer :: i,j,k
   logical, dimension(1) :: ltest=.false.
   
   myzero=1-nbuff
@@ -385,8 +385,16 @@
   
   implicit none
   
-  rhoR(1:nx,1:ny,1:nz)=meanR+stdevR*gauss()
-  rhoB(1:nx,1:ny,1:nz)=meanB+stdevB*gauss()
+  integer :: i,j,k
+  
+  do k=1,nz
+    do j=1,ny
+      do i=1,nx
+        rhoR(i,j,k)=meanR+stdevR*gauss()
+        rhoB(i,j,k)=meanB+stdevB*gauss()
+      enddo
+    enddo
+  enddo
   
   return
   
@@ -703,6 +711,7 @@
   
   real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3
   
+  lforce_add=.true.
   ext_fu = dtemp1
   ext_fv = dtemp2
   ext_fw = dtemp3
@@ -802,6 +811,7 @@
   logical, intent(in) :: ltemp1
   real(kind=PRC), intent(in) :: dtemp1
   
+  lforce_add=.true.
   lpair_SC = ltemp1
   pair_SC = dtemp1
   
@@ -4875,7 +4885,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f00R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f00R(i,j,k) = buffservice3d(i,j,k)
@@ -4884,7 +4894,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f01R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f01R(i,j,k) = buffservice3d(i,j,k)
@@ -4893,7 +4903,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f02R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f02R(i,j,k) = buffservice3d(i,j,k)
@@ -4902,7 +4912,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f03R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f03R(i,j,k) = buffservice3d(i,j,k)
@@ -4911,7 +4921,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f04R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f04R(i,j,k) = buffservice3d(i,j,k)
@@ -4920,7 +4930,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f05R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f05R(i,j,k) = buffservice3d(i,j,k)
@@ -4929,7 +4939,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f06R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f06R(i,j,k) = buffservice3d(i,j,k)
@@ -4938,7 +4948,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f07R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f07R(i,j,k) = buffservice3d(i,j,k)
@@ -4947,7 +4957,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f08R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f08R(i,j,k) = buffservice3d(i,j,k)
@@ -4956,7 +4966,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f09R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f09R(i,j,k) = buffservice3d(i,j,k)
@@ -4965,7 +4975,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f10R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f10R(i,j,k) = buffservice3d(i,j,k)
@@ -4974,7 +4984,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f11R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f11R(i,j,k) = buffservice3d(i,j,k)
@@ -4983,7 +4993,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f12R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f12R(i,j,k) = buffservice3d(i,j,k)
@@ -4992,7 +5002,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f13R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f13R(i,j,k) = buffservice3d(i,j,k)
@@ -5001,7 +5011,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f14R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f14R(i,j,k) = buffservice3d(i,j,k)
@@ -5010,7 +5020,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f15R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f15R(i,j,k) = buffservice3d(i,j,k)
@@ -5019,7 +5029,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f16R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f16R(i,j,k) = buffservice3d(i,j,k)
@@ -5028,7 +5038,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f17R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f17R(i,j,k) = buffservice3d(i,j,k)
@@ -5037,7 +5047,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f18R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f18R(i,j,k) = buffservice3d(i,j,k)
@@ -5048,7 +5058,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f00B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f00B(i,j,k) = buffservice3d(i,j,k)
@@ -5057,7 +5067,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f01B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f01B(i,j,k) = buffservice3d(i,j,k)
@@ -5066,7 +5076,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f02B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f02B(i,j,k) = buffservice3d(i,j,k)
@@ -5075,7 +5085,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f03B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f03B(i,j,k) = buffservice3d(i,j,k)
@@ -5084,7 +5094,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f04B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f04B(i,j,k) = buffservice3d(i,j,k)
@@ -5093,7 +5103,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f05B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f05B(i,j,k) = buffservice3d(i,j,k)
@@ -5102,7 +5112,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f06B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f06B(i,j,k) = buffservice3d(i,j,k)
@@ -5111,7 +5121,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f07B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f07B(i,j,k) = buffservice3d(i,j,k)
@@ -5120,7 +5130,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f08B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f08B(i,j,k) = buffservice3d(i,j,k)
@@ -5129,7 +5139,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f09B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f09B(i,j,k) = buffservice3d(i,j,k)
@@ -5138,7 +5148,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f10B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f10B(i,j,k) = buffservice3d(i,j,k)
@@ -5147,7 +5157,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f11B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f11B(i,j,k) = buffservice3d(i,j,k)
@@ -5156,7 +5166,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f12B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f12B(i,j,k) = buffservice3d(i,j,k)
@@ -5165,7 +5175,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f13B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f13B(i,j,k) = buffservice3d(i,j,k)
@@ -5174,7 +5184,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f14B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f14B(i,j,k) = buffservice3d(i,j,k)
@@ -5183,7 +5193,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f15B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f15B(i,j,k) = buffservice3d(i,j,k)
@@ -5192,7 +5202,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f16B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f16B(i,j,k) = buffservice3d(i,j,k)
@@ -5201,7 +5211,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f17B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f17B(i,j,k) = buffservice3d(i,j,k)
@@ -5210,7 +5220,7 @@
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f18B(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f18B(i,j,k) = buffservice3d(i,j,k)

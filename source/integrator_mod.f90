@@ -12,14 +12,14 @@
 !     
 !***********************************************************************
 
- use version_mod,    only : idrank
+ use version_mod,     only : idrank
  use error_mod
- use fluids_mod, only : initialize_fluid_force,compute_fluid_force_sc, &
+ use fluids_mod,      only : initialize_fluid_force,compute_fluid_force_sc, &
                         collision_fluids,driver_bc_hvars,driver_bc_pops,&
                         collision_fluids_unique_omega,lunique_omega, &
                         compute_omega_bimix,streaming_fluids, &
                         moments_fluids
- use io_vtk_mod, only : write_vtk_frame
+ use write_output_mod, only : write_vtk_frame
  
  implicit none
 
@@ -27,6 +27,7 @@
  
  integer, public, protected, save :: integrator
  integer, public, protected, save :: nstep=0
+ integer, public, protected, save :: nstepmax=0
  logical, public, protected, save :: lintegrator=.false.
  
  real(kind=PRC), public, save :: tstep=0.d0
@@ -37,8 +38,32 @@
  public :: set_nstep
  public :: update_nstep
  public :: driver_integrator
+ public :: set_nstepmax
  
  contains
+ 
+ subroutine set_nstepmax(itemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the nstepmax for the 
+!     integration loop
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification july 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: itemp
+  
+  nstepmax = itemp
+  
+  return
+  
+ end subroutine set_nstepmax
  
  subroutine set_nstep(itemp)
  

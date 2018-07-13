@@ -20,11 +20,11 @@ all: main
 main:IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
 	Lib_VTK_IO.o get_mem.o serial_version_mod.o \
 	profiling_mod.o parse_mod.o error_mod.o utility_mod.o \
-	fluids_mod.o io_vtk_mod.o integrator_mod.o io_mod.o main.o
+	fluids_mod.o write_output_mod.o integrator_mod.o io_mod.o main.o
 	$(FC) $(LDFLAGS) $(EX) IR_Precision.o \
 	Lib_Pack_Data.o Lib_Base64.o Lib_VTK_IO.o get_mem.o \
 	serial_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
-	utility_mod.o fluids_mod.o io_vtk_mod.o integrator_mod.o io_mod.o main.o
+	utility_mod.o fluids_mod.o write_output_mod.o integrator_mod.o io_mod.o main.o
 	
 IR_Precision.o:IR_Precision.f90
 	$(FC) $(FFLAGS) IR_Precision.f90
@@ -62,8 +62,8 @@ utility_mod.o:utility_mod.f90
 fluids_mod.o:fluids_mod.f90
 	$(FC) $(FFLAGS) fluids_mod.f90
 	
-io_vtk_mod.o:io_vtk_mod.f90
-	$(FC) $(FFLAGS) io_vtk_mod.f90
+write_output_mod.o:write_output_mod.f90
+	$(FC) $(FFLAGS) write_output_mod.f90
 	
 integrator_mod.o:integrator_mod.f90
 	$(FC) $(FFLAGS) integrator_mod.f90

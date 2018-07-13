@@ -1,6 +1,6 @@
 
 #include <default_macro.h>
- module io_vtk_mod
+ module write_output_mod
  
 !***********************************************************************
 !     
@@ -135,4 +135,4 @@
      
  end subroutine write_vtk_frame
  
- end module io_vtk_mod
+ end module write_output_mod
