@@ -44,12 +44,17 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
   use version_mod,    only : init_world,get_rank_world,get_size_world,&
-                       time_world,time_world,finalize_world
-  use profiling_mod,  only : get_memory
+                       time_world,time_world,finalize_world,idrank
+  use profiling_mod,  only : get_memory,timer_init,itime_start, &
+                       startPreprocessingTime,print_timing_partial, &
+                       reset_timing_partial,printSimulationTime, &
+                       print_timing_final,itime_counter,idiagnostic, &
+                       ldiagnostic,start_timing2,end_timing2
   use utility_mod,    only : init_random_seed
   use fluids_mod,     only : allocate_fluids,initialize_fluids
   use integrator_mod, only : initime,endtime,tstep,set_nstep, &
                        update_nstep,nstep,driver_integrator,nstepmax
+  use statistic_mod,         only : statistic_driver
   use io_mod
   
   
@@ -64,6 +69,8 @@
   logical :: ladd,lrem,lremdat,ldorefinment,lrecycle
   
   integer :: i,j,k,atype
+  
+  
 
 ! set up the communications 
   call init_world()
@@ -90,7 +97,7 @@
   call allocate_fluids
   
 ! allocate service arrays for printing modules
-  !call allocate_print()
+  call allocate_print()
   
 ! initialize the counter of the integration steps  
   call set_nstep(0)
@@ -114,6 +121,13 @@
 ! open the binary file (only for developers) 
   !call open_dat_file(lprintdat,130,'traj.dat')
   
+! start diagnostic if requested
+  if(ldiagnostic)then
+    call timer_init()
+    call startPreprocessingTime()  
+    call print_timing_partial(1,1,itime_start,IOOUT)
+    call reset_timing_partial()
+  endif
   
 ! initialize lrecycle 
   lrecycle=.true.
@@ -126,6 +140,8 @@
 !   update the counter
     call update_nstep
     
+    mytime=real(nstep,kind=PRC)*tstep
+    
 !   check recycle loop
     lrecycle=(nstep<nstepmax)
     
@@ -134,7 +150,7 @@
     
     
 !   compute statistical quanities
-    !call statistic_driver(mytime,tstep,nstep,nremoved,ladd,lrem)
+    call statistic_driver(nstep,mytime)
     
 !   print on the binary file the jet bead which have hit the collector 
 !   (only for developers)
@@ -142,9 +158,10 @@
     ! inpjet,npjet,sprintdat,systype,lremdat,nremoved)
     
     
-!   print data on terminal and output 'statdat.dat' file
-    !call outprint_driver(nstep,mytime)
-    
+!   print data on terminal
+    if(ldiagnostic)call start_timing2("IO","outprint_driver")
+    call outprint_driver(nstep,mytime)
+    if(ldiagnostic)call end_timing2("IO","outprint_driver")
      
 !   print the jet geometry on the binary file (only for developers)
     !call write_dat_frame(lprintdat,130,nstep,mytime,iprintdat, &
@@ -186,6 +203,14 @@
     
 ! close the binary file (only for developers) 
   !call close_dat_file(lprintdat,130)
+  
+! finalize and print the diagnostic data
+  if(ldiagnostic)then
+    call printSimulationTime()
+    call print_timing_final(idiagnostic,itime_counter,itime_start,1,1,IOOUT)
+  endif
+  
+  if(idrank==0)write(6,'(a)')'Programm exit correctly'
   
 ! close the communications
   call finalize_world()

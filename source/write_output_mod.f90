@@ -8,11 +8,11 @@
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
-!     last modification September 2017
+!     last modification July 2018
 !     
 !***********************************************************************
   
- use version_mod,    only : idrank
+ use version_mod,    only : idrank,mxrank
  use error_mod
  use utility_mod,    only : write_fmtnumb
  use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w
@@ -20,24 +20,38 @@
   private
   
   character(len=*), parameter :: filenamevtk='output'
-  integer, save, public, protected :: idiagnostic=0
+  integer, save, public, protected :: ivtkevery=50
+  logical, save, public, protected :: lvtkfile=.false.
   
   public :: write_vtk_frame
-  public :: set_value_idiagnostic
+  public :: set_value_ivtkevery
   
  contains
  
- subroutine set_value_idiagnostic(itemp)
+ subroutine set_value_ivtkevery(ltemp,itemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for settimg time interval value
+!     used to print the vtk file
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification july 2018
+!     
+!***********************************************************************
  
   implicit none
   
+  logical, intent(in) :: ltemp
   integer, intent(in) :: itemp
   
-  idiagnostic=itemp
+  lvtkfile=ltemp
+  ivtkevery=itemp
   
   return
   
- end subroutine set_value_idiagnostic
+ end subroutine set_value_ivtkevery
   
  subroutine write_vtk_frame(nstepsub)
  
@@ -76,6 +90,12 @@
   
   
   logical, save :: lfirst=.true.
+  
+  if(mxrank/=1)call error(11)
+  
+  if(idrank/=0)return
+  
+  if(mod(nstepsub,ivtkevery)/=0)return
   
   nx1=1
   nx2=nx

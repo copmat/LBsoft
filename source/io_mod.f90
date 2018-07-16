@@ -15,6 +15,8 @@
  use version_mod
  use parse_module
  use error_mod
+ use profiling_mod,         only : set_value_idiagnostic, &
+  set_value_ldiagnostic,idiagnostic,ldiagnostic
  use utility_mod,           only : write_fmtnumb,pi,get_prntime
  use fluids_mod,            only : nx,ny,nz,set_initial_dist_type, &
   set_mean_value_dens_fluids,set_stdev_value_dens_fluids,idistselect, &
@@ -23,8 +25,10 @@
   ibctype,set_value_ext_force_fluids,ext_fu,ext_fv,ext_fw,lpair_SC, &
   pair_SC,set_fluid_force_sc,set_value_viscosity,set_value_tau, &
   viscR,viscB,tauR,tauB,lunique_omega,lforce_add
- use write_output_mod,      only: set_value_idiagnostic
- use integrator_mod,        only : set_nstepmax,nstepmax
+ use write_output_mod,      only: set_value_ivtkevery,ivtkevery,lvtkfile
+ use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
+ use statistic_mod,         only : reprinttime,compute_statistic, &
+  statdata
   
   
  implicit none
@@ -34,15 +38,38 @@
  integer, parameter :: maxlen=150
  
  integer, public, protected, save :: init_seed=317
+ integer, public, protected, save :: nprintlist=0
+ integer, public, protected, save :: iprinttime=0
+ integer, public, protected, save :: eprinttime=0
+ logical, public, protected, save :: lprintlist=.false.
+ logical, public, protected, save :: lprinttime=.false.
+ real(kind=PRC), public, protected, save :: printtime=FIFTY
+ real(kind=PRC), public, protected, save :: timcls=ZERO
+ real(kind=PRC), public, protected, save :: timjob=ZERO
  
- real(kind=PRC), public, save :: timcls=0.d0
- real(kind=PRC), public, save :: timjob=0.d0
+ 
+ character(len=20), public, protected, save, allocatable, dimension(:) :: printarg(:)
+ integer, public, protected, save, allocatable, dimension(:) :: printlist
+ real(kind=PRC), public, protected, allocatable, save :: xprint(:)
  
  public :: print_logo
  public :: read_input
  public :: print_memory_registration
+ public :: outprint_driver
+ public :: allocate_print
  
  contains
+ 
+ subroutine allocate_print()
+  
+  implicit none
+  
+  allocate(xprint(1:nprintlist))
+  
+  return
+  
+ end subroutine allocate_print
+ 
  
  subroutine print_logo(iu)
  
@@ -177,6 +204,44 @@
   
  end subroutine print_memory_registration
  
+ subroutine print_legend_observables(iu)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for printing the legend of the observables
+!     requested in input file
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: iu
+  
+  integer :: i
+  
+  character(len=*),parameter :: of='(a)'
+  
+  if(idrank/=0)return
+  
+  write(iu,of)"                                                                               "
+  write(iu,of)"*********************PRINT LIST SPECIFIED IN INPUT FILE************************"
+  write(iu,of)"                                                                               "
+  do i=1,nprintlist
+    write(iu,'(a)')legendobs(i,printlist)
+  enddo
+  write(iu,of)"                                                                               "
+  write(iu,of)"*******************************************************************************"
+  write(iu,of)"                                                                               "
+  
+  return
+  
+ end subroutine print_legend_observables
+ 
+ 
  subroutine read_input(inputunit,inputname)
  
 !***********************************************************************
@@ -195,7 +260,7 @@
   character(len=*), intent(in) :: inputname
   
   character(len=maxlen) :: redstring,directive
-  logical :: safe,lredo,lredo2,ltest,lprintlisterror,lprintlisterror2
+  logical :: safe,lredo,lredo2,ltest
   logical :: ltestread,lexists,lfoundprint
   integer :: inumchar,i,nwords,iline,itest
   character(len=maxlen) ,allocatable :: outwords(:),outwords2(:)
@@ -211,13 +276,18 @@
   integer :: temp_ibcy=0
   integer :: temp_ibcz=0
   integer :: temp_nstepmax=0
-  integer :: temp_idiagnostic=0
+  integer :: temp_idiagnostic=1
+  integer :: temp_ivtkevery=1
   logical :: temp_ibc=.false.
   logical :: linit_seed=.false.
   logical :: temp_lpair_SC=.false.
   logical :: lvisc=.false.
   logical :: ltau=.false.
   logical :: lnstepmax=.false.
+  logical :: lprintlisterror=.false.
+  logical :: temp_ldiagnostic=.false.
+  logical :: temp_lvtkfile=.false.
+  logical :: lidiagnostic=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -316,7 +386,45 @@
                 endif
               endif
             elseif(findstring('diagnostic',directive,inumchar,maxlen))then
-              temp_idiagnostic=intstr(directive,maxlen,inumchar)
+              if(findstring('yes',directive,inumchar,maxlen))then
+                temp_ldiagnostic=.true.
+              elseif(findstring('every',directive,inumchar,maxlen))then
+                temp_idiagnostic=intstr(directive,maxlen,inumchar)
+                lidiagnostic=.true.
+              endif
+            elseif(findstring('print',directive,inumchar,maxlen))then
+              if(findstring('list',directive,inumchar,maxlen))then
+                lprintlist=.true.
+                lprintlisterror=.false.
+                call findwords(nwords,outwords,directive,maxlen)
+                nprintlist=max(0,nwords-2)
+                directive=outwords(1)
+                if(.not.findstring('print',directive,inumchar,maxlen))then
+                  lprintlisterror=.true.
+                endif
+                directive=outwords(2)
+                if(.not.findstring('list',directive,inumchar,maxlen))then
+                  lprintlisterror=.true.
+                endif
+                if(nprintlist>0)allocate(printlist(nprintlist))
+                if(allocated(outwords2))deallocate(outwords2)
+                if(nprintlist>0)allocate(outwords2(nprintlist))
+                do i=1,nprintlist
+                  outwords2(i)=outwords(i+2)
+                  call identify_argument(i,outwords2,printlist,maxlen, &
+                   lfoundprint)
+                  lprintlisterror=(lprintlisterror .or. (.not.lfoundprint))
+                enddo
+              elseif(findstring('every',directive,inumchar,maxlen))then
+                printtime=real(intstr(directive,maxlen,inumchar),kind=PRC)
+                lprinttime=.true.
+              elseif(findstring('vtk',directive,inumchar,maxlen))then
+                temp_ivtkevery=intstr(directive,maxlen,inumchar)
+                temp_lvtkfile=.true.
+              else
+                call warning(1,dble(iline),redstring)
+                call error(6)
+              endif
             elseif(findstring('bound',directive,inumchar,maxlen))then
               if(findstring('cond',directive,inumchar,maxlen))then
                 temp_ibc=.true.
@@ -444,8 +552,6 @@
     write(6,'(/,3a,/)')repeat('*',27),"parameters of system room",repeat('*',27)
   endif
   
-  call bcast_world(temp_idiagnostic)
-  call set_value_idiagnostic(temp_idiagnostic)
   
   call bcast_world(lbox)
   if(lbox)then
@@ -493,11 +599,80 @@
     write(6,'(2a,3i12)')mystring,": ",temp_ibcx,temp_ibcy,temp_ibcz
   endif
   
+  call bcast_world(nprintlist)
+  call bcast_world(lprintlist)
+  call bcast_world(lprintlisterror)
+  if(lprintlist)then
+    if(idrank/=0)allocate(printlist(nprintlist))
+    call bcast_world(printlist,nprintlist)
+    call label_argument(nprintlist,printlist,printarg)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='explicit print list'
+      mystring12=repeat(' ',dimprint2)
+      mystring12='yes'
+      mystring12=adjustr(mystring12)
+      write(6,'(3a)')mystring,": ",mystring12
+    endif
+  endif
+  if(lprintlisterror)then
+    call warning(7)
+    call warning(6)
+    call error(7)
+  endif
+  call bcast_world(lprinttime)
+  call bcast_world(printtime)
+  if(lprinttime)then
+   if(idrank==0)then
+     mystring=repeat(' ',dimprint)
+     mystring='print on terminal every'
+     write(6,'(2a,i12)')mystring,": ",nint(printtime)
+   endif
+  endif
+  
+  call bcast_world(temp_lvtkfile)
+  if(temp_lvtkfile)then
+    call bcast_world(temp_ivtkevery)
+    call set_value_ivtkevery(temp_lvtkfile,temp_ivtkevery)
+    if(idrank==0)then
+     mystring=repeat(' ',dimprint)
+     mystring='print VTK file every'
+     write(6,'(2a,i12)')mystring,": ",ivtkevery
+   endif
+  endif
+  
+  call bcast_world(temp_ldiagnostic)
+  if(temp_ldiagnostic)then
+    call set_value_ldiagnostic(temp_ldiagnostic)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='diagnostic profile'
+      mystring12=repeat(' ',dimprint2)
+      mystring12='yes'
+      mystring12=adjustr(mystring12)
+      write(6,'(3a)')mystring,": ",mystring12
+    endif
+  endif
+  
+  call bcast_world(lidiagnostic)
+  if(lidiagnostic)then
+    call bcast_world(temp_idiagnostic)
+    call set_value_idiagnostic(temp_idiagnostic)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='diagnostic profile every'
+      write(6,'(2a,i12)')mystring,": ",idiagnostic
+    endif
+  endif
+  
   call bcast_world(init_seed)
+  call bcast_world(linit_seed)
   if(linit_seed)then
-    mystring=repeat(' ',dimprint)
-    mystring='initial random seed'
-    write(6,'(2a,i12)')mystring,": ",init_seed
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='initial random seed'
+      write(6,'(2a,i12)')mystring,": ",init_seed
+    endif
   endif
   
   if(.not. ltimjob)then
@@ -643,12 +818,330 @@
   if(idrank==0)then
     write(6,'(/,3a,/)')repeat('*',32),"end input file",repeat('*',33)
   endif
+  
+  endtime = tstep*REAL(nstepmax,kind=PRC)
+  iprinttime=nint(printtime/tstep)
+  eprinttime=nint(endtime/tstep)
+  
+  reprinttime=nint(REAL(eprinttime,kind=PRC)/REAL(iprinttime,kind=PRC))
+  
+  call print_legend_observables(6)
 
 ! print warning and check error
   
   return
   
  end subroutine read_input
+ 
+ function legendobs(iarg,printcodsub)
+ 
+!***********************************************************************
+!     
+!     LBsoft function for returning the legend which is associated to
+!     the integer contained in the printcod array
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iarg
+  integer, intent(in), allocatable, dimension(:) :: printcodsub
+  
+  character(len=52) :: legendobs
+  
+  legendobs=repeat(' ',52)
+  if(printcodsub(iarg)==1)then
+    legendobs='dens1 =  mean fluid density of first component    '
+  elseif(printcodsub(iarg)==2)then
+    legendobs='dens2 =  mean fluid density of second component   '
+  elseif(printcodsub(iarg)==3)then
+    legendobs='maxd1 =  max fluid density of first component     '
+  elseif(printcodsub(iarg)==4)then
+    legendobs='maxd2 =  max fluid density of second component    '
+  elseif(printcodsub(iarg)==5)then
+    legendobs='mind1 =  min fluid density of first component     '
+  elseif(printcodsub(iarg)==6)then
+    legendobs='mind2 =  min fluid density of second component    '
+  elseif(printcodsub(iarg)==7)then
+    legendobs='maxvx =  max fluid velocity of fluid mix along x  '
+  elseif(printcodsub(iarg)==8)then
+    legendobs='minvx =  min fluid velocity of fluid mix along x  '
+  elseif(printcodsub(iarg)==9)then
+    legendobs='maxvy =  max fluid velocity of fluid mix along y  '
+  elseif(printcodsub(iarg)==10)then
+    legendobs='minvy =  min fluid velocity of fluid mix along y  '
+  elseif(printcodsub(iarg)==11)then
+    legendobs='maxvz =  max fluid velocity of fluid mix along z  '
+  elseif(printcodsub(iarg)==12)then
+    legendobs='minvz =  min fluid velocity of fluid mix along z  '
+  elseif(printcodsub(iarg)==13)then
+    legendobs='cpur =  remaining time to the end                 '
+  elseif(printcodsub(iarg)==14)then
+    legendobs='cpue =  elapsed time                              '
+  elseif(printcodsub(iarg)==15)then
+    legendobs='cpu  =  time for every print interval             '
+  elseif(printcodsub(iarg)==16)then
+    legendobs='t     =  unscaled time                            '
+  endif
+  legendobs=adjustl(legendobs)
+  
+  return
+  
+ end function legendobs
+ 
+ subroutine identify_argument(iarg,arg,printcodsub,lenstring,lfound)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for identifying the symbolic string of the 
+!     output observables
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: lenstring
+  integer ,intent(in) :: iarg
+  character(len=lenstring) ,allocatable, intent(in) :: arg(:)
+  logical, intent(out) :: lfound
+  integer, allocatable, intent(inout) :: printcodsub(:)
+  
+  integer :: inumchar
+  character(len=lenstring) :: temps
+  
+  lfound=.false.
+  temps=arg(iarg)
+  
+! for each symbolic string we associate an integer defined in 
+!  printcodsub
+
+  if(findstring('dens1',temps,inumchar,lenstring))then
+    printcodsub(iarg)=1
+    lfound=.true.
+  elseif(findstring('dens2',temps,inumchar,lenstring))then
+    printcodsub(iarg)=2
+    lfound=.true.
+  elseif(findstring('maxd1',temps,inumchar,lenstring))then
+    printcodsub(iarg)=3
+    lfound=.true.
+  elseif(findstring('maxd2',temps,inumchar,lenstring))then
+    printcodsub(iarg)=4
+    lfound=.true.
+  elseif(findstring('mind1',temps,inumchar,lenstring))then
+    printcodsub(iarg)=5
+    lfound=.true.
+  elseif(findstring('mind2',temps,inumchar,lenstring))then
+    printcodsub(iarg)=6
+    lfound=.true.
+  elseif(findstring('maxvx',temps,inumchar,lenstring))then
+    printcodsub(iarg)=7
+    lfound=.true.
+  elseif(findstring('minvx',temps,inumchar,lenstring))then
+    printcodsub(iarg)=8
+    lfound=.true.
+  elseif(findstring('maxvy',temps,inumchar,lenstring))then
+    printcodsub(iarg)=9
+    lfound=.true.
+  elseif(findstring('minvy',temps,inumchar,lenstring))then
+    printcodsub(iarg)=10
+    lfound=.true.
+  elseif(findstring('maxvz',temps,inumchar,lenstring))then
+    printcodsub(iarg)=11
+    lfound=.true.
+  elseif(findstring('minvz',temps,inumchar,lenstring))then
+    printcodsub(iarg)=12
+    lfound=.true.
+  elseif(findstring('cpur',temps,inumchar,lenstring))then
+    printcodsub(iarg)=13
+    lfound=.true.
+  elseif(findstring('cpue',temps,inumchar,lenstring))then
+    printcodsub(iarg)=14
+    lfound=.true.
+  elseif(findstring('cpu',temps,inumchar,lenstring))then
+    printcodsub(iarg)=15
+    lfound=.true.
+  elseif(findstring('t',temps,inumchar,lenstring))then
+    printcodsub(iarg)=16
+    lfound=.true.
+  else
+    lfound=.false.
+  endif
+  
+  
+  return
+  
+ end subroutine identify_argument
+ 
+ subroutine label_argument(narg,printcodsub,printlisub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for associating a description string 
+!     for each output observables requested in input file
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer ,intent(in) :: narg
+  integer, allocatable, intent(in) :: printcodsub(:)
+  character(len=20), allocatable, intent(out) :: printlisub(:)
+  
+  integer :: iarg
+  
+  if(allocated(printlisub))deallocate(printlisub)
+  allocate(printlisub(narg))
+  
+  do iarg=1,narg
+  printlisub(iarg)=repeat(' ',20)
+  if(printcodsub(iarg)==1)then
+    printlisub(iarg)='dens1 (lu)'
+  elseif(printcodsub(iarg)==2)then
+    printlisub(iarg)='dens2 (lu)'
+  elseif(printcodsub(iarg)==3)then
+    printlisub(iarg)='maxd1 (lu)'
+  elseif(printcodsub(iarg)==4)then
+    printlisub(iarg)='maxd2 (lu)'
+  elseif(printcodsub(iarg)==5)then
+    printlisub(iarg)='mind1 (lu)'
+  elseif(printcodsub(iarg)==6)then
+    printlisub(iarg)='mind2 (lu)'
+  elseif(printcodsub(iarg)==7)then
+    printlisub(iarg)='maxvx (lu)'
+  elseif(printcodsub(iarg)==8)then
+    printlisub(iarg)='minvx (lu)'
+  elseif(printcodsub(iarg)==9)then
+    printlisub(iarg)='maxvy (lu)'
+  elseif(printcodsub(iarg)==10)then
+    printlisub(iarg)='minvy (lu)'
+  elseif(printcodsub(iarg)==11)then
+    printlisub(iarg)='maxvz (lu)'
+  elseif(printcodsub(iarg)==12)then
+    printlisub(iarg)='minvz (lu)'
+  elseif(printcodsub(iarg)==13)then
+    printlisub(iarg)='cpur (s)'
+  elseif(printcodsub(iarg)==14)then
+    printlisub(iarg)='cpue (s)'
+  elseif(printcodsub(iarg)==15)then
+    printlisub(iarg)='cpu (s)'
+  elseif(printcodsub(iarg)==16)then
+    printlisub(iarg)='t (lu)'
+  endif
+  printlisub(iarg)=adjustr(printlisub(iarg))
+  enddo
+  
+  return
+  
+ end subroutine label_argument
+ 
+ subroutine outprint_driver(k,timesub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for managing the output subroutines
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: k
+  double precision, intent(in) :: timesub
+  
+  integer :: i,j
+  double precision :: tempint
+  
+  if(.not.lprintlist)return
+  if(mod(k,iprinttime)/=0)return
+  
+  tempint=dble(iprinttime)*tstep
+  call compute_statistic(tempint,timesub,k)
+  
+  if(idrank/=0)return
+  
+  do i=1,nprintlist
+    j=printlist(i)
+    xprint(i)=statdata(j)
+  enddo
+
+  call outprint_term(k,nprintlist,xprint,printarg)
+  
+  return
+  
+ end subroutine outprint_driver
+ 
+ subroutine outprint_term(k,nprint1,dprint,printargsub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for printing records on the terminal
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer,intent(in) :: k,nprint1
+  double precision,intent(in),dimension(1:nprint1) :: dprint
+  character(len=20),intent(in),dimension(1:nprint1) :: printargsub
+  
+  integer :: i
+  
+  logical, save :: lfirst=.true.
+  integer,save :: icount=0
+  
+  if(idrank/=0)return
+  
+  if(lfirst .or. (mod(icount,100)==0))then
+    lfirst=.false.    
+    write(6,'(a10)',advance="no")'#*********'
+    do i=1,nprint1
+      write(6,'(a20)',advance="no")' *******************'
+    enddo
+    write(6,'(1x)')           
+    write(6,'(a10)',advance="no")'#    nstep'
+    do i=1,nprint1
+      write(6,'(a20)',advance="no")printargsub(i)
+    enddo
+    write(6,'(1x)')
+    write(6,'(a10)',advance="no")'#*********'
+    do i=1,nprint1
+      write(6,'(a20)',advance="no")' *******************'
+    enddo
+    write(6,'(1x)')
+  endif
+  
+  write(6,'(i10)',advance="no")k
+  do i=1,nprint1
+    write(6,'(g20.10)',advance="no")dprint(i)
+  enddo
+  
+  write(6,'(1x)')
+  call flush(6)
+  
+  icount=icount+1
+  
+  return
+  
+ end subroutine outprint_term
  
  end module io_mod
 

@@ -70,6 +70,8 @@
       case (10)
         write(outp,outf2)'ERROR - boundary conditions not found in input file! ', &
          'please set them in input.'
+      case (11)
+        write(outp,outf)'ERROR - wrong vtk subroutine selected! only SERIAL'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select
@@ -123,6 +125,54 @@
     case (5)
       write(outp,'(/,2a,/)')"WARNING - nsteps is not defined in ", &
       "input file"
+    case (6)
+      write(outp,'(/,a)') &
+      "WARNING - possible [keys] to be used are reported in the following table"
+      write(outp,'(a)') &
+      "WARNING - each [key] should be separated by a space character (e.g. t x y z rc)"
+      write(outp,'(a)') &
+      "WARNING - ********************************************************************************"
+      write(outp,'(a)') &
+      "WARNING - * [keys]               * [meanings]                                            *"
+      write(outp,'(a)') &
+      "WARNING - ********************************************************************************"
+      write(outp,'(a)') &
+      "WARNING - * t                    * time in lb units                                      *"
+      write(outp,'(a)') &
+      "WARNING - * dens1                * mean fluid density of first component in lb units     *"
+      write(outp,'(a)') &
+      "WARNING - * dens2                * mean fluid density of second component in lb units    *"
+      write(outp,'(a)') &
+      "WARNING - * maxd1                * max fluid density of first component in lb units      *"
+      write(outp,'(a)') &
+      "WARNING - * maxd2                * max fluid density of second component in lb units     *"
+      write(outp,'(a)') &
+      "WARNING - * mind1                * min fluid density of first component in lb units      *"
+      write(outp,'(a)') &
+      "WARNING - * mind2                * min fluid density of second component in lb units     *"
+      write(outp,'(a)') &
+      "WARNING - * maxvx                * max fluid velocity of fluid mix along x in lb units   *"
+      write(outp,'(a)') &
+      "WARNING - * minvx                * min fluid velocity of fluid mix along x in lb units   *"
+      write(outp,'(a)') &
+      "WARNING - * maxvy                * max fluid velocity of fluid mix along y in lb units   *"
+      write(outp,'(a)') &
+      "WARNING - * minvy                * min fluid velocity of fluid mix along y in lb units   *"
+      write(outp,'(a)') &
+      "WARNING - * maxvz                * max fluid velocity of fluid mix along z in lb units   *"
+      write(outp,'(a)') &
+      "WARNING - * minvz                * min fluid velocity of fluid mix along z in lb units   *"
+      write(outp,'(a)') &
+      "WARNING - * cpu                  * time for every print interval in seconds              *"
+      write(outp,'(a)') &
+      "WARNING - * cpur                 * remaining time to the end in seconds                  *"
+      write(outp,'(a)') &
+      "WARNING - * cpue                 * elapsed time in seconds                               *"
+      write(outp,'(a,/)') &
+      "WARNING - ********************************************************************************"
+    case (7)
+      write(outp,'(/,a)')"WARNING - 'print list' is not correctly specified"
+      write(outp,'(a,/)')"WARNING - 'print list' should be specified as 'print list [keys]'"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

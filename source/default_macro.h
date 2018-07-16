@@ -4,6 +4,8 @@
 
 #define D3Q19
 
+#define IOOUT 6
+
 #define _LB_(content) \
     CALL start_timing2("LB",#content);\
     CALL content;\
@@ -35,6 +37,7 @@
 #define TWENTYSEVEN 27.e0
 #define THIRTY   30.e0
 #define THIRTYSIX 36.e0
+#define FIFTY     50.e0
 #define HALF      0.5e0
 
 #elif PRC==8
@@ -57,6 +60,7 @@
 #define TWENTYSEVEN 27.d0
 #define THIRTY   30.d0
 #define THIRTYSIX 36.d0
+#define FIFTY     50.d0
 #define HALF      0.5d0
 
 #else

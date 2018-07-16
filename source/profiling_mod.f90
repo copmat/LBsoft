@@ -71,8 +71,10 @@
  integer, save ::            n_io_unit = 0  ! counter for extra units
  integer, save ::            io_unit = 14   ! starting no. for extra units
   
- integer, protected :: itime_start = 1                    !< start of time counter
- integer, protected :: itime_counter = 0                          !< time counter
+ integer, protected, public, save :: itime_start = 1                    !< start of time counter
+ integer, protected, public, save :: itime_counter = 0                          !< time counter
+ integer, protected, public, save :: idiagnostic = 50 !< make diagnostic every
+ logical, protected, public, save :: ldiagnostic = .false.
  
 INTERFACE
     FUNCTION get_mem ( ) bind ( C, name = "get_mem" )
@@ -84,11 +86,58 @@ END INTERFACE
  public :: memory_registration,get_memory
  
  public :: timer_init,startPreprocessingTime,reset_timing_partial
- public :: itime_start,print_timing_partial,printSimulationTime
- public :: print_timing_final,itime_counter,start_timing2,end_timing2
+ public :: print_timing_partial,printSimulationTime
+ public :: print_timing_final,start_timing2,end_timing2
+ public :: set_value_idiagnostic,set_value_ldiagnostic
  
  
  contains
+ 
+ subroutine set_value_idiagnostic(itemp1)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the nstep interval for the 
+!     diagnostic profiling
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: itemp1
+  
+  idiagnostic = itemp1
+  
+  return
+  
+ end subroutine set_value_idiagnostic
+ 
+ subroutine set_value_ldiagnostic(ltemp1)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the nstep interval for the 
+!     diagnostic profiling
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(in) :: ltemp1
+  
+  ldiagnostic = ltemp1
+  
+  return
+  
+ end subroutine set_value_ldiagnostic
  
  subroutine memory_registration(iselect,fout)
  
