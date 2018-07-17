@@ -107,7 +107,7 @@
   
 ! initialize and read the restart file if requested
   call initialize_fluids
-  
+  stop
 ! print memory
   call get_memory(mymemory)
   call print_memory_registration(6,'memory occupied after allocation', &

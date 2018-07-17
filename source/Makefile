@@ -4,14 +4,14 @@
 
 CC=gcc
 FC=gfortran
-#CFLAGS= -O0 -g -c
-#FFLAGS= -O0 -g -fbacktrace -ffpe-trap=zero -fcheck=all -cpp -I $(CURDIR) -c
-#LDFLAGS= -O0 -g -fbacktrace -ffpe-trap=zero -fcheck=all -cpp -I $(CURDIR) -o
-#FFLAGSVTK=-O0 -g -fcheck=all -cpp -DPRC=4 -DIPRC=4 -c
-CFLAGS= -O2 -c
-FFLAGS= -O2 -cpp -I $(CURDIR) -c
-LDFLAGS= -O2 -cpp -I $(CURDIR) -o
-FFLAGSVTK= -O2 -cpp -DPRC=4 -DIPRC=4 -c
+CFLAGS= -O0 -g -c
+FFLAGS= -O0 -g -fbacktrace -ffpe-trap=zero -fcheck=all -cpp -I $(CURDIR) -c
+LDFLAGS= -O0 -g -fbacktrace -ffpe-trap=zero -fcheck=all -cpp -I $(CURDIR) -o
+FFLAGSVTK=-O0 -g -fcheck=all -cpp -DPRC=4 -DIPRC=4 -c
+#CFLAGS= -O2 -c
+#FFLAGS= -O2 -cpp -I $(CURDIR) -c
+#LDFLAGS= -O2 -cpp -I $(CURDIR) -o
+#FFLAGSVTK= -O2 -cpp -DPRC=4 -DIPRC=4 -c
 EX=../execute/main.x
 SHELL=/bin/sh
 

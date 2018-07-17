@@ -117,8 +117,8 @@
       write(outp,'(/,3a,/)')"WARNING - the allocation number ", &
        trim(adjustl(r_char))," exits with error"
     case (3)
-      write(outp,'(/,2a,/)')"WARNING - only full preiodic boundary ", &
-      "conditions are actualy implemented"
+      write(outp,'(/,2a,/)')"WARNING - the requested boundary ", &
+      "conditions is NOT actualy implemented"
     case (4)
       write(outp,'(/,2a,/)')"WARNING - viscosity or relaxation ", &
       "time tau have to be defined in input file"
@@ -173,6 +173,11 @@
     case (7)
       write(outp,'(/,a)')"WARNING - 'print list' is not correctly specified"
       write(outp,'(a,/)')"WARNING - 'print list' should be specified as 'print list [keys]'"
+    case (8)
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,a)')"WARNING - the number fluid components should be 1 or 2."
+       write(outp,'(2a,/)')"WARNING - the actual number of fluids is : ", &
+       trim(adjustl(r_char))
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

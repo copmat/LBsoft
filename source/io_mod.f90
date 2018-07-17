@@ -24,7 +24,8 @@
   initial_w,set_mean_value_vel_fluids,set_boundary_conditions_type, &
   ibctype,set_value_ext_force_fluids,ext_fu,ext_fv,ext_fw,lpair_SC, &
   pair_SC,set_fluid_force_sc,set_value_viscosity,set_value_tau, &
-  viscR,viscB,tauR,tauB,lunique_omega,lforce_add
+  viscR,viscB,tauR,tauB,lunique_omega,lforce_add,set_lsingle_fluid, &
+  lsingle_fluid
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery,lvtkfile
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
  use statistic_mod,         only : reprinttime,compute_statistic, &
@@ -278,6 +279,7 @@
   integer :: temp_nstepmax=0
   integer :: temp_idiagnostic=1
   integer :: temp_ivtkevery=1
+  integer :: temp_nfluid=0
   logical :: temp_ibc=.false.
   logical :: linit_seed=.false.
   logical :: temp_lpair_SC=.false.
@@ -288,6 +290,7 @@
   logical :: temp_ldiagnostic=.false.
   logical :: temp_lvtkfile=.false.
   logical :: lidiagnostic=.false.
+  logical :: temp_lnfluid=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -473,6 +476,9 @@
               cycle
             elseif(redstring(1:1)==' ')then
               cycle
+            elseif(findstring('compon',directive,inumchar,maxlen))then
+              temp_nfluid=intstr(directive,maxlen,inumchar)
+              temp_lnfluid=.true.
             elseif(findstring('dens',directive,inumchar,maxlen))then
               if(findstring('mean',directive,inumchar,maxlen))then
                 dtemp_meanR=dblstr(directive,maxlen,inumchar)
@@ -588,8 +594,13 @@
   call bcast_world(temp_ibcz)
   if(.not. temp_ibc)call error(10)
   call set_boundary_conditions_type(temp_ibcx,temp_ibcy,temp_ibcz)
-  ! check only full periodic
-  if(ibctype.ne.7)then
+  ! check boundary conditions if are supported/implemented
+  ! 3 T T F
+  ! 5 T F T
+  ! 6 F T T
+  ! 7 T T T
+  if(ibctype.ne.7 .and. ibctype.ne.3 .and. ibctype.ne.5 .and. &
+   ibctype.ne.6)then
     call warning(3)
     call error(9)
   endif
@@ -694,6 +705,21 @@
     write(6,'(/,3a,/)')repeat('*',29),"parameters of LB room",repeat('*',29)
   endif
   
+  call bcast_world(temp_lnfluid)
+  if(temp_lnfluid)then
+    call bcast_world(temp_nfluid)
+    if(temp_nfluid/=1 .and. temp_nfluid/=2)then
+      call warning(8,real(temp_nfluid,kind=PRC))
+      call error(5)
+    endif
+    if(temp_nfluid==1)call set_lsingle_fluid(.true.)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='fluid components'
+      write(6,'(2a,i12)')mystring,": ",temp_nfluid
+    endif
+  endif
+  
   call bcast_world(lvisc)
   call bcast_world(ltau)
   if(.not. (lvisc.or.ltau))then
@@ -703,11 +729,11 @@
   if(lvisc)then
     call bcast_world(dtemp_viscR)
     call bcast_world(dtemp_viscB)
-    call set_value_viscosity(dtemp_viscR,dtemp_viscB)
+    call set_value_viscosity(dtemp_viscR,dtemp_viscB,lsingle_fluid)
   else
     call bcast_world(dtemp_tauR)
     call bcast_world(dtemp_tauB)
-    call set_value_tau(dtemp_tauR,dtemp_tauB)
+    call set_value_tau(dtemp_tauR,dtemp_tauB,lsingle_fluid)
   endif
   
   if(idrank==0)then

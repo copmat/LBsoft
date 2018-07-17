@@ -17,10 +17,10 @@
  use profiling_mod,  only : start_timing2,end_timing2, &
                        ldiagnostic
  use fluids_mod,      only : initialize_fluid_force,compute_fluid_force_sc, &
-                        collision_fluids,driver_bc_hvars,driver_bc_pops,&
+                        collision_fluids,driver_bc_densities,driver_bc_pops,&
                         collision_fluids_unique_omega,lunique_omega, &
                         compute_omega_bimix,streaming_fluids, &
-                        moments_fluids
+                        moments_fluids,driver_reflect_densities,lpair_SC
  use write_output_mod, only : write_vtk_frame
  
  implicit none
@@ -133,17 +133,25 @@
   call moments_fluids
   if(ldiagnostic)call end_timing2("LB","moments_fluids")
   
-  if(ldiagnostic)call start_timing2("LB","driver_bc_hvars")
-  call driver_bc_hvars
-  if(ldiagnostic)call end_timing2("LB","driver_bc_hvars")
+  if(lpair_SC)then
+    if(ldiagnostic)call start_timing2("LB","driver_bc_densities")
+    call driver_bc_densities
+    if(ldiagnostic)call end_timing2("LB","driver_bc_densities")
+    
+    if(ldiagnostic)call start_timing2("LB","driver_reflect_densities")
+    call driver_reflect_densities
+    if(ldiagnostic)call end_timing2("LB","driver_reflect_densities")
+  endif
   
   if(ldiagnostic)call start_timing2("LB","initialize_force")
   call initialize_fluid_force
   if(ldiagnostic)call end_timing2("LB","initialize_force")
   
-  if(ldiagnostic)call start_timing2("LB","compute_force_sc")
-  call compute_fluid_force_sc
-  if(ldiagnostic)call end_timing2("LB","compute_force_sc")
+  if(lpair_SC)then
+    if(ldiagnostic)call start_timing2("LB","compute_force_sc")
+    call compute_fluid_force_sc
+    if(ldiagnostic)call end_timing2("LB","compute_force_sc")
+  endif
   
   if(ldiagnostic)call start_timing2("IO","write_vtk_frame")
   call write_vtk_frame(nstep)

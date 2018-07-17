@@ -37,9 +37,15 @@
  logical, save, protected, public :: lalloc_pops=.false.
  
  logical, save, protected, public :: lforce_add=.false.
+ logical, save, protected, public :: lShanChen=.false.
+ logical, save, protected, public :: lsing_SC=.false.
  logical, save, protected, public :: lpair_SC=.false.
  
  logical, save, protected, public :: lunique_omega=.false.
+ 
+ logical, save, protected, public :: lsingle_fluid=.false.
+ 
+ logical, save, protected, public :: lvorticity=.false.
  
  real(kind=PRC), save, protected, public :: t_LB = ONE
  
@@ -78,6 +84,8 @@
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: fuB
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: fvB
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: fwB
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: psiR
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: psiB
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: gradpsixR
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: gradpsiyR
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: gradpsizR
@@ -153,13 +161,16 @@
  public :: compute_fluid_force_sc
  public :: collision_fluids
  public :: collision_fluids_unique_omega
- public :: driver_bc_hvars
+ public :: driver_bc_densities
+ public :: driver_bc_velocities
  public :: set_fluid_force_sc
  public :: set_value_viscosity
  public :: set_value_tau
  public :: compute_omega_bimix
  public :: streaming_fluids
  public :: moments_fluids
+ public :: driver_reflect_densities
+ public :: set_lsingle_fluid
  
  contains
  
@@ -193,7 +204,6 @@
   istat=0
   
   allocate(rhoR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(1))
-  allocate(rhoB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(2))
   
   allocate(u(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(3))
   allocate(v(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(4))
@@ -203,17 +213,12 @@
   allocate(fvR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(7))
   allocate(fwR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(8))
   
-  allocate(fuB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(9))
-  allocate(fvB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(10))
-  allocate(fwB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(11))
-  
-  allocate(gradpsixR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(12))
-  allocate(gradpsiyR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(13))
-  allocate(gradpsizR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(14))
-  
-  allocate(gradpsixB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(15))
-  allocate(gradpsiyB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(16))
-  allocate(gradpsizB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(17))
+  if(lShanChen)then
+    allocate(gradpsixR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(12))
+    allocate(gradpsiyR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(13))
+    allocate(gradpsizR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(14))
+    allocate(psiR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(19))
+  endif
   
   allocate(omega(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(18))
   
@@ -237,25 +242,41 @@
   allocate(f17R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(47))
   allocate(f18R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(48))
   
-  allocate(f00B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(60))
-  allocate(f01B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(61))
-  allocate(f02B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(62))
-  allocate(f03B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(63))
-  allocate(f04B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(64))
-  allocate(f05B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(65))
-  allocate(f06B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(66))
-  allocate(f07B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(67))
-  allocate(f08B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(68))
-  allocate(f09B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(69))
-  allocate(f10B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(60))
-  allocate(f11B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(61))
-  allocate(f12B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(62))
-  allocate(f13B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(63))
-  allocate(f14B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(64))
-  allocate(f15B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(65))
-  allocate(f16B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(66))
-  allocate(f17B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(67))
-  allocate(f18B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(68))
+  if(.not. lsingle_fluid)then
+  
+    allocate(rhoB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(2))
+  
+    allocate(fuB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(9))
+    allocate(fvB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(10))
+    allocate(fwB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(11))
+    
+    if(lShanChen)then
+      allocate(gradpsixB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(15))
+      allocate(gradpsiyB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(16))
+      allocate(gradpsizB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(17))
+      allocate(psiB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(20))
+    endif
+    
+    allocate(f00B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(60))
+    allocate(f01B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(61))
+    allocate(f02B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(62))
+    allocate(f03B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(63))
+    allocate(f04B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(64))
+    allocate(f05B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(65))
+    allocate(f06B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(66))
+    allocate(f07B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(67))
+    allocate(f08B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(68))
+    allocate(f09B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(69))
+    allocate(f10B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(60))
+    allocate(f11B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(61))
+    allocate(f12B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(62))
+    allocate(f13B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(63))
+    allocate(f14B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(64))
+    allocate(f15B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(65))
+    allocate(f16B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(66))
+    allocate(f17B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(67))
+    allocate(f18B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(68))
+  endif
   
   ltest=.false.
   if(any(istat.ne.0))then
@@ -280,9 +301,19 @@
   implicit none
   
   integer, intent(in) :: itemp1,itemp2,itemp3
-  
-  integer, dimension(0:1,0:1,0:1) :: iselbct = &
+  integer ::i,j,k
+  integer, dimension(0:1,0:1,0:1), parameter :: iselbct = &
    reshape((/0,1,2,3,4,5,6,7/),(/2,2,2/))
+ ! 0=F    1=T  periodic
+ !     itemp1      itemp2      itemp3     ibctype
+ !          0           0           0           0
+ !          1           0           0           1
+ !          0           1           0           2
+ !          1           1           0           3
+ !          0           0           1           4
+ !          1           0           1           5
+ !          0           1           1           6
+ !          1           1           1           7
   
   if( itemp1 .ne. 0 .and. itemp1 .ne. 1)then
     call error(9)
@@ -328,11 +359,15 @@
   
   call set_initial_vel_fluids
   
-  call driver_bc_hvars
+  call driver_bc_densities
+  
+  if(lvorticity)call driver_bc_velocities
   
   call set_initial_pop_fluids
   
   call driver_bc_pops
+  
+  call driver_reflect_pops
   
   !restart to be added
   
@@ -356,13 +391,17 @@
   
   integer :: i,j,k
   
-  fuR(1:nx,1:ny,1:nz)=ext_fu
-  fvR(1:nx,1:ny,1:nz)=ext_fv
-  fwR(1:nx,1:ny,1:nz)=ext_fw
+  if(.not. lforce_add)return
   
-  fuB(1:nx,1:ny,1:nz)=ext_fu
-  fvB(1:nx,1:ny,1:nz)=ext_fv
-  fwB(1:nx,1:ny,1:nz)=ext_fw
+  forall(i=1:nx,j=1:ny,k=1:nz)fuR(i,j,k)=ext_fu
+  forall(i=1:nx,j=1:ny,k=1:nz)fvR(i,j,k)=ext_fv
+  forall(i=1:nx,j=1:ny,k=1:nz)fwR(i,j,k)=ext_fw
+  
+  if(lsingle_fluid)return
+  
+  forall(i=1:nx,j=1:ny,k=1:nz)fuB(i,j,k)=ext_fu
+  forall(i=1:nx,j=1:ny,k=1:nz)fvB(i,j,k)=ext_fv
+  forall(i=1:nx,j=1:ny,k=1:nz)fwB(i,j,k)=ext_fw
   
   return
  
@@ -391,6 +430,15 @@
     do j=1,ny
       do i=1,nx
         rhoR(i,j,k)=meanR+stdevR*gauss()
+      enddo
+    enddo
+  enddo
+  
+  if(lsingle_fluid)return
+  
+  do k=1,nz
+    do j=1,ny
+      do i=1,nx
         rhoB(i,j,k)=meanB+stdevB*gauss()
       enddo
     enddo
@@ -415,8 +463,11 @@
   
   implicit none
   
-  rhoR(1:nx,1:ny,1:nz)=meanR
-  rhoB(1:nx,1:ny,1:nz)=meanB
+  integer :: i,j,k
+  
+  forall(i=1:nx,j=1:ny,k=1:nz)rhoR(i,j,k)=meanR
+  if(lsingle_fluid)return
+  forall(i=1:nx,j=1:ny,k=1:nz)rhoB(i,j,k)=meanB
   
   return
   
@@ -437,9 +488,11 @@
   
   implicit none
   
-  u(1:nx,1:ny,1:nz)=initial_u
-  v(1:nx,1:ny,1:nz)=initial_v
-  w(1:nx,1:ny,1:nz)=initial_w
+  integer :: i,j,k
+  
+  forall(i=1:nx,j=1:ny,k=1:nz)u(i,j,k)=initial_u
+  forall(i=1:nx,j=1:ny,k=1:nz)v(i,j,k)=initial_v
+  forall(i=1:nx,j=1:ny,k=1:nz)w(i,j,k)=initial_w
   
   return
   
@@ -538,6 +591,8 @@
   forall(i=1:nx,j=1:ny,k=1:nz)
     f18R(i,j,k)=equil_pop18(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))
   end forall
+  
+  if(lsingle_fluid)return
   
   !blue fluid
   
@@ -793,6 +848,29 @@
   
  end subroutine set_mean_value_vel_fluids
  
+ subroutine set_lsingle_fluid(ltemp1)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the value of lsingle_fluid for select 
+!     the single fluid mode
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(in) :: ltemp1
+  
+  lsingle_fluid=ltemp1
+  
+  return
+  
+ end subroutine set_lsingle_fluid
+ 
  subroutine set_fluid_force_sc(ltemp1,dtemp1)
  
 !***********************************************************************
@@ -813,13 +891,14 @@
   
   lforce_add=.true.
   lpair_SC = ltemp1
+  lShanChen = (lShanChen .or. lpair_SC)
   pair_SC = dtemp1
   
   return
   
  end subroutine set_fluid_force_sc
  
- subroutine set_value_viscosity(dtemp1,dtemp2)
+ subroutine set_value_viscosity(dtemp1,dtemp2,temp_lsingle_fluid)
  
 !***********************************************************************
 !     
@@ -835,8 +914,9 @@
   implicit none
   
   real(kind=PRC), intent(in) :: dtemp1,dtemp2
+  logical, intent(in) :: temp_lsingle_fluid
   
-  if(dtemp1==dtemp2)then
+  if(dtemp1==dtemp2 .or. temp_lsingle_fluid)then
     lunique_omega=.true.
     viscR=dtemp1
     viscB=dtemp2
@@ -855,7 +935,7 @@
   
  end subroutine set_value_viscosity
  
- subroutine set_value_tau(dtemp1,dtemp2)
+ subroutine set_value_tau(dtemp1,dtemp2,temp_lsingle_fluid)
  
 !***********************************************************************
 !     
@@ -871,8 +951,9 @@
   implicit none
   
   real(kind=PRC), intent(in) :: dtemp1,dtemp2
+  logical, intent(in) :: temp_lsingle_fluid
   
-  if(dtemp1==dtemp2)then
+  if(dtemp1==dtemp2 .or. temp_lsingle_fluid)then
     lunique_omega=.true.
     tauR=dtemp1
     tauB=dtemp2
@@ -917,12 +998,12 @@
  
  end function viscosity_to_omega
  
- subroutine driver_bc_hvars
+ subroutine driver_reflect_densities
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for driving the boundary conditions
-!     to hydrodynamic variables
+!     LBsoft subroutine for driving the reflection of the density 
+!     variables if requested from the boundary conditions
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -933,22 +1014,26 @@
   implicit none
   
   select case(ibctype)
-  case(7)
-    call apply_pbc_hvars
+  case(3) ! 1 1 0 
+    call apply_reflection_densities_along_xy
+  case(5) ! 1 0 1 
+    call apply_reflection_densities_along_xz
+  case(6) ! 0 1 1 
+    call apply_reflection_densities_along_yz
   case default
-    call apply_pbc_hvars
+    return
   end select
   
   return
   
- end subroutine driver_bc_hvars
+ end subroutine driver_reflect_densities
  
- subroutine apply_pbc_hvars
+ subroutine apply_reflection_densities_along_xy 
  
 !***********************************************************************
 !     
 !     LBsoft subroutine for applying the full periodic boundary 
-!     conditions to hydrodynamic variables
+!     conditions to density variables
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -960,149 +1045,473 @@
   
   !sides 6
   
-  !apply pbc at north 1
+  !apply pbc at north 1 !z
+  !red fluid
+  call apply_reflection_north(rhoR)
+  
+  !apply pbc at south 2 !z
+  !red fluid
+  call apply_reflection_south(rhoR)
+  
+  if(lsingle_fluid)return
+  
+  !sides 6
+  
+  !apply pbc at north 1 !z
+  !blue fluid
+  call apply_reflection_north(rhoB)
+  
+  !apply pbc at south 2 !z
+  !blue fluid
+  call apply_reflection_south(rhoB)
+  
+  
+  return
+  
+ end subroutine apply_reflection_densities_along_xy
+ 
+ subroutine apply_reflection_densities_along_xz 
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to density variables
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 6
+  
+  !apply pbc at front 5 !y
+  !red fluid
+  call apply_reflection_front(rhoR)
+  
+  !apply pbc at rear 6 !y
+  !red fluid
+  call apply_reflection_rear(rhoR)
+  
+  if(lsingle_fluid)return
+  
+  !sides 6
+  
+  !apply pbc at front 5 !y
+  !blue fluid
+  call apply_reflection_front(rhoB)
+  
+  !apply pbc at rear 6 !y
+  !blue fluid
+  call apply_reflection_rear(rhoB)
+  
+  return
+  
+ end subroutine apply_reflection_densities_along_xz
+ 
+ subroutine apply_reflection_densities_along_yz 
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to density variables
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 6
+  
+  !apply pbc at east 3 !x
+  !red fluid
+  call apply_reflection_east(rhoR)
+  
+  !apply pbc at west 4 !x
+  !red fluid
+  call apply_reflection_west(rhoR)
+  
+  if(lsingle_fluid)return
+  
+  !sides 6
+  
+  !apply pbc at east 3 !x
+  !blue fluid
+  call apply_reflection_east(rhoB)
+  
+  !apply pbc at west 4 !x
+  !blue fluid
+  call apply_reflection_west(rhoB)
+  
+  return
+  
+ end subroutine apply_reflection_densities_along_yz
+ 
+ subroutine driver_bc_densities
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the boundary conditions
+!     to fluid densities
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  select case(ibctype)
+  case(3) ! 1 1 0 
+    call apply_pbc_densities_along_xy
+  case(5) ! 1 0 1 
+    call apply_pbc_densities_along_xz
+  case(6) ! 0 1 1 
+    call apply_pbc_densities_along_yz
+  case(7) ! 1 1 1
+    call apply_pbc_densities
+  case default
+    call apply_pbc_densities
+  end select
+  
+  return
+  
+ end subroutine driver_bc_densities
+ 
+ subroutine driver_bc_velocities
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the boundary conditions
+!     to fluid densities
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  select case(ibctype)
+  case(3) ! 1 1 0 
+    call apply_pbc_velocities_along_xy
+  case(5) ! 1 0 1 
+    call apply_pbc_velocities_along_xz
+  case(6) ! 0 1 1 
+    call apply_pbc_velocities_along_yz
+  case(7) ! 1 1 1
+    call apply_pbc_velocities
+  case default
+    call apply_pbc_velocities
+  end select
+  
+  return
+  
+ end subroutine driver_bc_velocities
+ 
+ subroutine apply_pbc_densities
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to fluid densities
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 6
+  
+  !apply pbc at north 1   !z
   call apply_pbc_north(rhoR)
+  
+  !apply pbc at south 2   !z
+  call apply_pbc_south(rhoR)
+  
+  !apply pbc at east 3    !x
+  call apply_pbc_east(rhoR)
+  
+  !apply pbc at west 4    !x
+  call apply_pbc_west(rhoR)
+  
+  !apply pbc at front 5   !y
+  call apply_pbc_front(rhoR)
+  
+  !apply pbc at rear 6   !y
+  call apply_pbc_rear(rhoR)
+  
+  !edges 12
+  
+  !apply pbc at front east 1   !xy
+  call apply_pbc_edge_front_east(rhoR)
+  
+  !apply pbc at front west 2   !xy
+  call apply_pbc_edge_front_west(rhoR)
+  
+  !apply pbc at north east 3   !xz
+  call apply_pbc_edge_north_east(rhoR)
+  
+  !apply pbc at north front 4   !yz
+  call apply_pbc_edge_north_front(rhoR)
+  
+  !apply pbc at north rear 5   !yz
+  call apply_pbc_edge_north_rear(rhoR)
+  
+  !apply pbc at north west 6   !xz
+  call apply_pbc_edge_north_west(rhoR)
+  
+  !apply pbc at rear east 7   !xy
+  call apply_pbc_edge_rear_east(rhoR)
+  
+  !apply pbc at rear west 8   !xy
+  call apply_pbc_edge_rear_west(rhoR)
+  
+  !apply pbc at south east 9  !xz
+  call apply_pbc_edge_south_east(rhoR)
+  
+  !apply pbc at south front 10  !yz
+  call apply_pbc_edge_south_front(rhoR)
+  
+  !apply pbc at south rear 11  !yz
+  call apply_pbc_edge_south_rear(rhoR)
+  
+  !apply pbc at south west 12  !xz
+  call apply_pbc_edge_south_west(rhoR)
+  
+  !corner 8
+  
+  !apply pbc at north east front 1
+  call apply_pbc_corner_north_east_front(rhoR)
+  
+  !apply pbc at north east rear 2
+  call apply_pbc_corner_north_east_rear(rhoR)
+  
+  !apply pbc at north west rear 3
+  call apply_pbc_corner_north_west_rear(rhoR)
+  
+  !apply pbc at north west front 4
+  call apply_pbc_corner_north_west_front(rhoR)
+  
+  !apply pbc at south east front 5
+  call apply_pbc_corner_south_east_front(rhoR)
+  
+  !apply pbc at south west front 6
+  call apply_pbc_corner_south_west_front(rhoR)
+  
+  !apply pbc at south west rear 7
+  call apply_pbc_corner_south_west_rear(rhoR)
+  
+  !apply pbc at south east rear 8
+  call apply_pbc_corner_south_east_rear(rhoR)
+  
+  if(lsingle_fluid)return
+  
+  !sides 6
+  
+  !apply pbc at north 1   !z
   call apply_pbc_north(rhoB)
   
+  !apply pbc at south 2   !z
+  call apply_pbc_south(rhoB)
+  
+  !apply pbc at east 3    !x
+  call apply_pbc_east(rhoB)
+  
+  !apply pbc at west 4    !x
+  call apply_pbc_west(rhoB)
+  
+  !apply pbc at front 5   !y
+  call apply_pbc_front(rhoB)
+  
+  !apply pbc at rear 6   !y
+  call apply_pbc_rear(rhoB)
+  
+  !edges 12
+  
+  !apply pbc at front east 1   !xy
+  call apply_pbc_edge_front_east(rhoB)
+  
+  !apply pbc at front west 2   !xy
+  call apply_pbc_edge_front_west(rhoB)
+  
+  !apply pbc at north east 3   !xz
+  call apply_pbc_edge_north_east(rhoB)
+  
+  !apply pbc at north front 4   !yz
+  call apply_pbc_edge_north_front(rhoB)
+  
+  !apply pbc at north rear 5   !yz
+  call apply_pbc_edge_north_rear(rhoB)
+  
+  !apply pbc at north west 6   !xz
+  call apply_pbc_edge_north_west(rhoB)
+  
+  !apply pbc at rear east 7   !xy
+  call apply_pbc_edge_rear_east(rhoB)
+  
+  !apply pbc at rear west 8   !xy
+  call apply_pbc_edge_rear_west(rhoB)
+  
+  !apply pbc at south east 9  !xz
+  call apply_pbc_edge_south_east(rhoB)
+  
+  !apply pbc at south front 10  !yz
+  call apply_pbc_edge_south_front(rhoB)
+  
+  !apply pbc at south rear 11  !yz
+  call apply_pbc_edge_south_rear(rhoB)
+  
+  !apply pbc at south west 12  !xz
+  call apply_pbc_edge_south_west(rhoB)
+  
+  !corner 8
+  
+  !apply pbc at north east front 1
+  call apply_pbc_corner_north_east_front(rhoB)
+  
+  !apply pbc at north east rear 2
+  call apply_pbc_corner_north_east_rear(rhoB)
+  
+  !apply pbc at north west rear 3
+  call apply_pbc_corner_north_west_rear(rhoB)
+  
+  !apply pbc at north west front 4
+  call apply_pbc_corner_north_west_front(rhoB)
+  
+  !apply pbc at south east front 5
+  call apply_pbc_corner_south_east_front(rhoB)
+  
+  !apply pbc at south west front 6
+  call apply_pbc_corner_south_west_front(rhoB)
+  
+  !apply pbc at south west rear 7
+  call apply_pbc_corner_south_west_rear(rhoB)
+  
+  !apply pbc at south east rear 8
+  call apply_pbc_corner_south_east_rear(rhoB)
+  
+  
+  
+  return
+  
+ end subroutine apply_pbc_densities
+ 
+ subroutine apply_pbc_velocities
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to fluid velocities
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 6
+  
+  !apply pbc at north 1   !z
   call apply_pbc_north(u)
   call apply_pbc_north(v)
   call apply_pbc_north(w)
   
-  !apply pbc at south 2
-  call apply_pbc_south(rhoR)
-  call apply_pbc_south(rhoB)
-  
+  !apply pbc at south 2   !z
   call apply_pbc_south(u)
   call apply_pbc_south(v)
   call apply_pbc_south(w)
   
-  !apply pbc at east 3
-  call apply_pbc_east(rhoR)
-  call apply_pbc_east(rhoB)
-  
+  !apply pbc at east 3    !x
   call apply_pbc_east(u)
   call apply_pbc_east(v)
   call apply_pbc_east(w)
   
-  !apply pbc at west 4
-  call apply_pbc_west(rhoR)
-  call apply_pbc_west(rhoB)
-  
+  !apply pbc at west 4    !x
   call apply_pbc_west(u)
   call apply_pbc_west(v)
   call apply_pbc_west(w)
   
-  !apply pbc at front 5
-  call apply_pbc_front(rhoR)
-  call apply_pbc_front(rhoB)
-  
+  !apply pbc at front 5   !y
   call apply_pbc_front(u)
   call apply_pbc_front(v)
   call apply_pbc_front(w)
   
-  !apply pbc at rear 6
-  call apply_pbc_rear(rhoR)
-  call apply_pbc_rear(rhoB)
-  
+  !apply pbc at rear 6   !y
   call apply_pbc_rear(u)
   call apply_pbc_rear(v)
   call apply_pbc_rear(w)
   
   !edges 12
   
-  !apply pbc at front east 1
-  call apply_pbc_edge_front_east(rhoR)
-  call apply_pbc_edge_front_east(rhoB)
-  
+  !apply pbc at front east 1   !xy
   call apply_pbc_edge_front_east(u)
   call apply_pbc_edge_front_east(v)
   call apply_pbc_edge_front_east(w)
   
-  !apply pbc at front west 2
-  call apply_pbc_edge_front_west(rhoR)
-  call apply_pbc_edge_front_west(rhoB)
-  
+  !apply pbc at front west 2   !xy
   call apply_pbc_edge_front_west(u)
   call apply_pbc_edge_front_west(v)
   call apply_pbc_edge_front_west(w)
   
-  !apply pbc at north east 3
-  call apply_pbc_edge_north_east(rhoR)
-  call apply_pbc_edge_north_east(rhoB)
-  
+  !apply pbc at north east 3   !xz
   call apply_pbc_edge_north_east(u)
   call apply_pbc_edge_north_east(v)
   call apply_pbc_edge_north_east(w)
   
-  !apply pbc at north front 4
-  call apply_pbc_edge_north_front(rhoR)
-  call apply_pbc_edge_north_front(rhoB)
-  
+  !apply pbc at north front 4   !yz
   call apply_pbc_edge_north_front(u)
   call apply_pbc_edge_north_front(v)
   call apply_pbc_edge_north_front(w)
   
-  !apply pbc at north rear 5
-  call apply_pbc_edge_north_rear(rhoR)
-  call apply_pbc_edge_north_rear(rhoB)
-  
+  !apply pbc at north rear 5   !yz
   call apply_pbc_edge_north_rear(u)
   call apply_pbc_edge_north_rear(v)
   call apply_pbc_edge_north_rear(w)
   
-  !apply pbc at north west 6
-  call apply_pbc_edge_north_west(rhoR)
-  call apply_pbc_edge_north_west(rhoB)
-  
+  !apply pbc at north west 6   !xz
   call apply_pbc_edge_north_west(u)
   call apply_pbc_edge_north_west(v)
   call apply_pbc_edge_north_west(w)
   
-  !apply pbc at rear east 7
-  call apply_pbc_edge_rear_east(rhoR)
-  call apply_pbc_edge_rear_east(rhoB)
-  
+  !apply pbc at rear east 7   !xy
   call apply_pbc_edge_rear_east(u)
   call apply_pbc_edge_rear_east(v)
   call apply_pbc_edge_rear_east(w)
   
-  !apply pbc at rear west 8
-  call apply_pbc_edge_rear_west(rhoR)
-  call apply_pbc_edge_rear_west(rhoB)
-  
+  !apply pbc at rear west 8   !xy
   call apply_pbc_edge_rear_west(u)
   call apply_pbc_edge_rear_west(v)
   call apply_pbc_edge_rear_west(w)
   
-  !apply pbc at south east 9
-  call apply_pbc_edge_south_east(rhoR)
-  call apply_pbc_edge_south_east(rhoB)
-  
+  !apply pbc at south east 9  !xz
   call apply_pbc_edge_south_east(u)
   call apply_pbc_edge_south_east(v)
   call apply_pbc_edge_south_east(w)
   
-  !apply pbc at south front 10
-  call apply_pbc_edge_south_front(rhoR)
-  call apply_pbc_edge_south_front(rhoB)
-  
+  !apply pbc at south front 10  !yz
   call apply_pbc_edge_south_front(u)
   call apply_pbc_edge_south_front(v)
   call apply_pbc_edge_south_front(w)
   
-  !apply pbc at south rear 11
-  call apply_pbc_edge_south_rear(rhoR)
-  call apply_pbc_edge_south_rear(rhoB)
-  
+  !apply pbc at south rear 11  !yz
   call apply_pbc_edge_south_rear(u)
   call apply_pbc_edge_south_rear(v)
   call apply_pbc_edge_south_rear(w)
   
-  
-  !apply pbc at south west 12
-  call apply_pbc_edge_south_west(rhoR)
-  call apply_pbc_edge_south_west(rhoB)
-  
+  !apply pbc at south west 12  !xz
   call apply_pbc_edge_south_west(u)
   call apply_pbc_edge_south_west(v)
   call apply_pbc_edge_south_west(w)
@@ -1110,72 +1519,839 @@
   !corner 8
   
   !apply pbc at north east front 1
-  call apply_pbc_corner_north_east_front(rhoR)
-  call apply_pbc_corner_north_east_front(rhoB)
-  
   call apply_pbc_corner_north_east_front(u)
   call apply_pbc_corner_north_east_front(v)
   call apply_pbc_corner_north_east_front(w)
   
   !apply pbc at north east rear 2
-  call apply_pbc_corner_north_east_rear(rhoR)
-  call apply_pbc_corner_north_east_rear(rhoB)
-  
   call apply_pbc_corner_north_east_rear(u)
   call apply_pbc_corner_north_east_rear(v)
   call apply_pbc_corner_north_east_rear(w)
   
   !apply pbc at north west rear 3
-  call apply_pbc_corner_north_west_rear(rhoR)
-  call apply_pbc_corner_north_west_rear(rhoB)
-  
   call apply_pbc_corner_north_west_rear(u)
   call apply_pbc_corner_north_west_rear(v)
   call apply_pbc_corner_north_west_rear(w)
   
   !apply pbc at north west front 4
-  call apply_pbc_corner_north_west_front(rhoR)
-  call apply_pbc_corner_north_west_front(rhoB)
-  
   call apply_pbc_corner_north_west_front(u)
   call apply_pbc_corner_north_west_front(v)
   call apply_pbc_corner_north_west_front(w)
   
   !apply pbc at south east front 5
-  call apply_pbc_corner_south_east_front(rhoR)
-  call apply_pbc_corner_south_east_front(rhoB)
-  
   call apply_pbc_corner_south_east_front(u)
   call apply_pbc_corner_south_east_front(v)
   call apply_pbc_corner_south_east_front(w)
   
   !apply pbc at south west front 6
-  call apply_pbc_corner_south_west_front(rhoR)
-  call apply_pbc_corner_south_west_front(rhoB)
-  
   call apply_pbc_corner_south_west_front(u)
   call apply_pbc_corner_south_west_front(v)
   call apply_pbc_corner_south_west_front(w)
   
   !apply pbc at south west rear 7
-  call apply_pbc_corner_south_west_rear(rhoR)
-  call apply_pbc_corner_south_west_rear(rhoB)
-  
   call apply_pbc_corner_south_west_rear(u)
   call apply_pbc_corner_south_west_rear(v)
   call apply_pbc_corner_south_west_rear(w)
   
   !apply pbc at south east rear 8
-  call apply_pbc_corner_south_east_rear(rhoR)
-  call apply_pbc_corner_south_east_rear(rhoB)
-  
   call apply_pbc_corner_south_east_rear(u)
   call apply_pbc_corner_south_east_rear(v)
   call apply_pbc_corner_south_east_rear(w)
   
   return
   
- end subroutine apply_pbc_hvars
+ end subroutine apply_pbc_velocities
+ 
+ subroutine apply_pbc_densities_along_xy
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     conditions to fluid densities along x and y
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 4 (6)
+  
+  !apply pbc at east 3    !x
+  call apply_pbc_east(rhoR)
+  
+  !apply pbc at west 4    !x
+  call apply_pbc_west(rhoR)
+  
+  !apply pbc at front 5   !y
+  call apply_pbc_front(rhoR)
+  
+  !apply pbc at rear 6    !y
+  call apply_pbc_rear(rhoR)
+  
+  !edges 4 (12)
+  
+  !apply pbc at front east 1   !xy
+  call apply_pbc_edge_front_east(rhoR)
+  
+  !apply pbc at front west 2   !xy
+  call apply_pbc_edge_front_west(rhoR)
+  
+  !apply pbc at rear east 7   !xy
+  call apply_pbc_edge_rear_east(rhoR)
+  
+  !apply pbc at rear west 8   !xy
+  call apply_pbc_edge_rear_west(rhoR)
+  
+  if(lsingle_fluid)return
+  
+  !sides 4 (6)
+  
+  !apply pbc at east 3    !x
+  call apply_pbc_east(rhoB)
+  
+  !apply pbc at west 4    !x
+  call apply_pbc_west(rhoB)
+  
+  !apply pbc at front 5   !y
+  call apply_pbc_front(rhoB)
+  
+  !apply pbc at rear 6    !y
+  call apply_pbc_rear(rhoB)
+  
+  !edges 4 (12)
+  
+  !apply pbc at front east 1   !xy
+  call apply_pbc_edge_front_east(rhoB)
+  
+  !apply pbc at front west 2   !xy
+  call apply_pbc_edge_front_west(rhoB)
+  
+  !apply pbc at rear east 7   !xy
+  call apply_pbc_edge_rear_east(rhoB)
+  
+  !apply pbc at rear west 8   !xy
+  call apply_pbc_edge_rear_west(rhoB)
+  
+  
+  return
+  
+ end subroutine apply_pbc_densities_along_xy
+ 
+ subroutine apply_pbc_velocities_along_xy
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the periodic boundary 
+!     conditions to fluid velocities along x and y
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 4 (6)
+  
+  !apply pbc at east 3    !x
+  call apply_pbc_east(u)
+  call apply_pbc_east(v)
+  call apply_pbc_east(w)
+  
+  !apply pbc at west 4    !x
+  call apply_pbc_west(u)
+  call apply_pbc_west(v)
+  call apply_pbc_west(w)
+  
+  !apply pbc at front 5   !y
+  call apply_pbc_front(u)
+  call apply_pbc_front(v)
+  call apply_pbc_front(w)
+  
+  !apply pbc at rear 6    !y
+  call apply_pbc_rear(u)
+  call apply_pbc_rear(v)
+  call apply_pbc_rear(w)
+  
+  !edges 4 (12)
+  
+  !apply pbc at front east 1   !xy
+  call apply_pbc_edge_front_east(u)
+  call apply_pbc_edge_front_east(v)
+  call apply_pbc_edge_front_east(w)
+  
+  !apply pbc at front west 2   !xy
+  call apply_pbc_edge_front_west(u)
+  call apply_pbc_edge_front_west(v)
+  call apply_pbc_edge_front_west(w)
+  
+  !apply pbc at rear east 7   !xy
+  call apply_pbc_edge_rear_east(u)
+  call apply_pbc_edge_rear_east(v)
+  call apply_pbc_edge_rear_east(w)
+  
+  !apply pbc at rear west 8   !xy
+  call apply_pbc_edge_rear_west(u)
+  call apply_pbc_edge_rear_west(v)
+  call apply_pbc_edge_rear_west(w)
+  
+  
+  return
+  
+ end subroutine apply_pbc_velocities_along_xy
+ 
+ subroutine apply_pbc_densities_along_xz
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to fluid densities along x and z
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 6 (4)
+  
+  !apply pbc at north 1   !z
+  call apply_pbc_north(rhoR)
+  
+  !apply pbc at south 2   !z
+  call apply_pbc_south(rhoR)
+  
+  !apply pbc at east 3    !x
+  call apply_pbc_east(rhoR)
+  
+  !apply pbc at west 4    !x
+  call apply_pbc_west(rhoR)
+  
+  !edges 4 (12)
+  
+  !apply pbc at north east 3   !xz
+  call apply_pbc_edge_north_east(rhoR)
+  
+  !apply pbc at north west 6   !xz
+  call apply_pbc_edge_north_west(rhoR)
+  
+  !apply pbc at south east 9  !xz
+  call apply_pbc_edge_south_east(rhoR)
+  
+  !apply pbc at south west 12  !xz
+  call apply_pbc_edge_south_west(rhoR)
+  
+  if(lsingle_fluid)return
+  
+  !sides 6 (4)
+  
+  !apply pbc at north 1   !z
+  call apply_pbc_north(rhoB)
+  
+  !apply pbc at south 2   !z
+  call apply_pbc_south(rhoB)
+  
+  !apply pbc at east 3    !x
+  call apply_pbc_east(rhoB)
+  
+  !apply pbc at west 4    !x
+  call apply_pbc_west(rhoB)
+  
+  !edges 4 (12)
+  
+  !apply pbc at north east 3   !xz
+  call apply_pbc_edge_north_east(rhoB)
+  
+  !apply pbc at north west 6   !xz
+  call apply_pbc_edge_north_west(rhoB)
+  
+  !apply pbc at south east 9  !xz
+  call apply_pbc_edge_south_east(rhoB)
+  
+  !apply pbc at south west 12  !xz
+  call apply_pbc_edge_south_west(rhoB)
+  
+  return
+  
+ end subroutine apply_pbc_densities_along_xz
+ 
+ subroutine apply_pbc_velocities_along_xz
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to fluid velocities along x and z
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 6 (4)
+  
+  !apply pbc at north 1   !z
+  call apply_pbc_north(u)
+  call apply_pbc_north(v)
+  call apply_pbc_north(w)
+  
+  !apply pbc at south 2   !z
+  call apply_pbc_south(u)
+  call apply_pbc_south(v)
+  call apply_pbc_south(w)
+  
+  !apply pbc at east 3    !x
+  call apply_pbc_east(u)
+  call apply_pbc_east(v)
+  call apply_pbc_east(w)
+  
+  !apply pbc at west 4    !x
+  call apply_pbc_west(u)
+  call apply_pbc_west(v)
+  call apply_pbc_west(w)
+  
+  !edges 4 (12)
+  
+  !apply pbc at north east 3   !xz
+  call apply_pbc_edge_north_east(u)
+  call apply_pbc_edge_north_east(v)
+  call apply_pbc_edge_north_east(w)
+  
+  !apply pbc at north west 6   !xz
+  call apply_pbc_edge_north_west(u)
+  call apply_pbc_edge_north_west(v)
+  call apply_pbc_edge_north_west(w)
+  
+  !apply pbc at south east 9  !xz
+  call apply_pbc_edge_south_east(u)
+  call apply_pbc_edge_south_east(v)
+  call apply_pbc_edge_south_east(w)
+  
+  !apply pbc at south west 12  !xz
+  call apply_pbc_edge_south_west(u)
+  call apply_pbc_edge_south_west(v)
+  call apply_pbc_edge_south_west(w)
+  
+  return
+  
+ end subroutine apply_pbc_velocities_along_xz
+ 
+ subroutine apply_pbc_densities_along_yz
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to fluid densities along y and z
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 4 (6)
+  
+  !apply pbc at north 1   !z
+  call apply_pbc_north(rhoR)
+  
+  !apply pbc at south 2   !z
+  call apply_pbc_south(rhoR)
+  
+  !apply pbc at front 5   !y
+  call apply_pbc_front(rhoR)
+  
+  !apply pbc at rear 6    !y
+  call apply_pbc_rear(rhoR)
+  
+  !edges 4 (12)
+  
+  !apply pbc at north front 4   !yz
+  call apply_pbc_edge_north_front(rhoR)
+  
+  !apply pbc at north rear 5   !yz
+  call apply_pbc_edge_north_rear(rhoR)
+  
+  !apply pbc at south front 10  !yz
+  call apply_pbc_edge_south_front(rhoR)
+  
+  !apply pbc at south rear 11  !yz
+  call apply_pbc_edge_south_rear(rhoR)
+  
+  if(lsingle_fluid)return
+  
+  !sides 4 (6)
+  
+  !apply pbc at north 1   !z
+  call apply_pbc_north(rhoB)
+  
+  !apply pbc at south 2   !z
+  call apply_pbc_south(rhoB)
+  
+  !apply pbc at front 5   !y
+  call apply_pbc_front(rhoB)
+  
+  !apply pbc at rear 6    !y
+  call apply_pbc_rear(rhoB)
+  
+  !edges 4 (12)
+  
+  !apply pbc at north front 4   !yz
+  call apply_pbc_edge_north_front(rhoB)
+  
+  !apply pbc at north rear 5   !yz
+  call apply_pbc_edge_north_rear(rhoB)
+  
+  !apply pbc at south front 10  !yz
+  call apply_pbc_edge_south_front(rhoB)
+  
+  !apply pbc at south rear 11  !yz
+  call apply_pbc_edge_south_rear(rhoB)
+  
+  return
+  
+ end subroutine apply_pbc_densities_along_yz
+ 
+ subroutine apply_pbc_velocities_along_yz
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to fluid velocities along y and z
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 4 (6)
+  
+  !apply pbc at north 1   !z
+  call apply_pbc_north(u)
+  call apply_pbc_north(v)
+  call apply_pbc_north(w)
+  
+  !apply pbc at south 2   !z
+  call apply_pbc_south(u)
+  call apply_pbc_south(v)
+  call apply_pbc_south(w)
+  
+  !apply pbc at front 5   !y
+  call apply_pbc_front(u)
+  call apply_pbc_front(v)
+  call apply_pbc_front(w)
+  
+  !apply pbc at rear 6    !y
+  call apply_pbc_rear(u)
+  call apply_pbc_rear(v)
+  call apply_pbc_rear(w)
+  
+  !edges 4 (12)
+  
+  !apply pbc at north front 4   !yz
+  call apply_pbc_edge_north_front(u)
+  call apply_pbc_edge_north_front(v)
+  call apply_pbc_edge_north_front(w)
+  
+  !apply pbc at north rear 5   !yz
+  call apply_pbc_edge_north_rear(u)
+  call apply_pbc_edge_north_rear(v)
+  call apply_pbc_edge_north_rear(w)
+  
+  !apply pbc at south front 10  !yz
+  call apply_pbc_edge_south_front(u)
+  call apply_pbc_edge_south_front(v)
+  call apply_pbc_edge_south_front(w)
+  
+  !apply pbc at south rear 11  !yz
+  call apply_pbc_edge_south_rear(u)
+  call apply_pbc_edge_south_rear(v)
+  call apply_pbc_edge_south_rear(w)
+  
+  return
+  
+ end subroutine apply_pbc_velocities_along_yz
+ 
+ subroutine driver_reflect_pops
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the reflection of the populations
+!     if requested from the boundary conditions
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  select case(ibctype)
+  case(3) ! 1 1 0 
+    call apply_reflection_pops_along_xy
+  case(5) ! 1 0 1 
+    call apply_reflection_pops_along_xz
+  case(6) ! 0 1 1 
+    call apply_reflection_pops_along_yz
+  case default
+    return
+  end select
+  
+  return
+  
+ end subroutine driver_reflect_pops
+ 
+ subroutine apply_reflection_pops_along_xy 
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to fluid populations
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 6
+  
+  !apply pbc at north 1 !z
+  !red fluid
+  call apply_reflection_north(f00R)
+  call apply_reflection_north(f01R)
+  call apply_reflection_north(f02R)
+  call apply_reflection_north(f03R)
+  call apply_reflection_north(f04R)
+  call apply_reflection_north(f05R)
+  call apply_reflection_north(f06R)
+  call apply_reflection_north(f07R)
+  call apply_reflection_north(f08R)
+  call apply_reflection_north(f09R)
+  call apply_reflection_north(f10R)
+  call apply_reflection_north(f11R)
+  call apply_reflection_north(f12R)
+  call apply_reflection_north(f13R)
+  call apply_reflection_north(f14R)
+  call apply_reflection_north(f15R)
+  call apply_reflection_north(f16R)
+  call apply_reflection_north(f17R)
+  call apply_reflection_north(f18R)
+  
+  !apply pbc at south 2 !z
+  !red fluid
+  call apply_reflection_south(f00R)
+  call apply_reflection_south(f01R)
+  call apply_reflection_south(f02R)
+  call apply_reflection_south(f03R)
+  call apply_reflection_south(f04R)
+  call apply_reflection_south(f05R)
+  call apply_reflection_south(f06R)
+  call apply_reflection_south(f07R)
+  call apply_reflection_south(f08R)
+  call apply_reflection_south(f09R)
+  call apply_reflection_south(f10R)
+  call apply_reflection_south(f11R)
+  call apply_reflection_south(f12R)
+  call apply_reflection_south(f13R)
+  call apply_reflection_south(f14R)
+  call apply_reflection_south(f15R)
+  call apply_reflection_south(f16R)
+  call apply_reflection_south(f17R)
+  call apply_reflection_south(f18R)
+  
+  if(lsingle_fluid)return
+  
+  !sides 6
+  
+  !apply pbc at north 1 !z
+  !blue fluid
+  call apply_reflection_north(f00B)
+  call apply_reflection_north(f01B)
+  call apply_reflection_north(f02B)
+  call apply_reflection_north(f03B)
+  call apply_reflection_north(f04B)
+  call apply_reflection_north(f05B)
+  call apply_reflection_north(f06B)
+  call apply_reflection_north(f07B)
+  call apply_reflection_north(f08B)
+  call apply_reflection_north(f09B)
+  call apply_reflection_north(f10B)
+  call apply_reflection_north(f11B)
+  call apply_reflection_north(f12B)
+  call apply_reflection_north(f13B)
+  call apply_reflection_north(f14B)
+  call apply_reflection_north(f15B)
+  call apply_reflection_north(f16B)
+  call apply_reflection_north(f17B)
+  call apply_reflection_north(f18B)
+  
+  !apply pbc at south 2 !z
+  !blue fluid
+  call apply_reflection_south(f00B)
+  call apply_reflection_south(f01B)
+  call apply_reflection_south(f02B)
+  call apply_reflection_south(f03B)
+  call apply_reflection_south(f04B)
+  call apply_reflection_south(f05B)
+  call apply_reflection_south(f06B)
+  call apply_reflection_south(f07B)
+  call apply_reflection_south(f08B)
+  call apply_reflection_south(f09B)
+  call apply_reflection_south(f10B)
+  call apply_reflection_south(f11B)
+  call apply_reflection_south(f12B)
+  call apply_reflection_south(f13B)
+  call apply_reflection_south(f14B)
+  call apply_reflection_south(f15B)
+  call apply_reflection_south(f16B)
+  call apply_reflection_south(f17B)
+  call apply_reflection_south(f18B)
+  
+  return
+  
+ end subroutine apply_reflection_pops_along_xy
+ 
+ subroutine apply_reflection_pops_along_xz 
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to fluid populations
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 6
+  
+  !apply pbc at front 5 !y
+  !red fluid
+  call apply_reflection_front(f00R)
+  call apply_reflection_front(f01R)
+  call apply_reflection_front(f02R)
+  call apply_reflection_front(f03R)
+  call apply_reflection_front(f04R)
+  call apply_reflection_front(f05R)
+  call apply_reflection_front(f06R)
+  call apply_reflection_front(f07R)
+  call apply_reflection_front(f08R)
+  call apply_reflection_front(f09R)
+  call apply_reflection_front(f10R)
+  call apply_reflection_front(f11R)
+  call apply_reflection_front(f12R)
+  call apply_reflection_front(f13R)
+  call apply_reflection_front(f14R)
+  call apply_reflection_front(f15R)
+  call apply_reflection_front(f16R)
+  call apply_reflection_front(f17R)
+  call apply_reflection_front(f18R)
+  
+  !apply pbc at rear 6 !y
+  !red fluid
+  call apply_reflection_rear(f00R)
+  call apply_reflection_rear(f01R)
+  call apply_reflection_rear(f02R)
+  call apply_reflection_rear(f03R)
+  call apply_reflection_rear(f04R)
+  call apply_reflection_rear(f05R)
+  call apply_reflection_rear(f06R)
+  call apply_reflection_rear(f07R)
+  call apply_reflection_rear(f08R)
+  call apply_reflection_rear(f09R)
+  call apply_reflection_rear(f10R)
+  call apply_reflection_rear(f11R)
+  call apply_reflection_rear(f12R)
+  call apply_reflection_rear(f13R)
+  call apply_reflection_rear(f14R)
+  call apply_reflection_rear(f15R)
+  call apply_reflection_rear(f16R)
+  call apply_reflection_rear(f17R)
+  call apply_reflection_rear(f18R)
+  
+  if(lsingle_fluid)return
+  
+  !sides 6
+  
+  !apply pbc at front 5 !y
+  !blue fluid
+  call apply_reflection_front(f00B)
+  call apply_reflection_front(f01B)
+  call apply_reflection_front(f02B)
+  call apply_reflection_front(f03B)
+  call apply_reflection_front(f04B)
+  call apply_reflection_front(f05B)
+  call apply_reflection_front(f06B)
+  call apply_reflection_front(f07B)
+  call apply_reflection_front(f08B)
+  call apply_reflection_front(f09B)
+  call apply_reflection_front(f10B)
+  call apply_reflection_front(f11B)
+  call apply_reflection_front(f12B)
+  call apply_reflection_front(f13B)
+  call apply_reflection_front(f14B)
+  call apply_reflection_front(f15B)
+  call apply_reflection_front(f16B)
+  call apply_reflection_front(f17B)
+  call apply_reflection_front(f18B)
+  
+  !apply pbc at rear 6 !y
+  !blue fluid
+  call apply_reflection_rear(f00B)
+  call apply_reflection_rear(f01B)
+  call apply_reflection_rear(f02B)
+  call apply_reflection_rear(f03B)
+  call apply_reflection_rear(f04B)
+  call apply_reflection_rear(f05B)
+  call apply_reflection_rear(f06B)
+  call apply_reflection_rear(f07B)
+  call apply_reflection_rear(f08B)
+  call apply_reflection_rear(f09B)
+  call apply_reflection_rear(f10B)
+  call apply_reflection_rear(f11B)
+  call apply_reflection_rear(f12B)
+  call apply_reflection_rear(f13B)
+  call apply_reflection_rear(f14B)
+  call apply_reflection_rear(f15B)
+  call apply_reflection_rear(f16B)
+  call apply_reflection_rear(f17B)
+  call apply_reflection_rear(f18B)
+  
+  return
+  
+ end subroutine apply_reflection_pops_along_xz
+ 
+ subroutine apply_reflection_pops_along_yz 
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to fluid populations
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 6
+  
+  !apply pbc at east 3 !x
+  !red fluid
+  call apply_reflection_east(f00R)
+  call apply_reflection_east(f01R)
+  call apply_reflection_east(f02R)
+  call apply_reflection_east(f03R)
+  call apply_reflection_east(f04R)
+  call apply_reflection_east(f05R)
+  call apply_reflection_east(f06R)
+  call apply_reflection_east(f07R)
+  call apply_reflection_east(f08R)
+  call apply_reflection_east(f09R)
+  call apply_reflection_east(f10R)
+  call apply_reflection_east(f11R)
+  call apply_reflection_east(f12R)
+  call apply_reflection_east(f13R)
+  call apply_reflection_east(f14R)
+  call apply_reflection_east(f15R)
+  call apply_reflection_east(f16R)
+  call apply_reflection_east(f17R)
+  call apply_reflection_east(f18R)
+  
+  !apply pbc at west 4 !x
+  !red fluid
+  call apply_reflection_west(f00R)
+  call apply_reflection_west(f01R)
+  call apply_reflection_west(f02R)
+  call apply_reflection_west(f03R)
+  call apply_reflection_west(f04R)
+  call apply_reflection_west(f05R)
+  call apply_reflection_west(f06R)
+  call apply_reflection_west(f07R)
+  call apply_reflection_west(f08R)
+  call apply_reflection_west(f09R)
+  call apply_reflection_west(f10R)
+  call apply_reflection_west(f11R)
+  call apply_reflection_west(f12R)
+  call apply_reflection_west(f13R)
+  call apply_reflection_west(f14R)
+  call apply_reflection_west(f15R)
+  call apply_reflection_west(f16R)
+  call apply_reflection_west(f17R)
+  call apply_reflection_west(f18R)
+  
+  if(lsingle_fluid)return
+  
+  !sides 6
+  
+  !apply pbc at east 3 !x
+  !blue fluid
+  call apply_reflection_east(f00B)
+  call apply_reflection_east(f01B)
+  call apply_reflection_east(f02B)
+  call apply_reflection_east(f03B)
+  call apply_reflection_east(f04B)
+  call apply_reflection_east(f05B)
+  call apply_reflection_east(f06B)
+  call apply_reflection_east(f07B)
+  call apply_reflection_east(f08B)
+  call apply_reflection_east(f09B)
+  call apply_reflection_east(f10B)
+  call apply_reflection_east(f11B)
+  call apply_reflection_east(f12B)
+  call apply_reflection_east(f13B)
+  call apply_reflection_east(f14B)
+  call apply_reflection_east(f15B)
+  call apply_reflection_east(f16B)
+  call apply_reflection_east(f17B)
+  call apply_reflection_east(f18B)
+  
+  !apply pbc at west 4 !x
+  !blue fluid
+  call apply_reflection_west(f00B)
+  call apply_reflection_west(f01B)
+  call apply_reflection_west(f02B)
+  call apply_reflection_west(f03B)
+  call apply_reflection_west(f04B)
+  call apply_reflection_west(f05B)
+  call apply_reflection_west(f06B)
+  call apply_reflection_west(f07B)
+  call apply_reflection_west(f08B)
+  call apply_reflection_west(f09B)
+  call apply_reflection_west(f10B)
+  call apply_reflection_west(f11B)
+  call apply_reflection_west(f12B)
+  call apply_reflection_west(f13B)
+  call apply_reflection_west(f14B)
+  call apply_reflection_west(f15B)
+  call apply_reflection_west(f16B)
+  call apply_reflection_west(f17B)
+  call apply_reflection_west(f18B)
+  
+  return
+  
+ end subroutine apply_reflection_pops_along_yz
  
  subroutine driver_bc_pops
  
@@ -1193,7 +2369,13 @@
   implicit none
   
   select case(ibctype)
-  case(7)
+  case(3) ! 1 1 0 
+    call apply_pbc_pops_along_xy
+  case(5) ! 1 0 1 
+    call apply_pbc_pops_along_xz
+  case(6) ! 0 1 1 
+    call apply_pbc_pops_along_yz
+  case(7) ! 1 1 1
     call apply_pbc_pops
   case default
     call apply_pbc_pops
@@ -1220,7 +2402,7 @@
   
   !sides 6
   
-  !apply pbc at north 1
+  !apply pbc at north 1 !z
   !red fluid
   call apply_pbc_north(f00R)
   call apply_pbc_north(f01R)
@@ -1241,28 +2423,8 @@
   call apply_pbc_north(f16R)
   call apply_pbc_north(f17R)
   call apply_pbc_north(f18R)
-  !blue fluid
-  call apply_pbc_north(f00B)
-  call apply_pbc_north(f01B)
-  call apply_pbc_north(f02B)
-  call apply_pbc_north(f03B)
-  call apply_pbc_north(f04B)
-  call apply_pbc_north(f05B)
-  call apply_pbc_north(f06B)
-  call apply_pbc_north(f07B)
-  call apply_pbc_north(f08B)
-  call apply_pbc_north(f09B)
-  call apply_pbc_north(f10B)
-  call apply_pbc_north(f11B)
-  call apply_pbc_north(f12B)
-  call apply_pbc_north(f13B)
-  call apply_pbc_north(f14B)
-  call apply_pbc_north(f15B)
-  call apply_pbc_north(f16B)
-  call apply_pbc_north(f17B)
-  call apply_pbc_north(f18B)
   
-  !apply pbc at south 2
+  !apply pbc at south 2 !z
   !red fluid
   call apply_pbc_south(f00R)
   call apply_pbc_south(f01R)
@@ -1283,28 +2445,8 @@
   call apply_pbc_south(f16R)
   call apply_pbc_south(f17R)
   call apply_pbc_south(f18R)
-  !blue fluid
-  call apply_pbc_south(f00B)
-  call apply_pbc_south(f01B)
-  call apply_pbc_south(f02B)
-  call apply_pbc_south(f03B)
-  call apply_pbc_south(f04B)
-  call apply_pbc_south(f05B)
-  call apply_pbc_south(f06B)
-  call apply_pbc_south(f07B)
-  call apply_pbc_south(f08B)
-  call apply_pbc_south(f09B)
-  call apply_pbc_south(f10B)
-  call apply_pbc_south(f11B)
-  call apply_pbc_south(f12B)
-  call apply_pbc_south(f13B)
-  call apply_pbc_south(f14B)
-  call apply_pbc_south(f15B)
-  call apply_pbc_south(f16B)
-  call apply_pbc_south(f17B)
-  call apply_pbc_south(f18B)
   
-  !apply pbc at east 3
+  !apply pbc at east 3 !x
   !red fluid
   call apply_pbc_east(f00R)
   call apply_pbc_east(f01R)
@@ -1325,28 +2467,8 @@
   call apply_pbc_east(f16R)
   call apply_pbc_east(f17R)
   call apply_pbc_east(f18R)
-  !blue fluid
-  call apply_pbc_east(f00B)
-  call apply_pbc_east(f01B)
-  call apply_pbc_east(f02B)
-  call apply_pbc_east(f03B)
-  call apply_pbc_east(f04B)
-  call apply_pbc_east(f05B)
-  call apply_pbc_east(f06B)
-  call apply_pbc_east(f07B)
-  call apply_pbc_east(f08B)
-  call apply_pbc_east(f09B)
-  call apply_pbc_east(f10B)
-  call apply_pbc_east(f11B)
-  call apply_pbc_east(f12B)
-  call apply_pbc_east(f13B)
-  call apply_pbc_east(f14B)
-  call apply_pbc_east(f15B)
-  call apply_pbc_east(f16B)
-  call apply_pbc_east(f17B)
-  call apply_pbc_east(f18B)
   
-  !apply pbc at west 4
+  !apply pbc at west 4 !x
   !red fluid
   call apply_pbc_west(f00R)
   call apply_pbc_west(f01R)
@@ -1367,28 +2489,8 @@
   call apply_pbc_west(f16R)
   call apply_pbc_west(f17R)
   call apply_pbc_west(f18R)
-  !blue fluid
-  call apply_pbc_west(f00B)
-  call apply_pbc_west(f01B)
-  call apply_pbc_west(f02B)
-  call apply_pbc_west(f03B)
-  call apply_pbc_west(f04B)
-  call apply_pbc_west(f05B)
-  call apply_pbc_west(f06B)
-  call apply_pbc_west(f07B)
-  call apply_pbc_west(f08B)
-  call apply_pbc_west(f09B)
-  call apply_pbc_west(f10B)
-  call apply_pbc_west(f11B)
-  call apply_pbc_west(f12B)
-  call apply_pbc_west(f13B)
-  call apply_pbc_west(f14B)
-  call apply_pbc_west(f15B)
-  call apply_pbc_west(f16B)
-  call apply_pbc_west(f17B)
-  call apply_pbc_west(f18B)
   
-  !apply pbc at front 5
+  !apply pbc at front 5 !y
   !red fluid
   call apply_pbc_front(f00R)
   call apply_pbc_front(f01R)
@@ -1409,28 +2511,8 @@
   call apply_pbc_front(f16R)
   call apply_pbc_front(f17R)
   call apply_pbc_front(f18R)
-  !blue fluid
-  call apply_pbc_front(f00B)
-  call apply_pbc_front(f01B)
-  call apply_pbc_front(f02B)
-  call apply_pbc_front(f03B)
-  call apply_pbc_front(f04B)
-  call apply_pbc_front(f05B)
-  call apply_pbc_front(f06B)
-  call apply_pbc_front(f07B)
-  call apply_pbc_front(f08B)
-  call apply_pbc_front(f09B)
-  call apply_pbc_front(f10B)
-  call apply_pbc_front(f11B)
-  call apply_pbc_front(f12B)
-  call apply_pbc_front(f13B)
-  call apply_pbc_front(f14B)
-  call apply_pbc_front(f15B)
-  call apply_pbc_front(f16B)
-  call apply_pbc_front(f17B)
-  call apply_pbc_front(f18B)
   
-  !apply pbc at rear 6
+  !apply pbc at rear 6 !y
   !red fluid
   call apply_pbc_rear(f00R)
   call apply_pbc_rear(f01R)
@@ -1451,30 +2533,10 @@
   call apply_pbc_rear(f16R)
   call apply_pbc_rear(f17R)
   call apply_pbc_rear(f18R)
-  !blue fluid
-  call apply_pbc_rear(f00B)
-  call apply_pbc_rear(f01B)
-  call apply_pbc_rear(f02B)
-  call apply_pbc_rear(f03B)
-  call apply_pbc_rear(f04B)
-  call apply_pbc_rear(f05B)
-  call apply_pbc_rear(f06B)
-  call apply_pbc_rear(f07B)
-  call apply_pbc_rear(f08B)
-  call apply_pbc_rear(f09B)
-  call apply_pbc_rear(f10B)
-  call apply_pbc_rear(f11B)
-  call apply_pbc_rear(f12B)
-  call apply_pbc_rear(f13B)
-  call apply_pbc_rear(f14B)
-  call apply_pbc_rear(f15B)
-  call apply_pbc_rear(f16B)
-  call apply_pbc_rear(f17B)
-  call apply_pbc_rear(f18B)
   
   !edges 12
   
-  !apply pbc at front east 1
+  !apply pbc at front east 1 !xy
   !red fluid
   call apply_pbc_edge_front_east(f00R)
   call apply_pbc_edge_front_east(f01R)
@@ -1495,28 +2557,8 @@
   call apply_pbc_edge_front_east(f16R)
   call apply_pbc_edge_front_east(f17R)
   call apply_pbc_edge_front_east(f18R)
-  !blue fluid
-  call apply_pbc_edge_front_east(f00B)
-  call apply_pbc_edge_front_east(f01B)
-  call apply_pbc_edge_front_east(f02B)
-  call apply_pbc_edge_front_east(f03B)
-  call apply_pbc_edge_front_east(f04B)
-  call apply_pbc_edge_front_east(f05B)
-  call apply_pbc_edge_front_east(f06B)
-  call apply_pbc_edge_front_east(f07B)
-  call apply_pbc_edge_front_east(f08B)
-  call apply_pbc_edge_front_east(f09B)
-  call apply_pbc_edge_front_east(f10B)
-  call apply_pbc_edge_front_east(f11B)
-  call apply_pbc_edge_front_east(f12B)
-  call apply_pbc_edge_front_east(f13B)
-  call apply_pbc_edge_front_east(f14B)
-  call apply_pbc_edge_front_east(f15B)
-  call apply_pbc_edge_front_east(f16B)
-  call apply_pbc_edge_front_east(f17B)
-  call apply_pbc_edge_front_east(f18B)
   
-  !apply pbc at front west 2
+  !apply pbc at front west 2 !xy
   !red fluid
   call apply_pbc_edge_front_west(f00R)
   call apply_pbc_edge_front_west(f01R)
@@ -1537,28 +2579,8 @@
   call apply_pbc_edge_front_west(f16R)
   call apply_pbc_edge_front_west(f17R)
   call apply_pbc_edge_front_west(f18R)
-  !blue fluid
-  call apply_pbc_edge_front_west(f00B)
-  call apply_pbc_edge_front_west(f01B)
-  call apply_pbc_edge_front_west(f02B)
-  call apply_pbc_edge_front_west(f03B)
-  call apply_pbc_edge_front_west(f04B)
-  call apply_pbc_edge_front_west(f05B)
-  call apply_pbc_edge_front_west(f06B)
-  call apply_pbc_edge_front_west(f07B)
-  call apply_pbc_edge_front_west(f08B)
-  call apply_pbc_edge_front_west(f09B)
-  call apply_pbc_edge_front_west(f10B)
-  call apply_pbc_edge_front_west(f11B)
-  call apply_pbc_edge_front_west(f12B)
-  call apply_pbc_edge_front_west(f13B)
-  call apply_pbc_edge_front_west(f14B)
-  call apply_pbc_edge_front_west(f15B)
-  call apply_pbc_edge_front_west(f16B)
-  call apply_pbc_edge_front_west(f17B)
-  call apply_pbc_edge_front_west(f18B)
   
-  !apply pbc at north east 3
+  !apply pbc at north east 3 !xz
   !red fluid
   call apply_pbc_edge_north_east(f00R)
   call apply_pbc_edge_north_east(f01R)
@@ -1579,28 +2601,9 @@
   call apply_pbc_edge_north_east(f16R)
   call apply_pbc_edge_north_east(f17R)
   call apply_pbc_edge_north_east(f18R)
-  !blue fluid
-  call apply_pbc_edge_north_east(f00B)
-  call apply_pbc_edge_north_east(f01B)
-  call apply_pbc_edge_north_east(f02B)
-  call apply_pbc_edge_north_east(f03B)
-  call apply_pbc_edge_north_east(f04B)
-  call apply_pbc_edge_north_east(f05B)
-  call apply_pbc_edge_north_east(f06B)
-  call apply_pbc_edge_north_east(f07B)
-  call apply_pbc_edge_north_east(f08B)
-  call apply_pbc_edge_north_east(f09B)
-  call apply_pbc_edge_north_east(f10B)
-  call apply_pbc_edge_north_east(f11B)
-  call apply_pbc_edge_north_east(f12B)
-  call apply_pbc_edge_north_east(f13B)
-  call apply_pbc_edge_north_east(f14B)
-  call apply_pbc_edge_north_east(f15B)
-  call apply_pbc_edge_north_east(f16B)
-  call apply_pbc_edge_north_east(f17B)
-  call apply_pbc_edge_north_east(f18B)
   
-  !apply pbc at north front 4
+  !apply pbc at north front 4 !yz
+  !red fluid
   call apply_pbc_edge_north_front(f00R)
   call apply_pbc_edge_north_front(f01R)
   call apply_pbc_edge_north_front(f02R)
@@ -1620,28 +2623,8 @@
   call apply_pbc_edge_north_front(f16R)
   call apply_pbc_edge_north_front(f17R)
   call apply_pbc_edge_north_front(f18R)
-  !blue fluid
-  call apply_pbc_edge_north_front(f00B)
-  call apply_pbc_edge_north_front(f01B)
-  call apply_pbc_edge_north_front(f02B)
-  call apply_pbc_edge_north_front(f03B)
-  call apply_pbc_edge_north_front(f04B)
-  call apply_pbc_edge_north_front(f05B)
-  call apply_pbc_edge_north_front(f06B)
-  call apply_pbc_edge_north_front(f07B)
-  call apply_pbc_edge_north_front(f08B)
-  call apply_pbc_edge_north_front(f09B)
-  call apply_pbc_edge_north_front(f10B)
-  call apply_pbc_edge_north_front(f11B)
-  call apply_pbc_edge_north_front(f12B)
-  call apply_pbc_edge_north_front(f13B)
-  call apply_pbc_edge_north_front(f14B)
-  call apply_pbc_edge_north_front(f15B)
-  call apply_pbc_edge_north_front(f16B)
-  call apply_pbc_edge_north_front(f17B)
-  call apply_pbc_edge_north_front(f18B)
   
-  !apply pbc at north rear 5
+  !apply pbc at north rear 5 !yz
   !red fluid
   call apply_pbc_edge_north_rear(f00R)
   call apply_pbc_edge_north_rear(f01R)
@@ -1662,28 +2645,8 @@
   call apply_pbc_edge_north_rear(f16R)
   call apply_pbc_edge_north_rear(f17R)
   call apply_pbc_edge_north_rear(f18R)
-  !blue fluid
-  call apply_pbc_edge_north_rear(f00B)
-  call apply_pbc_edge_north_rear(f01B)
-  call apply_pbc_edge_north_rear(f02B)
-  call apply_pbc_edge_north_rear(f03B)
-  call apply_pbc_edge_north_rear(f04B)
-  call apply_pbc_edge_north_rear(f05B)
-  call apply_pbc_edge_north_rear(f06B)
-  call apply_pbc_edge_north_rear(f07B)
-  call apply_pbc_edge_north_rear(f08B)
-  call apply_pbc_edge_north_rear(f09B)
-  call apply_pbc_edge_north_rear(f10B)
-  call apply_pbc_edge_north_rear(f11B)
-  call apply_pbc_edge_north_rear(f12B)
-  call apply_pbc_edge_north_rear(f13B)
-  call apply_pbc_edge_north_rear(f14B)
-  call apply_pbc_edge_north_rear(f15B)
-  call apply_pbc_edge_north_rear(f16B)
-  call apply_pbc_edge_north_rear(f17B)
-  call apply_pbc_edge_north_rear(f18B)
   
-  !apply pbc at north west 6
+  !apply pbc at north west 6 !xz
   !red fluid
   call apply_pbc_edge_north_west(f00R)
   call apply_pbc_edge_north_west(f01R)
@@ -1704,28 +2667,8 @@
   call apply_pbc_edge_north_west(f16R)
   call apply_pbc_edge_north_west(f17R)
   call apply_pbc_edge_north_west(f18R)
-  !blue fluid
-  call apply_pbc_edge_north_west(f00B)
-  call apply_pbc_edge_north_west(f01B)
-  call apply_pbc_edge_north_west(f02B)
-  call apply_pbc_edge_north_west(f03B)
-  call apply_pbc_edge_north_west(f04B)
-  call apply_pbc_edge_north_west(f05B)
-  call apply_pbc_edge_north_west(f06B)
-  call apply_pbc_edge_north_west(f07B)
-  call apply_pbc_edge_north_west(f08B)
-  call apply_pbc_edge_north_west(f09B)
-  call apply_pbc_edge_north_west(f10B)
-  call apply_pbc_edge_north_west(f11B)
-  call apply_pbc_edge_north_west(f12B)
-  call apply_pbc_edge_north_west(f13B)
-  call apply_pbc_edge_north_west(f14B)
-  call apply_pbc_edge_north_west(f15B)
-  call apply_pbc_edge_north_west(f16B)
-  call apply_pbc_edge_north_west(f17B)
-  call apply_pbc_edge_north_west(f18B)
   
-  !apply pbc at rear east 7
+  !apply pbc at rear east 7 !xy
   !red fluid
   call apply_pbc_edge_rear_east(f00R)
   call apply_pbc_edge_rear_east(f01R)
@@ -1746,28 +2689,8 @@
   call apply_pbc_edge_rear_east(f16R)
   call apply_pbc_edge_rear_east(f17R)
   call apply_pbc_edge_rear_east(f18R)
-  !blue fluid
-  call apply_pbc_edge_rear_east(f00B)
-  call apply_pbc_edge_rear_east(f01B)
-  call apply_pbc_edge_rear_east(f02B)
-  call apply_pbc_edge_rear_east(f03B)
-  call apply_pbc_edge_rear_east(f04B)
-  call apply_pbc_edge_rear_east(f05B)
-  call apply_pbc_edge_rear_east(f06B)
-  call apply_pbc_edge_rear_east(f07B)
-  call apply_pbc_edge_rear_east(f08B)
-  call apply_pbc_edge_rear_east(f09B)
-  call apply_pbc_edge_rear_east(f10B)
-  call apply_pbc_edge_rear_east(f11B)
-  call apply_pbc_edge_rear_east(f12B)
-  call apply_pbc_edge_rear_east(f13B)
-  call apply_pbc_edge_rear_east(f14B)
-  call apply_pbc_edge_rear_east(f15B)
-  call apply_pbc_edge_rear_east(f16B)
-  call apply_pbc_edge_rear_east(f17B)
-  call apply_pbc_edge_rear_east(f18B)
   
-  !apply pbc at rear west 8
+  !apply pbc at rear west 8 !xy
   !red fluid
   call apply_pbc_edge_rear_west(f00R)
   call apply_pbc_edge_rear_west(f01R)
@@ -1788,28 +2711,8 @@
   call apply_pbc_edge_rear_west(f16R)
   call apply_pbc_edge_rear_west(f17R)
   call apply_pbc_edge_rear_west(f18R)
-  !blue fluid
-  call apply_pbc_edge_rear_west(f00B)
-  call apply_pbc_edge_rear_west(f01B)
-  call apply_pbc_edge_rear_west(f02B)
-  call apply_pbc_edge_rear_west(f03B)
-  call apply_pbc_edge_rear_west(f04B)
-  call apply_pbc_edge_rear_west(f05B)
-  call apply_pbc_edge_rear_west(f06B)
-  call apply_pbc_edge_rear_west(f07B)
-  call apply_pbc_edge_rear_west(f08B)
-  call apply_pbc_edge_rear_west(f09B)
-  call apply_pbc_edge_rear_west(f10B)
-  call apply_pbc_edge_rear_west(f11B)
-  call apply_pbc_edge_rear_west(f12B)
-  call apply_pbc_edge_rear_west(f13B)
-  call apply_pbc_edge_rear_west(f14B)
-  call apply_pbc_edge_rear_west(f15B)
-  call apply_pbc_edge_rear_west(f16B)
-  call apply_pbc_edge_rear_west(f17B)
-  call apply_pbc_edge_rear_west(f18B)
   
-  !apply pbc at south east 9
+  !apply pbc at south east 9 !xz
   !red fluid
   call apply_pbc_edge_south_east(f00R)
   call apply_pbc_edge_south_east(f01R)
@@ -1830,28 +2733,8 @@
   call apply_pbc_edge_south_east(f16R)
   call apply_pbc_edge_south_east(f17R)
   call apply_pbc_edge_south_east(f18R)
-  !blue fluid
-  call apply_pbc_edge_south_east(f00B)
-  call apply_pbc_edge_south_east(f01B)
-  call apply_pbc_edge_south_east(f02B)
-  call apply_pbc_edge_south_east(f03B)
-  call apply_pbc_edge_south_east(f04B)
-  call apply_pbc_edge_south_east(f05B)
-  call apply_pbc_edge_south_east(f06B)
-  call apply_pbc_edge_south_east(f07B)
-  call apply_pbc_edge_south_east(f08B)
-  call apply_pbc_edge_south_east(f09B)
-  call apply_pbc_edge_south_east(f10B)
-  call apply_pbc_edge_south_east(f11B)
-  call apply_pbc_edge_south_east(f12B)
-  call apply_pbc_edge_south_east(f13B)
-  call apply_pbc_edge_south_east(f14B)
-  call apply_pbc_edge_south_east(f15B)
-  call apply_pbc_edge_south_east(f16B)
-  call apply_pbc_edge_south_east(f17B)
-  call apply_pbc_edge_south_east(f18B)
   
-  !apply pbc at south front 10
+  !apply pbc at south front 10 !yz
   !red fluid
   call apply_pbc_edge_south_front(f00R)
   call apply_pbc_edge_south_front(f01R)
@@ -1872,28 +2755,8 @@
   call apply_pbc_edge_south_front(f16R)
   call apply_pbc_edge_south_front(f17R)
   call apply_pbc_edge_south_front(f18R)
-  !blue fluid
-  call apply_pbc_edge_south_front(f00B)
-  call apply_pbc_edge_south_front(f01B)
-  call apply_pbc_edge_south_front(f02B)
-  call apply_pbc_edge_south_front(f03B)
-  call apply_pbc_edge_south_front(f04B)
-  call apply_pbc_edge_south_front(f05B)
-  call apply_pbc_edge_south_front(f06B)
-  call apply_pbc_edge_south_front(f07B)
-  call apply_pbc_edge_south_front(f08B)
-  call apply_pbc_edge_south_front(f09B)
-  call apply_pbc_edge_south_front(f10B)
-  call apply_pbc_edge_south_front(f11B)
-  call apply_pbc_edge_south_front(f12B)
-  call apply_pbc_edge_south_front(f13B)
-  call apply_pbc_edge_south_front(f14B)
-  call apply_pbc_edge_south_front(f15B)
-  call apply_pbc_edge_south_front(f16B)
-  call apply_pbc_edge_south_front(f17B)
-  call apply_pbc_edge_south_front(f18B)
   
-  !apply pbc at south rear 11
+  !apply pbc at south rear 11 !yz
   !red fluid
   call apply_pbc_edge_south_rear(f00R)
   call apply_pbc_edge_south_rear(f01R)
@@ -1914,28 +2777,8 @@
   call apply_pbc_edge_south_rear(f16R)
   call apply_pbc_edge_south_rear(f17R)
   call apply_pbc_edge_south_rear(f18R)
-  !blue fluid
-  call apply_pbc_edge_south_rear(f00B)
-  call apply_pbc_edge_south_rear(f01B)
-  call apply_pbc_edge_south_rear(f02B)
-  call apply_pbc_edge_south_rear(f03B)
-  call apply_pbc_edge_south_rear(f04B)
-  call apply_pbc_edge_south_rear(f05B)
-  call apply_pbc_edge_south_rear(f06B)
-  call apply_pbc_edge_south_rear(f07B)
-  call apply_pbc_edge_south_rear(f08B)
-  call apply_pbc_edge_south_rear(f09B)
-  call apply_pbc_edge_south_rear(f10B)
-  call apply_pbc_edge_south_rear(f11B)
-  call apply_pbc_edge_south_rear(f12B)
-  call apply_pbc_edge_south_rear(f13B)
-  call apply_pbc_edge_south_rear(f14B)
-  call apply_pbc_edge_south_rear(f15B)
-  call apply_pbc_edge_south_rear(f16B)
-  call apply_pbc_edge_south_rear(f17B)
-  call apply_pbc_edge_south_rear(f18B)
   
-  !apply pbc at south west 12
+  !apply pbc at south west 12 !xz
   !red fluid
   call apply_pbc_edge_south_west(f00R)
   call apply_pbc_edge_south_west(f01R)
@@ -1956,26 +2799,6 @@
   call apply_pbc_edge_south_west(f16R)
   call apply_pbc_edge_south_west(f17R)
   call apply_pbc_edge_south_west(f18R)
-  !blue fluid
-  call apply_pbc_edge_south_west(f00B)
-  call apply_pbc_edge_south_west(f01B)
-  call apply_pbc_edge_south_west(f02B)
-  call apply_pbc_edge_south_west(f03B)
-  call apply_pbc_edge_south_west(f04B)
-  call apply_pbc_edge_south_west(f05B)
-  call apply_pbc_edge_south_west(f06B)
-  call apply_pbc_edge_south_west(f07B)
-  call apply_pbc_edge_south_west(f08B)
-  call apply_pbc_edge_south_west(f09B)
-  call apply_pbc_edge_south_west(f10B)
-  call apply_pbc_edge_south_west(f11B)
-  call apply_pbc_edge_south_west(f12B)
-  call apply_pbc_edge_south_west(f13B)
-  call apply_pbc_edge_south_west(f14B)
-  call apply_pbc_edge_south_west(f15B)
-  call apply_pbc_edge_south_west(f16B)
-  call apply_pbc_edge_south_west(f17B)
-  call apply_pbc_edge_south_west(f18B)
   
   !corner 8
   
@@ -2000,26 +2823,6 @@
   call apply_pbc_corner_north_east_front(f16R)
   call apply_pbc_corner_north_east_front(f17R)
   call apply_pbc_corner_north_east_front(f18R)
-  !blue fluid
-  call apply_pbc_corner_north_east_front(f00B)
-  call apply_pbc_corner_north_east_front(f01B)
-  call apply_pbc_corner_north_east_front(f02B)
-  call apply_pbc_corner_north_east_front(f03B)
-  call apply_pbc_corner_north_east_front(f04B)
-  call apply_pbc_corner_north_east_front(f05B)
-  call apply_pbc_corner_north_east_front(f06B)
-  call apply_pbc_corner_north_east_front(f07B)
-  call apply_pbc_corner_north_east_front(f08B)
-  call apply_pbc_corner_north_east_front(f09B)
-  call apply_pbc_corner_north_east_front(f10B)
-  call apply_pbc_corner_north_east_front(f11B)
-  call apply_pbc_corner_north_east_front(f12B)
-  call apply_pbc_corner_north_east_front(f13B)
-  call apply_pbc_corner_north_east_front(f14B)
-  call apply_pbc_corner_north_east_front(f15B)
-  call apply_pbc_corner_north_east_front(f16B)
-  call apply_pbc_corner_north_east_front(f17B)
-  call apply_pbc_corner_north_east_front(f18B)
   
   !apply pbc at north east rear 2
   !red fluid
@@ -2042,26 +2845,6 @@
   call apply_pbc_corner_north_east_rear(f16R)
   call apply_pbc_corner_north_east_rear(f17R)
   call apply_pbc_corner_north_east_rear(f18R)
-  !blue fluid
-  call apply_pbc_corner_north_east_rear(f00B)
-  call apply_pbc_corner_north_east_rear(f01B)
-  call apply_pbc_corner_north_east_rear(f02B)
-  call apply_pbc_corner_north_east_rear(f03B)
-  call apply_pbc_corner_north_east_rear(f04B)
-  call apply_pbc_corner_north_east_rear(f05B)
-  call apply_pbc_corner_north_east_rear(f06B)
-  call apply_pbc_corner_north_east_rear(f07B)
-  call apply_pbc_corner_north_east_rear(f08B)
-  call apply_pbc_corner_north_east_rear(f09B)
-  call apply_pbc_corner_north_east_rear(f10B)
-  call apply_pbc_corner_north_east_rear(f11B)
-  call apply_pbc_corner_north_east_rear(f12B)
-  call apply_pbc_corner_north_east_rear(f13B)
-  call apply_pbc_corner_north_east_rear(f14B)
-  call apply_pbc_corner_north_east_rear(f15B)
-  call apply_pbc_corner_north_east_rear(f16B)
-  call apply_pbc_corner_north_east_rear(f17B)
-  call apply_pbc_corner_north_east_rear(f18B)
   
   !apply pbc at north west rear 3
   !red fluid
@@ -2084,26 +2867,6 @@
   call apply_pbc_corner_north_west_rear(f16R)
   call apply_pbc_corner_north_west_rear(f17R)
   call apply_pbc_corner_north_west_rear(f18R)
-  !blue fluid
-  call apply_pbc_corner_north_west_rear(f00B)
-  call apply_pbc_corner_north_west_rear(f01B)
-  call apply_pbc_corner_north_west_rear(f02B)
-  call apply_pbc_corner_north_west_rear(f03B)
-  call apply_pbc_corner_north_west_rear(f04B)
-  call apply_pbc_corner_north_west_rear(f05B)
-  call apply_pbc_corner_north_west_rear(f06B)
-  call apply_pbc_corner_north_west_rear(f07B)
-  call apply_pbc_corner_north_west_rear(f08B)
-  call apply_pbc_corner_north_west_rear(f09B)
-  call apply_pbc_corner_north_west_rear(f10B)
-  call apply_pbc_corner_north_west_rear(f11B)
-  call apply_pbc_corner_north_west_rear(f12B)
-  call apply_pbc_corner_north_west_rear(f13B)
-  call apply_pbc_corner_north_west_rear(f14B)
-  call apply_pbc_corner_north_west_rear(f15B)
-  call apply_pbc_corner_north_west_rear(f16B)
-  call apply_pbc_corner_north_west_rear(f17B)
-  call apply_pbc_corner_north_west_rear(f18B)
   
   !apply pbc at north west front 4
   !red fluid
@@ -2126,26 +2889,6 @@
   call apply_pbc_corner_north_west_front(f16R)
   call apply_pbc_corner_north_west_front(f17R)
   call apply_pbc_corner_north_west_front(f18R)
-  !blue fluid
-  call apply_pbc_corner_north_west_front(f00B)
-  call apply_pbc_corner_north_west_front(f01B)
-  call apply_pbc_corner_north_west_front(f02B)
-  call apply_pbc_corner_north_west_front(f03B)
-  call apply_pbc_corner_north_west_front(f04B)
-  call apply_pbc_corner_north_west_front(f05B)
-  call apply_pbc_corner_north_west_front(f06B)
-  call apply_pbc_corner_north_west_front(f07B)
-  call apply_pbc_corner_north_west_front(f08B)
-  call apply_pbc_corner_north_west_front(f09B)
-  call apply_pbc_corner_north_west_front(f10B)
-  call apply_pbc_corner_north_west_front(f11B)
-  call apply_pbc_corner_north_west_front(f12B)
-  call apply_pbc_corner_north_west_front(f13B)
-  call apply_pbc_corner_north_west_front(f14B)
-  call apply_pbc_corner_north_west_front(f15B)
-  call apply_pbc_corner_north_west_front(f16B)
-  call apply_pbc_corner_north_west_front(f17B)
-  call apply_pbc_corner_north_west_front(f18B)
   
   !apply pbc at south east front 5
   !red fluid
@@ -2168,26 +2911,6 @@
   call apply_pbc_corner_south_east_front(f16R)
   call apply_pbc_corner_south_east_front(f17R)
   call apply_pbc_corner_south_east_front(f18R)
-  !blue fluid
-  call apply_pbc_corner_south_east_front(f00B)
-  call apply_pbc_corner_south_east_front(f01B)
-  call apply_pbc_corner_south_east_front(f02B)
-  call apply_pbc_corner_south_east_front(f03B)
-  call apply_pbc_corner_south_east_front(f04B)
-  call apply_pbc_corner_south_east_front(f05B)
-  call apply_pbc_corner_south_east_front(f06B)
-  call apply_pbc_corner_south_east_front(f07B)
-  call apply_pbc_corner_south_east_front(f08B)
-  call apply_pbc_corner_south_east_front(f09B)
-  call apply_pbc_corner_south_east_front(f10B)
-  call apply_pbc_corner_south_east_front(f11B)
-  call apply_pbc_corner_south_east_front(f12B)
-  call apply_pbc_corner_south_east_front(f13B)
-  call apply_pbc_corner_south_east_front(f14B)
-  call apply_pbc_corner_south_east_front(f15B)
-  call apply_pbc_corner_south_east_front(f16B)
-  call apply_pbc_corner_south_east_front(f17B)
-  call apply_pbc_corner_south_east_front(f18B)
   
   !apply pbc at south west front 6
   !red fluid
@@ -2210,26 +2933,6 @@
   call apply_pbc_corner_south_west_front(f16R)
   call apply_pbc_corner_south_west_front(f17R)
   call apply_pbc_corner_south_west_front(f18R)
-  !blue fluid
-  call apply_pbc_corner_south_west_front(f00B)
-  call apply_pbc_corner_south_west_front(f01B)
-  call apply_pbc_corner_south_west_front(f02B)
-  call apply_pbc_corner_south_west_front(f03B)
-  call apply_pbc_corner_south_west_front(f04B)
-  call apply_pbc_corner_south_west_front(f05B)
-  call apply_pbc_corner_south_west_front(f06B)
-  call apply_pbc_corner_south_west_front(f07B)
-  call apply_pbc_corner_south_west_front(f08B)
-  call apply_pbc_corner_south_west_front(f09B)
-  call apply_pbc_corner_south_west_front(f10B)
-  call apply_pbc_corner_south_west_front(f11B)
-  call apply_pbc_corner_south_west_front(f12B)
-  call apply_pbc_corner_south_west_front(f13B)
-  call apply_pbc_corner_south_west_front(f14B)
-  call apply_pbc_corner_south_west_front(f15B)
-  call apply_pbc_corner_south_west_front(f16B)
-  call apply_pbc_corner_south_west_front(f17B)
-  call apply_pbc_corner_south_west_front(f18B)
   
   !apply pbc at south west rear 7
   !red fluid
@@ -2252,26 +2955,6 @@
   call apply_pbc_corner_south_west_rear(f16R)
   call apply_pbc_corner_south_west_rear(f17R)
   call apply_pbc_corner_south_west_rear(f18R)
-  !blue fluid
-  call apply_pbc_corner_south_west_rear(f00B)
-  call apply_pbc_corner_south_west_rear(f01B)
-  call apply_pbc_corner_south_west_rear(f02B)
-  call apply_pbc_corner_south_west_rear(f03B)
-  call apply_pbc_corner_south_west_rear(f04B)
-  call apply_pbc_corner_south_west_rear(f05B)
-  call apply_pbc_corner_south_west_rear(f06B)
-  call apply_pbc_corner_south_west_rear(f07B)
-  call apply_pbc_corner_south_west_rear(f08B)
-  call apply_pbc_corner_south_west_rear(f09B)
-  call apply_pbc_corner_south_west_rear(f10B)
-  call apply_pbc_corner_south_west_rear(f11B)
-  call apply_pbc_corner_south_west_rear(f12B)
-  call apply_pbc_corner_south_west_rear(f13B)
-  call apply_pbc_corner_south_west_rear(f14B)
-  call apply_pbc_corner_south_west_rear(f15B)
-  call apply_pbc_corner_south_west_rear(f16B)
-  call apply_pbc_corner_south_west_rear(f17B)
-  call apply_pbc_corner_south_west_rear(f18B)
   
   !apply pbc at south east rear 8
   !red fluid
@@ -2294,6 +2977,567 @@
   call apply_pbc_corner_south_east_rear(f16R)
   call apply_pbc_corner_south_east_rear(f17R)
   call apply_pbc_corner_south_east_rear(f18R)
+  
+  if(lsingle_fluid)return
+  
+  !sides 6
+  
+  !apply pbc at north 1 !z
+  !blue fluid
+  call apply_pbc_north(f00B)
+  call apply_pbc_north(f01B)
+  call apply_pbc_north(f02B)
+  call apply_pbc_north(f03B)
+  call apply_pbc_north(f04B)
+  call apply_pbc_north(f05B)
+  call apply_pbc_north(f06B)
+  call apply_pbc_north(f07B)
+  call apply_pbc_north(f08B)
+  call apply_pbc_north(f09B)
+  call apply_pbc_north(f10B)
+  call apply_pbc_north(f11B)
+  call apply_pbc_north(f12B)
+  call apply_pbc_north(f13B)
+  call apply_pbc_north(f14B)
+  call apply_pbc_north(f15B)
+  call apply_pbc_north(f16B)
+  call apply_pbc_north(f17B)
+  call apply_pbc_north(f18B)
+  
+  !apply pbc at south 2 !z
+  !blue fluid
+  call apply_pbc_south(f00B)
+  call apply_pbc_south(f01B)
+  call apply_pbc_south(f02B)
+  call apply_pbc_south(f03B)
+  call apply_pbc_south(f04B)
+  call apply_pbc_south(f05B)
+  call apply_pbc_south(f06B)
+  call apply_pbc_south(f07B)
+  call apply_pbc_south(f08B)
+  call apply_pbc_south(f09B)
+  call apply_pbc_south(f10B)
+  call apply_pbc_south(f11B)
+  call apply_pbc_south(f12B)
+  call apply_pbc_south(f13B)
+  call apply_pbc_south(f14B)
+  call apply_pbc_south(f15B)
+  call apply_pbc_south(f16B)
+  call apply_pbc_south(f17B)
+  call apply_pbc_south(f18B)
+  
+  !apply pbc at east 3 !x
+  !blue fluid
+  call apply_pbc_east(f00B)
+  call apply_pbc_east(f01B)
+  call apply_pbc_east(f02B)
+  call apply_pbc_east(f03B)
+  call apply_pbc_east(f04B)
+  call apply_pbc_east(f05B)
+  call apply_pbc_east(f06B)
+  call apply_pbc_east(f07B)
+  call apply_pbc_east(f08B)
+  call apply_pbc_east(f09B)
+  call apply_pbc_east(f10B)
+  call apply_pbc_east(f11B)
+  call apply_pbc_east(f12B)
+  call apply_pbc_east(f13B)
+  call apply_pbc_east(f14B)
+  call apply_pbc_east(f15B)
+  call apply_pbc_east(f16B)
+  call apply_pbc_east(f17B)
+  call apply_pbc_east(f18B)
+  
+  !apply pbc at west 4 !x
+  !blue fluid
+  call apply_pbc_west(f00B)
+  call apply_pbc_west(f01B)
+  call apply_pbc_west(f02B)
+  call apply_pbc_west(f03B)
+  call apply_pbc_west(f04B)
+  call apply_pbc_west(f05B)
+  call apply_pbc_west(f06B)
+  call apply_pbc_west(f07B)
+  call apply_pbc_west(f08B)
+  call apply_pbc_west(f09B)
+  call apply_pbc_west(f10B)
+  call apply_pbc_west(f11B)
+  call apply_pbc_west(f12B)
+  call apply_pbc_west(f13B)
+  call apply_pbc_west(f14B)
+  call apply_pbc_west(f15B)
+  call apply_pbc_west(f16B)
+  call apply_pbc_west(f17B)
+  call apply_pbc_west(f18B)
+  
+  !apply pbc at front 5 !y
+  !red fluid
+  !blue fluid
+  call apply_pbc_front(f00B)
+  call apply_pbc_front(f01B)
+  call apply_pbc_front(f02B)
+  call apply_pbc_front(f03B)
+  call apply_pbc_front(f04B)
+  call apply_pbc_front(f05B)
+  call apply_pbc_front(f06B)
+  call apply_pbc_front(f07B)
+  call apply_pbc_front(f08B)
+  call apply_pbc_front(f09B)
+  call apply_pbc_front(f10B)
+  call apply_pbc_front(f11B)
+  call apply_pbc_front(f12B)
+  call apply_pbc_front(f13B)
+  call apply_pbc_front(f14B)
+  call apply_pbc_front(f15B)
+  call apply_pbc_front(f16B)
+  call apply_pbc_front(f17B)
+  call apply_pbc_front(f18B)
+  
+  !apply pbc at rear 6 !y
+  !blue fluid
+  call apply_pbc_rear(f00B)
+  call apply_pbc_rear(f01B)
+  call apply_pbc_rear(f02B)
+  call apply_pbc_rear(f03B)
+  call apply_pbc_rear(f04B)
+  call apply_pbc_rear(f05B)
+  call apply_pbc_rear(f06B)
+  call apply_pbc_rear(f07B)
+  call apply_pbc_rear(f08B)
+  call apply_pbc_rear(f09B)
+  call apply_pbc_rear(f10B)
+  call apply_pbc_rear(f11B)
+  call apply_pbc_rear(f12B)
+  call apply_pbc_rear(f13B)
+  call apply_pbc_rear(f14B)
+  call apply_pbc_rear(f15B)
+  call apply_pbc_rear(f16B)
+  call apply_pbc_rear(f17B)
+  call apply_pbc_rear(f18B)
+  
+  !edges 12
+  
+  !apply pbc at front east 1 !xy
+  !blue fluid
+  call apply_pbc_edge_front_east(f00B)
+  call apply_pbc_edge_front_east(f01B)
+  call apply_pbc_edge_front_east(f02B)
+  call apply_pbc_edge_front_east(f03B)
+  call apply_pbc_edge_front_east(f04B)
+  call apply_pbc_edge_front_east(f05B)
+  call apply_pbc_edge_front_east(f06B)
+  call apply_pbc_edge_front_east(f07B)
+  call apply_pbc_edge_front_east(f08B)
+  call apply_pbc_edge_front_east(f09B)
+  call apply_pbc_edge_front_east(f10B)
+  call apply_pbc_edge_front_east(f11B)
+  call apply_pbc_edge_front_east(f12B)
+  call apply_pbc_edge_front_east(f13B)
+  call apply_pbc_edge_front_east(f14B)
+  call apply_pbc_edge_front_east(f15B)
+  call apply_pbc_edge_front_east(f16B)
+  call apply_pbc_edge_front_east(f17B)
+  call apply_pbc_edge_front_east(f18B)
+  
+  !apply pbc at front west 2 !xy
+  !blue fluid
+  call apply_pbc_edge_front_west(f00B)
+  call apply_pbc_edge_front_west(f01B)
+  call apply_pbc_edge_front_west(f02B)
+  call apply_pbc_edge_front_west(f03B)
+  call apply_pbc_edge_front_west(f04B)
+  call apply_pbc_edge_front_west(f05B)
+  call apply_pbc_edge_front_west(f06B)
+  call apply_pbc_edge_front_west(f07B)
+  call apply_pbc_edge_front_west(f08B)
+  call apply_pbc_edge_front_west(f09B)
+  call apply_pbc_edge_front_west(f10B)
+  call apply_pbc_edge_front_west(f11B)
+  call apply_pbc_edge_front_west(f12B)
+  call apply_pbc_edge_front_west(f13B)
+  call apply_pbc_edge_front_west(f14B)
+  call apply_pbc_edge_front_west(f15B)
+  call apply_pbc_edge_front_west(f16B)
+  call apply_pbc_edge_front_west(f17B)
+  call apply_pbc_edge_front_west(f18B)
+  
+  !apply pbc at north east 3 !xz
+  !blue fluid
+  call apply_pbc_edge_north_east(f00B)
+  call apply_pbc_edge_north_east(f01B)
+  call apply_pbc_edge_north_east(f02B)
+  call apply_pbc_edge_north_east(f03B)
+  call apply_pbc_edge_north_east(f04B)
+  call apply_pbc_edge_north_east(f05B)
+  call apply_pbc_edge_north_east(f06B)
+  call apply_pbc_edge_north_east(f07B)
+  call apply_pbc_edge_north_east(f08B)
+  call apply_pbc_edge_north_east(f09B)
+  call apply_pbc_edge_north_east(f10B)
+  call apply_pbc_edge_north_east(f11B)
+  call apply_pbc_edge_north_east(f12B)
+  call apply_pbc_edge_north_east(f13B)
+  call apply_pbc_edge_north_east(f14B)
+  call apply_pbc_edge_north_east(f15B)
+  call apply_pbc_edge_north_east(f16B)
+  call apply_pbc_edge_north_east(f17B)
+  call apply_pbc_edge_north_east(f18B)
+  
+  !apply pbc at north front 4 !yz
+  !blue fluid
+  call apply_pbc_edge_north_front(f00B)
+  call apply_pbc_edge_north_front(f01B)
+  call apply_pbc_edge_north_front(f02B)
+  call apply_pbc_edge_north_front(f03B)
+  call apply_pbc_edge_north_front(f04B)
+  call apply_pbc_edge_north_front(f05B)
+  call apply_pbc_edge_north_front(f06B)
+  call apply_pbc_edge_north_front(f07B)
+  call apply_pbc_edge_north_front(f08B)
+  call apply_pbc_edge_north_front(f09B)
+  call apply_pbc_edge_north_front(f10B)
+  call apply_pbc_edge_north_front(f11B)
+  call apply_pbc_edge_north_front(f12B)
+  call apply_pbc_edge_north_front(f13B)
+  call apply_pbc_edge_north_front(f14B)
+  call apply_pbc_edge_north_front(f15B)
+  call apply_pbc_edge_north_front(f16B)
+  call apply_pbc_edge_north_front(f17B)
+  call apply_pbc_edge_north_front(f18B)
+  
+  !apply pbc at north rear 5 !yz
+  !blue fluid
+  call apply_pbc_edge_north_rear(f00B)
+  call apply_pbc_edge_north_rear(f01B)
+  call apply_pbc_edge_north_rear(f02B)
+  call apply_pbc_edge_north_rear(f03B)
+  call apply_pbc_edge_north_rear(f04B)
+  call apply_pbc_edge_north_rear(f05B)
+  call apply_pbc_edge_north_rear(f06B)
+  call apply_pbc_edge_north_rear(f07B)
+  call apply_pbc_edge_north_rear(f08B)
+  call apply_pbc_edge_north_rear(f09B)
+  call apply_pbc_edge_north_rear(f10B)
+  call apply_pbc_edge_north_rear(f11B)
+  call apply_pbc_edge_north_rear(f12B)
+  call apply_pbc_edge_north_rear(f13B)
+  call apply_pbc_edge_north_rear(f14B)
+  call apply_pbc_edge_north_rear(f15B)
+  call apply_pbc_edge_north_rear(f16B)
+  call apply_pbc_edge_north_rear(f17B)
+  call apply_pbc_edge_north_rear(f18B)
+  
+  !apply pbc at north west 6 !xz
+  !blue fluid
+  call apply_pbc_edge_north_west(f00B)
+  call apply_pbc_edge_north_west(f01B)
+  call apply_pbc_edge_north_west(f02B)
+  call apply_pbc_edge_north_west(f03B)
+  call apply_pbc_edge_north_west(f04B)
+  call apply_pbc_edge_north_west(f05B)
+  call apply_pbc_edge_north_west(f06B)
+  call apply_pbc_edge_north_west(f07B)
+  call apply_pbc_edge_north_west(f08B)
+  call apply_pbc_edge_north_west(f09B)
+  call apply_pbc_edge_north_west(f10B)
+  call apply_pbc_edge_north_west(f11B)
+  call apply_pbc_edge_north_west(f12B)
+  call apply_pbc_edge_north_west(f13B)
+  call apply_pbc_edge_north_west(f14B)
+  call apply_pbc_edge_north_west(f15B)
+  call apply_pbc_edge_north_west(f16B)
+  call apply_pbc_edge_north_west(f17B)
+  call apply_pbc_edge_north_west(f18B)
+  
+  !apply pbc at rear east 7 !xy
+  !blue fluid
+  call apply_pbc_edge_rear_east(f00B)
+  call apply_pbc_edge_rear_east(f01B)
+  call apply_pbc_edge_rear_east(f02B)
+  call apply_pbc_edge_rear_east(f03B)
+  call apply_pbc_edge_rear_east(f04B)
+  call apply_pbc_edge_rear_east(f05B)
+  call apply_pbc_edge_rear_east(f06B)
+  call apply_pbc_edge_rear_east(f07B)
+  call apply_pbc_edge_rear_east(f08B)
+  call apply_pbc_edge_rear_east(f09B)
+  call apply_pbc_edge_rear_east(f10B)
+  call apply_pbc_edge_rear_east(f11B)
+  call apply_pbc_edge_rear_east(f12B)
+  call apply_pbc_edge_rear_east(f13B)
+  call apply_pbc_edge_rear_east(f14B)
+  call apply_pbc_edge_rear_east(f15B)
+  call apply_pbc_edge_rear_east(f16B)
+  call apply_pbc_edge_rear_east(f17B)
+  call apply_pbc_edge_rear_east(f18B)
+  
+  !apply pbc at rear west 8 !xy
+  !blue fluid
+  call apply_pbc_edge_rear_west(f00B)
+  call apply_pbc_edge_rear_west(f01B)
+  call apply_pbc_edge_rear_west(f02B)
+  call apply_pbc_edge_rear_west(f03B)
+  call apply_pbc_edge_rear_west(f04B)
+  call apply_pbc_edge_rear_west(f05B)
+  call apply_pbc_edge_rear_west(f06B)
+  call apply_pbc_edge_rear_west(f07B)
+  call apply_pbc_edge_rear_west(f08B)
+  call apply_pbc_edge_rear_west(f09B)
+  call apply_pbc_edge_rear_west(f10B)
+  call apply_pbc_edge_rear_west(f11B)
+  call apply_pbc_edge_rear_west(f12B)
+  call apply_pbc_edge_rear_west(f13B)
+  call apply_pbc_edge_rear_west(f14B)
+  call apply_pbc_edge_rear_west(f15B)
+  call apply_pbc_edge_rear_west(f16B)
+  call apply_pbc_edge_rear_west(f17B)
+  call apply_pbc_edge_rear_west(f18B)
+  
+  !apply pbc at south east 9 !xz
+  !blue fluid
+  call apply_pbc_edge_south_east(f00B)
+  call apply_pbc_edge_south_east(f01B)
+  call apply_pbc_edge_south_east(f02B)
+  call apply_pbc_edge_south_east(f03B)
+  call apply_pbc_edge_south_east(f04B)
+  call apply_pbc_edge_south_east(f05B)
+  call apply_pbc_edge_south_east(f06B)
+  call apply_pbc_edge_south_east(f07B)
+  call apply_pbc_edge_south_east(f08B)
+  call apply_pbc_edge_south_east(f09B)
+  call apply_pbc_edge_south_east(f10B)
+  call apply_pbc_edge_south_east(f11B)
+  call apply_pbc_edge_south_east(f12B)
+  call apply_pbc_edge_south_east(f13B)
+  call apply_pbc_edge_south_east(f14B)
+  call apply_pbc_edge_south_east(f15B)
+  call apply_pbc_edge_south_east(f16B)
+  call apply_pbc_edge_south_east(f17B)
+  call apply_pbc_edge_south_east(f18B)
+  
+  !apply pbc at south front 10 !yz
+  !blue fluid
+  call apply_pbc_edge_south_front(f00B)
+  call apply_pbc_edge_south_front(f01B)
+  call apply_pbc_edge_south_front(f02B)
+  call apply_pbc_edge_south_front(f03B)
+  call apply_pbc_edge_south_front(f04B)
+  call apply_pbc_edge_south_front(f05B)
+  call apply_pbc_edge_south_front(f06B)
+  call apply_pbc_edge_south_front(f07B)
+  call apply_pbc_edge_south_front(f08B)
+  call apply_pbc_edge_south_front(f09B)
+  call apply_pbc_edge_south_front(f10B)
+  call apply_pbc_edge_south_front(f11B)
+  call apply_pbc_edge_south_front(f12B)
+  call apply_pbc_edge_south_front(f13B)
+  call apply_pbc_edge_south_front(f14B)
+  call apply_pbc_edge_south_front(f15B)
+  call apply_pbc_edge_south_front(f16B)
+  call apply_pbc_edge_south_front(f17B)
+  call apply_pbc_edge_south_front(f18B)
+  
+  !apply pbc at south rear 11 !yz
+  !blue fluid
+  call apply_pbc_edge_south_rear(f00B)
+  call apply_pbc_edge_south_rear(f01B)
+  call apply_pbc_edge_south_rear(f02B)
+  call apply_pbc_edge_south_rear(f03B)
+  call apply_pbc_edge_south_rear(f04B)
+  call apply_pbc_edge_south_rear(f05B)
+  call apply_pbc_edge_south_rear(f06B)
+  call apply_pbc_edge_south_rear(f07B)
+  call apply_pbc_edge_south_rear(f08B)
+  call apply_pbc_edge_south_rear(f09B)
+  call apply_pbc_edge_south_rear(f10B)
+  call apply_pbc_edge_south_rear(f11B)
+  call apply_pbc_edge_south_rear(f12B)
+  call apply_pbc_edge_south_rear(f13B)
+  call apply_pbc_edge_south_rear(f14B)
+  call apply_pbc_edge_south_rear(f15B)
+  call apply_pbc_edge_south_rear(f16B)
+  call apply_pbc_edge_south_rear(f17B)
+  call apply_pbc_edge_south_rear(f18B)
+  
+  !apply pbc at south west 12 !xz
+  !blue fluid
+  call apply_pbc_edge_south_west(f00B)
+  call apply_pbc_edge_south_west(f01B)
+  call apply_pbc_edge_south_west(f02B)
+  call apply_pbc_edge_south_west(f03B)
+  call apply_pbc_edge_south_west(f04B)
+  call apply_pbc_edge_south_west(f05B)
+  call apply_pbc_edge_south_west(f06B)
+  call apply_pbc_edge_south_west(f07B)
+  call apply_pbc_edge_south_west(f08B)
+  call apply_pbc_edge_south_west(f09B)
+  call apply_pbc_edge_south_west(f10B)
+  call apply_pbc_edge_south_west(f11B)
+  call apply_pbc_edge_south_west(f12B)
+  call apply_pbc_edge_south_west(f13B)
+  call apply_pbc_edge_south_west(f14B)
+  call apply_pbc_edge_south_west(f15B)
+  call apply_pbc_edge_south_west(f16B)
+  call apply_pbc_edge_south_west(f17B)
+  call apply_pbc_edge_south_west(f18B)
+  
+  !corner 8
+  
+  !apply pbc at north east front 1
+  !blue fluid
+  call apply_pbc_corner_north_east_front(f00B)
+  call apply_pbc_corner_north_east_front(f01B)
+  call apply_pbc_corner_north_east_front(f02B)
+  call apply_pbc_corner_north_east_front(f03B)
+  call apply_pbc_corner_north_east_front(f04B)
+  call apply_pbc_corner_north_east_front(f05B)
+  call apply_pbc_corner_north_east_front(f06B)
+  call apply_pbc_corner_north_east_front(f07B)
+  call apply_pbc_corner_north_east_front(f08B)
+  call apply_pbc_corner_north_east_front(f09B)
+  call apply_pbc_corner_north_east_front(f10B)
+  call apply_pbc_corner_north_east_front(f11B)
+  call apply_pbc_corner_north_east_front(f12B)
+  call apply_pbc_corner_north_east_front(f13B)
+  call apply_pbc_corner_north_east_front(f14B)
+  call apply_pbc_corner_north_east_front(f15B)
+  call apply_pbc_corner_north_east_front(f16B)
+  call apply_pbc_corner_north_east_front(f17B)
+  call apply_pbc_corner_north_east_front(f18B)
+  
+  !apply pbc at north east rear 2
+  !blue fluid
+  call apply_pbc_corner_north_east_rear(f00B)
+  call apply_pbc_corner_north_east_rear(f01B)
+  call apply_pbc_corner_north_east_rear(f02B)
+  call apply_pbc_corner_north_east_rear(f03B)
+  call apply_pbc_corner_north_east_rear(f04B)
+  call apply_pbc_corner_north_east_rear(f05B)
+  call apply_pbc_corner_north_east_rear(f06B)
+  call apply_pbc_corner_north_east_rear(f07B)
+  call apply_pbc_corner_north_east_rear(f08B)
+  call apply_pbc_corner_north_east_rear(f09B)
+  call apply_pbc_corner_north_east_rear(f10B)
+  call apply_pbc_corner_north_east_rear(f11B)
+  call apply_pbc_corner_north_east_rear(f12B)
+  call apply_pbc_corner_north_east_rear(f13B)
+  call apply_pbc_corner_north_east_rear(f14B)
+  call apply_pbc_corner_north_east_rear(f15B)
+  call apply_pbc_corner_north_east_rear(f16B)
+  call apply_pbc_corner_north_east_rear(f17B)
+  call apply_pbc_corner_north_east_rear(f18B)
+  
+  !apply pbc at north west rear 3
+  !blue fluid
+  call apply_pbc_corner_north_west_rear(f00B)
+  call apply_pbc_corner_north_west_rear(f01B)
+  call apply_pbc_corner_north_west_rear(f02B)
+  call apply_pbc_corner_north_west_rear(f03B)
+  call apply_pbc_corner_north_west_rear(f04B)
+  call apply_pbc_corner_north_west_rear(f05B)
+  call apply_pbc_corner_north_west_rear(f06B)
+  call apply_pbc_corner_north_west_rear(f07B)
+  call apply_pbc_corner_north_west_rear(f08B)
+  call apply_pbc_corner_north_west_rear(f09B)
+  call apply_pbc_corner_north_west_rear(f10B)
+  call apply_pbc_corner_north_west_rear(f11B)
+  call apply_pbc_corner_north_west_rear(f12B)
+  call apply_pbc_corner_north_west_rear(f13B)
+  call apply_pbc_corner_north_west_rear(f14B)
+  call apply_pbc_corner_north_west_rear(f15B)
+  call apply_pbc_corner_north_west_rear(f16B)
+  call apply_pbc_corner_north_west_rear(f17B)
+  call apply_pbc_corner_north_west_rear(f18B)
+  
+  !apply pbc at north west front 4
+  !blue fluid
+  call apply_pbc_corner_north_west_front(f00B)
+  call apply_pbc_corner_north_west_front(f01B)
+  call apply_pbc_corner_north_west_front(f02B)
+  call apply_pbc_corner_north_west_front(f03B)
+  call apply_pbc_corner_north_west_front(f04B)
+  call apply_pbc_corner_north_west_front(f05B)
+  call apply_pbc_corner_north_west_front(f06B)
+  call apply_pbc_corner_north_west_front(f07B)
+  call apply_pbc_corner_north_west_front(f08B)
+  call apply_pbc_corner_north_west_front(f09B)
+  call apply_pbc_corner_north_west_front(f10B)
+  call apply_pbc_corner_north_west_front(f11B)
+  call apply_pbc_corner_north_west_front(f12B)
+  call apply_pbc_corner_north_west_front(f13B)
+  call apply_pbc_corner_north_west_front(f14B)
+  call apply_pbc_corner_north_west_front(f15B)
+  call apply_pbc_corner_north_west_front(f16B)
+  call apply_pbc_corner_north_west_front(f17B)
+  call apply_pbc_corner_north_west_front(f18B)
+  
+  !apply pbc at south east front 5
+  !blue fluid
+  call apply_pbc_corner_south_east_front(f00B)
+  call apply_pbc_corner_south_east_front(f01B)
+  call apply_pbc_corner_south_east_front(f02B)
+  call apply_pbc_corner_south_east_front(f03B)
+  call apply_pbc_corner_south_east_front(f04B)
+  call apply_pbc_corner_south_east_front(f05B)
+  call apply_pbc_corner_south_east_front(f06B)
+  call apply_pbc_corner_south_east_front(f07B)
+  call apply_pbc_corner_south_east_front(f08B)
+  call apply_pbc_corner_south_east_front(f09B)
+  call apply_pbc_corner_south_east_front(f10B)
+  call apply_pbc_corner_south_east_front(f11B)
+  call apply_pbc_corner_south_east_front(f12B)
+  call apply_pbc_corner_south_east_front(f13B)
+  call apply_pbc_corner_south_east_front(f14B)
+  call apply_pbc_corner_south_east_front(f15B)
+  call apply_pbc_corner_south_east_front(f16B)
+  call apply_pbc_corner_south_east_front(f17B)
+  call apply_pbc_corner_south_east_front(f18B)
+  
+  !apply pbc at south west front 6
+  !blue fluid
+  call apply_pbc_corner_south_west_front(f00B)
+  call apply_pbc_corner_south_west_front(f01B)
+  call apply_pbc_corner_south_west_front(f02B)
+  call apply_pbc_corner_south_west_front(f03B)
+  call apply_pbc_corner_south_west_front(f04B)
+  call apply_pbc_corner_south_west_front(f05B)
+  call apply_pbc_corner_south_west_front(f06B)
+  call apply_pbc_corner_south_west_front(f07B)
+  call apply_pbc_corner_south_west_front(f08B)
+  call apply_pbc_corner_south_west_front(f09B)
+  call apply_pbc_corner_south_west_front(f10B)
+  call apply_pbc_corner_south_west_front(f11B)
+  call apply_pbc_corner_south_west_front(f12B)
+  call apply_pbc_corner_south_west_front(f13B)
+  call apply_pbc_corner_south_west_front(f14B)
+  call apply_pbc_corner_south_west_front(f15B)
+  call apply_pbc_corner_south_west_front(f16B)
+  call apply_pbc_corner_south_west_front(f17B)
+  call apply_pbc_corner_south_west_front(f18B)
+  
+  !apply pbc at south west rear 7
+  !blue fluid
+  call apply_pbc_corner_south_west_rear(f00B)
+  call apply_pbc_corner_south_west_rear(f01B)
+  call apply_pbc_corner_south_west_rear(f02B)
+  call apply_pbc_corner_south_west_rear(f03B)
+  call apply_pbc_corner_south_west_rear(f04B)
+  call apply_pbc_corner_south_west_rear(f05B)
+  call apply_pbc_corner_south_west_rear(f06B)
+  call apply_pbc_corner_south_west_rear(f07B)
+  call apply_pbc_corner_south_west_rear(f08B)
+  call apply_pbc_corner_south_west_rear(f09B)
+  call apply_pbc_corner_south_west_rear(f10B)
+  call apply_pbc_corner_south_west_rear(f11B)
+  call apply_pbc_corner_south_west_rear(f12B)
+  call apply_pbc_corner_south_west_rear(f13B)
+  call apply_pbc_corner_south_west_rear(f14B)
+  call apply_pbc_corner_south_west_rear(f15B)
+  call apply_pbc_corner_south_west_rear(f16B)
+  call apply_pbc_corner_south_west_rear(f17B)
+  call apply_pbc_corner_south_west_rear(f18B)
+  
+  !apply pbc at south east rear 8
   !blue fluid
   call apply_pbc_corner_south_east_rear(f00B)
   call apply_pbc_corner_south_east_rear(f01B)
@@ -2318,6 +3562,1150 @@
   return
   
  end subroutine apply_pbc_pops
+ 
+ subroutine apply_pbc_pops_along_xy
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to fluid populations
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 4 (6)
+  
+  !apply pbc at east 3 !x
+  !red fluid
+  call apply_pbc_east(f00R)
+  call apply_pbc_east(f01R)
+  call apply_pbc_east(f02R)
+  call apply_pbc_east(f03R)
+  call apply_pbc_east(f04R)
+  call apply_pbc_east(f05R)
+  call apply_pbc_east(f06R)
+  call apply_pbc_east(f07R)
+  call apply_pbc_east(f08R)
+  call apply_pbc_east(f09R)
+  call apply_pbc_east(f10R)
+  call apply_pbc_east(f11R)
+  call apply_pbc_east(f12R)
+  call apply_pbc_east(f13R)
+  call apply_pbc_east(f14R)
+  call apply_pbc_east(f15R)
+  call apply_pbc_east(f16R)
+  call apply_pbc_east(f17R)
+  call apply_pbc_east(f18R)
+  
+  !apply pbc at west 4 !x
+  !red fluid
+  call apply_pbc_west(f00R)
+  call apply_pbc_west(f01R)
+  call apply_pbc_west(f02R)
+  call apply_pbc_west(f03R)
+  call apply_pbc_west(f04R)
+  call apply_pbc_west(f05R)
+  call apply_pbc_west(f06R)
+  call apply_pbc_west(f07R)
+  call apply_pbc_west(f08R)
+  call apply_pbc_west(f09R)
+  call apply_pbc_west(f10R)
+  call apply_pbc_west(f11R)
+  call apply_pbc_west(f12R)
+  call apply_pbc_west(f13R)
+  call apply_pbc_west(f14R)
+  call apply_pbc_west(f15R)
+  call apply_pbc_west(f16R)
+  call apply_pbc_west(f17R)
+  call apply_pbc_west(f18R)
+  
+  !apply pbc at front 5 !y
+  !red fluid
+  call apply_pbc_front(f00R)
+  call apply_pbc_front(f01R)
+  call apply_pbc_front(f02R)
+  call apply_pbc_front(f03R)
+  call apply_pbc_front(f04R)
+  call apply_pbc_front(f05R)
+  call apply_pbc_front(f06R)
+  call apply_pbc_front(f07R)
+  call apply_pbc_front(f08R)
+  call apply_pbc_front(f09R)
+  call apply_pbc_front(f10R)
+  call apply_pbc_front(f11R)
+  call apply_pbc_front(f12R)
+  call apply_pbc_front(f13R)
+  call apply_pbc_front(f14R)
+  call apply_pbc_front(f15R)
+  call apply_pbc_front(f16R)
+  call apply_pbc_front(f17R)
+  call apply_pbc_front(f18R)
+  
+  !apply pbc at rear 6 !y
+  !red fluid
+  call apply_pbc_rear(f00R)
+  call apply_pbc_rear(f01R)
+  call apply_pbc_rear(f02R)
+  call apply_pbc_rear(f03R)
+  call apply_pbc_rear(f04R)
+  call apply_pbc_rear(f05R)
+  call apply_pbc_rear(f06R)
+  call apply_pbc_rear(f07R)
+  call apply_pbc_rear(f08R)
+  call apply_pbc_rear(f09R)
+  call apply_pbc_rear(f10R)
+  call apply_pbc_rear(f11R)
+  call apply_pbc_rear(f12R)
+  call apply_pbc_rear(f13R)
+  call apply_pbc_rear(f14R)
+  call apply_pbc_rear(f15R)
+  call apply_pbc_rear(f16R)
+  call apply_pbc_rear(f17R)
+  call apply_pbc_rear(f18R)
+  
+  !edges 4 (12)
+  
+  !apply pbc at front east 1 !xy
+  !red fluid
+  call apply_pbc_edge_front_east(f00R)
+  call apply_pbc_edge_front_east(f01R)
+  call apply_pbc_edge_front_east(f02R)
+  call apply_pbc_edge_front_east(f03R)
+  call apply_pbc_edge_front_east(f04R)
+  call apply_pbc_edge_front_east(f05R)
+  call apply_pbc_edge_front_east(f06R)
+  call apply_pbc_edge_front_east(f07R)
+  call apply_pbc_edge_front_east(f08R)
+  call apply_pbc_edge_front_east(f09R)
+  call apply_pbc_edge_front_east(f10R)
+  call apply_pbc_edge_front_east(f11R)
+  call apply_pbc_edge_front_east(f12R)
+  call apply_pbc_edge_front_east(f13R)
+  call apply_pbc_edge_front_east(f14R)
+  call apply_pbc_edge_front_east(f15R)
+  call apply_pbc_edge_front_east(f16R)
+  call apply_pbc_edge_front_east(f17R)
+  call apply_pbc_edge_front_east(f18R)
+  
+  !apply pbc at front west 2 !xy
+  !red fluid
+  call apply_pbc_edge_front_west(f00R)
+  call apply_pbc_edge_front_west(f01R)
+  call apply_pbc_edge_front_west(f02R)
+  call apply_pbc_edge_front_west(f03R)
+  call apply_pbc_edge_front_west(f04R)
+  call apply_pbc_edge_front_west(f05R)
+  call apply_pbc_edge_front_west(f06R)
+  call apply_pbc_edge_front_west(f07R)
+  call apply_pbc_edge_front_west(f08R)
+  call apply_pbc_edge_front_west(f09R)
+  call apply_pbc_edge_front_west(f10R)
+  call apply_pbc_edge_front_west(f11R)
+  call apply_pbc_edge_front_west(f12R)
+  call apply_pbc_edge_front_west(f13R)
+  call apply_pbc_edge_front_west(f14R)
+  call apply_pbc_edge_front_west(f15R)
+  call apply_pbc_edge_front_west(f16R)
+  call apply_pbc_edge_front_west(f17R)
+  call apply_pbc_edge_front_west(f18R)
+  
+  !apply pbc at rear east 7 !xy
+  !red fluid
+  call apply_pbc_edge_rear_east(f00R)
+  call apply_pbc_edge_rear_east(f01R)
+  call apply_pbc_edge_rear_east(f02R)
+  call apply_pbc_edge_rear_east(f03R)
+  call apply_pbc_edge_rear_east(f04R)
+  call apply_pbc_edge_rear_east(f05R)
+  call apply_pbc_edge_rear_east(f06R)
+  call apply_pbc_edge_rear_east(f07R)
+  call apply_pbc_edge_rear_east(f08R)
+  call apply_pbc_edge_rear_east(f09R)
+  call apply_pbc_edge_rear_east(f10R)
+  call apply_pbc_edge_rear_east(f11R)
+  call apply_pbc_edge_rear_east(f12R)
+  call apply_pbc_edge_rear_east(f13R)
+  call apply_pbc_edge_rear_east(f14R)
+  call apply_pbc_edge_rear_east(f15R)
+  call apply_pbc_edge_rear_east(f16R)
+  call apply_pbc_edge_rear_east(f17R)
+  call apply_pbc_edge_rear_east(f18R)
+  
+  !apply pbc at rear west 8 !xy
+  !red fluid
+  call apply_pbc_edge_rear_west(f00R)
+  call apply_pbc_edge_rear_west(f01R)
+  call apply_pbc_edge_rear_west(f02R)
+  call apply_pbc_edge_rear_west(f03R)
+  call apply_pbc_edge_rear_west(f04R)
+  call apply_pbc_edge_rear_west(f05R)
+  call apply_pbc_edge_rear_west(f06R)
+  call apply_pbc_edge_rear_west(f07R)
+  call apply_pbc_edge_rear_west(f08R)
+  call apply_pbc_edge_rear_west(f09R)
+  call apply_pbc_edge_rear_west(f10R)
+  call apply_pbc_edge_rear_west(f11R)
+  call apply_pbc_edge_rear_west(f12R)
+  call apply_pbc_edge_rear_west(f13R)
+  call apply_pbc_edge_rear_west(f14R)
+  call apply_pbc_edge_rear_west(f15R)
+  call apply_pbc_edge_rear_west(f16R)
+  call apply_pbc_edge_rear_west(f17R)
+  call apply_pbc_edge_rear_west(f18R)
+  
+  if(lsingle_fluid)return
+  
+  !sides 4 (6)
+  
+  !apply pbc at east 3 !x
+  !blue fluid
+  call apply_pbc_east(f00B)
+  call apply_pbc_east(f01B)
+  call apply_pbc_east(f02B)
+  call apply_pbc_east(f03B)
+  call apply_pbc_east(f04B)
+  call apply_pbc_east(f05B)
+  call apply_pbc_east(f06B)
+  call apply_pbc_east(f07B)
+  call apply_pbc_east(f08B)
+  call apply_pbc_east(f09B)
+  call apply_pbc_east(f10B)
+  call apply_pbc_east(f11B)
+  call apply_pbc_east(f12B)
+  call apply_pbc_east(f13B)
+  call apply_pbc_east(f14B)
+  call apply_pbc_east(f15B)
+  call apply_pbc_east(f16B)
+  call apply_pbc_east(f17B)
+  call apply_pbc_east(f18B)
+  
+  !apply pbc at west 4 !x
+  !blue fluid
+  call apply_pbc_west(f00B)
+  call apply_pbc_west(f01B)
+  call apply_pbc_west(f02B)
+  call apply_pbc_west(f03B)
+  call apply_pbc_west(f04B)
+  call apply_pbc_west(f05B)
+  call apply_pbc_west(f06B)
+  call apply_pbc_west(f07B)
+  call apply_pbc_west(f08B)
+  call apply_pbc_west(f09B)
+  call apply_pbc_west(f10B)
+  call apply_pbc_west(f11B)
+  call apply_pbc_west(f12B)
+  call apply_pbc_west(f13B)
+  call apply_pbc_west(f14B)
+  call apply_pbc_west(f15B)
+  call apply_pbc_west(f16B)
+  call apply_pbc_west(f17B)
+  call apply_pbc_west(f18B)
+  
+  !apply pbc at front 5 !y
+  !blue fluid
+  call apply_pbc_front(f00B)
+  call apply_pbc_front(f01B)
+  call apply_pbc_front(f02B)
+  call apply_pbc_front(f03B)
+  call apply_pbc_front(f04B)
+  call apply_pbc_front(f05B)
+  call apply_pbc_front(f06B)
+  call apply_pbc_front(f07B)
+  call apply_pbc_front(f08B)
+  call apply_pbc_front(f09B)
+  call apply_pbc_front(f10B)
+  call apply_pbc_front(f11B)
+  call apply_pbc_front(f12B)
+  call apply_pbc_front(f13B)
+  call apply_pbc_front(f14B)
+  call apply_pbc_front(f15B)
+  call apply_pbc_front(f16B)
+  call apply_pbc_front(f17B)
+  call apply_pbc_front(f18B)
+  
+  !apply pbc at rear 6 !y
+  !blue fluid
+  call apply_pbc_rear(f00B)
+  call apply_pbc_rear(f01B)
+  call apply_pbc_rear(f02B)
+  call apply_pbc_rear(f03B)
+  call apply_pbc_rear(f04B)
+  call apply_pbc_rear(f05B)
+  call apply_pbc_rear(f06B)
+  call apply_pbc_rear(f07B)
+  call apply_pbc_rear(f08B)
+  call apply_pbc_rear(f09B)
+  call apply_pbc_rear(f10B)
+  call apply_pbc_rear(f11B)
+  call apply_pbc_rear(f12B)
+  call apply_pbc_rear(f13B)
+  call apply_pbc_rear(f14B)
+  call apply_pbc_rear(f15B)
+  call apply_pbc_rear(f16B)
+  call apply_pbc_rear(f17B)
+  call apply_pbc_rear(f18B)
+  
+  !edges 4 (12)
+  
+  !apply pbc at front east 1 !xy
+  !blue fluid
+  call apply_pbc_edge_front_east(f00B)
+  call apply_pbc_edge_front_east(f01B)
+  call apply_pbc_edge_front_east(f02B)
+  call apply_pbc_edge_front_east(f03B)
+  call apply_pbc_edge_front_east(f04B)
+  call apply_pbc_edge_front_east(f05B)
+  call apply_pbc_edge_front_east(f06B)
+  call apply_pbc_edge_front_east(f07B)
+  call apply_pbc_edge_front_east(f08B)
+  call apply_pbc_edge_front_east(f09B)
+  call apply_pbc_edge_front_east(f10B)
+  call apply_pbc_edge_front_east(f11B)
+  call apply_pbc_edge_front_east(f12B)
+  call apply_pbc_edge_front_east(f13B)
+  call apply_pbc_edge_front_east(f14B)
+  call apply_pbc_edge_front_east(f15B)
+  call apply_pbc_edge_front_east(f16B)
+  call apply_pbc_edge_front_east(f17B)
+  call apply_pbc_edge_front_east(f18B)
+  
+  !apply pbc at front west 2 !xy
+  !blue fluid
+  call apply_pbc_edge_front_west(f00B)
+  call apply_pbc_edge_front_west(f01B)
+  call apply_pbc_edge_front_west(f02B)
+  call apply_pbc_edge_front_west(f03B)
+  call apply_pbc_edge_front_west(f04B)
+  call apply_pbc_edge_front_west(f05B)
+  call apply_pbc_edge_front_west(f06B)
+  call apply_pbc_edge_front_west(f07B)
+  call apply_pbc_edge_front_west(f08B)
+  call apply_pbc_edge_front_west(f09B)
+  call apply_pbc_edge_front_west(f10B)
+  call apply_pbc_edge_front_west(f11B)
+  call apply_pbc_edge_front_west(f12B)
+  call apply_pbc_edge_front_west(f13B)
+  call apply_pbc_edge_front_west(f14B)
+  call apply_pbc_edge_front_west(f15B)
+  call apply_pbc_edge_front_west(f16B)
+  call apply_pbc_edge_front_west(f17B)
+  call apply_pbc_edge_front_west(f18B)
+  
+  !apply pbc at rear east 7 !xy
+  !blue fluid
+  call apply_pbc_edge_rear_east(f00B)
+  call apply_pbc_edge_rear_east(f01B)
+  call apply_pbc_edge_rear_east(f02B)
+  call apply_pbc_edge_rear_east(f03B)
+  call apply_pbc_edge_rear_east(f04B)
+  call apply_pbc_edge_rear_east(f05B)
+  call apply_pbc_edge_rear_east(f06B)
+  call apply_pbc_edge_rear_east(f07B)
+  call apply_pbc_edge_rear_east(f08B)
+  call apply_pbc_edge_rear_east(f09B)
+  call apply_pbc_edge_rear_east(f10B)
+  call apply_pbc_edge_rear_east(f11B)
+  call apply_pbc_edge_rear_east(f12B)
+  call apply_pbc_edge_rear_east(f13B)
+  call apply_pbc_edge_rear_east(f14B)
+  call apply_pbc_edge_rear_east(f15B)
+  call apply_pbc_edge_rear_east(f16B)
+  call apply_pbc_edge_rear_east(f17B)
+  call apply_pbc_edge_rear_east(f18B)
+  
+  !apply pbc at rear west 8 !xy
+  !blue fluid
+  call apply_pbc_edge_rear_west(f00B)
+  call apply_pbc_edge_rear_west(f01B)
+  call apply_pbc_edge_rear_west(f02B)
+  call apply_pbc_edge_rear_west(f03B)
+  call apply_pbc_edge_rear_west(f04B)
+  call apply_pbc_edge_rear_west(f05B)
+  call apply_pbc_edge_rear_west(f06B)
+  call apply_pbc_edge_rear_west(f07B)
+  call apply_pbc_edge_rear_west(f08B)
+  call apply_pbc_edge_rear_west(f09B)
+  call apply_pbc_edge_rear_west(f10B)
+  call apply_pbc_edge_rear_west(f11B)
+  call apply_pbc_edge_rear_west(f12B)
+  call apply_pbc_edge_rear_west(f13B)
+  call apply_pbc_edge_rear_west(f14B)
+  call apply_pbc_edge_rear_west(f15B)
+  call apply_pbc_edge_rear_west(f16B)
+  call apply_pbc_edge_rear_west(f17B)
+  call apply_pbc_edge_rear_west(f18B)
+  
+  return
+  
+ end subroutine apply_pbc_pops_along_xy
+ 
+ subroutine apply_pbc_pops_along_xz
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to fluid populations
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 4 (6)
+  
+  !apply pbc at north 1 !z
+  !red fluid
+  call apply_pbc_north(f00R)
+  call apply_pbc_north(f01R)
+  call apply_pbc_north(f02R)
+  call apply_pbc_north(f03R)
+  call apply_pbc_north(f04R)
+  call apply_pbc_north(f05R)
+  call apply_pbc_north(f06R)
+  call apply_pbc_north(f07R)
+  call apply_pbc_north(f08R)
+  call apply_pbc_north(f09R)
+  call apply_pbc_north(f10R)
+  call apply_pbc_north(f11R)
+  call apply_pbc_north(f12R)
+  call apply_pbc_north(f13R)
+  call apply_pbc_north(f14R)
+  call apply_pbc_north(f15R)
+  call apply_pbc_north(f16R)
+  call apply_pbc_north(f17R)
+  call apply_pbc_north(f18R)
+  
+  !apply pbc at south 2 !z
+  !red fluid
+  call apply_pbc_south(f00R)
+  call apply_pbc_south(f01R)
+  call apply_pbc_south(f02R)
+  call apply_pbc_south(f03R)
+  call apply_pbc_south(f04R)
+  call apply_pbc_south(f05R)
+  call apply_pbc_south(f06R)
+  call apply_pbc_south(f07R)
+  call apply_pbc_south(f08R)
+  call apply_pbc_south(f09R)
+  call apply_pbc_south(f10R)
+  call apply_pbc_south(f11R)
+  call apply_pbc_south(f12R)
+  call apply_pbc_south(f13R)
+  call apply_pbc_south(f14R)
+  call apply_pbc_south(f15R)
+  call apply_pbc_south(f16R)
+  call apply_pbc_south(f17R)
+  call apply_pbc_south(f18R)
+  
+  !apply pbc at east 3 !x
+  !red fluid
+  call apply_pbc_east(f00R)
+  call apply_pbc_east(f01R)
+  call apply_pbc_east(f02R)
+  call apply_pbc_east(f03R)
+  call apply_pbc_east(f04R)
+  call apply_pbc_east(f05R)
+  call apply_pbc_east(f06R)
+  call apply_pbc_east(f07R)
+  call apply_pbc_east(f08R)
+  call apply_pbc_east(f09R)
+  call apply_pbc_east(f10R)
+  call apply_pbc_east(f11R)
+  call apply_pbc_east(f12R)
+  call apply_pbc_east(f13R)
+  call apply_pbc_east(f14R)
+  call apply_pbc_east(f15R)
+  call apply_pbc_east(f16R)
+  call apply_pbc_east(f17R)
+  call apply_pbc_east(f18R)
+  
+  !apply pbc at west 4 !x
+  !red fluid
+  call apply_pbc_west(f00R)
+  call apply_pbc_west(f01R)
+  call apply_pbc_west(f02R)
+  call apply_pbc_west(f03R)
+  call apply_pbc_west(f04R)
+  call apply_pbc_west(f05R)
+  call apply_pbc_west(f06R)
+  call apply_pbc_west(f07R)
+  call apply_pbc_west(f08R)
+  call apply_pbc_west(f09R)
+  call apply_pbc_west(f10R)
+  call apply_pbc_west(f11R)
+  call apply_pbc_west(f12R)
+  call apply_pbc_west(f13R)
+  call apply_pbc_west(f14R)
+  call apply_pbc_west(f15R)
+  call apply_pbc_west(f16R)
+  call apply_pbc_west(f17R)
+  call apply_pbc_west(f18R)
+  
+  !edges 4 (12)
+  
+  !apply pbc at north east 3 !xz
+  !red fluid
+  call apply_pbc_edge_north_east(f00R)
+  call apply_pbc_edge_north_east(f01R)
+  call apply_pbc_edge_north_east(f02R)
+  call apply_pbc_edge_north_east(f03R)
+  call apply_pbc_edge_north_east(f04R)
+  call apply_pbc_edge_north_east(f05R)
+  call apply_pbc_edge_north_east(f06R)
+  call apply_pbc_edge_north_east(f07R)
+  call apply_pbc_edge_north_east(f08R)
+  call apply_pbc_edge_north_east(f09R)
+  call apply_pbc_edge_north_east(f10R)
+  call apply_pbc_edge_north_east(f11R)
+  call apply_pbc_edge_north_east(f12R)
+  call apply_pbc_edge_north_east(f13R)
+  call apply_pbc_edge_north_east(f14R)
+  call apply_pbc_edge_north_east(f15R)
+  call apply_pbc_edge_north_east(f16R)
+  call apply_pbc_edge_north_east(f17R)
+  call apply_pbc_edge_north_east(f18R)
+  
+  !apply pbc at north west 6 !xz
+  !red fluid
+  call apply_pbc_edge_north_west(f00R)
+  call apply_pbc_edge_north_west(f01R)
+  call apply_pbc_edge_north_west(f02R)
+  call apply_pbc_edge_north_west(f03R)
+  call apply_pbc_edge_north_west(f04R)
+  call apply_pbc_edge_north_west(f05R)
+  call apply_pbc_edge_north_west(f06R)
+  call apply_pbc_edge_north_west(f07R)
+  call apply_pbc_edge_north_west(f08R)
+  call apply_pbc_edge_north_west(f09R)
+  call apply_pbc_edge_north_west(f10R)
+  call apply_pbc_edge_north_west(f11R)
+  call apply_pbc_edge_north_west(f12R)
+  call apply_pbc_edge_north_west(f13R)
+  call apply_pbc_edge_north_west(f14R)
+  call apply_pbc_edge_north_west(f15R)
+  call apply_pbc_edge_north_west(f16R)
+  call apply_pbc_edge_north_west(f17R)
+  call apply_pbc_edge_north_west(f18R)
+  
+  !apply pbc at south east 9 !xz
+  !red fluid
+  call apply_pbc_edge_south_east(f00R)
+  call apply_pbc_edge_south_east(f01R)
+  call apply_pbc_edge_south_east(f02R)
+  call apply_pbc_edge_south_east(f03R)
+  call apply_pbc_edge_south_east(f04R)
+  call apply_pbc_edge_south_east(f05R)
+  call apply_pbc_edge_south_east(f06R)
+  call apply_pbc_edge_south_east(f07R)
+  call apply_pbc_edge_south_east(f08R)
+  call apply_pbc_edge_south_east(f09R)
+  call apply_pbc_edge_south_east(f10R)
+  call apply_pbc_edge_south_east(f11R)
+  call apply_pbc_edge_south_east(f12R)
+  call apply_pbc_edge_south_east(f13R)
+  call apply_pbc_edge_south_east(f14R)
+  call apply_pbc_edge_south_east(f15R)
+  call apply_pbc_edge_south_east(f16R)
+  call apply_pbc_edge_south_east(f17R)
+  call apply_pbc_edge_south_east(f18R)
+  
+  !apply pbc at south west 12 !xz
+  !red fluid
+  call apply_pbc_edge_south_west(f00R)
+  call apply_pbc_edge_south_west(f01R)
+  call apply_pbc_edge_south_west(f02R)
+  call apply_pbc_edge_south_west(f03R)
+  call apply_pbc_edge_south_west(f04R)
+  call apply_pbc_edge_south_west(f05R)
+  call apply_pbc_edge_south_west(f06R)
+  call apply_pbc_edge_south_west(f07R)
+  call apply_pbc_edge_south_west(f08R)
+  call apply_pbc_edge_south_west(f09R)
+  call apply_pbc_edge_south_west(f10R)
+  call apply_pbc_edge_south_west(f11R)
+  call apply_pbc_edge_south_west(f12R)
+  call apply_pbc_edge_south_west(f13R)
+  call apply_pbc_edge_south_west(f14R)
+  call apply_pbc_edge_south_west(f15R)
+  call apply_pbc_edge_south_west(f16R)
+  call apply_pbc_edge_south_west(f17R)
+  call apply_pbc_edge_south_west(f18R)
+  
+  if(lsingle_fluid)return
+  
+  !sides 4 (6)
+  
+  !apply pbc at north 1 !z
+  !blue fluid
+  call apply_pbc_north(f00B)
+  call apply_pbc_north(f01B)
+  call apply_pbc_north(f02B)
+  call apply_pbc_north(f03B)
+  call apply_pbc_north(f04B)
+  call apply_pbc_north(f05B)
+  call apply_pbc_north(f06B)
+  call apply_pbc_north(f07B)
+  call apply_pbc_north(f08B)
+  call apply_pbc_north(f09B)
+  call apply_pbc_north(f10B)
+  call apply_pbc_north(f11B)
+  call apply_pbc_north(f12B)
+  call apply_pbc_north(f13B)
+  call apply_pbc_north(f14B)
+  call apply_pbc_north(f15B)
+  call apply_pbc_north(f16B)
+  call apply_pbc_north(f17B)
+  call apply_pbc_north(f18B)
+  
+  !apply pbc at south 2 !z
+  !blue fluid
+  call apply_pbc_south(f00B)
+  call apply_pbc_south(f01B)
+  call apply_pbc_south(f02B)
+  call apply_pbc_south(f03B)
+  call apply_pbc_south(f04B)
+  call apply_pbc_south(f05B)
+  call apply_pbc_south(f06B)
+  call apply_pbc_south(f07B)
+  call apply_pbc_south(f08B)
+  call apply_pbc_south(f09B)
+  call apply_pbc_south(f10B)
+  call apply_pbc_south(f11B)
+  call apply_pbc_south(f12B)
+  call apply_pbc_south(f13B)
+  call apply_pbc_south(f14B)
+  call apply_pbc_south(f15B)
+  call apply_pbc_south(f16B)
+  call apply_pbc_south(f17B)
+  call apply_pbc_south(f18B)
+  
+  !apply pbc at east 3 !x
+  !blue fluid
+  call apply_pbc_east(f00B)
+  call apply_pbc_east(f01B)
+  call apply_pbc_east(f02B)
+  call apply_pbc_east(f03B)
+  call apply_pbc_east(f04B)
+  call apply_pbc_east(f05B)
+  call apply_pbc_east(f06B)
+  call apply_pbc_east(f07B)
+  call apply_pbc_east(f08B)
+  call apply_pbc_east(f09B)
+  call apply_pbc_east(f10B)
+  call apply_pbc_east(f11B)
+  call apply_pbc_east(f12B)
+  call apply_pbc_east(f13B)
+  call apply_pbc_east(f14B)
+  call apply_pbc_east(f15B)
+  call apply_pbc_east(f16B)
+  call apply_pbc_east(f17B)
+  call apply_pbc_east(f18B)
+  
+  !apply pbc at west 4 !x
+  !blue fluid
+  call apply_pbc_west(f00B)
+  call apply_pbc_west(f01B)
+  call apply_pbc_west(f02B)
+  call apply_pbc_west(f03B)
+  call apply_pbc_west(f04B)
+  call apply_pbc_west(f05B)
+  call apply_pbc_west(f06B)
+  call apply_pbc_west(f07B)
+  call apply_pbc_west(f08B)
+  call apply_pbc_west(f09B)
+  call apply_pbc_west(f10B)
+  call apply_pbc_west(f11B)
+  call apply_pbc_west(f12B)
+  call apply_pbc_west(f13B)
+  call apply_pbc_west(f14B)
+  call apply_pbc_west(f15B)
+  call apply_pbc_west(f16B)
+  call apply_pbc_west(f17B)
+  call apply_pbc_west(f18B)
+  
+  !edges 4 (12)
+  
+  !apply pbc at north east 3 !xz
+  !blue fluid
+  call apply_pbc_edge_north_east(f00B)
+  call apply_pbc_edge_north_east(f01B)
+  call apply_pbc_edge_north_east(f02B)
+  call apply_pbc_edge_north_east(f03B)
+  call apply_pbc_edge_north_east(f04B)
+  call apply_pbc_edge_north_east(f05B)
+  call apply_pbc_edge_north_east(f06B)
+  call apply_pbc_edge_north_east(f07B)
+  call apply_pbc_edge_north_east(f08B)
+  call apply_pbc_edge_north_east(f09B)
+  call apply_pbc_edge_north_east(f10B)
+  call apply_pbc_edge_north_east(f11B)
+  call apply_pbc_edge_north_east(f12B)
+  call apply_pbc_edge_north_east(f13B)
+  call apply_pbc_edge_north_east(f14B)
+  call apply_pbc_edge_north_east(f15B)
+  call apply_pbc_edge_north_east(f16B)
+  call apply_pbc_edge_north_east(f17B)
+  call apply_pbc_edge_north_east(f18B)
+  
+  !apply pbc at north west 6 !xz
+  !blue fluid
+  call apply_pbc_edge_north_west(f00B)
+  call apply_pbc_edge_north_west(f01B)
+  call apply_pbc_edge_north_west(f02B)
+  call apply_pbc_edge_north_west(f03B)
+  call apply_pbc_edge_north_west(f04B)
+  call apply_pbc_edge_north_west(f05B)
+  call apply_pbc_edge_north_west(f06B)
+  call apply_pbc_edge_north_west(f07B)
+  call apply_pbc_edge_north_west(f08B)
+  call apply_pbc_edge_north_west(f09B)
+  call apply_pbc_edge_north_west(f10B)
+  call apply_pbc_edge_north_west(f11B)
+  call apply_pbc_edge_north_west(f12B)
+  call apply_pbc_edge_north_west(f13B)
+  call apply_pbc_edge_north_west(f14B)
+  call apply_pbc_edge_north_west(f15B)
+  call apply_pbc_edge_north_west(f16B)
+  call apply_pbc_edge_north_west(f17B)
+  call apply_pbc_edge_north_west(f18B)
+  
+  !apply pbc at south east 9 !xz
+  !blue fluid
+  call apply_pbc_edge_south_east(f00B)
+  call apply_pbc_edge_south_east(f01B)
+  call apply_pbc_edge_south_east(f02B)
+  call apply_pbc_edge_south_east(f03B)
+  call apply_pbc_edge_south_east(f04B)
+  call apply_pbc_edge_south_east(f05B)
+  call apply_pbc_edge_south_east(f06B)
+  call apply_pbc_edge_south_east(f07B)
+  call apply_pbc_edge_south_east(f08B)
+  call apply_pbc_edge_south_east(f09B)
+  call apply_pbc_edge_south_east(f10B)
+  call apply_pbc_edge_south_east(f11B)
+  call apply_pbc_edge_south_east(f12B)
+  call apply_pbc_edge_south_east(f13B)
+  call apply_pbc_edge_south_east(f14B)
+  call apply_pbc_edge_south_east(f15B)
+  call apply_pbc_edge_south_east(f16B)
+  call apply_pbc_edge_south_east(f17B)
+  call apply_pbc_edge_south_east(f18B)
+  
+  !apply pbc at south west 12 !xz
+  !blue fluid
+  call apply_pbc_edge_south_west(f00B)
+  call apply_pbc_edge_south_west(f01B)
+  call apply_pbc_edge_south_west(f02B)
+  call apply_pbc_edge_south_west(f03B)
+  call apply_pbc_edge_south_west(f04B)
+  call apply_pbc_edge_south_west(f05B)
+  call apply_pbc_edge_south_west(f06B)
+  call apply_pbc_edge_south_west(f07B)
+  call apply_pbc_edge_south_west(f08B)
+  call apply_pbc_edge_south_west(f09B)
+  call apply_pbc_edge_south_west(f10B)
+  call apply_pbc_edge_south_west(f11B)
+  call apply_pbc_edge_south_west(f12B)
+  call apply_pbc_edge_south_west(f13B)
+  call apply_pbc_edge_south_west(f14B)
+  call apply_pbc_edge_south_west(f15B)
+  call apply_pbc_edge_south_west(f16B)
+  call apply_pbc_edge_south_west(f17B)
+  call apply_pbc_edge_south_west(f18B)
+  
+  
+  return
+  
+ end subroutine apply_pbc_pops_along_xz
+ 
+ subroutine apply_pbc_pops_along_yz
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to fluid populations
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !sides 4 (6)
+  
+  !apply pbc at north 1 !z
+  !red fluid
+  call apply_pbc_north(f00R)
+  call apply_pbc_north(f01R)
+  call apply_pbc_north(f02R)
+  call apply_pbc_north(f03R)
+  call apply_pbc_north(f04R)
+  call apply_pbc_north(f05R)
+  call apply_pbc_north(f06R)
+  call apply_pbc_north(f07R)
+  call apply_pbc_north(f08R)
+  call apply_pbc_north(f09R)
+  call apply_pbc_north(f10R)
+  call apply_pbc_north(f11R)
+  call apply_pbc_north(f12R)
+  call apply_pbc_north(f13R)
+  call apply_pbc_north(f14R)
+  call apply_pbc_north(f15R)
+  call apply_pbc_north(f16R)
+  call apply_pbc_north(f17R)
+  call apply_pbc_north(f18R)
+  
+  !apply pbc at south 2 !z
+  !red fluid
+  call apply_pbc_south(f00R)
+  call apply_pbc_south(f01R)
+  call apply_pbc_south(f02R)
+  call apply_pbc_south(f03R)
+  call apply_pbc_south(f04R)
+  call apply_pbc_south(f05R)
+  call apply_pbc_south(f06R)
+  call apply_pbc_south(f07R)
+  call apply_pbc_south(f08R)
+  call apply_pbc_south(f09R)
+  call apply_pbc_south(f10R)
+  call apply_pbc_south(f11R)
+  call apply_pbc_south(f12R)
+  call apply_pbc_south(f13R)
+  call apply_pbc_south(f14R)
+  call apply_pbc_south(f15R)
+  call apply_pbc_south(f16R)
+  call apply_pbc_south(f17R)
+  call apply_pbc_south(f18R)
+  
+  !apply pbc at front 5 !y
+  !red fluid
+  call apply_pbc_front(f00R)
+  call apply_pbc_front(f01R)
+  call apply_pbc_front(f02R)
+  call apply_pbc_front(f03R)
+  call apply_pbc_front(f04R)
+  call apply_pbc_front(f05R)
+  call apply_pbc_front(f06R)
+  call apply_pbc_front(f07R)
+  call apply_pbc_front(f08R)
+  call apply_pbc_front(f09R)
+  call apply_pbc_front(f10R)
+  call apply_pbc_front(f11R)
+  call apply_pbc_front(f12R)
+  call apply_pbc_front(f13R)
+  call apply_pbc_front(f14R)
+  call apply_pbc_front(f15R)
+  call apply_pbc_front(f16R)
+  call apply_pbc_front(f17R)
+  call apply_pbc_front(f18R)
+  
+  !apply pbc at rear 6 !y
+  !red fluid
+  call apply_pbc_rear(f00R)
+  call apply_pbc_rear(f01R)
+  call apply_pbc_rear(f02R)
+  call apply_pbc_rear(f03R)
+  call apply_pbc_rear(f04R)
+  call apply_pbc_rear(f05R)
+  call apply_pbc_rear(f06R)
+  call apply_pbc_rear(f07R)
+  call apply_pbc_rear(f08R)
+  call apply_pbc_rear(f09R)
+  call apply_pbc_rear(f10R)
+  call apply_pbc_rear(f11R)
+  call apply_pbc_rear(f12R)
+  call apply_pbc_rear(f13R)
+  call apply_pbc_rear(f14R)
+  call apply_pbc_rear(f15R)
+  call apply_pbc_rear(f16R)
+  call apply_pbc_rear(f17R)
+  call apply_pbc_rear(f18R)
+  
+  !edges 4 (12)
+  
+  !apply pbc at north front 4 !yz
+  !red fluid
+  call apply_pbc_edge_north_front(f00R)
+  call apply_pbc_edge_north_front(f01R)
+  call apply_pbc_edge_north_front(f02R)
+  call apply_pbc_edge_north_front(f03R)
+  call apply_pbc_edge_north_front(f04R)
+  call apply_pbc_edge_north_front(f05R)
+  call apply_pbc_edge_north_front(f06R)
+  call apply_pbc_edge_north_front(f07R)
+  call apply_pbc_edge_north_front(f08R)
+  call apply_pbc_edge_north_front(f09R)
+  call apply_pbc_edge_north_front(f10R)
+  call apply_pbc_edge_north_front(f11R)
+  call apply_pbc_edge_north_front(f12R)
+  call apply_pbc_edge_north_front(f13R)
+  call apply_pbc_edge_north_front(f14R)
+  call apply_pbc_edge_north_front(f15R)
+  call apply_pbc_edge_north_front(f16R)
+  call apply_pbc_edge_north_front(f17R)
+  call apply_pbc_edge_north_front(f18R)
+  
+  !apply pbc at north rear 5 !yz
+  !red fluid
+  call apply_pbc_edge_north_rear(f00R)
+  call apply_pbc_edge_north_rear(f01R)
+  call apply_pbc_edge_north_rear(f02R)
+  call apply_pbc_edge_north_rear(f03R)
+  call apply_pbc_edge_north_rear(f04R)
+  call apply_pbc_edge_north_rear(f05R)
+  call apply_pbc_edge_north_rear(f06R)
+  call apply_pbc_edge_north_rear(f07R)
+  call apply_pbc_edge_north_rear(f08R)
+  call apply_pbc_edge_north_rear(f09R)
+  call apply_pbc_edge_north_rear(f10R)
+  call apply_pbc_edge_north_rear(f11R)
+  call apply_pbc_edge_north_rear(f12R)
+  call apply_pbc_edge_north_rear(f13R)
+  call apply_pbc_edge_north_rear(f14R)
+  call apply_pbc_edge_north_rear(f15R)
+  call apply_pbc_edge_north_rear(f16R)
+  call apply_pbc_edge_north_rear(f17R)
+  call apply_pbc_edge_north_rear(f18R)
+  
+  !apply pbc at south front 10 !yz
+  !red fluid
+  call apply_pbc_edge_south_front(f00R)
+  call apply_pbc_edge_south_front(f01R)
+  call apply_pbc_edge_south_front(f02R)
+  call apply_pbc_edge_south_front(f03R)
+  call apply_pbc_edge_south_front(f04R)
+  call apply_pbc_edge_south_front(f05R)
+  call apply_pbc_edge_south_front(f06R)
+  call apply_pbc_edge_south_front(f07R)
+  call apply_pbc_edge_south_front(f08R)
+  call apply_pbc_edge_south_front(f09R)
+  call apply_pbc_edge_south_front(f10R)
+  call apply_pbc_edge_south_front(f11R)
+  call apply_pbc_edge_south_front(f12R)
+  call apply_pbc_edge_south_front(f13R)
+  call apply_pbc_edge_south_front(f14R)
+  call apply_pbc_edge_south_front(f15R)
+  call apply_pbc_edge_south_front(f16R)
+  call apply_pbc_edge_south_front(f17R)
+  call apply_pbc_edge_south_front(f18R)
+  
+  !apply pbc at south rear 11 !yz
+  !red fluid
+  call apply_pbc_edge_south_rear(f00R)
+  call apply_pbc_edge_south_rear(f01R)
+  call apply_pbc_edge_south_rear(f02R)
+  call apply_pbc_edge_south_rear(f03R)
+  call apply_pbc_edge_south_rear(f04R)
+  call apply_pbc_edge_south_rear(f05R)
+  call apply_pbc_edge_south_rear(f06R)
+  call apply_pbc_edge_south_rear(f07R)
+  call apply_pbc_edge_south_rear(f08R)
+  call apply_pbc_edge_south_rear(f09R)
+  call apply_pbc_edge_south_rear(f10R)
+  call apply_pbc_edge_south_rear(f11R)
+  call apply_pbc_edge_south_rear(f12R)
+  call apply_pbc_edge_south_rear(f13R)
+  call apply_pbc_edge_south_rear(f14R)
+  call apply_pbc_edge_south_rear(f15R)
+  call apply_pbc_edge_south_rear(f16R)
+  call apply_pbc_edge_south_rear(f17R)
+  call apply_pbc_edge_south_rear(f18R)
+  
+  if(lsingle_fluid)return
+  
+  !sides 4 (6)
+  
+  !apply pbc at north 1 !z
+  !blue fluid
+  call apply_pbc_north(f00B)
+  call apply_pbc_north(f01B)
+  call apply_pbc_north(f02B)
+  call apply_pbc_north(f03B)
+  call apply_pbc_north(f04B)
+  call apply_pbc_north(f05B)
+  call apply_pbc_north(f06B)
+  call apply_pbc_north(f07B)
+  call apply_pbc_north(f08B)
+  call apply_pbc_north(f09B)
+  call apply_pbc_north(f10B)
+  call apply_pbc_north(f11B)
+  call apply_pbc_north(f12B)
+  call apply_pbc_north(f13B)
+  call apply_pbc_north(f14B)
+  call apply_pbc_north(f15B)
+  call apply_pbc_north(f16B)
+  call apply_pbc_north(f17B)
+  call apply_pbc_north(f18B)
+  
+  !apply pbc at south 2 !z
+  !blue fluid
+  call apply_pbc_south(f00B)
+  call apply_pbc_south(f01B)
+  call apply_pbc_south(f02B)
+  call apply_pbc_south(f03B)
+  call apply_pbc_south(f04B)
+  call apply_pbc_south(f05B)
+  call apply_pbc_south(f06B)
+  call apply_pbc_south(f07B)
+  call apply_pbc_south(f08B)
+  call apply_pbc_south(f09B)
+  call apply_pbc_south(f10B)
+  call apply_pbc_south(f11B)
+  call apply_pbc_south(f12B)
+  call apply_pbc_south(f13B)
+  call apply_pbc_south(f14B)
+  call apply_pbc_south(f15B)
+  call apply_pbc_south(f16B)
+  call apply_pbc_south(f17B)
+  call apply_pbc_south(f18B)
+  
+  !apply pbc at front 5 !y
+  !blue fluid
+  call apply_pbc_front(f00B)
+  call apply_pbc_front(f01B)
+  call apply_pbc_front(f02B)
+  call apply_pbc_front(f03B)
+  call apply_pbc_front(f04B)
+  call apply_pbc_front(f05B)
+  call apply_pbc_front(f06B)
+  call apply_pbc_front(f07B)
+  call apply_pbc_front(f08B)
+  call apply_pbc_front(f09B)
+  call apply_pbc_front(f10B)
+  call apply_pbc_front(f11B)
+  call apply_pbc_front(f12B)
+  call apply_pbc_front(f13B)
+  call apply_pbc_front(f14B)
+  call apply_pbc_front(f15B)
+  call apply_pbc_front(f16B)
+  call apply_pbc_front(f17B)
+  call apply_pbc_front(f18B)
+  
+  !apply pbc at rear 6 !y
+  !blue fluid
+  call apply_pbc_rear(f00B)
+  call apply_pbc_rear(f01B)
+  call apply_pbc_rear(f02B)
+  call apply_pbc_rear(f03B)
+  call apply_pbc_rear(f04B)
+  call apply_pbc_rear(f05B)
+  call apply_pbc_rear(f06B)
+  call apply_pbc_rear(f07B)
+  call apply_pbc_rear(f08B)
+  call apply_pbc_rear(f09B)
+  call apply_pbc_rear(f10B)
+  call apply_pbc_rear(f11B)
+  call apply_pbc_rear(f12B)
+  call apply_pbc_rear(f13B)
+  call apply_pbc_rear(f14B)
+  call apply_pbc_rear(f15B)
+  call apply_pbc_rear(f16B)
+  call apply_pbc_rear(f17B)
+  call apply_pbc_rear(f18B)
+  
+  !edges 4 (12)
+  
+  !apply pbc at north front 4 !yz
+  !blue fluid
+  call apply_pbc_edge_north_front(f00B)
+  call apply_pbc_edge_north_front(f01B)
+  call apply_pbc_edge_north_front(f02B)
+  call apply_pbc_edge_north_front(f03B)
+  call apply_pbc_edge_north_front(f04B)
+  call apply_pbc_edge_north_front(f05B)
+  call apply_pbc_edge_north_front(f06B)
+  call apply_pbc_edge_north_front(f07B)
+  call apply_pbc_edge_north_front(f08B)
+  call apply_pbc_edge_north_front(f09B)
+  call apply_pbc_edge_north_front(f10B)
+  call apply_pbc_edge_north_front(f11B)
+  call apply_pbc_edge_north_front(f12B)
+  call apply_pbc_edge_north_front(f13B)
+  call apply_pbc_edge_north_front(f14B)
+  call apply_pbc_edge_north_front(f15B)
+  call apply_pbc_edge_north_front(f16B)
+  call apply_pbc_edge_north_front(f17B)
+  call apply_pbc_edge_north_front(f18B)
+  
+  !apply pbc at north rear 5 !yz
+  !blue fluid
+  call apply_pbc_edge_north_rear(f00B)
+  call apply_pbc_edge_north_rear(f01B)
+  call apply_pbc_edge_north_rear(f02B)
+  call apply_pbc_edge_north_rear(f03B)
+  call apply_pbc_edge_north_rear(f04B)
+  call apply_pbc_edge_north_rear(f05B)
+  call apply_pbc_edge_north_rear(f06B)
+  call apply_pbc_edge_north_rear(f07B)
+  call apply_pbc_edge_north_rear(f08B)
+  call apply_pbc_edge_north_rear(f09B)
+  call apply_pbc_edge_north_rear(f10B)
+  call apply_pbc_edge_north_rear(f11B)
+  call apply_pbc_edge_north_rear(f12B)
+  call apply_pbc_edge_north_rear(f13B)
+  call apply_pbc_edge_north_rear(f14B)
+  call apply_pbc_edge_north_rear(f15B)
+  call apply_pbc_edge_north_rear(f16B)
+  call apply_pbc_edge_north_rear(f17B)
+  call apply_pbc_edge_north_rear(f18B)
+  
+  !apply pbc at south front 10 !yz
+  !blue fluid
+  call apply_pbc_edge_south_front(f00B)
+  call apply_pbc_edge_south_front(f01B)
+  call apply_pbc_edge_south_front(f02B)
+  call apply_pbc_edge_south_front(f03B)
+  call apply_pbc_edge_south_front(f04B)
+  call apply_pbc_edge_south_front(f05B)
+  call apply_pbc_edge_south_front(f06B)
+  call apply_pbc_edge_south_front(f07B)
+  call apply_pbc_edge_south_front(f08B)
+  call apply_pbc_edge_south_front(f09B)
+  call apply_pbc_edge_south_front(f10B)
+  call apply_pbc_edge_south_front(f11B)
+  call apply_pbc_edge_south_front(f12B)
+  call apply_pbc_edge_south_front(f13B)
+  call apply_pbc_edge_south_front(f14B)
+  call apply_pbc_edge_south_front(f15B)
+  call apply_pbc_edge_south_front(f16B)
+  call apply_pbc_edge_south_front(f17B)
+  call apply_pbc_edge_south_front(f18B)
+  
+  !apply pbc at south rear 11 !yz
+  !blue fluid
+  call apply_pbc_edge_south_rear(f00B)
+  call apply_pbc_edge_south_rear(f01B)
+  call apply_pbc_edge_south_rear(f02B)
+  call apply_pbc_edge_south_rear(f03B)
+  call apply_pbc_edge_south_rear(f04B)
+  call apply_pbc_edge_south_rear(f05B)
+  call apply_pbc_edge_south_rear(f06B)
+  call apply_pbc_edge_south_rear(f07B)
+  call apply_pbc_edge_south_rear(f08B)
+  call apply_pbc_edge_south_rear(f09B)
+  call apply_pbc_edge_south_rear(f10B)
+  call apply_pbc_edge_south_rear(f11B)
+  call apply_pbc_edge_south_rear(f12B)
+  call apply_pbc_edge_south_rear(f13B)
+  call apply_pbc_edge_south_rear(f14B)
+  call apply_pbc_edge_south_rear(f15B)
+  call apply_pbc_edge_south_rear(f16B)
+  call apply_pbc_edge_south_rear(f17B)
+  call apply_pbc_edge_south_rear(f18B)
+  
+  return
+  
+ end subroutine apply_pbc_pops_along_yz
  
  subroutine apply_pbc_east(dtemp)
  
@@ -3817,6 +6205,9 @@
   forall(i=1:nx,j=1:ny,k=1:nz)
     fwR(i,j,k) = fwR(i,j,k)*t_LB / rhoR(i,j,k) + w(i,j,k)
   end forall
+  
+  if(lsingle_fluid)return
+  
   !blue fluid
   forall(i=1:nx,j=1:ny,k=1:nz)
     fuB(i,j,k) = fuB(i,j,k)*t_LB / rhoB(i,j,k) + u(i,j,k)
@@ -4517,6 +6908,8 @@
        equil_pop18(rhoR(i,j,k),fuR(i,j,k),fvR(i,j,k),fwR(i,j,k))
     end forall
     
+    if(lsingle_fluid)return
+    
     !blue fluid
     
     forall(i=1:nx,j=1:ny,k=1:nz)
@@ -4729,6 +7122,8 @@
       f18R(i,j,k)=f18R(i,j,k)+unique_omega* &
        (equil_pop18(rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k))-f18R(i,j,k))
     end forall
+    
+    if(lsingle_fluid)return
     
     !blue fluid
     
@@ -5051,6 +7446,8 @@
     buffservice3d(i+ishift,j+jshift,k+kshift) = f18R(i,j,k)
   end forall
   forall(i=1:nx,j=1:ny,k=1:nz)f18R(i,j,k) = buffservice3d(i,j,k)
+  
+  if(lsingle_fluid)return
   
   !blue fluid
   
@@ -5463,6 +7860,16 @@
     w(i,j,k)    = f18R(i,j,k)*ddz + w(i,j,k)
   end forall
   
+  if(lsingle_fluid)then
+    !compute speed from mass flux
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      u(i,j,k) = u(i,j,k)/rhoR(i,j,k)
+      v(i,j,k) = v(i,j,k)/rhoR(i,j,k)
+      w(i,j,k) = w(i,j,k)/rhoR(i,j,k)
+    end forall
+    return
+  endif
+  
   !blue fluid
   
   l=0
@@ -5684,5 +8091,266 @@
   return
  
  end subroutine moments_fluids
+ 
+ subroutine apply_reflection_east(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the reflection
+!     at the east side
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk
+  
+  forall(kk=1:nbuff,j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    dtemp(nx+kk,j,k)=dtemp(nx-kk+1,j,k)
+  end forall
+  
+  return
+  
+ end subroutine apply_reflection_east
+ 
+ subroutine apply_reflection_west(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the reflection
+!     at the west side
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk
+
+  forall(kk=1:nbuff,j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    dtemp(1-kk,j,k)=dtemp(kk,j,k)
+  end forall
+  
+  return
+  
+ end subroutine apply_reflection_west
+ 
+ subroutine apply_reflection_north(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the reflection
+!     at the north side
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk
+  
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff,kk=1:nbuff)
+    dtemp(i,j,nz+kk)= dtemp(i,j,nz-kk+1)
+  end forall
+  
+  return
+  
+ end subroutine apply_reflection_north
+ 
+ subroutine apply_reflection_south(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the reflection 
+!     at the south side
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk
+  
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff,kk=1:nbuff)
+    dtemp(i,j,1-kk)=dtemp(i,j,kk)
+  end forall
+  
+  return
+  
+ end subroutine apply_reflection_south
+ 
+ subroutine apply_reflection_front(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the reflection
+!     at the front side
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk
+  
+  forall(i=1-nbuff:nx+nbuff,kk=1:nbuff,k=1-nbuff:nz+nbuff)
+    dtemp(i,1-kk,k)= dtemp(i,kk,k)
+  end forall
+
+  return
+  
+ end subroutine apply_reflection_front
+ 
+ subroutine apply_reflection_rear(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the reflection 
+!     at the rear side
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk
+  
+  forall(i=1-nbuff:nx+nbuff,kk=1:nbuff,k=1-nbuff:nz+nbuff)
+    dtemp(i,ny+kk,k)= dtemp(i,ny-kk+1,k)
+  end forall
+
+  return
+  
+ end subroutine apply_reflection_rear
+ 
+ 
+! subroutine obst_swap_mom
+        
+!        use variables
+!        implicit none
+        
+!        integer:: i,j,k,l
+!        real*8,dimension(1:links):: fdumR,fdumB
+
+!        ! swap distribution at obstacles's edges
+!        do k=1,nz
+!            do j=1,ny
+!                do i=1,nx
+!                    !1
+!                    if(isfluid(i,j,k).eq.0.and.i.eq.1)then
+!                        do l=1,links
+!		                    fdumR(l)=fR(opp(l),i,j,k) + rhoR(2,j,k)*6.0d0*p(l)*(dex(l)*u_wR(j,k))
+!                            fdumB(l)=fB(opp(l),i,j,k)
+!                            continue
+!		                enddo
+!		                do l=1,links
+!			                fR(l,i,j,k)=fdumR(l)
+!                            fB(l,i,j,k)=fdumB(l)
+!                        enddo
+!                    !2
+!                    elseif(isfluid(i,j,k).eq.0.and.j.eq.ny)then
+!                         do l=1,links
+!                            fR(l,i,j,k)=fR(l,i,2,k)
+!                            fB(l,i,j,k)=fB(l,i,2,k)
+!                        enddo
+!                    !3
+!                    elseif(isfluid(i,j,k).eq.0.and.j.eq.1)then
+!                         do l=1,links
+!                            fR(l,i,j,k)=fR(l,i,ny-1,k)
+!                            fB(l,i,j,k)=fB(l,i,ny-1,k)
+!                        enddo
+!                    !4
+!                    elseif(isfluid(i,j,k).eq.0.and.k.eq.1)then
+!                         do l=1,links
+!                            fR(l,i,j,k)=fR(l,i,j,nz-1)
+!                            fB(l,i,j,k)=fB(l,i,j,nz-1)
+!                        enddo
+!                    !5
+!                    elseif(isfluid(i,j,k).eq.0.and.k.eq.nz)then
+!                         do l=1,links
+!                            fR(l,i,j,k)=fR(l,i,j,2)
+!                            fB(l,i,j,k)=fB(l,i,j,2)
+!                        enddo
+!                    !6
+!                   elseif(isfluid(i,j,k).eq.0.and.i.eq.nx)then
+!                        do l=1,links
+!                            fR(l,i,j,k)=fR(l,nx-1,j,k)
+!                            fB(l,i,j,k)=fB(l,nx-1,j,k)
+!                        enddo
+!                    !7
+!                elseif(isfluid(i,j,k).eq.0 .and. (i.gt.1.and.i.lt.nx) .and. (j.gt.1.and.j.lt.ny) &
+!                        .and. (k.gt.1.and.k.lt.nz))then
+!                        do l=1,links
+!		                    fdumR(l)=fR(opp(l),i,j,k) 
+!                            fdumB(l)=fB(opp(l),i,j,k) 
+!                            continue
+!		                enddo
+!		                do l=1,links
+!			                fR(l,i,j,k)=fdumR(l)
+!                            fB(l,i,j,k)=fdumB(l)
+!                        enddo
+!                    endif
+!                enddo
+!            enddo
+!        enddo
+!    endsubroutine obst_swap_mom   
+!!-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-
+!!-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-
+!!-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x- 
+!   subroutine obst_swap_rho
+ 
+!	use variables
+!	implicit none
+	
+!	integer:: i,j,l,k,ineig,jneig,kneig
+	
+!    do k=1,nz
+!        do j=1,ny
+!            do i=1,nx
+!                if(isfluid(i,j,k).eq.0)then              
+!                    if(i.eq.1 .or. i.eq.nx)then
+!					    rhoR(i,j,k) =0.0d0 !rhoR(ineig,jneig,kneig) 
+!                        rhoB(i,j,k) =0.0d0 !rhoB(ineig,jneig,kneig)
+!                    else
+!					    rhoR(i,j,k) =0.0d0 !rhoR(ineig,jneig,kneig)
+!                        rhoB(i,j,k) =-1.5d0 !rhoB(ineig,jneig,kneig)   
+!                    endif
+!                endif            
+                    
+!            enddo
+!        enddo
+!    enddo
+!    endsubroutine obst_swap_rho
  
  end module fluids_mod
