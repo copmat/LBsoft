@@ -25,7 +25,7 @@
   ibctype,set_value_ext_force_fluids,ext_fu,ext_fv,ext_fw,lpair_SC, &
   pair_SC,set_fluid_force_sc,set_value_viscosity,set_value_tau, &
   viscR,viscB,tauR,tauB,lunique_omega,lforce_add,set_lsingle_fluid, &
-  lsingle_fluid
+  lsingle_fluid,latt_name
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery,lvtkfile
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
  use statistic_mod,         only : reprinttime,compute_statistic, &
@@ -151,11 +151,15 @@
   write(iu,of)"*                                                                             *"
   write(iu,of)"*******************************************************************************"
   write(iu,of)"*                                                                             *"
+  write(iu,'(a48,a6,a25)')"*    the code was compiled with the LB scheme : ",latt_name, &
+   "                        *"
+  write(iu,of)"*                                                                             *"
+  write(iu,of)"*******************************************************************************"
+  write(iu,of)"*                                                                             *"
   write(iu,'(a5,a50,a24)')"*    ",stringversion,"                       *"
   write(iu,of)"*                                                                             *"
   write(iu,of)"*******************************************************************************"
   write(iu,of)"                                                                               "
-  
   return
   
  end subroutine print_logo
@@ -822,6 +826,10 @@
   call bcast_world(temp_lpair_SC)
   call bcast_world(temp_pair_SC)
   if(temp_lpair_SC)then
+    if(temp_lpair_SC .and. lsingle_fluid)then
+      call warning(10)
+      call error(5)
+    endif
     call set_fluid_force_sc(temp_lpair_SC,temp_pair_SC)
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
@@ -833,9 +841,18 @@
   if(lforce_add)then
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
-      mystring='BGK force mode'
+      mystring='extra force term'
       mystring12=repeat(' ',dimprint2)
       mystring12='yes'
+      mystring12=adjustr(mystring12)
+      write(6,'(3a)')mystring,": ",mystring12
+    endif
+  else
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='extra force term'
+      mystring12=repeat(' ',dimprint2)
+      mystring12='no'
       mystring12=adjustr(mystring12)
       write(6,'(3a)')mystring,": ",mystring12
     endif

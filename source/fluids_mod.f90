@@ -95,6 +95,8 @@
  
 #if LATTICE==319
  
+ character(len=6), parameter, public :: latt_name="d3q19 "
+ 
  integer, parameter, public :: latt_dim=3
  integer, parameter, public :: links=18
  
@@ -110,14 +112,14 @@
  
  !lattice vectors
  integer, dimension(0:links), parameter, public :: &
-  ex = (/0,1,-1,0,0,0,0,1,-1,-1, 1, 1,-1,-1, 1, 0, 0, 0, 0/)
-   !     0,1, 2,3,4,5,6,7, 8, 9,10,11,12,13,14,15,16,17,18
+  ex = (/ 0, 1,-1, 0, 0, 0, 0, 1,-1,-1, 1, 1,-1,-1, 1, 0, 0, 0, 0/)
+   !      0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,17,18
  integer, dimension(0:links), parameter, public :: &
-  ey = (/0,0,0,1,-1,0,0,1,-1,1,-1, 0, 0, 0, 0, 1,-1,-1, 1/)
+  ey = (/ 0, 0, 0, 1,-1, 0, 0, 1,-1, 1,-1, 0, 0, 0, 0, 1,-1,-1, 1/)
  integer, dimension(0:links), parameter, public :: &
-  ez = (/0,0,0,0,0,1,-1,0,0,0, 0, 1,-1, 1,-1, 1,-1, 1,-1/)
+  ez = (/ 0, 0, 0, 0, 0, 1,-1, 0, 0, 0, 0, 1,-1, 1,-1, 1,-1, 1,-1/)
  integer, dimension(0:links), parameter, public :: &
-  opp =(/0,2,1,4,3,6,5, 8,7,10,9,12,11,14,13,16,15,18,17/)
+  opp =(/ 0, 2, 1, 4, 3, 6, 5, 8, 7,10, 9,12,11,14,13,16,15,18,17/)
   
  real(kind=PRC), dimension(0:links), parameter, public :: &
   dex = real(ex,kind=PRC)
@@ -132,7 +134,7 @@
 
 #if LATTICE==319
 
- real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: & 
+ real(kind=PRC), save, public, allocatable, dimension(:,:,:) :: & 
   f00R,f01R,f02R,f03R,f04R,f05R,f06R,f07R,f08R
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: &
   f00B,f01B,f02B,f03B,f04B,f05B,f06B,f07B,f08B
@@ -171,6 +173,9 @@
  public :: moments_fluids
  public :: driver_reflect_densities
  public :: set_lsingle_fluid
+ public :: driver_apply_bounceback_pop
+ public :: probe_red_moments_in_node
+ public :: probe_blue_moments_in_node
  
  contains
  
@@ -1015,11 +1020,11 @@
   
   select case(ibctype)
   case(3) ! 1 1 0 
-    call apply_reflection_densities_along_xy
+    call apply_reflection_densities_along_z
   case(5) ! 1 0 1 
-    call apply_reflection_densities_along_xz
+    call apply_reflection_densities_along_y
   case(6) ! 0 1 1 
-    call apply_reflection_densities_along_yz
+    call apply_reflection_densities_along_x
   case default
     return
   end select
@@ -1028,7 +1033,7 @@
   
  end subroutine driver_reflect_densities
  
- subroutine apply_reflection_densities_along_xy 
+ subroutine apply_reflection_densities_along_z
  
 !***********************************************************************
 !     
@@ -1047,11 +1052,11 @@
   
   !apply pbc at north 1 !z
   !red fluid
-  call apply_reflection_north(rhoR)
+  call apply_reflection_north_frame(rhoR)
   
   !apply pbc at south 2 !z
   !red fluid
-  call apply_reflection_south(rhoR)
+  call apply_reflection_south_frame(rhoR)
   
   if(lsingle_fluid)return
   
@@ -1059,18 +1064,18 @@
   
   !apply pbc at north 1 !z
   !blue fluid
-  call apply_reflection_north(rhoB)
+  call apply_reflection_north_frame(rhoB)
   
   !apply pbc at south 2 !z
   !blue fluid
-  call apply_reflection_south(rhoB)
+  call apply_reflection_south_frame(rhoB)
   
   
   return
   
- end subroutine apply_reflection_densities_along_xy
+ end subroutine apply_reflection_densities_along_z
  
- subroutine apply_reflection_densities_along_xz 
+ subroutine apply_reflection_densities_along_y
  
 !***********************************************************************
 !     
@@ -1089,11 +1094,11 @@
   
   !apply pbc at front 5 !y
   !red fluid
-  call apply_reflection_front(rhoR)
+  call apply_reflection_front_frame(rhoR)
   
   !apply pbc at rear 6 !y
   !red fluid
-  call apply_reflection_rear(rhoR)
+  call apply_reflection_rear_frame(rhoR)
   
   if(lsingle_fluid)return
   
@@ -1101,17 +1106,17 @@
   
   !apply pbc at front 5 !y
   !blue fluid
-  call apply_reflection_front(rhoB)
+  call apply_reflection_front_frame(rhoB)
   
   !apply pbc at rear 6 !y
   !blue fluid
-  call apply_reflection_rear(rhoB)
+  call apply_reflection_rear_frame(rhoB)
   
   return
   
- end subroutine apply_reflection_densities_along_xz
+ end subroutine apply_reflection_densities_along_y
  
- subroutine apply_reflection_densities_along_yz 
+ subroutine apply_reflection_densities_along_x
  
 !***********************************************************************
 !     
@@ -1130,11 +1135,11 @@
   
   !apply pbc at east 3 !x
   !red fluid
-  call apply_reflection_east(rhoR)
+  call apply_reflection_east_frame(rhoR)
   
   !apply pbc at west 4 !x
   !red fluid
-  call apply_reflection_west(rhoR)
+  call apply_reflection_west_frame(rhoR)
   
   if(lsingle_fluid)return
   
@@ -1142,15 +1147,15 @@
   
   !apply pbc at east 3 !x
   !blue fluid
-  call apply_reflection_east(rhoB)
+  call apply_reflection_east_frame(rhoB)
   
   !apply pbc at west 4 !x
   !blue fluid
-  call apply_reflection_west(rhoB)
+  call apply_reflection_west_frame(rhoB)
   
   return
   
- end subroutine apply_reflection_densities_along_yz
+ end subroutine apply_reflection_densities_along_x
  
  subroutine driver_bc_densities
  
@@ -2001,11 +2006,11 @@
   
   select case(ibctype)
   case(3) ! 1 1 0 
-    call apply_reflection_pops_along_xy
+    call apply_reflection_pops_along_z
   case(5) ! 1 0 1 
-    call apply_reflection_pops_along_xz
+    call apply_reflection_pops_along_y
   case(6) ! 0 1 1 
-    call apply_reflection_pops_along_yz
+    call apply_reflection_pops_along_x
   case default
     return
   end select
@@ -2014,7 +2019,7 @@
   
  end subroutine driver_reflect_pops
  
- subroutine apply_reflection_pops_along_xy 
+ subroutine apply_reflection_pops_along_z
  
 !***********************************************************************
 !     
@@ -2033,47 +2038,47 @@
   
   !apply pbc at north 1 !z
   !red fluid
-  call apply_reflection_north(f00R)
-  call apply_reflection_north(f01R)
-  call apply_reflection_north(f02R)
-  call apply_reflection_north(f03R)
-  call apply_reflection_north(f04R)
-  call apply_reflection_north(f05R)
-  call apply_reflection_north(f06R)
-  call apply_reflection_north(f07R)
-  call apply_reflection_north(f08R)
-  call apply_reflection_north(f09R)
-  call apply_reflection_north(f10R)
-  call apply_reflection_north(f11R)
-  call apply_reflection_north(f12R)
-  call apply_reflection_north(f13R)
-  call apply_reflection_north(f14R)
-  call apply_reflection_north(f15R)
-  call apply_reflection_north(f16R)
-  call apply_reflection_north(f17R)
-  call apply_reflection_north(f18R)
+  call apply_reflection_north_frame(f00R)
+  call apply_reflection_north_frame(f01R)
+  call apply_reflection_north_frame(f02R)
+  call apply_reflection_north_frame(f03R)
+  call apply_reflection_north_frame(f04R)
+  call apply_reflection_north_frame(f05R)
+  call apply_reflection_north_frame(f06R)
+  call apply_reflection_north_frame(f07R)
+  call apply_reflection_north_frame(f08R)
+  call apply_reflection_north_frame(f09R)
+  call apply_reflection_north_frame(f10R)
+  call apply_reflection_north_frame(f11R)
+  call apply_reflection_north_frame(f12R)
+  call apply_reflection_north_frame(f13R)
+  call apply_reflection_north_frame(f14R)
+  call apply_reflection_north_frame(f15R)
+  call apply_reflection_north_frame(f16R)
+  call apply_reflection_north_frame(f17R)
+  call apply_reflection_north_frame(f18R)
   
   !apply pbc at south 2 !z
   !red fluid
-  call apply_reflection_south(f00R)
-  call apply_reflection_south(f01R)
-  call apply_reflection_south(f02R)
-  call apply_reflection_south(f03R)
-  call apply_reflection_south(f04R)
-  call apply_reflection_south(f05R)
-  call apply_reflection_south(f06R)
-  call apply_reflection_south(f07R)
-  call apply_reflection_south(f08R)
-  call apply_reflection_south(f09R)
-  call apply_reflection_south(f10R)
-  call apply_reflection_south(f11R)
-  call apply_reflection_south(f12R)
-  call apply_reflection_south(f13R)
-  call apply_reflection_south(f14R)
-  call apply_reflection_south(f15R)
-  call apply_reflection_south(f16R)
-  call apply_reflection_south(f17R)
-  call apply_reflection_south(f18R)
+  call apply_reflection_south_frame(f00R)
+  call apply_reflection_south_frame(f01R)
+  call apply_reflection_south_frame(f02R)
+  call apply_reflection_south_frame(f03R)
+  call apply_reflection_south_frame(f04R)
+  call apply_reflection_south_frame(f05R)
+  call apply_reflection_south_frame(f06R)
+  call apply_reflection_south_frame(f07R)
+  call apply_reflection_south_frame(f08R)
+  call apply_reflection_south_frame(f09R)
+  call apply_reflection_south_frame(f10R)
+  call apply_reflection_south_frame(f11R)
+  call apply_reflection_south_frame(f12R)
+  call apply_reflection_south_frame(f13R)
+  call apply_reflection_south_frame(f14R)
+  call apply_reflection_south_frame(f15R)
+  call apply_reflection_south_frame(f16R)
+  call apply_reflection_south_frame(f17R)
+  call apply_reflection_south_frame(f18R)
   
   if(lsingle_fluid)return
   
@@ -2081,53 +2086,53 @@
   
   !apply pbc at north 1 !z
   !blue fluid
-  call apply_reflection_north(f00B)
-  call apply_reflection_north(f01B)
-  call apply_reflection_north(f02B)
-  call apply_reflection_north(f03B)
-  call apply_reflection_north(f04B)
-  call apply_reflection_north(f05B)
-  call apply_reflection_north(f06B)
-  call apply_reflection_north(f07B)
-  call apply_reflection_north(f08B)
-  call apply_reflection_north(f09B)
-  call apply_reflection_north(f10B)
-  call apply_reflection_north(f11B)
-  call apply_reflection_north(f12B)
-  call apply_reflection_north(f13B)
-  call apply_reflection_north(f14B)
-  call apply_reflection_north(f15B)
-  call apply_reflection_north(f16B)
-  call apply_reflection_north(f17B)
-  call apply_reflection_north(f18B)
+  call apply_reflection_north_frame(f00B)
+  call apply_reflection_north_frame(f01B)
+  call apply_reflection_north_frame(f02B)
+  call apply_reflection_north_frame(f03B)
+  call apply_reflection_north_frame(f04B)
+  call apply_reflection_north_frame(f05B)
+  call apply_reflection_north_frame(f06B)
+  call apply_reflection_north_frame(f07B)
+  call apply_reflection_north_frame(f08B)
+  call apply_reflection_north_frame(f09B)
+  call apply_reflection_north_frame(f10B)
+  call apply_reflection_north_frame(f11B)
+  call apply_reflection_north_frame(f12B)
+  call apply_reflection_north_frame(f13B)
+  call apply_reflection_north_frame(f14B)
+  call apply_reflection_north_frame(f15B)
+  call apply_reflection_north_frame(f16B)
+  call apply_reflection_north_frame(f17B)
+  call apply_reflection_north_frame(f18B)
   
   !apply pbc at south 2 !z
   !blue fluid
-  call apply_reflection_south(f00B)
-  call apply_reflection_south(f01B)
-  call apply_reflection_south(f02B)
-  call apply_reflection_south(f03B)
-  call apply_reflection_south(f04B)
-  call apply_reflection_south(f05B)
-  call apply_reflection_south(f06B)
-  call apply_reflection_south(f07B)
-  call apply_reflection_south(f08B)
-  call apply_reflection_south(f09B)
-  call apply_reflection_south(f10B)
-  call apply_reflection_south(f11B)
-  call apply_reflection_south(f12B)
-  call apply_reflection_south(f13B)
-  call apply_reflection_south(f14B)
-  call apply_reflection_south(f15B)
-  call apply_reflection_south(f16B)
-  call apply_reflection_south(f17B)
-  call apply_reflection_south(f18B)
+  call apply_reflection_south_frame(f00B)
+  call apply_reflection_south_frame(f01B)
+  call apply_reflection_south_frame(f02B)
+  call apply_reflection_south_frame(f03B)
+  call apply_reflection_south_frame(f04B)
+  call apply_reflection_south_frame(f05B)
+  call apply_reflection_south_frame(f06B)
+  call apply_reflection_south_frame(f07B)
+  call apply_reflection_south_frame(f08B)
+  call apply_reflection_south_frame(f09B)
+  call apply_reflection_south_frame(f10B)
+  call apply_reflection_south_frame(f11B)
+  call apply_reflection_south_frame(f12B)
+  call apply_reflection_south_frame(f13B)
+  call apply_reflection_south_frame(f14B)
+  call apply_reflection_south_frame(f15B)
+  call apply_reflection_south_frame(f16B)
+  call apply_reflection_south_frame(f17B)
+  call apply_reflection_south_frame(f18B)
   
   return
   
- end subroutine apply_reflection_pops_along_xy
+ end subroutine apply_reflection_pops_along_z
  
- subroutine apply_reflection_pops_along_xz 
+ subroutine apply_reflection_pops_along_y
  
 !***********************************************************************
 !     
@@ -2146,47 +2151,47 @@
   
   !apply pbc at front 5 !y
   !red fluid
-  call apply_reflection_front(f00R)
-  call apply_reflection_front(f01R)
-  call apply_reflection_front(f02R)
-  call apply_reflection_front(f03R)
-  call apply_reflection_front(f04R)
-  call apply_reflection_front(f05R)
-  call apply_reflection_front(f06R)
-  call apply_reflection_front(f07R)
-  call apply_reflection_front(f08R)
-  call apply_reflection_front(f09R)
-  call apply_reflection_front(f10R)
-  call apply_reflection_front(f11R)
-  call apply_reflection_front(f12R)
-  call apply_reflection_front(f13R)
-  call apply_reflection_front(f14R)
-  call apply_reflection_front(f15R)
-  call apply_reflection_front(f16R)
-  call apply_reflection_front(f17R)
-  call apply_reflection_front(f18R)
+  call apply_reflection_front_frame(f00R)
+  call apply_reflection_front_frame(f01R)
+  call apply_reflection_front_frame(f02R)
+  call apply_reflection_front_frame(f03R)
+  call apply_reflection_front_frame(f04R)
+  call apply_reflection_front_frame(f05R)
+  call apply_reflection_front_frame(f06R)
+  call apply_reflection_front_frame(f07R)
+  call apply_reflection_front_frame(f08R)
+  call apply_reflection_front_frame(f09R)
+  call apply_reflection_front_frame(f10R)
+  call apply_reflection_front_frame(f11R)
+  call apply_reflection_front_frame(f12R)
+  call apply_reflection_front_frame(f13R)
+  call apply_reflection_front_frame(f14R)
+  call apply_reflection_front_frame(f15R)
+  call apply_reflection_front_frame(f16R)
+  call apply_reflection_front_frame(f17R)
+  call apply_reflection_front_frame(f18R)
   
   !apply pbc at rear 6 !y
   !red fluid
-  call apply_reflection_rear(f00R)
-  call apply_reflection_rear(f01R)
-  call apply_reflection_rear(f02R)
-  call apply_reflection_rear(f03R)
-  call apply_reflection_rear(f04R)
-  call apply_reflection_rear(f05R)
-  call apply_reflection_rear(f06R)
-  call apply_reflection_rear(f07R)
-  call apply_reflection_rear(f08R)
-  call apply_reflection_rear(f09R)
-  call apply_reflection_rear(f10R)
-  call apply_reflection_rear(f11R)
-  call apply_reflection_rear(f12R)
-  call apply_reflection_rear(f13R)
-  call apply_reflection_rear(f14R)
-  call apply_reflection_rear(f15R)
-  call apply_reflection_rear(f16R)
-  call apply_reflection_rear(f17R)
-  call apply_reflection_rear(f18R)
+  call apply_reflection_rear_frame(f00R)
+  call apply_reflection_rear_frame(f01R)
+  call apply_reflection_rear_frame(f02R)
+  call apply_reflection_rear_frame(f03R)
+  call apply_reflection_rear_frame(f04R)
+  call apply_reflection_rear_frame(f05R)
+  call apply_reflection_rear_frame(f06R)
+  call apply_reflection_rear_frame(f07R)
+  call apply_reflection_rear_frame(f08R)
+  call apply_reflection_rear_frame(f09R)
+  call apply_reflection_rear_frame(f10R)
+  call apply_reflection_rear_frame(f11R)
+  call apply_reflection_rear_frame(f12R)
+  call apply_reflection_rear_frame(f13R)
+  call apply_reflection_rear_frame(f14R)
+  call apply_reflection_rear_frame(f15R)
+  call apply_reflection_rear_frame(f16R)
+  call apply_reflection_rear_frame(f17R)
+  call apply_reflection_rear_frame(f18R)
   
   if(lsingle_fluid)return
   
@@ -2194,53 +2199,53 @@
   
   !apply pbc at front 5 !y
   !blue fluid
-  call apply_reflection_front(f00B)
-  call apply_reflection_front(f01B)
-  call apply_reflection_front(f02B)
-  call apply_reflection_front(f03B)
-  call apply_reflection_front(f04B)
-  call apply_reflection_front(f05B)
-  call apply_reflection_front(f06B)
-  call apply_reflection_front(f07B)
-  call apply_reflection_front(f08B)
-  call apply_reflection_front(f09B)
-  call apply_reflection_front(f10B)
-  call apply_reflection_front(f11B)
-  call apply_reflection_front(f12B)
-  call apply_reflection_front(f13B)
-  call apply_reflection_front(f14B)
-  call apply_reflection_front(f15B)
-  call apply_reflection_front(f16B)
-  call apply_reflection_front(f17B)
-  call apply_reflection_front(f18B)
+  call apply_reflection_front_frame(f00B)
+  call apply_reflection_front_frame(f01B)
+  call apply_reflection_front_frame(f02B)
+  call apply_reflection_front_frame(f03B)
+  call apply_reflection_front_frame(f04B)
+  call apply_reflection_front_frame(f05B)
+  call apply_reflection_front_frame(f06B)
+  call apply_reflection_front_frame(f07B)
+  call apply_reflection_front_frame(f08B)
+  call apply_reflection_front_frame(f09B)
+  call apply_reflection_front_frame(f10B)
+  call apply_reflection_front_frame(f11B)
+  call apply_reflection_front_frame(f12B)
+  call apply_reflection_front_frame(f13B)
+  call apply_reflection_front_frame(f14B)
+  call apply_reflection_front_frame(f15B)
+  call apply_reflection_front_frame(f16B)
+  call apply_reflection_front_frame(f17B)
+  call apply_reflection_front_frame(f18B)
   
   !apply pbc at rear 6 !y
   !blue fluid
-  call apply_reflection_rear(f00B)
-  call apply_reflection_rear(f01B)
-  call apply_reflection_rear(f02B)
-  call apply_reflection_rear(f03B)
-  call apply_reflection_rear(f04B)
-  call apply_reflection_rear(f05B)
-  call apply_reflection_rear(f06B)
-  call apply_reflection_rear(f07B)
-  call apply_reflection_rear(f08B)
-  call apply_reflection_rear(f09B)
-  call apply_reflection_rear(f10B)
-  call apply_reflection_rear(f11B)
-  call apply_reflection_rear(f12B)
-  call apply_reflection_rear(f13B)
-  call apply_reflection_rear(f14B)
-  call apply_reflection_rear(f15B)
-  call apply_reflection_rear(f16B)
-  call apply_reflection_rear(f17B)
-  call apply_reflection_rear(f18B)
+  call apply_reflection_rear_frame(f00B)
+  call apply_reflection_rear_frame(f01B)
+  call apply_reflection_rear_frame(f02B)
+  call apply_reflection_rear_frame(f03B)
+  call apply_reflection_rear_frame(f04B)
+  call apply_reflection_rear_frame(f05B)
+  call apply_reflection_rear_frame(f06B)
+  call apply_reflection_rear_frame(f07B)
+  call apply_reflection_rear_frame(f08B)
+  call apply_reflection_rear_frame(f09B)
+  call apply_reflection_rear_frame(f10B)
+  call apply_reflection_rear_frame(f11B)
+  call apply_reflection_rear_frame(f12B)
+  call apply_reflection_rear_frame(f13B)
+  call apply_reflection_rear_frame(f14B)
+  call apply_reflection_rear_frame(f15B)
+  call apply_reflection_rear_frame(f16B)
+  call apply_reflection_rear_frame(f17B)
+  call apply_reflection_rear_frame(f18B)
   
   return
   
- end subroutine apply_reflection_pops_along_xz
+ end subroutine apply_reflection_pops_along_y
  
- subroutine apply_reflection_pops_along_yz 
+ subroutine apply_reflection_pops_along_x
  
 !***********************************************************************
 !     
@@ -2259,47 +2264,47 @@
   
   !apply pbc at east 3 !x
   !red fluid
-  call apply_reflection_east(f00R)
-  call apply_reflection_east(f01R)
-  call apply_reflection_east(f02R)
-  call apply_reflection_east(f03R)
-  call apply_reflection_east(f04R)
-  call apply_reflection_east(f05R)
-  call apply_reflection_east(f06R)
-  call apply_reflection_east(f07R)
-  call apply_reflection_east(f08R)
-  call apply_reflection_east(f09R)
-  call apply_reflection_east(f10R)
-  call apply_reflection_east(f11R)
-  call apply_reflection_east(f12R)
-  call apply_reflection_east(f13R)
-  call apply_reflection_east(f14R)
-  call apply_reflection_east(f15R)
-  call apply_reflection_east(f16R)
-  call apply_reflection_east(f17R)
-  call apply_reflection_east(f18R)
+  call apply_reflection_east_frame(f00R)
+  call apply_reflection_east_frame(f01R)
+  call apply_reflection_east_frame(f02R)
+  call apply_reflection_east_frame(f03R)
+  call apply_reflection_east_frame(f04R)
+  call apply_reflection_east_frame(f05R)
+  call apply_reflection_east_frame(f06R)
+  call apply_reflection_east_frame(f07R)
+  call apply_reflection_east_frame(f08R)
+  call apply_reflection_east_frame(f09R)
+  call apply_reflection_east_frame(f10R)
+  call apply_reflection_east_frame(f11R)
+  call apply_reflection_east_frame(f12R)
+  call apply_reflection_east_frame(f13R)
+  call apply_reflection_east_frame(f14R)
+  call apply_reflection_east_frame(f15R)
+  call apply_reflection_east_frame(f16R)
+  call apply_reflection_east_frame(f17R)
+  call apply_reflection_east_frame(f18R)
   
   !apply pbc at west 4 !x
   !red fluid
-  call apply_reflection_west(f00R)
-  call apply_reflection_west(f01R)
-  call apply_reflection_west(f02R)
-  call apply_reflection_west(f03R)
-  call apply_reflection_west(f04R)
-  call apply_reflection_west(f05R)
-  call apply_reflection_west(f06R)
-  call apply_reflection_west(f07R)
-  call apply_reflection_west(f08R)
-  call apply_reflection_west(f09R)
-  call apply_reflection_west(f10R)
-  call apply_reflection_west(f11R)
-  call apply_reflection_west(f12R)
-  call apply_reflection_west(f13R)
-  call apply_reflection_west(f14R)
-  call apply_reflection_west(f15R)
-  call apply_reflection_west(f16R)
-  call apply_reflection_west(f17R)
-  call apply_reflection_west(f18R)
+  call apply_reflection_west_frame(f00R)
+  call apply_reflection_west_frame(f01R)
+  call apply_reflection_west_frame(f02R)
+  call apply_reflection_west_frame(f03R)
+  call apply_reflection_west_frame(f04R)
+  call apply_reflection_west_frame(f05R)
+  call apply_reflection_west_frame(f06R)
+  call apply_reflection_west_frame(f07R)
+  call apply_reflection_west_frame(f08R)
+  call apply_reflection_west_frame(f09R)
+  call apply_reflection_west_frame(f10R)
+  call apply_reflection_west_frame(f11R)
+  call apply_reflection_west_frame(f12R)
+  call apply_reflection_west_frame(f13R)
+  call apply_reflection_west_frame(f14R)
+  call apply_reflection_west_frame(f15R)
+  call apply_reflection_west_frame(f16R)
+  call apply_reflection_west_frame(f17R)
+  call apply_reflection_west_frame(f18R)
   
   if(lsingle_fluid)return
   
@@ -2307,51 +2312,51 @@
   
   !apply pbc at east 3 !x
   !blue fluid
-  call apply_reflection_east(f00B)
-  call apply_reflection_east(f01B)
-  call apply_reflection_east(f02B)
-  call apply_reflection_east(f03B)
-  call apply_reflection_east(f04B)
-  call apply_reflection_east(f05B)
-  call apply_reflection_east(f06B)
-  call apply_reflection_east(f07B)
-  call apply_reflection_east(f08B)
-  call apply_reflection_east(f09B)
-  call apply_reflection_east(f10B)
-  call apply_reflection_east(f11B)
-  call apply_reflection_east(f12B)
-  call apply_reflection_east(f13B)
-  call apply_reflection_east(f14B)
-  call apply_reflection_east(f15B)
-  call apply_reflection_east(f16B)
-  call apply_reflection_east(f17B)
-  call apply_reflection_east(f18B)
+  call apply_reflection_east_frame(f00B)
+  call apply_reflection_east_frame(f01B)
+  call apply_reflection_east_frame(f02B)
+  call apply_reflection_east_frame(f03B)
+  call apply_reflection_east_frame(f04B)
+  call apply_reflection_east_frame(f05B)
+  call apply_reflection_east_frame(f06B)
+  call apply_reflection_east_frame(f07B)
+  call apply_reflection_east_frame(f08B)
+  call apply_reflection_east_frame(f09B)
+  call apply_reflection_east_frame(f10B)
+  call apply_reflection_east_frame(f11B)
+  call apply_reflection_east_frame(f12B)
+  call apply_reflection_east_frame(f13B)
+  call apply_reflection_east_frame(f14B)
+  call apply_reflection_east_frame(f15B)
+  call apply_reflection_east_frame(f16B)
+  call apply_reflection_east_frame(f17B)
+  call apply_reflection_east_frame(f18B)
   
   !apply pbc at west 4 !x
   !blue fluid
-  call apply_reflection_west(f00B)
-  call apply_reflection_west(f01B)
-  call apply_reflection_west(f02B)
-  call apply_reflection_west(f03B)
-  call apply_reflection_west(f04B)
-  call apply_reflection_west(f05B)
-  call apply_reflection_west(f06B)
-  call apply_reflection_west(f07B)
-  call apply_reflection_west(f08B)
-  call apply_reflection_west(f09B)
-  call apply_reflection_west(f10B)
-  call apply_reflection_west(f11B)
-  call apply_reflection_west(f12B)
-  call apply_reflection_west(f13B)
-  call apply_reflection_west(f14B)
-  call apply_reflection_west(f15B)
-  call apply_reflection_west(f16B)
-  call apply_reflection_west(f17B)
-  call apply_reflection_west(f18B)
+  call apply_reflection_west_frame(f00B)
+  call apply_reflection_west_frame(f01B)
+  call apply_reflection_west_frame(f02B)
+  call apply_reflection_west_frame(f03B)
+  call apply_reflection_west_frame(f04B)
+  call apply_reflection_west_frame(f05B)
+  call apply_reflection_west_frame(f06B)
+  call apply_reflection_west_frame(f07B)
+  call apply_reflection_west_frame(f08B)
+  call apply_reflection_west_frame(f09B)
+  call apply_reflection_west_frame(f10B)
+  call apply_reflection_west_frame(f11B)
+  call apply_reflection_west_frame(f12B)
+  call apply_reflection_west_frame(f13B)
+  call apply_reflection_west_frame(f14B)
+  call apply_reflection_west_frame(f15B)
+  call apply_reflection_west_frame(f16B)
+  call apply_reflection_west_frame(f17B)
+  call apply_reflection_west_frame(f18B)
   
   return
   
- end subroutine apply_reflection_pops_along_yz
+ end subroutine apply_reflection_pops_along_x
  
  subroutine driver_bc_pops
  
@@ -7276,15 +7281,6 @@
   
   !red fluid
   
-  l=0
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f00R(i,j,k)
-  end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f00R(i,j,k) = buffservice3d(i,j,k)
-  
   l=1
   ishift=ex(l)
   jshift=ey(l)
@@ -7292,7 +7288,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f01R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f01R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f01R(i,j,k) = buffservice3d(i,j,k)
   
   l=2
   ishift=ex(l)
@@ -7301,7 +7297,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f02R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f02R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f02R(i,j,k) = buffservice3d(i,j,k)
   
   l=3
   ishift=ex(l)
@@ -7310,7 +7306,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f03R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f03R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f03R(i,j,k) = buffservice3d(i,j,k)
   
   l=4
   ishift=ex(l)
@@ -7319,7 +7315,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f04R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f04R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f04R(i,j,k) = buffservice3d(i,j,k)
   
   l=5
   ishift=ex(l)
@@ -7328,7 +7324,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f05R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f05R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f05R(i,j,k) = buffservice3d(i,j,k)
   
   l=6
   ishift=ex(l)
@@ -7337,7 +7333,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f06R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f06R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f06R(i,j,k) = buffservice3d(i,j,k)
   
   l=7
   ishift=ex(l)
@@ -7346,7 +7342,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f07R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f07R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f07R(i,j,k) = buffservice3d(i,j,k)
   
   l=8
   ishift=ex(l)
@@ -7355,7 +7351,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f08R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f08R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f08R(i,j,k) = buffservice3d(i,j,k)
   
   l=9
   ishift=ex(l)
@@ -7364,7 +7360,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f09R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f09R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f09R(i,j,k) = buffservice3d(i,j,k)
   
   l=10
   ishift=ex(l)
@@ -7373,7 +7369,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f10R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f10R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f10R(i,j,k) = buffservice3d(i,j,k)
   
   l=11
   ishift=ex(l)
@@ -7382,7 +7378,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f11R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f11R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f11R(i,j,k) = buffservice3d(i,j,k)
   
   l=12
   ishift=ex(l)
@@ -7391,7 +7387,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f12R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f12R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f12R(i,j,k) = buffservice3d(i,j,k)
   
   l=13
   ishift=ex(l)
@@ -7400,7 +7396,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f13R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f13R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f13R(i,j,k) = buffservice3d(i,j,k)
   
   l=14
   ishift=ex(l)
@@ -7409,7 +7405,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f14R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f14R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f14R(i,j,k) = buffservice3d(i,j,k)
   
   l=15
   ishift=ex(l)
@@ -7418,7 +7414,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f15R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f15R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f15R(i,j,k) = buffservice3d(i,j,k)
   
   l=16
   ishift=ex(l)
@@ -7427,7 +7423,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f16R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f16R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f16R(i,j,k) = buffservice3d(i,j,k)
   
   l=17
   ishift=ex(l)
@@ -7436,7 +7432,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f17R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f17R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f17R(i,j,k) = buffservice3d(i,j,k)
   
   l=18
   ishift=ex(l)
@@ -7445,20 +7441,11 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f18R(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f18R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f18R(i,j,k) = buffservice3d(i,j,k)
   
   if(lsingle_fluid)return
   
   !blue fluid
-  
-  l=0
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f00B(i,j,k)
-  end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f00B(i,j,k) = buffservice3d(i,j,k)
   
   l=1
   ishift=ex(l)
@@ -7467,7 +7454,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f01B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f01B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f01B(i,j,k) = buffservice3d(i,j,k)
   
   l=2
   ishift=ex(l)
@@ -7476,7 +7463,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f02B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f02B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f02B(i,j,k) = buffservice3d(i,j,k)
   
   l=3
   ishift=ex(l)
@@ -7485,7 +7472,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f03B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f03B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f03B(i,j,k) = buffservice3d(i,j,k)
   
   l=4
   ishift=ex(l)
@@ -7494,7 +7481,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f04B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f04B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f04B(i,j,k) = buffservice3d(i,j,k)
   
   l=5
   ishift=ex(l)
@@ -7503,7 +7490,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f05B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f05B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f05B(i,j,k) = buffservice3d(i,j,k)
   
   l=6
   ishift=ex(l)
@@ -7512,7 +7499,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f06B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f06B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f06B(i,j,k) = buffservice3d(i,j,k)
   
   l=7
   ishift=ex(l)
@@ -7521,7 +7508,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f07B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f07B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f07B(i,j,k) = buffservice3d(i,j,k)
   
   l=8
   ishift=ex(l)
@@ -7530,7 +7517,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f08B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f08B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f08B(i,j,k) = buffservice3d(i,j,k)
   
   l=9
   ishift=ex(l)
@@ -7539,7 +7526,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f09B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f09B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f09B(i,j,k) = buffservice3d(i,j,k)
   
   l=10
   ishift=ex(l)
@@ -7548,7 +7535,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f10B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f10B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f10B(i,j,k) = buffservice3d(i,j,k)
   
   l=11
   ishift=ex(l)
@@ -7557,7 +7544,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f11B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f11B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f11B(i,j,k) = buffservice3d(i,j,k)
   
   l=12
   ishift=ex(l)
@@ -7566,7 +7553,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f12B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f12B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f12B(i,j,k) = buffservice3d(i,j,k)
   
   l=13
   ishift=ex(l)
@@ -7575,7 +7562,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f13B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f13B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f13B(i,j,k) = buffservice3d(i,j,k)
   
   l=14
   ishift=ex(l)
@@ -7584,7 +7571,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f14B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f14B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f14B(i,j,k) = buffservice3d(i,j,k)
   
   l=15
   ishift=ex(l)
@@ -7593,7 +7580,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f15B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f15B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f15B(i,j,k) = buffservice3d(i,j,k)
   
   l=16
   ishift=ex(l)
@@ -7602,7 +7589,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f16B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f16B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f16B(i,j,k) = buffservice3d(i,j,k)
   
   l=17
   ishift=ex(l)
@@ -7611,7 +7598,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f17B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f17B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f17B(i,j,k) = buffservice3d(i,j,k)
   
   l=18
   ishift=ex(l)
@@ -7620,7 +7607,7 @@
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
     buffservice3d(i+ishift,j+jshift,k+kshift) = f18B(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)f18B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f18B(i,j,k) = buffservice3d(i,j,k)
   
   return
   
@@ -7645,11 +7632,229 @@
   
   real(kind=PRC) :: ddx,ddy,ddz
   
-  integer :: ishift,jshift,kshift
-  
   !compute density and accumulate mass flux
   
   !red fluid
+  
+  if(lsingle_fluid)then
+  
+    l=0
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f00R(i,j,k)
+      u(i,j,k)    = f00R(i,j,k)*ddx
+      v(i,j,k)    = f00R(i,j,k)*ddy
+      w(i,j,k)    = f00R(i,j,k)*ddz
+    end forall
+  
+    l=1
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f01R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f01R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f01R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f01R(i,j,k)*ddz + w(i,j,k)
+    end forall
+    
+    l=2
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f02R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f02R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f02R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f02R(i,j,k)*ddz + w(i,j,k)
+    end forall
+  
+    l=3
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f03R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f03R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f03R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f03R(i,j,k)*ddz + w(i,j,k)
+    end forall
+    
+    l=4
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f04R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f04R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f04R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f04R(i,j,k)*ddz + w(i,j,k)
+    end forall
+  
+    l=5
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f05R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f05R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f05R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f05R(i,j,k)*ddz + w(i,j,k)
+    end forall
+    
+    l=6
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f06R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f06R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f06R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f06R(i,j,k)*ddz + w(i,j,k)
+    end forall
+  
+    l=7
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f07R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f07R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f07R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f07R(i,j,k)*ddz + w(i,j,k)
+    end forall
+    
+    l=8
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f08R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f08R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f08R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f08R(i,j,k)*ddz + w(i,j,k)
+    end forall
+    
+    l=9
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f09R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f09R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f09R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f09R(i,j,k)*ddz + w(i,j,k)
+    end forall
+    
+    l=10
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f10R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f10R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f10R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f10R(i,j,k)*ddz + w(i,j,k)
+    end forall
+    
+    l=11
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f11R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f11R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f11R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f11R(i,j,k)*ddz + w(i,j,k)
+    end forall
+    
+    l=12
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f12R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f12R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f12R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f12R(i,j,k)*ddz + w(i,j,k)
+    end forall
+    
+    l=13
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f13R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f13R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f13R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f13R(i,j,k)*ddz + w(i,j,k)
+    end forall
+    
+    l=14
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f14R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f14R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f14R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f14R(i,j,k)*ddz + w(i,j,k)
+    end forall
+    
+    l=15
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f15R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f15R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f15R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f15R(i,j,k)*ddz + w(i,j,k)
+    end forall
+  
+    l=16
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f16R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f16R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f16R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f16R(i,j,k)*ddz + w(i,j,k)
+    end forall
+  
+    l=17
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f17R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f17R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f17R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f17R(i,j,k)*ddz + w(i,j,k)
+    end forall
+  
+    l=18
+    ddx=dex(l)
+    ddy=dey(l)
+    ddz=dez(l)
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k) = f18R(i,j,k) + rhoR(i,j,k)
+      u(i,j,k)    = f18R(i,j,k)*ddx + u(i,j,k)
+      v(i,j,k)    = f18R(i,j,k)*ddy + v(i,j,k)
+      w(i,j,k)    = f18R(i,j,k)*ddz + w(i,j,k)
+    end forall
+    
+    !compute speed from mass flux
+    forall(i=1:nx,j=1:ny,k=1:nz)
+      u(i,j,k) = u(i,j,k)/rhoR(i,j,k)
+      v(i,j,k) = v(i,j,k)/rhoR(i,j,k)
+      w(i,j,k) = w(i,j,k)/rhoR(i,j,k)
+    end forall
+    return
+  endif
   
   l=0
   ddx=dex(l)/tauR
@@ -7859,16 +8064,6 @@
     v(i,j,k)    = f18R(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f18R(i,j,k)*ddz + w(i,j,k)
   end forall
-  
-  if(lsingle_fluid)then
-    !compute speed from mass flux
-    forall(i=1:nx,j=1:ny,k=1:nz)
-      u(i,j,k) = u(i,j,k)/rhoR(i,j,k)
-      v(i,j,k) = v(i,j,k)/rhoR(i,j,k)
-      w(i,j,k) = w(i,j,k)/rhoR(i,j,k)
-    end forall
-    return
-  endif
   
   !blue fluid
   
@@ -8092,12 +8287,12 @@
  
  end subroutine moments_fluids
  
- subroutine apply_reflection_east(dtemp)
+ subroutine apply_reflection_east_frame(dtemp)
  
 !***********************************************************************
 !     
 !     LBsoft subroutine for applying the reflection
-!     at the east side
+!     at the east side alongside with its frame
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -8117,14 +8312,14 @@
   
   return
   
- end subroutine apply_reflection_east
+ end subroutine apply_reflection_east_frame
  
- subroutine apply_reflection_west(dtemp)
+ subroutine apply_reflection_west_frame(dtemp)
  
 !***********************************************************************
 !     
 !     LBsoft subroutine for applying the reflection
-!     at the west side
+!     at the west side alongside with its frame
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -8144,14 +8339,14 @@
   
   return
   
- end subroutine apply_reflection_west
+ end subroutine apply_reflection_west_frame
  
- subroutine apply_reflection_north(dtemp)
+ subroutine apply_reflection_north_frame(dtemp)
  
 !***********************************************************************
 !     
 !     LBsoft subroutine for applying the reflection
-!     at the north side
+!     at the north side alongside with its frame
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -8171,14 +8366,14 @@
   
   return
   
- end subroutine apply_reflection_north
+ end subroutine apply_reflection_north_frame
  
- subroutine apply_reflection_south(dtemp)
+ subroutine apply_reflection_south_frame(dtemp)
  
 !***********************************************************************
 !     
 !     LBsoft subroutine for applying the reflection 
-!     at the south side
+!     at the south side alongside with its frame
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -8198,14 +8393,14 @@
   
   return
   
- end subroutine apply_reflection_south
+ end subroutine apply_reflection_south_frame
  
- subroutine apply_reflection_front(dtemp)
+ subroutine apply_reflection_front_frame(dtemp)
  
 !***********************************************************************
 !     
 !     LBsoft subroutine for applying the reflection
-!     at the front side
+!     at the front side alongside with its frame
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -8225,14 +8420,14 @@
 
   return
   
- end subroutine apply_reflection_front
+ end subroutine apply_reflection_front_frame
  
- subroutine apply_reflection_rear(dtemp)
+ subroutine apply_reflection_rear_frame(dtemp)
  
 !***********************************************************************
 !     
 !     LBsoft subroutine for applying the reflection 
-!     at the rear side
+!     at the rear side alongside with its frame
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -8252,105 +8447,1879 @@
 
   return
   
- end subroutine apply_reflection_rear
+ end subroutine apply_reflection_rear_frame
  
+ subroutine driver_apply_bounceback_pop
  
-! subroutine obst_swap_mom
-        
-!        use variables
-!        implicit none
-        
-!        integer:: i,j,k,l
-!        real*8,dimension(1:links):: fdumR,fdumB
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the bounce back of the fluid
+!     populations if requested from the boundary conditions
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  select case(ibctype)
+  case(3) ! 1 1 0 
+    call apply_bounceback_pop_along_z
+  case(5) ! 1 0 1 
+    call apply_bounceback_pop_along_y
+  case(6) ! 0 1 1 
+    call apply_bounceback_pop_along_x
+  case default
+    return
+  end select
+  
+  return
+  
+ end subroutine driver_apply_bounceback_pop
+ 
+ subroutine apply_bounceback_pop_along_z 
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to density variables
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  
+#if LATTICE==319
+  
+  !sides 6
+  
+  !apply pbc at north 1 !z
+  call apply_bounceback_north_frame
+  
+  !apply pbc at south 2 !z
+  call apply_bounceback_south_frame
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  
+  return
+  
+ end subroutine apply_bounceback_pop_along_z
+ 
+ subroutine apply_bounceback_pop_along_y 
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to density variables
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+#if LATTICE==319
+  
+  !sides 6
+  
+  !apply pbc at front 5 !y
+  call apply_bounceback_front_frame
+  
+  !apply pbc at rear 6 !y
+  call apply_bounceback_rear_frame
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  
+  return
+  
+ end subroutine apply_bounceback_pop_along_y
+ 
+ subroutine apply_bounceback_pop_along_x 
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the full periodic boundary 
+!     conditions to density variables
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+#if LATTICE==319
+  
+  !sides 6
+  
+  !apply pbc at east 3 !x
+  call apply_bounceback_east_frame
+  
+  !apply pbc at west 4 !x
+  call apply_bounceback_west_frame
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  
+  return
+  
+ end subroutine apply_bounceback_pop_along_x
+ 
+ subroutine apply_bounceback_east_frame
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback
+!     at the east side alongside with its frame
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop1 and pop2 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(nx+kk,j,k)=f01R(nx+kk,j,k)
+    f01R(nx+kk,j,k)=f02R(nx+kk,j,k)
+    f02R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
+  end forall
+  
+  ! swap pop7 and pop8 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(nx+kk,j,k)=f07R(nx+kk,j,k)
+    f07R(nx+kk,j,k)=f08R(nx+kk,j,k)
+    f07R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
+  end forall
+  
+  ! swap pop9 and pop10 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(nx+kk,j,k)=f09R(nx+kk,j,k)
+    f09R(nx+kk,j,k)=f10R(nx+kk,j,k)
+    f10R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
+  end forall
+  
+  ! swap pop11 and pop12 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(nx+kk,j,k)=f11R(nx+kk,j,k)
+    f11R(nx+kk,j,k)=f12R(nx+kk,j,k)
+    f12R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
+  end forall
+  
+  ! swap pop13 and pop14 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(nx+kk,j,k)=f13R(nx+kk,j,k)
+    f13R(nx+kk,j,k)=f14R(nx+kk,j,k)
+    f14R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop1 and pop2 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(nx+kk,j,k)=f01B(nx+kk,j,k)
+    f01B(nx+kk,j,k)=f02B(nx+kk,j,k)
+    f02B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
+  end forall
+  
+  ! swap pop7 and pop8 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(nx+kk,j,k)=f07B(nx+kk,j,k)
+    f07B(nx+kk,j,k)=f08B(nx+kk,j,k)
+    f07B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
+  end forall
+  
+  ! swap pop9 and pop10 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(nx+kk,j,k)=f09B(nx+kk,j,k)
+    f09B(nx+kk,j,k)=f10B(nx+kk,j,k)
+    f10B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
+  end forall
+  
+  ! swap pop11 and pop12 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(nx+kk,j,k)=f11B(nx+kk,j,k)
+    f11B(nx+kk,j,k)=f12B(nx+kk,j,k)
+    f12B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
+  end forall
+  
+  ! swap pop13 and pop14 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(nx+kk,j,k)=f13B(nx+kk,j,k)
+    f13B(nx+kk,j,k)=f14B(nx+kk,j,k)
+    f14B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  
+  return
+  
+ end subroutine apply_bounceback_east_frame
+ 
+ subroutine apply_bounceback_west_frame
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback
+!     at the west side alongside with its frame
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop1 and pop2 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(1-kk,j,k)=f01R(1-kk,j,k)
+    f01R(1-kk,j,k)=f02R(1-kk,j,k)
+    f02R(1-kk,j,k)=buffservice3d(1-kk,j,k)
+  end forall
+  
+  ! swap pop7 and pop8 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(1-kk,j,k)=f07R(1-kk,j,k)
+    f07R(1-kk,j,k)=f08R(1-kk,j,k)
+    f08R(1-kk,j,k)=buffservice3d(1-kk,j,k)
+  end forall
+  
+  ! swap pop9 and pop10 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(1-kk,j,k)=f09R(1-kk,j,k)
+    f09R(1-kk,j,k)=f10R(1-kk,j,k)
+    f10R(1-kk,j,k)=buffservice3d(1-kk,j,k)
+  end forall
+  
+  ! swap pop11 and pop12 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(1-kk,j,k)=f11R(1-kk,j,k)
+    f11R(1-kk,j,k)=f12R(1-kk,j,k)
+    f12R(1-kk,j,k)=buffservice3d(1-kk,j,k)
+  end forall
+  
+  ! swap pop13 and pop14 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(1-kk,j,k)=f13R(1-kk,j,k)
+    f13R(1-kk,j,k)=f14R(1-kk,j,k)
+    f14R(1-kk,j,k)=buffservice3d(1-kk,j,k)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop1 and pop2 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(1-kk,j,k)=f01B(1-kk,j,k)
+    f01B(1-kk,j,k)=f02B(1-kk,j,k)
+    f02B(1-kk,j,k)=buffservice3d(1-kk,j,k)
+  end forall
+  
+  ! swap pop7 and pop8 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(1-kk,j,k)=f07B(1-kk,j,k)
+    f07B(1-kk,j,k)=f08B(1-kk,j,k)
+    f08B(1-kk,j,k)=buffservice3d(1-kk,j,k)
+  end forall
+  
+  ! swap pop9 and pop10 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(1-kk,j,k)=f09B(1-kk,j,k)
+    f09B(1-kk,j,k)=f10B(1-kk,j,k)
+    f10B(1-kk,j,k)=buffservice3d(1-kk,j,k)
+  end forall
+  
+  ! swap pop11 and pop12 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(1-kk,j,k)=f11B(1-kk,j,k)
+    f11B(1-kk,j,k)=f12B(1-kk,j,k)
+    f12B(1-kk,j,k)=buffservice3d(1-kk,j,k)
+  end forall
+  
+  ! swap pop13 and pop14 along x
+  forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(1-kk,j,k)=f13B(1-kk,j,k)
+    f13B(1-kk,j,k)=f14B(1-kk,j,k)
+    f14B(1-kk,j,k)=buffservice3d(1-kk,j,k)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  
+  return
+  
+ end subroutine apply_bounceback_west_frame
+ 
+ subroutine apply_bounceback_north_frame
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback
+!     at the north side alongside with its frame
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop5 and pop6 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,nz+kk)=f05R(i,j,nz+kk)
+    f05R(i,j,nz+kk)=f06R(i,j,nz+kk)
+    f06R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
+  end forall
+  
+  ! swap pop11 and pop12 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,nz+kk)=f11R(i,j,nz+kk)
+    f11R(i,j,nz+kk)=f12R(i,j,nz+kk)
+    f12R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
+  end forall
+  
+  ! swap pop13 and pop14 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,nz+kk)=f13R(i,j,nz+kk)
+    f13R(i,j,nz+kk)=f14R(i,j,nz+kk)
+    f14R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
+  end forall
+  
+  ! swap pop15 and pop16 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,nz+kk)=f15R(i,j,nz+kk)
+    f15R(i,j,nz+kk)=f16R(i,j,nz+kk)
+    f16R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
+  end forall
+  
+  ! swap pop17 and pop18 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,nz+kk)=f17R(i,j,nz+kk)
+    f17R(i,j,nz+kk)=f18R(i,j,nz+kk)
+    f18R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop5 and pop6 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,nz+kk)=f05B(i,j,nz+kk)
+    f05B(i,j,nz+kk)=f06B(i,j,nz+kk)
+    f06B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
+  end forall
+  
+  ! swap pop11 and pop12 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,nz+kk)=f11B(i,j,nz+kk)
+    f11B(i,j,nz+kk)=f12B(i,j,nz+kk)
+    f12B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
+  end forall
+  
+  ! swap pop13 and pop14 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,nz+kk)=f13B(i,j,nz+kk)
+    f13B(i,j,nz+kk)=f14B(i,j,nz+kk)
+    f14B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
+  end forall
+  
+  ! swap pop15 and pop16 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,nz+kk)=f15B(i,j,nz+kk)
+    f15B(i,j,nz+kk)=f16B(i,j,nz+kk)
+    f16B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
+  end forall
+  
+  ! swap pop17 and pop18 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,nz+kk)=f17B(i,j,nz+kk)
+    f17B(i,j,nz+kk)=f18B(i,j,nz+kk)
+    f18B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  
+  return
+  
+ end subroutine apply_bounceback_north_frame
+ 
+ subroutine apply_bounceback_south_frame
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback 
+!     at the south side alongside with its frame
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop5 and pop6 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,1-kk)=f05R(i,j,1-kk)
+    f05R(i,j,1-kk)=f06R(i,j,1-kk)
+    f06R(i,j,1-kk)=buffservice3d(i,j,1-kk)
+  end forall
+  
+  ! swap pop11 and pop12 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,1-kk)=f11R(i,j,1-kk)
+    f11R(i,j,1-kk)=f12R(i,j,1-kk)
+    f12R(i,j,1-kk)=buffservice3d(i,j,1-kk)
+  end forall
+  
+  ! swap pop13 and pop14 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,1-kk)=f13R(i,j,1-kk)
+    f13R(i,j,1-kk)=f14R(i,j,1-kk)
+    f14R(i,j,1-kk)=buffservice3d(i,j,1-kk)
+  end forall
+  
+  ! swap pop15 and pop16 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,1-kk)=f15R(i,j,1-kk)
+    f15R(i,j,1-kk)=f16R(i,j,1-kk)
+    f16R(i,j,1-kk)=buffservice3d(i,j,1-kk)
+  end forall
+  
+  ! swap pop17 and pop18 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,1-kk)=f17R(i,j,1-kk)
+    f17R(i,j,1-kk)=f18R(i,j,1-kk)
+    f18R(i,j,1-kk)=buffservice3d(i,j,1-kk)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop5 and pop6 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,1-kk)=f05B(i,j,1-kk)
+    f05B(i,j,1-kk)=f06B(i,j,1-kk)
+    f06B(i,j,1-kk)=buffservice3d(i,j,1-kk)
+  end forall
+  
+  ! swap pop11 and pop12 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,1-kk)=f11B(i,j,1-kk)
+    f11B(i,j,1-kk)=f12B(i,j,1-kk)
+    f12B(i,j,1-kk)=buffservice3d(i,j,1-kk)
+  end forall
+  
+  ! swap pop13 and pop14 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,1-kk)=f13B(i,j,1-kk)
+    f13B(i,j,1-kk)=f14B(i,j,1-kk)
+    f14B(i,j,1-kk)=buffservice3d(i,j,1-kk)
+  end forall
+  
+  ! swap pop15 and pop16 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,1-kk)=f15B(i,j,1-kk)
+    f15B(i,j,1-kk)=f16B(i,j,1-kk)
+    f16B(i,j,1-kk)=buffservice3d(i,j,1-kk)
+  end forall
+  
+  ! swap pop17 and pop18 along z
+  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
+    buffservice3d(i,j,1-kk)=f17B(i,j,1-kk)
+    f17B(i,j,1-kk)=f18B(i,j,1-kk)
+    f18B(i,j,1-kk)=buffservice3d(i,j,1-kk)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  
+  return
+  
+ end subroutine apply_bounceback_south_frame
+ 
+ subroutine apply_bounceback_front_frame
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback
+!     at the front side alongside with its frame
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop3 and pop4 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,1-kk,k)=f03R(i,1-kk,k)
+    f03R(i,1-kk,k)=f04R(i,1-kk,k)
+    f04R(i,1-kk,k)=buffservice3d(i,1-kk,k)
+  end forall
+  
+  ! swap pop7 and pop8 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,1-kk,k)=f07R(i,1-kk,k)
+    f07R(i,1-kk,k)=f08R(i,1-kk,k)
+    f08R(i,1-kk,k)=buffservice3d(i,1-kk,k)
+  end forall
+  
+  ! swap pop9 and pop10 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,1-kk,k)=f09R(i,1-kk,k)
+    f09R(i,1-kk,k)=f10R(i,1-kk,k)
+    f10R(i,1-kk,k)=buffservice3d(i,1-kk,k)
+  end forall
+  
+  ! swap pop15 and pop16 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,1-kk,k)=f15R(i,1-kk,k)
+    f15R(i,1-kk,k)=f16R(i,1-kk,k)
+    f16R(i,1-kk,k)=buffservice3d(i,1-kk,k)
+  end forall
+  
+  ! swap pop17 and pop18 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,1-kk,k)=f17R(i,1-kk,k)
+    f17R(i,1-kk,k)=f18R(i,1-kk,k)
+    f18R(i,1-kk,k)=buffservice3d(i,1-kk,k)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop3 and pop4 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,1-kk,k)=f03B(i,1-kk,k)
+    f03B(i,1-kk,k)=f04B(i,1-kk,k)
+    f04B(i,1-kk,k)=buffservice3d(i,1-kk,k)
+  end forall
+  
+  ! swap pop7 and pop8 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,1-kk,k)=f07B(i,1-kk,k)
+    f07B(i,1-kk,k)=f08B(i,1-kk,k)
+    f08B(i,1-kk,k)=buffservice3d(i,1-kk,k)
+  end forall
+  
+  ! swap pop9 and pop10 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,1-kk,k)=f09B(i,1-kk,k)
+    f09B(i,1-kk,k)=f10B(i,1-kk,k)
+    f10B(i,1-kk,k)=buffservice3d(i,1-kk,k)
+  end forall
+  
+  ! swap pop15 and pop16 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,1-kk,k)=f15B(i,1-kk,k)
+    f15B(i,1-kk,k)=f16B(i,1-kk,k)
+    f16B(i,1-kk,k)=buffservice3d(i,1-kk,k)
+  end forall
+  
+  ! swap pop17 and pop18 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,1-kk,k)=f17B(i,1-kk,k)
+    f17B(i,1-kk,k)=f18B(i,1-kk,k)
+    f18B(i,1-kk,k)=buffservice3d(i,1-kk,k)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  
+  return
+  
+ end subroutine apply_bounceback_front_frame
+ 
+ subroutine apply_bounceback_rear_frame
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback 
+!     at the rear side alongside with its frame
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop3 and pop4 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,ny+kk,k)=f03R(i,ny+kk,k)
+    f03R(i,ny+kk,k)=f04R(i,ny+kk,k)
+    f04R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
+  end forall
+  
+  ! swap pop7 and pop8 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,ny+kk,k)=f07R(i,ny+kk,k)
+    f07R(i,ny+kk,k)=f08R(i,ny+kk,k)
+    f08R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
+  end forall
+  
+  ! swap pop9 and pop10 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,ny+kk,k)=f09R(i,ny+kk,k)
+    f09R(i,ny+kk,k)=f10R(i,ny+kk,k)
+    f10R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
+  end forall
+  
+  ! swap pop15 and pop16 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,ny+kk,k)=f15R(i,ny+kk,k)
+    f15R(i,ny+kk,k)=f16R(i,ny+kk,k)
+    f16R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
+  end forall
+  
+  ! swap pop17 and pop18 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,ny+kk,k)=f17R(i,ny+kk,k)
+    f17R(i,ny+kk,k)=f18R(i,ny+kk,k)
+    f18R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop3 and pop4 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,ny+kk,k)=f03B(i,ny+kk,k)
+    f03B(i,ny+kk,k)=f04B(i,ny+kk,k)
+    f04B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
+  end forall
+  
+  ! swap pop7 and pop8 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,ny+kk,k)=f07B(i,ny+kk,k)
+    f07B(i,ny+kk,k)=f08B(i,ny+kk,k)
+    f08B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
+  end forall
+  
+  ! swap pop9 and pop10 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,ny+kk,k)=f09B(i,ny+kk,k)
+    f09B(i,ny+kk,k)=f10B(i,ny+kk,k)
+    f10B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
+  end forall
+  
+  ! swap pop15 and pop16 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,ny+kk,k)=f15B(i,ny+kk,k)
+    f15B(i,ny+kk,k)=f16B(i,ny+kk,k)
+    f16B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
+  end forall
+  
+  ! swap pop17 and pop18 along y
+  forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
+    buffservice3d(i,ny+kk,k)=f17B(i,ny+kk,k)
+    f17B(i,ny+kk,k)=f18B(i,ny+kk,k)
+    f18B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
 
-!        ! swap distribution at obstacles's edges
-!        do k=1,nz
-!            do j=1,ny
-!                do i=1,nx
-!                    !1
-!                    if(isfluid(i,j,k).eq.0.and.i.eq.1)then
-!                        do l=1,links
-!		                    fdumR(l)=fR(opp(l),i,j,k) + rhoR(2,j,k)*6.0d0*p(l)*(dex(l)*u_wR(j,k))
-!                            fdumB(l)=fB(opp(l),i,j,k)
-!                            continue
-!		                enddo
-!		                do l=1,links
-!			                fR(l,i,j,k)=fdumR(l)
-!                            fB(l,i,j,k)=fdumB(l)
-!                        enddo
-!                    !2
-!                    elseif(isfluid(i,j,k).eq.0.and.j.eq.ny)then
-!                         do l=1,links
-!                            fR(l,i,j,k)=fR(l,i,2,k)
-!                            fB(l,i,j,k)=fB(l,i,2,k)
-!                        enddo
-!                    !3
-!                    elseif(isfluid(i,j,k).eq.0.and.j.eq.1)then
-!                         do l=1,links
-!                            fR(l,i,j,k)=fR(l,i,ny-1,k)
-!                            fB(l,i,j,k)=fB(l,i,ny-1,k)
-!                        enddo
-!                    !4
-!                    elseif(isfluid(i,j,k).eq.0.and.k.eq.1)then
-!                         do l=1,links
-!                            fR(l,i,j,k)=fR(l,i,j,nz-1)
-!                            fB(l,i,j,k)=fB(l,i,j,nz-1)
-!                        enddo
-!                    !5
-!                    elseif(isfluid(i,j,k).eq.0.and.k.eq.nz)then
-!                         do l=1,links
-!                            fR(l,i,j,k)=fR(l,i,j,2)
-!                            fB(l,i,j,k)=fB(l,i,j,2)
-!                        enddo
-!                    !6
-!                   elseif(isfluid(i,j,k).eq.0.and.i.eq.nx)then
-!                        do l=1,links
-!                            fR(l,i,j,k)=fR(l,nx-1,j,k)
-!                            fB(l,i,j,k)=fB(l,nx-1,j,k)
-!                        enddo
-!                    !7
-!                elseif(isfluid(i,j,k).eq.0 .and. (i.gt.1.and.i.lt.nx) .and. (j.gt.1.and.j.lt.ny) &
-!                        .and. (k.gt.1.and.k.lt.nz))then
-!                        do l=1,links
-!		                    fdumR(l)=fR(opp(l),i,j,k) 
-!                            fdumB(l)=fB(opp(l),i,j,k) 
-!                            continue
-!		                enddo
-!		                do l=1,links
-!			                fR(l,i,j,k)=fdumR(l)
-!                            fB(l,i,j,k)=fdumB(l)
-!                        enddo
-!                    endif
-!                enddo
-!            enddo
-!        enddo
-!    endsubroutine obst_swap_mom   
-!!-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-
-!!-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-
-!!-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x- 
-!   subroutine obst_swap_rho
+  return
+  
+ end subroutine apply_bounceback_rear_frame
  
-!	use variables
-!	implicit none
-	
-!	integer:: i,j,l,k,ineig,jneig,kneig
-	
-!    do k=1,nz
-!        do j=1,ny
-!            do i=1,nx
-!                if(isfluid(i,j,k).eq.0)then              
-!                    if(i.eq.1 .or. i.eq.nx)then
-!					    rhoR(i,j,k) =0.0d0 !rhoR(ineig,jneig,kneig) 
-!                        rhoB(i,j,k) =0.0d0 !rhoB(ineig,jneig,kneig)
-!                    else
-!					    rhoR(i,j,k) =0.0d0 !rhoR(ineig,jneig,kneig)
-!                        rhoB(i,j,k) =-1.5d0 !rhoB(ineig,jneig,kneig)   
-!                    endif
-!                endif            
-                    
-!            enddo
-!        enddo
-!    enddo
-!    endsubroutine obst_swap_rho
+ subroutine apply_bounceback_edge_front_east
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the front east edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  integer, parameter :: kkk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop9 and pop10
+  forall(k=1:nz)
+    buffservice3d(nx+kkk,1-kk,k)=f09R(nx+kkk,1-kk,k)
+    f09R(nx+kkk,1-kk,k)=f10R(nx+kkk,1-kk,k)
+    f10R(nx+kkk,1-kk,k)=buffservice3d(nx+kkk,1-kk,k)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop9 and pop10
+  forall(k=1:nz)
+    buffservice3d(nx+kkk,1-kk,k)=f09B(nx+kkk,1-kk,k)
+    f09B(nx+kkk,1-kk,k)=f10B(nx+kkk,1-kk,k)
+    f10B(nx+kkk,1-kk,k)=buffservice3d(nx+kkk,1-kk,k)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  
+  return
+  
+ end subroutine apply_bounceback_edge_front_east
+ 
+ subroutine apply_bounceback_edge_front_west
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the front west edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  integer, parameter :: kkk = 1
+  
+  
+#if LATTICE==319
+  
+  ! swap pop7 and pop8
+  forall(k=1:nz)
+    buffservice3d(1-kkk,1-kk,k)=f07R(1-kkk,1-kk,k)
+    f07R(1-kkk,1-kk,k)=f08R(1-kkk,1-kk,k)
+    f08R(1-kkk,1-kk,k)=buffservice3d(1-kkk,1-kk,k)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop7 and pop8
+  forall(k=1:nz)
+    buffservice3d(1-kkk,1-kk,k)=f07B(1-kkk,1-kk,k)
+    f07B(1-kkk,1-kk,k)=f08B(1-kkk,1-kk,k)
+    f08B(1-kkk,1-kk,k)=buffservice3d(1-kkk,1-kk,k)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_edge_front_west
+ 
+ subroutine apply_bounceback_edge_north_east
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the north east edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  integer, parameter :: kkk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop11 and pop12
+  forall(j=1:ny)
+    buffservice3d(nx+kkk,j,nz+kk)=f11R(nx+kkk,j,nz+kk)
+    f11R(nx+kkk,j,nz+kk)=f12R(nx+kkk,j,nz+kk)
+    f12R(nx+kkk,j,nz+kk)=buffservice3d(nx+kkk,j,nz+kk)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop11 and pop12
+  forall(j=1:ny)
+    buffservice3d(nx+kkk,j,nz+kk)=f11B(nx+kkk,j,nz+kk)
+    f11B(nx+kkk,j,nz+kk)=f12B(nx+kkk,j,nz+kk)
+    f12B(nx+kkk,j,nz+kk)=buffservice3d(nx+kkk,j,nz+kk)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_edge_north_east
+ 
+ subroutine apply_bounceback_edge_north_front
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the north front edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  integer, parameter :: kkk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop17 and pop18
+  forall(i=1:nx)
+    buffservice3d(i,1-kkk,nz+kk)=f17R(i,1-kkk,nz+kk)
+    f17R(i,1-kkk,nz+kk)=f18R(i,1-kkk,nz+kk)
+    f18R(i,1-kkk,nz+kk)=buffservice3d(i,1-kkk,nz+kk)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop17 and pop18
+  forall(i=1:nx)
+    buffservice3d(i,1-kkk,nz+kk)=f17B(i,1-kkk,nz+kk)
+    f17B(i,1-kkk,nz+kk)=f18B(i,1-kkk,nz+kk)
+    f18B(i,1-kkk,nz+kk)=buffservice3d(i,1-kkk,nz+kk)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_edge_north_front
+ 
+ subroutine apply_bounceback_edge_north_rear
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the north rear edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  integer, parameter :: kkk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop15 and pop16
+  forall(i=1:nx)
+    buffservice3d(i,ny+kkk,nz+kk)=f15R(i,ny+kkk,nz+kk)
+    f15R(i,ny+kkk,nz+kk)=f16R(i,ny+kkk,nz+kk)
+    f16R(i,ny+kkk,nz+kk)=buffservice3d(i,ny+kkk,nz+kk)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop15 and pop16
+  forall(i=1:nx)
+    buffservice3d(i,ny+kkk,nz+kk)=f15B(i,ny+kkk,nz+kk)
+    f15B(i,ny+kkk,nz+kk)=f16B(i,ny+kkk,nz+kk)
+    f16B(i,ny+kkk,nz+kk)=buffservice3d(i,ny+kkk,nz+kk)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_edge_north_rear
+ 
+ subroutine apply_bounceback_edge_north_west
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the north west edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  integer, parameter :: kkk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop13 and pop14
+  forall(j=1:ny)
+    buffservice3d(1-kkk,j,nz+kk)=f13R(1-kkk,j,nz+kk)
+    f13R(1-kkk,j,nz+kk)=f14R(1-kkk,j,nz+kk)
+    f14R(1-kkk,j,nz+kk)=buffservice3d(1-kkk,j,nz+kk)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop13 and pop14
+  forall(j=1:ny)
+    buffservice3d(1-kkk,j,nz+kk)=f13B(1-kkk,j,nz+kk)
+    f13B(1-kkk,j,nz+kk)=f14B(1-kkk,j,nz+kk)
+    f14B(1-kkk,j,nz+kk)=buffservice3d(1-kkk,j,nz+kk)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_edge_north_west
+ 
+ subroutine apply_bounceback_edge_rear_east
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the rear east edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  integer, parameter :: kkk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop7 and pop8 along y
+  forall(k=1:nz)
+    buffservice3d(nx+kkk,ny+kk,k)=f07R(nx+kkk,ny+kk,k)
+    f07R(nx+kkk,ny+kk,k)=f08R(nx+kkk,ny+kk,k)
+    f08R(nx+kkk,ny+kk,k)=buffservice3d(nx+kkk,ny+kk,k)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop7 and pop8 along y
+  forall(k=1:nz)
+    buffservice3d(nx+kkk,ny+kk,k)=f07B(nx+kkk,ny+kk,k)
+    f07B(nx+kkk,ny+kk,k)=f08B(nx+kkk,ny+kk,k)
+    f08B(nx+kkk,ny+kk,k)=buffservice3d(nx+kkk,ny+kk,k)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_edge_rear_east
+ 
+ subroutine apply_bounceback_edge_rear_west
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the rear west edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  integer, parameter :: kkk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop9 and pop10
+  forall(k=1:nz)
+    buffservice3d(1-kkk,ny+kk,k)=f09R(1-kkk,ny+kk,k)
+    f09R(1-kkk,ny+kk,k)=f10R(1-kkk,ny+kk,k)
+    f10R(1-kkk,ny+kk,k)=buffservice3d(1-kkk,ny+kk,k)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop9 and pop10
+  forall(k=1:nz)
+    buffservice3d(1-kkk,ny+kk,k)=f09B(1-kkk,ny+kk,k)
+    f09B(1-kkk,ny+kk,k)=f10B(1-kkk,ny+kk,k)
+    f10B(1-kkk,ny+kk,k)=buffservice3d(1-kkk,ny+kk,k)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_edge_rear_west
+ 
+ subroutine apply_bounceback_edge_south_east
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the south east edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  integer, parameter :: kkk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop13 and pop14
+  forall(j=1:ny)
+    buffservice3d(nx+kkk,j,1-kk)=f13R(nx+kkk,j,1-kk)
+    f13R(nx+kkk,j,1-kk)=f14R(nx+kkk,j,1-kk)
+    f14R(nx+kkk,j,1-kk)=buffservice3d(nx+kkk,j,1-kk)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop13 and pop14
+  forall(j=1:ny)
+    buffservice3d(nx+kkk,j,1-kk)=f13B(nx+kkk,j,1-kk)
+    f13B(nx+kkk,j,1-kk)=f14B(nx+kkk,j,1-kk)
+    f14B(nx+kkk,j,1-kk)=buffservice3d(nx+kkk,j,1-kk)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_edge_south_east
+ 
+ subroutine apply_bounceback_edge_south_front
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the south east edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  integer, parameter :: kkk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop15 and pop16
+  forall(i=1:nx)
+    buffservice3d(i,1-kkk,1-kk)=f15R(i,1-kkk,1-kk)
+    f15R(i,1-kkk,1-kk)=f16R(i,1-kkk,1-kk)
+    f16R(i,1-kkk,1-kk)=buffservice3d(i,1-kkk,1-kk)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop15 and pop16
+  forall(i=1:nx)
+    buffservice3d(i,1-kkk,1-kk)=f15B(i,1-kkk,1-kk)
+    f15B(i,1-kkk,1-kk)=f16B(i,1-kkk,1-kk)
+    f16B(i,1-kkk,1-kk)=buffservice3d(i,1-kkk,1-kk)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_edge_south_front
+ 
+ subroutine apply_bounceback_edge_south_rear
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the south rear edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  integer, parameter :: kkk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop17 and pop18
+  forall(i=1:nx)
+    buffservice3d(i,ny+kkk,1-kk)=f17R(i,ny+kkk,1-kk)
+    f17R(i,ny+kkk,1-kk)=f18R(i,ny+kkk,1-kk)
+    f18R(i,ny+kkk,1-kk)=buffservice3d(i,ny+kkk,1-kk)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop17 and pop18
+  forall(i=1:nx)
+    buffservice3d(i,ny+kkk,1-kk)=f17B(i,ny+kkk,1-kk)
+    f17B(i,ny+kkk,1-kk)=f18B(i,ny+kkk,1-kk)
+    f18B(i,ny+kkk,1-kk)=buffservice3d(i,ny+kkk,1-kk)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_edge_south_rear
+ 
+ subroutine apply_bounceback_edge_south_west
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the south rear edge
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  integer, parameter :: kk = 1
+  integer, parameter :: kkk = 1
+  
+#if LATTICE==319
+  
+  ! swap pop11 and pop12
+  forall(j=1:ny)
+    buffservice3d(1-kkk,j,1-kk)=f11R(1-kkk,j,1-kk)
+    f11R(1-kkk,j,1-kk)=f12R(1-kkk,j,1-kk)
+    f12R(1-kkk,j,1-kk)=buffservice3d(1-kkk,j,1-kk)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! swap pop11 and pop12
+  forall(j=1:ny)
+    buffservice3d(1-kkk,j,1-kk)=f11B(1-kkk,j,1-kk)
+    f11B(1-kkk,j,1-kk)=f12B(1-kkk,j,1-kk)
+    f12B(1-kkk,j,1-kk)=buffservice3d(1-kkk,j,1-kk)
+  end forall
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_edge_south_west
+ 
+ subroutine apply_bounceback_corner_north_east_front(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the north east front corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk,kkkk
+  
+#if LATTICE==319
+  
+  continue
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_corner_north_east_front
+ 
+ subroutine apply_bounceback_corner_north_east_rear(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the north east rear corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk,kkkk
+  
+#if LATTICE==319
+  
+  continue
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_corner_north_east_rear
+ 
+ subroutine apply_bounceback_corner_north_west_rear(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the north west rear corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk,kkkk
+  
+#if LATTICE==319
+  
+  continue
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_corner_north_west_rear
+ 
+ subroutine apply_bounceback_corner_north_west_front(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the north west front corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk,kkkk
+  
+#if LATTICE==319
+  
+  continue
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_corner_north_west_front
+ 
+ subroutine apply_bounceback_corner_south_east_front(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the south east front corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk,kkkk
+  
+#if LATTICE==319
+  
+  continue
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_corner_south_east_front
+ 
+ subroutine apply_bounceback_corner_south_west_front(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the south west front corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk,kkkk
+  
+#if LATTICE==319
+  
+  continue
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_corner_south_west_front
+ 
+ subroutine apply_bounceback_corner_south_west_rear(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the south west rear corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk,kkkk
+  
+#if LATTICE==319
+  
+  continue
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_corner_south_west_rear
+ 
+ subroutine apply_bounceback_corner_south_east_rear(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback boundary 
+!     condition at the south east rear corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  
+  integer :: i,j,k,kk,kkk,kkkk
+  
+#if LATTICE==319
+  
+  continue
+  
+#else
+  
+  call warning(9,ZERO,latt_name)
+  call error(12)
+  
+#endif
+  return
+  
+ end subroutine apply_bounceback_corner_south_east_rear
+ 
+ subroutine probe_red_moments_in_node(i,j,k,dtemp1,dtemp2,dtemp3,dtemp4)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for probing the Red hydrodynamic moments
+!     at the point i j k
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: i,j,k
+  real(kind=PRC), intent(out) :: dtemp1,dtemp2,dtemp3,dtemp4
+  
+  integer :: l
+  
+  dtemp1=ZERO
+  dtemp2=ZERO
+  dtemp3=ZERO
+  dtemp4=ZERO
+  
+  l=0
+  dtemp1 = f00R(i,j,k) + dtemp1 
+  dtemp2    = f00R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f00R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f00R(i,j,k)*dez(l) + dtemp4
+  
+  l=1
+  dtemp1 = f01R(i,j,k) + dtemp1
+  dtemp2    = f01R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f01R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f01R(i,j,k)*dez(l) + dtemp4
+  
+  l=2
+  dtemp1 = f02R(i,j,k) + dtemp1
+  dtemp2    = f02R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f02R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f02R(i,j,k)*dez(l) + dtemp4
+  
+  l=3
+  dtemp1 = f03R(i,j,k) + dtemp1
+  dtemp2    = f03R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f03R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f03R(i,j,k)*dez(l) + dtemp4
+  
+  l=4
+  dtemp1 = f04R(i,j,k) + dtemp1
+  dtemp2    = f04R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f04R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f04R(i,j,k)*dez(l) + dtemp4
+  
+  l=5
+  dtemp1 = f05R(i,j,k) + dtemp1
+  dtemp2    = f05R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f05R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f05R(i,j,k)*dez(l) + dtemp4
+  
+  l=6
+  dtemp1 = f06R(i,j,k) + dtemp1
+  dtemp2    = f06R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f06R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f06R(i,j,k)*dez(l) + dtemp4
+  
+  l=7
+  dtemp1 = f07R(i,j,k) + dtemp1
+  dtemp2    = f07R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f07R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f07R(i,j,k)*dez(l) + dtemp4
+  
+  l=8
+  dtemp1 = f08R(i,j,k) + dtemp1
+  dtemp2    = f08R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f08R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f08R(i,j,k)*dez(l) + dtemp4
+  
+  l=9
+  dtemp1 = f09R(i,j,k) + dtemp1
+  dtemp2    = f09R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f09R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f09R(i,j,k)*dez(l) + dtemp4
+  
+  l=10
+  dtemp1 = f10R(i,j,k) + dtemp1
+  dtemp2    = f10R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f10R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f10R(i,j,k)*dez(l) + dtemp4
+  
+  l=11
+  dtemp1 = f11R(i,j,k) + dtemp1
+  dtemp2    = f11R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f11R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f11R(i,j,k)*dez(l) + dtemp4
+  
+  l=12
+  dtemp1 = f12R(i,j,k) + dtemp1
+  dtemp2    = f12R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f12R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f12R(i,j,k)*dez(l) + dtemp4
+  
+  l=13
+  dtemp1 = f13R(i,j,k) + dtemp1
+  dtemp2    = f13R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f13R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f13R(i,j,k)*dez(l) + dtemp4
+  
+  l=14
+  dtemp1 = f14R(i,j,k) + dtemp1
+  dtemp2    = f14R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f14R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f14R(i,j,k)*dez(l) + dtemp4
+  
+  l=15
+  dtemp1 = f15R(i,j,k) + dtemp1
+  dtemp2    = f15R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f15R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f15R(i,j,k)*dez(l) + dtemp4
+  
+  l=16
+  dtemp1 = f16R(i,j,k) + dtemp1
+  dtemp2    = f16R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f16R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f16R(i,j,k)*dez(l) + dtemp4
+  
+  l=17
+  dtemp1 = f17R(i,j,k) + dtemp1
+  dtemp2    = f17R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f17R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f17R(i,j,k)*dez(l) + dtemp4
+  
+  l=18
+  dtemp1 = f18R(i,j,k) + dtemp1
+  dtemp2    = f18R(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f18R(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f18R(i,j,k)*dez(l) + dtemp4
+  
+  return
+  
+ end subroutine probe_red_moments_in_node
+ 
+ subroutine probe_blue_moments_in_node(i,j,k,dtemp1,dtemp2,dtemp3,dtemp4)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for probing the Blue hydrodynamic moments
+!     at the point i j k
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: i,j,k
+  real(kind=PRC), intent(out) :: dtemp1,dtemp2,dtemp3,dtemp4
+  
+  integer :: l
+  
+  dtemp1=ZERO
+  dtemp2=ZERO
+  dtemp3=ZERO
+  dtemp4=ZERO
+  
+  l=0
+  dtemp1 = f00B(i,j,k) + dtemp1 
+  dtemp2    = f00B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f00B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f00B(i,j,k)*dez(l) + dtemp4
+  
+  l=1
+  dtemp1 = f01B(i,j,k) + dtemp1
+  dtemp2    = f01B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f01B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f01B(i,j,k)*dez(l) + dtemp4
+  
+  l=2
+  dtemp1 = f02B(i,j,k) + dtemp1
+  dtemp2    = f02B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f02B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f02B(i,j,k)*dez(l) + dtemp4
+  
+  l=3
+  dtemp1 = f03B(i,j,k) + dtemp1
+  dtemp2    = f03B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f03B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f03B(i,j,k)*dez(l) + dtemp4
+  
+  l=4
+  dtemp1 = f04B(i,j,k) + dtemp1
+  dtemp2    = f04B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f04B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f04B(i,j,k)*dez(l) + dtemp4
+  
+  l=5
+  dtemp1 = f05B(i,j,k) + dtemp1
+  dtemp2    = f05B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f05B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f05B(i,j,k)*dez(l) + dtemp4
+  
+  l=6
+  dtemp1 = f06B(i,j,k) + dtemp1
+  dtemp2    = f06B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f06B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f06B(i,j,k)*dez(l) + dtemp4
+  
+  l=7
+  dtemp1 = f07B(i,j,k) + dtemp1
+  dtemp2    = f07B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f07B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f07B(i,j,k)*dez(l) + dtemp4
+  
+  l=8
+  dtemp1 = f08B(i,j,k) + dtemp1
+  dtemp2    = f08B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f08B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f08B(i,j,k)*dez(l) + dtemp4
+  
+  l=9
+  dtemp1 = f09B(i,j,k) + dtemp1
+  dtemp2    = f09B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f09B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f09B(i,j,k)*dez(l) + dtemp4
+  
+  l=10
+  dtemp1 = f10B(i,j,k) + dtemp1
+  dtemp2    = f10B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f10B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f10B(i,j,k)*dez(l) + dtemp4
+  
+  l=11
+  dtemp1 = f11B(i,j,k) + dtemp1
+  dtemp2    = f11B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f11B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f11B(i,j,k)*dez(l) + dtemp4
+  
+  l=12
+  dtemp1 = f12B(i,j,k) + dtemp1
+  dtemp2    = f12B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f12B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f12B(i,j,k)*dez(l) + dtemp4
+  
+  l=13
+  dtemp1 = f13B(i,j,k) + dtemp1
+  dtemp2    = f13B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f13B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f13B(i,j,k)*dez(l) + dtemp4
+  
+  l=14
+  dtemp1 = f14B(i,j,k) + dtemp1
+  dtemp2    = f14B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f14B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f14B(i,j,k)*dez(l) + dtemp4
+  
+  l=15
+  dtemp1 = f15B(i,j,k) + dtemp1
+  dtemp2    = f15B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f15B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f15B(i,j,k)*dez(l) + dtemp4
+  
+  l=16
+  dtemp1 = f16B(i,j,k) + dtemp1
+  dtemp2    = f16B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f16B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f16B(i,j,k)*dez(l) + dtemp4
+  
+  l=17
+  dtemp1 = f17B(i,j,k) + dtemp1
+  dtemp2    = f17B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f17B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f17B(i,j,k)*dez(l) + dtemp4
+  
+  l=18
+  dtemp1 = f18B(i,j,k) + dtemp1
+  dtemp2    = f18B(i,j,k)*dex(l) + dtemp2
+  dtemp3    = f18B(i,j,k)*dey(l) + dtemp3
+  dtemp4    = f18B(i,j,k)*dez(l) + dtemp4
+  
+  return
+  
+ end subroutine probe_blue_moments_in_node
  
  end module fluids_mod

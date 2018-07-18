@@ -72,6 +72,9 @@
          'please set them in input.'
       case (11)
         write(outp,outf)'ERROR - wrong vtk subroutine selected! only SERIAL'
+      case (12)
+        write(outp,outf2)'ERROR - the actual boundary conditions are not supported', &
+         ' with the current lattice scheme'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select
@@ -178,6 +181,13 @@
       write(outp,'(/,a)')"WARNING - the number fluid components should be 1 or 2."
        write(outp,'(2a,/)')"WARNING - the actual number of fluids is : ", &
        trim(adjustl(r_char))
+    case (9)
+        write(outp,'(/,2a)')"WARNING - the actual boundary conditions are not supported", &
+         " with the compiled lattice scheme"
+        write(outp,'(2a,/)')"WARNING - the actual lattice scheme is : ",trim(wstring)
+    case (10)
+        write(outp,'(/,2a,/)')"WARNING - the shanchen pair force cannot be", &
+         " applyied with a single fluid component!"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

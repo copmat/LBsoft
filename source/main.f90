@@ -92,6 +92,12 @@
   
 ! set the seed
   call init_random_seed(init_seed)
+  
+! start diagnostic if requested
+  if(ldiagnostic)then
+    call timer_init()
+    call startPreprocessingTime()  
+  endif
 
 ! allocate arrays of the nanofiber quantities
   call allocate_fluids
@@ -107,7 +113,7 @@
   
 ! initialize and read the restart file if requested
   call initialize_fluids
-  stop
+  
 ! print memory
   call get_memory(mymemory)
   call print_memory_registration(6,'memory occupied after allocation', &
@@ -123,8 +129,6 @@
   
 ! start diagnostic if requested
   if(ldiagnostic)then
-    call timer_init()
-    call startPreprocessingTime()  
     call print_timing_partial(1,1,itime_start,IOOUT)
     call reset_timing_partial()
   endif

@@ -20,7 +20,8 @@
                         collision_fluids,driver_bc_densities,driver_bc_pops,&
                         collision_fluids_unique_omega,lunique_omega, &
                         compute_omega_bimix,streaming_fluids, &
-                        moments_fluids,driver_reflect_densities,lpair_SC
+                        moments_fluids,driver_reflect_densities, &
+                        lpair_SC,driver_apply_bounceback_pop,nx,ny,nz
  use write_output_mod, only : write_vtk_frame
  
  implicit none
@@ -126,6 +127,8 @@
   real(kind=PRC), intent(inout) :: mytime
   
   real(kind=PRC) :: new_time
+  
+  real(kind=PRC)::myrho,myu,myv,myw
  
   new_time = real(nstep,kind=PRC)*tstep
   
@@ -173,6 +176,10 @@
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
   call streaming_fluids
   if(ldiagnostic)call end_timing2("LB","streaming_fluids")
+  
+  if(ldiagnostic)call start_timing2("LB","apply_bounceback_pop")
+  call driver_apply_bounceback_pop
+  if(ldiagnostic)call end_timing2("LB","apply_bounceback_pop")
   
   mytime = new_time
   

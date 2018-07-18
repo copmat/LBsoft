@@ -15,7 +15,7 @@
  use version_mod,    only : idrank,mxrank
  use error_mod
  use utility_mod,    only : write_fmtnumb
- use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w
+ use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w,lsingle_fluid
   
   private
   
@@ -145,10 +145,13 @@
   service1(nx1:nx2,ny1:ny2,nz1:nz2)=rhoR(1:nx,1:ny,1:nz)
   E_IO = VTK_VAR_XML(NC_NN=nn,varname ='density1', &
    var=reshape(service1,(/nn/)))
-
-  service2(nx1:nx2,ny1:ny2,nz1:nz2)=rhoB(1:nx,1:ny,1:nz)
-  E_IO = VTK_VAR_XML(NC_NN=nn,varname ='density2', &
-   var=reshape(service2,(/nn/)))
+  
+  if(.not. lsingle_fluid)then
+    service2(nx1:nx2,ny1:ny2,nz1:nz2)=rhoB(1:nx,1:ny,1:nz)
+    E_IO = VTK_VAR_XML(NC_NN=nn,varname ='density2', &
+     var=reshape(service2,(/nn/)))
+  endif
+  
  
   service1(nx1:nx2,ny1:ny2,nz1:nz2)=u(1:nx,1:ny,1:nz)
   service2(nx1:nx2,ny1:ny2,nz1:nz2)=v(1:nx,1:ny,1:nz)

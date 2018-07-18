@@ -13,7 +13,8 @@
 !***********************************************************************
  
  use version_mod,           only : time_world
- use fluids_mod,            only : nx,ny,nz,rhoR,rhoB,u,v,w
+ use fluids_mod,            only : nx,ny,nz,rhoR,rhoB,u,v,w, &
+  lsingle_fluid
  
  implicit none
  
@@ -77,7 +78,7 @@
   integer, intent(in) :: nstepsub
   
   integer, save :: icount=0
-  integer :: ipoint
+  integer :: i
   
   integer, save :: nstepsubold=0
   integer, save :: nmulstepdoneold=0
@@ -90,14 +91,19 @@
   
   dnorm=real(nx*ny*nz,kind=PRC)
   
+  forall(i=1:nmaxstatdata)statdata(i)=ZERO
+  
 ! store all the observables in the statdata array to be printed
   
   statdata(1)=sum(rhoR(1:nx,1:ny,1:nz))/dnorm
-  statdata(2)=sum(rhoB(1:nx,1:ny,1:nz))/dnorm
   statdata(3)=maxval(rhoR(1:nx,1:ny,1:nz))
-  statdata(4)=maxval(rhoB(1:nx,1:ny,1:nz))
   statdata(5)=minval(rhoR(1:nx,1:ny,1:nz))
-  statdata(6)=minval(rhoB(1:nx,1:ny,1:nz))
+  
+  if(.not. lsingle_fluid)then
+    statdata(2)=sum(rhoB(1:nx,1:ny,1:nz))/dnorm
+    statdata(4)=maxval(rhoB(1:nx,1:ny,1:nz))
+    statdata(6)=minval(rhoB(1:nx,1:ny,1:nz))
+  endif
   
   statdata(7)=maxval(u(1:nx,1:ny,1:nz))
   statdata(8)=minval(u(1:nx,1:ny,1:nz))
