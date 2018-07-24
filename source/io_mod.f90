@@ -33,7 +33,7 @@
   bc_type_north,bc_rhoR_south,bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south,&
   bc_type_south,bc_rhoR_front,bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front,&
   bc_type_front,bc_rhoR_rear,bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear,&
-  bc_type_rear
+  bc_type_rear,set_fluid_wall_sc,wallR_SC,wallB_SC
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery,lvtkfile
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
  use statistic_mod,         only : reprinttime,compute_statistic, &
@@ -309,6 +309,7 @@
   logical :: temp_lvtkfile=.false.
   logical :: lidiagnostic=.false.
   logical :: temp_lnfluid=.false.
+  logical :: temp_wall_SC=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -325,6 +326,9 @@
   real(kind=PRC) :: dtemp_viscB = ZERO
   real(kind=PRC) :: dtemp_tauR = ZERO
   real(kind=PRC) :: dtemp_tauB = ZERO
+  
+  real(kind=PRC) :: dtemp_wallR_SC = ONE
+  real(kind=PRC) :: dtemp_wallB_SC = ONE
   
   real(kind=PRC) :: dtemp_bc_rhoR_east = ZERO
   real(kind=PRC) :: dtemp_bc_rhoR_west = ZERO
@@ -638,6 +642,7 @@
                 dtemp_stdevB=dblstr(directive,maxlen,inumchar)
               elseif(findstring('gauss',directive,inumchar,maxlen))then
                 temp_idistselect=1
+              elseif(findstring('unifo',directive,inumchar,maxlen))then
               else
                 call warning(1,dble(iline),redstring)
                 call error(6)
@@ -660,6 +665,10 @@
                 if(findstring('pair',directive,inumchar,maxlen))then
                   temp_lpair_SC=.true.
                   temp_pair_SC=dblstr(directive,maxlen,inumchar)
+                elseif(findstring('wall',directive,inumchar,maxlen))then
+                  temp_wall_SC = .true.
+                  dtemp_wallR_SC = dblstr(directive,maxlen,inumchar)
+                  dtemp_wallB_SC = dblstr(directive,maxlen,inumchar)
                 else
                   call warning(1,dble(iline),redstring)
                   call error(6)
@@ -1051,6 +1060,13 @@
         mystring12='gaussian'
         mystring12=adjustr(mystring12)
         write(6,'(3a)')mystring,": ",mystring12
+      case(2)
+        mystring=repeat(' ',dimprint)
+        mystring='initial density distribution'
+        mystring12=repeat(' ',dimprint2)
+        mystring12='uniform'
+        mystring12=adjustr(mystring12)
+        write(6,'(3a)')mystring,": ",mystring12
       end select
     endif
   endif
@@ -1117,6 +1133,18 @@
       mystring=repeat(' ',dimprint)
       mystring='pair SC force constant on fluids'
       write(6,'(2a,f12.6)')mystring,": ",pair_SC
+    endif
+  endif
+  
+  call bcast_world(temp_wall_SC)
+  if(temp_lpair_SC)then
+    call bcast_world(dtemp_wallR_SC)
+    call bcast_world(dtemp_wallB_SC)
+    call set_fluid_wall_sc(dtemp_wallR_SC,dtemp_wallB_SC)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='pair SC wall constant on fluids'
+      write(6,'(2a,2f12.6)')mystring,": ",wallR_SC,wallB_SC
     endif
   endif
   
