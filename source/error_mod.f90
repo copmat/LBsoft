@@ -75,6 +75,9 @@
       case (12)
         write(outp,outf2)'ERROR - the actual boundary conditions are not supported', &
          ' with the current lattice scheme'
+      case (13)
+        write(outp,outf2)'ERROR - the actual OPEN boundary conditions are not', &
+         ' implemented. Check the bc_type value selected'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select

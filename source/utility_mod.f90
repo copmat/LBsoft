@@ -47,6 +47,7 @@
  public :: sig
  public :: write_fmtnumb
  public :: get_prntime
+ public :: rand_seeded
  
  contains
  
@@ -251,6 +252,88 @@
   return
  
  end subroutine init_random_seed
+ 
+ function rand_seeded(i,j,k,l)
+
+!***********************************************************************
+!     
+!     LBsoft random number generator based on the universal
+!     random number generator of marsaglia et Al.
+!     it is delivered in a form which is depending on a seed squence 
+!     provided at each call in order to ensure the MPI independence
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+
+  implicit none
+      
+  integer, intent(in) :: i,j,k,l
+  integer :: isub,jsub,ksub,lsub,msub
+  integer ::ii,jj
+  real(4) :: s,t,u33,u97,csub,uni
+  real(kind=PRC) :: rand_seeded
+  
+  real(4), parameter :: c =  362436.0/16777216.0
+  real(4), parameter :: cd= 7654321.0/16777216.0
+  real(4), parameter :: cm=16777213.0/16777216.0
+  
+! initial values of i,j,k must be in range 1 to 178 (not all 1)
+! initial value of l must be in range 0 to 168.
+      
+  isub=mod(i,178)
+  isub=isub+1
+  
+  jsub=mod(j,178)
+  jsub=jsub+1
+  
+  ksub=mod(k,178)
+  ksub=ksub+1
+  
+  lsub=mod(l,169)
+  
+! initialization on fly
+  
+  ii=97
+  s=0.0
+  t=0.5
+  do jj=1,24
+    msub=mod(mod(isub*jsub,179)*ksub,179)
+    isub=jsub
+    jsub=ksub
+    ksub=msub
+    lsub=mod(53*lsub+1,169)
+    if(mod(lsub*msub,64).ge.32)s=s+t
+    t=0.5*t
+  enddo
+  u97=s
+  
+  ii=33
+  s=0.0
+  t=0.5
+  do jj=1,24
+    msub=mod(mod(isub*jsub,179)*ksub,179)
+    isub=jsub
+    jsub=ksub
+    ksub=msub
+    lsub=mod(53*lsub+1,169)
+    if(mod(lsub*msub,64).ge.32)s=s+t
+    t=0.5*t
+  enddo
+  u33=s
+  uni=u97-u33
+  if(uni.lt.0.0)uni=uni+1.0
+  csub=c-cd
+  if(csub.lt.0.0)csub=csub+cm
+  uni=uni-csub
+  if(uni.lt.0.0)uni=uni+1.0
+  rand_seeded=real(uni,kind=PRC)
+
+  return
+  
+ end function rand_seeded
  
  function gauss()
  

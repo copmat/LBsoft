@@ -25,7 +25,15 @@
   ibctype,set_value_ext_force_fluids,ext_fu,ext_fv,ext_fw,lpair_SC, &
   pair_SC,set_fluid_force_sc,set_value_viscosity,set_value_tau, &
   viscR,viscB,tauR,tauB,lunique_omega,lforce_add,set_lsingle_fluid, &
-  lsingle_fluid,latt_name
+  lsingle_fluid,latt_name,set_value_bc_east,set_value_bc_west, &
+  set_value_bc_front,set_value_bc_rear,set_value_bc_north, &
+  set_value_bc_south,bc_rhoR_east,bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east,&
+  bc_type_east,bc_rhoR_west,bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west,&
+  bc_type_west,bc_rhoR_north,bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north,&
+  bc_type_north,bc_rhoR_south,bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south,&
+  bc_type_south,bc_rhoR_front,bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front,&
+  bc_type_front,bc_rhoR_rear,bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear,&
+  bc_type_rear
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery,lvtkfile
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
  use statistic_mod,         only : reprinttime,compute_statistic, &
@@ -284,6 +292,12 @@
   integer :: temp_idiagnostic=1
   integer :: temp_ivtkevery=1
   integer :: temp_nfluid=0
+  integer :: temp_bc_type_east=0
+  integer :: temp_bc_type_west=0
+  integer :: temp_bc_type_front=0
+  integer :: temp_bc_type_rear=0
+  integer :: temp_bc_type_north=0
+  integer :: temp_bc_type_south=0
   logical :: temp_ibc=.false.
   logical :: linit_seed=.false.
   logical :: temp_lpair_SC=.false.
@@ -311,6 +325,41 @@
   real(kind=PRC) :: dtemp_viscB = ZERO
   real(kind=PRC) :: dtemp_tauR = ZERO
   real(kind=PRC) :: dtemp_tauB = ZERO
+  
+  real(kind=PRC) :: dtemp_bc_rhoR_east = ZERO
+  real(kind=PRC) :: dtemp_bc_rhoR_west = ZERO
+  real(kind=PRC) :: dtemp_bc_rhoR_front= ZERO
+  real(kind=PRC) :: dtemp_bc_rhoR_rear = ZERO
+  real(kind=PRC) :: dtemp_bc_rhoR_north= ZERO
+  real(kind=PRC) :: dtemp_bc_rhoR_south= ZERO
+ 
+  real(kind=PRC) :: dtemp_bc_rhoB_east = ZERO
+  real(kind=PRC) :: dtemp_bc_rhoB_west = ZERO
+  real(kind=PRC) :: dtemp_bc_rhoB_front= ZERO
+  real(kind=PRC) :: dtemp_bc_rhoB_rear = ZERO
+  real(kind=PRC) :: dtemp_bc_rhoB_north= ZERO
+  real(kind=PRC) :: dtemp_bc_rhoB_south= ZERO
+ 
+  real(kind=PRC) :: dtemp_bc_u_east = ZERO
+  real(kind=PRC) :: dtemp_bc_u_west = ZERO
+  real(kind=PRC) :: dtemp_bc_u_front= ZERO
+  real(kind=PRC) :: dtemp_bc_u_rear = ZERO
+  real(kind=PRC) :: dtemp_bc_u_north= ZERO
+  real(kind=PRC) :: dtemp_bc_u_south= ZERO
+ 
+  real(kind=PRC) :: dtemp_bc_v_east = ZERO
+  real(kind=PRC) :: dtemp_bc_v_west = ZERO
+  real(kind=PRC) :: dtemp_bc_v_front= ZERO
+  real(kind=PRC) :: dtemp_bc_v_rear = ZERO
+  real(kind=PRC) :: dtemp_bc_v_north= ZERO
+  real(kind=PRC) :: dtemp_bc_v_south= ZERO
+ 
+  real(kind=PRC) :: dtemp_bc_w_east = ZERO
+  real(kind=PRC) :: dtemp_bc_w_west = ZERO
+  real(kind=PRC) :: dtemp_bc_w_front= ZERO
+  real(kind=PRC) :: dtemp_bc_w_rear = ZERO
+  real(kind=PRC) :: dtemp_bc_w_north= ZERO
+  real(kind=PRC) :: dtemp_bc_w_south= ZERO
   
   integer, parameter :: dimprint=36
   integer, parameter :: dimprint2=12
@@ -438,6 +487,9 @@
                 temp_ibcx=intstr(directive,maxlen,inumchar)
                 temp_ibcy=intstr(directive,maxlen,inumchar)
                 temp_ibcz=intstr(directive,maxlen,inumchar)
+              else
+                call warning(1,dble(iline),redstring)
+                call error(6)
               endif
             elseif(findstring('steps',directive,inumchar,maxlen))then
               lnstepmax=.true.
@@ -483,6 +535,100 @@
             elseif(findstring('compon',directive,inumchar,maxlen))then
               temp_nfluid=intstr(directive,maxlen,inumchar)
               temp_lnfluid=.true.
+            elseif(findstring('bound',directive,inumchar,maxlen))then
+              if(findstring('open',directive,inumchar,maxlen))then
+                if(findstring('east',directive,inumchar,maxlen))then
+                  if(findstring('type',directive,inumchar,maxlen))then
+                    temp_bc_type_east=intstr(directive,maxlen,inumchar)
+                  elseif(findstring('dens',directive,inumchar,maxlen))then
+                    dtemp_bc_rhoR_east=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_rhoB_east=dblstr(directive,maxlen,inumchar)
+                  elseif(findstring('veloc',directive,inumchar,maxlen))then
+                    dtemp_bc_u_east=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_v_east=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_w_east=dblstr(directive,maxlen,inumchar)
+                  else
+                    call warning(1,dble(iline),redstring)
+                    call error(6)
+                  endif
+                elseif(findstring('west',directive,inumchar,maxlen))then
+                  if(findstring('type',directive,inumchar,maxlen))then
+                    temp_bc_type_west=intstr(directive,maxlen,inumchar)
+                  elseif(findstring('dens',directive,inumchar,maxlen))then
+                    dtemp_bc_rhoR_west=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_rhoB_west=dblstr(directive,maxlen,inumchar)
+                  elseif(findstring('veloc',directive,inumchar,maxlen))then
+                    dtemp_bc_u_west=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_v_west=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_w_west=dblstr(directive,maxlen,inumchar)
+                  else
+                    call warning(1,dble(iline),redstring)
+                    call error(6)
+                  endif
+                elseif(findstring('front',directive,inumchar,maxlen))then
+                  if(findstring('type',directive,inumchar,maxlen))then
+                    temp_bc_type_front=intstr(directive,maxlen,inumchar)
+                  elseif(findstring('dens',directive,inumchar,maxlen))then
+                    dtemp_bc_rhoR_front=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_rhoB_front=dblstr(directive,maxlen,inumchar)
+                  elseif(findstring('veloc',directive,inumchar,maxlen))then
+                    dtemp_bc_u_front=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_v_front=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_w_front=dblstr(directive,maxlen,inumchar)
+                  else
+                    call warning(1,dble(iline),redstring)
+                    call error(6)
+                  endif
+                elseif(findstring('rear',directive,inumchar,maxlen))then
+                  if(findstring('type',directive,inumchar,maxlen))then
+                    temp_bc_type_rear=intstr(directive,maxlen,inumchar)
+                  elseif(findstring('dens',directive,inumchar,maxlen))then
+                    dtemp_bc_rhoR_rear=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_rhoB_rear=dblstr(directive,maxlen,inumchar)
+                  elseif(findstring('veloc',directive,inumchar,maxlen))then
+                    dtemp_bc_u_rear=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_v_rear=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_w_rear=dblstr(directive,maxlen,inumchar)
+                  else
+                    call warning(1,dble(iline),redstring)
+                    call error(6)
+                  endif
+                elseif(findstring('north',directive,inumchar,maxlen))then
+                  if(findstring('type',directive,inumchar,maxlen))then
+                    temp_bc_type_north=intstr(directive,maxlen,inumchar)
+                  elseif(findstring('dens',directive,inumchar,maxlen))then
+                    dtemp_bc_rhoR_north=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_rhoB_north=dblstr(directive,maxlen,inumchar)
+                  elseif(findstring('veloc',directive,inumchar,maxlen))then
+                    dtemp_bc_u_north=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_v_north=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_w_north=dblstr(directive,maxlen,inumchar)
+                  else
+                    call warning(1,dble(iline),redstring)
+                    call error(6)
+                  endif
+                elseif(findstring('south',directive,inumchar,maxlen))then
+                  if(findstring('type',directive,inumchar,maxlen))then
+                    temp_bc_type_south=intstr(directive,maxlen,inumchar)
+                  elseif(findstring('dens',directive,inumchar,maxlen))then
+                    dtemp_bc_rhoR_south=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_rhoB_south=dblstr(directive,maxlen,inumchar)
+                  elseif(findstring('veloc',directive,inumchar,maxlen))then
+                    dtemp_bc_u_south=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_v_south=dblstr(directive,maxlen,inumchar)
+                    dtemp_bc_w_south=dblstr(directive,maxlen,inumchar)
+                  else
+                    call warning(1,dble(iline),redstring)
+                    call error(6)
+                  endif
+                else
+                  call warning(1,dble(iline),redstring)
+                  call error(6)
+                endif
+              else
+                call warning(1,dble(iline),redstring)
+                call error(6)
+              endif
             elseif(findstring('dens',directive,inumchar,maxlen))then
               if(findstring('mean',directive,inumchar,maxlen))then
                 dtemp_meanR=dblstr(directive,maxlen,inumchar)
@@ -599,12 +745,15 @@
   if(.not. temp_ibc)call error(10)
   call set_boundary_conditions_type(temp_ibcx,temp_ibcy,temp_ibcz)
   ! check boundary conditions if are supported/implemented
+  ! 0 F F F
+  ! 1 T F F
+  ! 2 F T F
   ! 3 T T F
+  ! 4 F F T
   ! 5 T F T
   ! 6 F T T
   ! 7 T T T
-  if(ibctype.ne.7 .and. ibctype.ne.3 .and. ibctype.ne.5 .and. &
-   ibctype.ne.6)then
+  if(ibctype<0 .or. ibctype>7)then
     call warning(3)
     call error(9)
   endif
@@ -721,6 +870,139 @@
       mystring=repeat(' ',dimprint)
       mystring='fluid components'
       write(6,'(2a,i12)')mystring,": ",temp_nfluid
+    endif
+  endif
+  
+  call bcast_world(temp_bc_type_east)
+  call bcast_world(temp_bc_type_west)
+  call bcast_world(temp_bc_type_front)
+  call bcast_world(temp_bc_type_rear)
+  call bcast_world(temp_bc_type_north)
+  call bcast_world(temp_bc_type_south)
+  
+  if(temp_bc_type_east/=0)then
+    call bcast_world(dtemp_bc_rhoR_east)
+    call bcast_world(dtemp_bc_rhoB_east)
+    call bcast_world(dtemp_bc_u_east)
+    call bcast_world(dtemp_bc_v_east)
+    call bcast_world(dtemp_bc_w_east)
+    call set_value_bc_east(temp_bc_type_east,dtemp_bc_rhoR_east, &
+     dtemp_bc_rhoB_east,dtemp_bc_u_east,dtemp_bc_v_east,dtemp_bc_w_east)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary east'
+      write(6,'(2a,i12)')mystring,": ",bc_type_east
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary east density'
+      write(6,'(2a,2f12.6)')mystring,": ",bc_rhoR_east,bc_rhoB_east
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary east vel'
+      write(6,'(2a,3f12.6)')mystring,": ",bc_u_east,bc_v_east,bc_w_east
+    endif
+  endif
+  
+  if(temp_bc_type_west/=0)then
+    call bcast_world(dtemp_bc_rhoR_west)
+    call bcast_world(dtemp_bc_rhoB_west)
+    call bcast_world(dtemp_bc_u_west)
+    call bcast_world(dtemp_bc_v_west)
+    call bcast_world(dtemp_bc_w_west)
+    call set_value_bc_west(temp_bc_type_west,dtemp_bc_rhoR_west, &
+     dtemp_bc_rhoB_west,dtemp_bc_u_west,dtemp_bc_v_west,dtemp_bc_w_west)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary west'
+      write(6,'(2a,i12)')mystring,": ",bc_type_west
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary west density'
+      write(6,'(2a,2f12.6)')mystring,": ",bc_rhoR_west,bc_rhoB_west
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary west vel'
+      write(6,'(2a,3f12.6)')mystring,": ",bc_u_west,bc_v_west,bc_w_west
+    endif
+  endif
+  
+  if(temp_bc_type_front/=0)then
+    call bcast_world(dtemp_bc_rhoR_front)
+    call bcast_world(dtemp_bc_rhoB_front)
+    call bcast_world(dtemp_bc_u_front)
+    call bcast_world(dtemp_bc_v_front)
+    call bcast_world(dtemp_bc_w_front)
+    call set_value_bc_front(temp_bc_type_front,dtemp_bc_rhoR_front, &
+     dtemp_bc_rhoB_front,dtemp_bc_u_front,dtemp_bc_v_front,dtemp_bc_w_front)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary front'
+      write(6,'(2a,i12)')mystring,": ",bc_type_front
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary front density'
+      write(6,'(2a,2f12.6)')mystring,": ",bc_rhoR_front,bc_rhoB_front
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary front vel'
+      write(6,'(2a,3f12.6)')mystring,": ",bc_u_front,bc_v_front,bc_w_front
+    endif
+  endif
+  
+  if(temp_bc_type_rear/=0)then
+    call bcast_world(dtemp_bc_rhoR_rear)
+    call bcast_world(dtemp_bc_rhoB_rear)
+    call bcast_world(dtemp_bc_u_rear)
+    call bcast_world(dtemp_bc_v_rear)
+    call bcast_world(dtemp_bc_w_rear)
+    call set_value_bc_rear(temp_bc_type_rear,dtemp_bc_rhoR_rear, &
+     dtemp_bc_rhoB_rear,dtemp_bc_u_rear,dtemp_bc_v_rear,dtemp_bc_w_rear)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary rear'
+      write(6,'(2a,i12)')mystring,": ",bc_type_rear
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary rear density'
+      write(6,'(2a,2f12.6)')mystring,": ",bc_rhoR_rear,bc_rhoB_rear
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary rear vel'
+      write(6,'(2a,3f12.6)')mystring,": ",bc_u_rear,bc_v_rear,bc_w_rear
+    endif
+  endif
+  
+  if(temp_bc_type_north/=0)then
+    call bcast_world(dtemp_bc_rhoR_north)
+    call bcast_world(dtemp_bc_rhoB_north)
+    call bcast_world(dtemp_bc_u_north)
+    call bcast_world(dtemp_bc_v_north)
+    call bcast_world(dtemp_bc_w_north)
+    call set_value_bc_north(temp_bc_type_north,dtemp_bc_rhoR_north, &
+     dtemp_bc_rhoB_north,dtemp_bc_u_north,dtemp_bc_v_north,dtemp_bc_w_north)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary north'
+      write(6,'(2a,i12)')mystring,": ",bc_type_north
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary north density'
+      write(6,'(2a,2f12.6)')mystring,": ",bc_rhoR_north,bc_rhoB_north
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary north vel'
+      write(6,'(2a,3f12.6)')mystring,": ",bc_u_north,bc_v_north,bc_w_north
+    endif
+  endif
+  
+  if(temp_bc_type_south/=0)then
+    call bcast_world(dtemp_bc_rhoR_south)
+    call bcast_world(dtemp_bc_rhoB_south)
+    call bcast_world(dtemp_bc_u_south)
+    call bcast_world(dtemp_bc_v_south)
+    call bcast_world(dtemp_bc_w_south)
+    call set_value_bc_south(temp_bc_type_south,dtemp_bc_rhoR_south, &
+     dtemp_bc_rhoB_south,dtemp_bc_u_south,dtemp_bc_v_south,dtemp_bc_w_south)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary south'
+      write(6,'(2a,i12)')mystring,": ",bc_type_south
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary south density'
+      write(6,'(2a,2f12.6)')mystring,": ",bc_rhoR_south,bc_rhoB_south
+      mystring=repeat(' ',dimprint)
+      mystring='open boundary south vel'
+      write(6,'(2a,3f12.6)')mystring,": ",bc_u_south,bc_v_south,bc_w_south
     endif
   endif
   
