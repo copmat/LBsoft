@@ -1,0 +1,25 @@
+[ROOM SYSTEM]
+box 64 64 2
+steps 5000
+print vtk 10
+diagnostic yes
+boundary condition 1 0 1
+seed 1264
+print list maxd1 mind1 maxvx maxvy maxvz cpue cpur
+print every 10
+job time 4 d
+close time 10 s
+[END ROOM]
+[ROOM LB]
+components 1
+density gaussian
+density mean 1.0 1.0
+density stdev 1.d-4 1.d-4
+velocity mean 0.d0 0.d0 0.d0
+boundary open front type 2
+boundary open front velocity 0.01 0.0 0.0
+boundary open rear type 2
+boundary open rear velocity -0.01 0.0 0.0
+fluid tau 1.d0 1.d0
+[END ROOM]
+[END]

@@ -172,16 +172,15 @@
   if(ldiagnostic)call start_timing2("LB","driver_bc_pops")
   call driver_bc_pops
   if(ldiagnostic)call end_timing2("LB","driver_bc_pops")
-  !f08R(1,1,1)=0.666
-  !write(6,*)f08R(1,1,1),f08R(0,0,1)
+  
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
   call streaming_fluids
   if(ldiagnostic)call end_timing2("LB","streaming_fluids")
-  !write(6,*)f08R(1,1,1),f08R(0,0,1)
+  
   if(ldiagnostic)call start_timing2("LB","apply_bounceback_pop")
   call driver_apply_bounceback_pop
   if(ldiagnostic)call end_timing2("LB","apply_bounceback_pop")
-  !write(6,*)f08R(1,1,1),f08R(0,0,1),f07R(0,0,1)
+
   
   mytime = new_time
   
