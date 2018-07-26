@@ -177,10 +177,6 @@
  
 #endif 
 
-
-
-#if LATTICE==319
-
  real(kind=PRC), save, public, allocatable, dimension(:,:,:) :: & 
   f00R,f01R,f02R,f03R,f04R,f05R,f06R,f07R,f08R
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: &
@@ -190,8 +186,6 @@
   f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: &
   f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B
-
-#endif
  
  public :: set_random_dens_fluids
  public :: set_initial_dens_fluids
@@ -5717,19 +5711,19 @@ subroutine driver_bc_densities
   case(0) ! 0 0 0
     return
   case(1) ! 1 0 0 
-    call apply_pbc_pops_along_x
+    call driver_pbc_pops_along_x
   case(2) ! 0 1 0 
-    call apply_pbc_pops_along_y
+    call driver_pbc_pops_along_y
   case(3) ! 1 1 0 
-    call apply_pbc_pops_along_xy
+    call driver_pbc_pops_along_xy
   case(4) ! 0 0 2 
-    call apply_pbc_pops_along_z
+    call driver_pbc_pops_along_z
   case(5) ! 1 0 1 
-    call apply_pbc_pops_along_xz
+    call driver_pbc_pops_along_xz
   case(6) ! 0 1 1 
-    call apply_pbc_pops_along_yz
+    call driver_pbc_pops_along_yz
   case(7) ! 1 1 1
-    call apply_pbc_pops
+    call driver_pbc_pops
   case default
     call error(12)
   end select
@@ -5738,7 +5732,36 @@ subroutine driver_bc_densities
   
  end subroutine driver_bc_pops
  
- subroutine apply_pbc_pops 
+ subroutine driver_pbc_pops 
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the full periodic boundary 
+!     conditions to fluid populations
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+
+  implicit none
+ 
+  call apply_pbc_pops(f00R,f01R,f02R,f03R,f04R,f05R,f06R,f07R,f08R, &
+   f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R) 
+  
+  if(lsingle_fluid)return
+ 
+  call apply_pbc_pops(f00B,f01B,f02B,f03B,f04B,f05B,f06B,f07B,f08B, &
+   f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+   
+  return
+  
+ end subroutine driver_pbc_pops
+ 
+ subroutine apply_pbc_pops(f00sub,f01sub,f02sub,f03sub,f04sub,f05sub, &
+  f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub,f14sub, &
+  f15sub,f16sub,f17sub,f18sub) 
  
 !***********************************************************************
 !     
@@ -5753,1170 +5776,622 @@ subroutine driver_bc_densities
  
   implicit none
   
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: f00sub,f01sub, &
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  
   !sides 6
   
   !apply pbc at north 1 !z
   !red fluid
-  call apply_pbc_north(f00R)
-  call apply_pbc_north(f01R)
-  call apply_pbc_north(f02R)
-  call apply_pbc_north(f03R)
-  call apply_pbc_north(f04R)
-  call apply_pbc_north(f05R)
-  call apply_pbc_north(f06R)
-  call apply_pbc_north(f07R)
-  call apply_pbc_north(f08R)
-  call apply_pbc_north(f09R)
-  call apply_pbc_north(f10R)
-  call apply_pbc_north(f11R)
-  call apply_pbc_north(f12R)
-  call apply_pbc_north(f13R)
-  call apply_pbc_north(f14R)
-  call apply_pbc_north(f15R)
-  call apply_pbc_north(f16R)
-  call apply_pbc_north(f17R)
-  call apply_pbc_north(f18R)
+  call apply_pbc_north(f00sub)
+  call apply_pbc_north(f01sub)
+  call apply_pbc_north(f02sub)
+  call apply_pbc_north(f03sub)
+  call apply_pbc_north(f04sub)
+  call apply_pbc_north(f05sub)
+  call apply_pbc_north(f06sub)
+  call apply_pbc_north(f07sub)
+  call apply_pbc_north(f08sub)
+  call apply_pbc_north(f09sub)
+  call apply_pbc_north(f10sub)
+  call apply_pbc_north(f11sub)
+  call apply_pbc_north(f12sub)
+  call apply_pbc_north(f13sub)
+  call apply_pbc_north(f14sub)
+  call apply_pbc_north(f15sub)
+  call apply_pbc_north(f16sub)
+  call apply_pbc_north(f17sub)
+  call apply_pbc_north(f18sub)
   
   !apply pbc at south 2 !z
   !red fluid
-  call apply_pbc_south(f00R)
-  call apply_pbc_south(f01R)
-  call apply_pbc_south(f02R)
-  call apply_pbc_south(f03R)
-  call apply_pbc_south(f04R)
-  call apply_pbc_south(f05R)
-  call apply_pbc_south(f06R)
-  call apply_pbc_south(f07R)
-  call apply_pbc_south(f08R)
-  call apply_pbc_south(f09R)
-  call apply_pbc_south(f10R)
-  call apply_pbc_south(f11R)
-  call apply_pbc_south(f12R)
-  call apply_pbc_south(f13R)
-  call apply_pbc_south(f14R)
-  call apply_pbc_south(f15R)
-  call apply_pbc_south(f16R)
-  call apply_pbc_south(f17R)
-  call apply_pbc_south(f18R)
+  call apply_pbc_south(f00sub)
+  call apply_pbc_south(f01sub)
+  call apply_pbc_south(f02sub)
+  call apply_pbc_south(f03sub)
+  call apply_pbc_south(f04sub)
+  call apply_pbc_south(f05sub)
+  call apply_pbc_south(f06sub)
+  call apply_pbc_south(f07sub)
+  call apply_pbc_south(f08sub)
+  call apply_pbc_south(f09sub)
+  call apply_pbc_south(f10sub)
+  call apply_pbc_south(f11sub)
+  call apply_pbc_south(f12sub)
+  call apply_pbc_south(f13sub)
+  call apply_pbc_south(f14sub)
+  call apply_pbc_south(f15sub)
+  call apply_pbc_south(f16sub)
+  call apply_pbc_south(f17sub)
+  call apply_pbc_south(f18sub)
   
   !apply pbc at east 3 !x
   !red fluid
-  call apply_pbc_east(f00R)
-  call apply_pbc_east(f01R)
-  call apply_pbc_east(f02R)
-  call apply_pbc_east(f03R)
-  call apply_pbc_east(f04R)
-  call apply_pbc_east(f05R)
-  call apply_pbc_east(f06R)
-  call apply_pbc_east(f07R)
-  call apply_pbc_east(f08R)
-  call apply_pbc_east(f09R)
-  call apply_pbc_east(f10R)
-  call apply_pbc_east(f11R)
-  call apply_pbc_east(f12R)
-  call apply_pbc_east(f13R)
-  call apply_pbc_east(f14R)
-  call apply_pbc_east(f15R)
-  call apply_pbc_east(f16R)
-  call apply_pbc_east(f17R)
-  call apply_pbc_east(f18R)
+  call apply_pbc_east(f00sub)
+  call apply_pbc_east(f01sub)
+  call apply_pbc_east(f02sub)
+  call apply_pbc_east(f03sub)
+  call apply_pbc_east(f04sub)
+  call apply_pbc_east(f05sub)
+  call apply_pbc_east(f06sub)
+  call apply_pbc_east(f07sub)
+  call apply_pbc_east(f08sub)
+  call apply_pbc_east(f09sub)
+  call apply_pbc_east(f10sub)
+  call apply_pbc_east(f11sub)
+  call apply_pbc_east(f12sub)
+  call apply_pbc_east(f13sub)
+  call apply_pbc_east(f14sub)
+  call apply_pbc_east(f15sub)
+  call apply_pbc_east(f16sub)
+  call apply_pbc_east(f17sub)
+  call apply_pbc_east(f18sub)
   
   !apply pbc at west 4 !x
   !red fluid
-  call apply_pbc_west(f00R)
-  call apply_pbc_west(f01R)
-  call apply_pbc_west(f02R)
-  call apply_pbc_west(f03R)
-  call apply_pbc_west(f04R)
-  call apply_pbc_west(f05R)
-  call apply_pbc_west(f06R)
-  call apply_pbc_west(f07R)
-  call apply_pbc_west(f08R)
-  call apply_pbc_west(f09R)
-  call apply_pbc_west(f10R)
-  call apply_pbc_west(f11R)
-  call apply_pbc_west(f12R)
-  call apply_pbc_west(f13R)
-  call apply_pbc_west(f14R)
-  call apply_pbc_west(f15R)
-  call apply_pbc_west(f16R)
-  call apply_pbc_west(f17R)
-  call apply_pbc_west(f18R)
+  call apply_pbc_west(f00sub)
+  call apply_pbc_west(f01sub)
+  call apply_pbc_west(f02sub)
+  call apply_pbc_west(f03sub)
+  call apply_pbc_west(f04sub)
+  call apply_pbc_west(f05sub)
+  call apply_pbc_west(f06sub)
+  call apply_pbc_west(f07sub)
+  call apply_pbc_west(f08sub)
+  call apply_pbc_west(f09sub)
+  call apply_pbc_west(f10sub)
+  call apply_pbc_west(f11sub)
+  call apply_pbc_west(f12sub)
+  call apply_pbc_west(f13sub)
+  call apply_pbc_west(f14sub)
+  call apply_pbc_west(f15sub)
+  call apply_pbc_west(f16sub)
+  call apply_pbc_west(f17sub)
+  call apply_pbc_west(f18sub)
   
   !apply pbc at front 5 !y
   !red fluid
-  call apply_pbc_front(f00R)
-  call apply_pbc_front(f01R)
-  call apply_pbc_front(f02R)
-  call apply_pbc_front(f03R)
-  call apply_pbc_front(f04R)
-  call apply_pbc_front(f05R)
-  call apply_pbc_front(f06R)
-  call apply_pbc_front(f07R)
-  call apply_pbc_front(f08R)
-  call apply_pbc_front(f09R)
-  call apply_pbc_front(f10R)
-  call apply_pbc_front(f11R)
-  call apply_pbc_front(f12R)
-  call apply_pbc_front(f13R)
-  call apply_pbc_front(f14R)
-  call apply_pbc_front(f15R)
-  call apply_pbc_front(f16R)
-  call apply_pbc_front(f17R)
-  call apply_pbc_front(f18R)
+  call apply_pbc_front(f00sub)
+  call apply_pbc_front(f01sub)
+  call apply_pbc_front(f02sub)
+  call apply_pbc_front(f03sub)
+  call apply_pbc_front(f04sub)
+  call apply_pbc_front(f05sub)
+  call apply_pbc_front(f06sub)
+  call apply_pbc_front(f07sub)
+  call apply_pbc_front(f08sub)
+  call apply_pbc_front(f09sub)
+  call apply_pbc_front(f10sub)
+  call apply_pbc_front(f11sub)
+  call apply_pbc_front(f12sub)
+  call apply_pbc_front(f13sub)
+  call apply_pbc_front(f14sub)
+  call apply_pbc_front(f15sub)
+  call apply_pbc_front(f16sub)
+  call apply_pbc_front(f17sub)
+  call apply_pbc_front(f18sub)
   
   !apply pbc at rear 6 !y
   !red fluid
-  call apply_pbc_rear(f00R)
-  call apply_pbc_rear(f01R)
-  call apply_pbc_rear(f02R)
-  call apply_pbc_rear(f03R)
-  call apply_pbc_rear(f04R)
-  call apply_pbc_rear(f05R)
-  call apply_pbc_rear(f06R)
-  call apply_pbc_rear(f07R)
-  call apply_pbc_rear(f08R)
-  call apply_pbc_rear(f09R)
-  call apply_pbc_rear(f10R)
-  call apply_pbc_rear(f11R)
-  call apply_pbc_rear(f12R)
-  call apply_pbc_rear(f13R)
-  call apply_pbc_rear(f14R)
-  call apply_pbc_rear(f15R)
-  call apply_pbc_rear(f16R)
-  call apply_pbc_rear(f17R)
-  call apply_pbc_rear(f18R)
+  call apply_pbc_rear(f00sub)
+  call apply_pbc_rear(f01sub)
+  call apply_pbc_rear(f02sub)
+  call apply_pbc_rear(f03sub)
+  call apply_pbc_rear(f04sub)
+  call apply_pbc_rear(f05sub)
+  call apply_pbc_rear(f06sub)
+  call apply_pbc_rear(f07sub)
+  call apply_pbc_rear(f08sub)
+  call apply_pbc_rear(f09sub)
+  call apply_pbc_rear(f10sub)
+  call apply_pbc_rear(f11sub)
+  call apply_pbc_rear(f12sub)
+  call apply_pbc_rear(f13sub)
+  call apply_pbc_rear(f14sub)
+  call apply_pbc_rear(f15sub)
+  call apply_pbc_rear(f16sub)
+  call apply_pbc_rear(f17sub)
+  call apply_pbc_rear(f18sub)
   
   !edges 12
   
   !apply pbc at front east 1 !xy
   !red fluid
-  call apply_pbc_edge_front_east(f00R)
-  call apply_pbc_edge_front_east(f01R)
-  call apply_pbc_edge_front_east(f02R)
-  call apply_pbc_edge_front_east(f03R)
-  call apply_pbc_edge_front_east(f04R)
-  call apply_pbc_edge_front_east(f05R)
-  call apply_pbc_edge_front_east(f06R)
-  call apply_pbc_edge_front_east(f07R)
-  call apply_pbc_edge_front_east(f08R)
-  call apply_pbc_edge_front_east(f09R)
-  call apply_pbc_edge_front_east(f10R)
-  call apply_pbc_edge_front_east(f11R)
-  call apply_pbc_edge_front_east(f12R)
-  call apply_pbc_edge_front_east(f13R)
-  call apply_pbc_edge_front_east(f14R)
-  call apply_pbc_edge_front_east(f15R)
-  call apply_pbc_edge_front_east(f16R)
-  call apply_pbc_edge_front_east(f17R)
-  call apply_pbc_edge_front_east(f18R)
+  call apply_pbc_edge_front_east(f00sub)
+  call apply_pbc_edge_front_east(f01sub)
+  call apply_pbc_edge_front_east(f02sub)
+  call apply_pbc_edge_front_east(f03sub)
+  call apply_pbc_edge_front_east(f04sub)
+  call apply_pbc_edge_front_east(f05sub)
+  call apply_pbc_edge_front_east(f06sub)
+  call apply_pbc_edge_front_east(f07sub)
+  call apply_pbc_edge_front_east(f08sub)
+  call apply_pbc_edge_front_east(f09sub)
+  call apply_pbc_edge_front_east(f10sub)
+  call apply_pbc_edge_front_east(f11sub)
+  call apply_pbc_edge_front_east(f12sub)
+  call apply_pbc_edge_front_east(f13sub)
+  call apply_pbc_edge_front_east(f14sub)
+  call apply_pbc_edge_front_east(f15sub)
+  call apply_pbc_edge_front_east(f16sub)
+  call apply_pbc_edge_front_east(f17sub)
+  call apply_pbc_edge_front_east(f18sub)
   
   !apply pbc at front west 2 !xy
   !red fluid
-  call apply_pbc_edge_front_west(f00R)
-  call apply_pbc_edge_front_west(f01R)
-  call apply_pbc_edge_front_west(f02R)
-  call apply_pbc_edge_front_west(f03R)
-  call apply_pbc_edge_front_west(f04R)
-  call apply_pbc_edge_front_west(f05R)
-  call apply_pbc_edge_front_west(f06R)
-  call apply_pbc_edge_front_west(f07R)
-  call apply_pbc_edge_front_west(f08R)
-  call apply_pbc_edge_front_west(f09R)
-  call apply_pbc_edge_front_west(f10R)
-  call apply_pbc_edge_front_west(f11R)
-  call apply_pbc_edge_front_west(f12R)
-  call apply_pbc_edge_front_west(f13R)
-  call apply_pbc_edge_front_west(f14R)
-  call apply_pbc_edge_front_west(f15R)
-  call apply_pbc_edge_front_west(f16R)
-  call apply_pbc_edge_front_west(f17R)
-  call apply_pbc_edge_front_west(f18R)
+  call apply_pbc_edge_front_west(f00sub)
+  call apply_pbc_edge_front_west(f01sub)
+  call apply_pbc_edge_front_west(f02sub)
+  call apply_pbc_edge_front_west(f03sub)
+  call apply_pbc_edge_front_west(f04sub)
+  call apply_pbc_edge_front_west(f05sub)
+  call apply_pbc_edge_front_west(f06sub)
+  call apply_pbc_edge_front_west(f07sub)
+  call apply_pbc_edge_front_west(f08sub)
+  call apply_pbc_edge_front_west(f09sub)
+  call apply_pbc_edge_front_west(f10sub)
+  call apply_pbc_edge_front_west(f11sub)
+  call apply_pbc_edge_front_west(f12sub)
+  call apply_pbc_edge_front_west(f13sub)
+  call apply_pbc_edge_front_west(f14sub)
+  call apply_pbc_edge_front_west(f15sub)
+  call apply_pbc_edge_front_west(f16sub)
+  call apply_pbc_edge_front_west(f17sub)
+  call apply_pbc_edge_front_west(f18sub)
   
   !apply pbc at north east 3 !xz
   !red fluid
-  call apply_pbc_edge_north_east(f00R)
-  call apply_pbc_edge_north_east(f01R)
-  call apply_pbc_edge_north_east(f02R)
-  call apply_pbc_edge_north_east(f03R)
-  call apply_pbc_edge_north_east(f04R)
-  call apply_pbc_edge_north_east(f05R)
-  call apply_pbc_edge_north_east(f06R)
-  call apply_pbc_edge_north_east(f07R)
-  call apply_pbc_edge_north_east(f08R)
-  call apply_pbc_edge_north_east(f09R)
-  call apply_pbc_edge_north_east(f10R)
-  call apply_pbc_edge_north_east(f11R)
-  call apply_pbc_edge_north_east(f12R)
-  call apply_pbc_edge_north_east(f13R)
-  call apply_pbc_edge_north_east(f14R)
-  call apply_pbc_edge_north_east(f15R)
-  call apply_pbc_edge_north_east(f16R)
-  call apply_pbc_edge_north_east(f17R)
-  call apply_pbc_edge_north_east(f18R)
+  call apply_pbc_edge_north_east(f00sub)
+  call apply_pbc_edge_north_east(f01sub)
+  call apply_pbc_edge_north_east(f02sub)
+  call apply_pbc_edge_north_east(f03sub)
+  call apply_pbc_edge_north_east(f04sub)
+  call apply_pbc_edge_north_east(f05sub)
+  call apply_pbc_edge_north_east(f06sub)
+  call apply_pbc_edge_north_east(f07sub)
+  call apply_pbc_edge_north_east(f08sub)
+  call apply_pbc_edge_north_east(f09sub)
+  call apply_pbc_edge_north_east(f10sub)
+  call apply_pbc_edge_north_east(f11sub)
+  call apply_pbc_edge_north_east(f12sub)
+  call apply_pbc_edge_north_east(f13sub)
+  call apply_pbc_edge_north_east(f14sub)
+  call apply_pbc_edge_north_east(f15sub)
+  call apply_pbc_edge_north_east(f16sub)
+  call apply_pbc_edge_north_east(f17sub)
+  call apply_pbc_edge_north_east(f18sub)
   
   !apply pbc at north front 4 !yz
   !red fluid
-  call apply_pbc_edge_north_front(f00R)
-  call apply_pbc_edge_north_front(f01R)
-  call apply_pbc_edge_north_front(f02R)
-  call apply_pbc_edge_north_front(f03R)
-  call apply_pbc_edge_north_front(f04R)
-  call apply_pbc_edge_north_front(f05R)
-  call apply_pbc_edge_north_front(f06R)
-  call apply_pbc_edge_north_front(f07R)
-  call apply_pbc_edge_north_front(f08R)
-  call apply_pbc_edge_north_front(f09R)
-  call apply_pbc_edge_north_front(f10R)
-  call apply_pbc_edge_north_front(f11R)
-  call apply_pbc_edge_north_front(f12R)
-  call apply_pbc_edge_north_front(f13R)
-  call apply_pbc_edge_north_front(f14R)
-  call apply_pbc_edge_north_front(f15R)
-  call apply_pbc_edge_north_front(f16R)
-  call apply_pbc_edge_north_front(f17R)
-  call apply_pbc_edge_north_front(f18R)
+  call apply_pbc_edge_north_front(f00sub)
+  call apply_pbc_edge_north_front(f01sub)
+  call apply_pbc_edge_north_front(f02sub)
+  call apply_pbc_edge_north_front(f03sub)
+  call apply_pbc_edge_north_front(f04sub)
+  call apply_pbc_edge_north_front(f05sub)
+  call apply_pbc_edge_north_front(f06sub)
+  call apply_pbc_edge_north_front(f07sub)
+  call apply_pbc_edge_north_front(f08sub)
+  call apply_pbc_edge_north_front(f09sub)
+  call apply_pbc_edge_north_front(f10sub)
+  call apply_pbc_edge_north_front(f11sub)
+  call apply_pbc_edge_north_front(f12sub)
+  call apply_pbc_edge_north_front(f13sub)
+  call apply_pbc_edge_north_front(f14sub)
+  call apply_pbc_edge_north_front(f15sub)
+  call apply_pbc_edge_north_front(f16sub)
+  call apply_pbc_edge_north_front(f17sub)
+  call apply_pbc_edge_north_front(f18sub)
   
   !apply pbc at north rear 5 !yz
   !red fluid
-  call apply_pbc_edge_north_rear(f00R)
-  call apply_pbc_edge_north_rear(f01R)
-  call apply_pbc_edge_north_rear(f02R)
-  call apply_pbc_edge_north_rear(f03R)
-  call apply_pbc_edge_north_rear(f04R)
-  call apply_pbc_edge_north_rear(f05R)
-  call apply_pbc_edge_north_rear(f06R)
-  call apply_pbc_edge_north_rear(f07R)
-  call apply_pbc_edge_north_rear(f08R)
-  call apply_pbc_edge_north_rear(f09R)
-  call apply_pbc_edge_north_rear(f10R)
-  call apply_pbc_edge_north_rear(f11R)
-  call apply_pbc_edge_north_rear(f12R)
-  call apply_pbc_edge_north_rear(f13R)
-  call apply_pbc_edge_north_rear(f14R)
-  call apply_pbc_edge_north_rear(f15R)
-  call apply_pbc_edge_north_rear(f16R)
-  call apply_pbc_edge_north_rear(f17R)
-  call apply_pbc_edge_north_rear(f18R)
+  call apply_pbc_edge_north_rear(f00sub)
+  call apply_pbc_edge_north_rear(f01sub)
+  call apply_pbc_edge_north_rear(f02sub)
+  call apply_pbc_edge_north_rear(f03sub)
+  call apply_pbc_edge_north_rear(f04sub)
+  call apply_pbc_edge_north_rear(f05sub)
+  call apply_pbc_edge_north_rear(f06sub)
+  call apply_pbc_edge_north_rear(f07sub)
+  call apply_pbc_edge_north_rear(f08sub)
+  call apply_pbc_edge_north_rear(f09sub)
+  call apply_pbc_edge_north_rear(f10sub)
+  call apply_pbc_edge_north_rear(f11sub)
+  call apply_pbc_edge_north_rear(f12sub)
+  call apply_pbc_edge_north_rear(f13sub)
+  call apply_pbc_edge_north_rear(f14sub)
+  call apply_pbc_edge_north_rear(f15sub)
+  call apply_pbc_edge_north_rear(f16sub)
+  call apply_pbc_edge_north_rear(f17sub)
+  call apply_pbc_edge_north_rear(f18sub)
   
   !apply pbc at north west 6 !xz
   !red fluid
-  call apply_pbc_edge_north_west(f00R)
-  call apply_pbc_edge_north_west(f01R)
-  call apply_pbc_edge_north_west(f02R)
-  call apply_pbc_edge_north_west(f03R)
-  call apply_pbc_edge_north_west(f04R)
-  call apply_pbc_edge_north_west(f05R)
-  call apply_pbc_edge_north_west(f06R)
-  call apply_pbc_edge_north_west(f07R)
-  call apply_pbc_edge_north_west(f08R)
-  call apply_pbc_edge_north_west(f09R)
-  call apply_pbc_edge_north_west(f10R)
-  call apply_pbc_edge_north_west(f11R)
-  call apply_pbc_edge_north_west(f12R)
-  call apply_pbc_edge_north_west(f13R)
-  call apply_pbc_edge_north_west(f14R)
-  call apply_pbc_edge_north_west(f15R)
-  call apply_pbc_edge_north_west(f16R)
-  call apply_pbc_edge_north_west(f17R)
-  call apply_pbc_edge_north_west(f18R)
+  call apply_pbc_edge_north_west(f00sub)
+  call apply_pbc_edge_north_west(f01sub)
+  call apply_pbc_edge_north_west(f02sub)
+  call apply_pbc_edge_north_west(f03sub)
+  call apply_pbc_edge_north_west(f04sub)
+  call apply_pbc_edge_north_west(f05sub)
+  call apply_pbc_edge_north_west(f06sub)
+  call apply_pbc_edge_north_west(f07sub)
+  call apply_pbc_edge_north_west(f08sub)
+  call apply_pbc_edge_north_west(f09sub)
+  call apply_pbc_edge_north_west(f10sub)
+  call apply_pbc_edge_north_west(f11sub)
+  call apply_pbc_edge_north_west(f12sub)
+  call apply_pbc_edge_north_west(f13sub)
+  call apply_pbc_edge_north_west(f14sub)
+  call apply_pbc_edge_north_west(f15sub)
+  call apply_pbc_edge_north_west(f16sub)
+  call apply_pbc_edge_north_west(f17sub)
+  call apply_pbc_edge_north_west(f18sub)
   
   !apply pbc at rear east 7 !xy
   !red fluid
-  call apply_pbc_edge_rear_east(f00R)
-  call apply_pbc_edge_rear_east(f01R)
-  call apply_pbc_edge_rear_east(f02R)
-  call apply_pbc_edge_rear_east(f03R)
-  call apply_pbc_edge_rear_east(f04R)
-  call apply_pbc_edge_rear_east(f05R)
-  call apply_pbc_edge_rear_east(f06R)
-  call apply_pbc_edge_rear_east(f07R)
-  call apply_pbc_edge_rear_east(f08R)
-  call apply_pbc_edge_rear_east(f09R)
-  call apply_pbc_edge_rear_east(f10R)
-  call apply_pbc_edge_rear_east(f11R)
-  call apply_pbc_edge_rear_east(f12R)
-  call apply_pbc_edge_rear_east(f13R)
-  call apply_pbc_edge_rear_east(f14R)
-  call apply_pbc_edge_rear_east(f15R)
-  call apply_pbc_edge_rear_east(f16R)
-  call apply_pbc_edge_rear_east(f17R)
-  call apply_pbc_edge_rear_east(f18R)
+  call apply_pbc_edge_rear_east(f00sub)
+  call apply_pbc_edge_rear_east(f01sub)
+  call apply_pbc_edge_rear_east(f02sub)
+  call apply_pbc_edge_rear_east(f03sub)
+  call apply_pbc_edge_rear_east(f04sub)
+  call apply_pbc_edge_rear_east(f05sub)
+  call apply_pbc_edge_rear_east(f06sub)
+  call apply_pbc_edge_rear_east(f07sub)
+  call apply_pbc_edge_rear_east(f08sub)
+  call apply_pbc_edge_rear_east(f09sub)
+  call apply_pbc_edge_rear_east(f10sub)
+  call apply_pbc_edge_rear_east(f11sub)
+  call apply_pbc_edge_rear_east(f12sub)
+  call apply_pbc_edge_rear_east(f13sub)
+  call apply_pbc_edge_rear_east(f14sub)
+  call apply_pbc_edge_rear_east(f15sub)
+  call apply_pbc_edge_rear_east(f16sub)
+  call apply_pbc_edge_rear_east(f17sub)
+  call apply_pbc_edge_rear_east(f18sub)
   
   !apply pbc at rear west 8 !xy
   !red fluid
-  call apply_pbc_edge_rear_west(f00R)
-  call apply_pbc_edge_rear_west(f01R)
-  call apply_pbc_edge_rear_west(f02R)
-  call apply_pbc_edge_rear_west(f03R)
-  call apply_pbc_edge_rear_west(f04R)
-  call apply_pbc_edge_rear_west(f05R)
-  call apply_pbc_edge_rear_west(f06R)
-  call apply_pbc_edge_rear_west(f07R)
-  call apply_pbc_edge_rear_west(f08R)
-  call apply_pbc_edge_rear_west(f09R)
-  call apply_pbc_edge_rear_west(f10R)
-  call apply_pbc_edge_rear_west(f11R)
-  call apply_pbc_edge_rear_west(f12R)
-  call apply_pbc_edge_rear_west(f13R)
-  call apply_pbc_edge_rear_west(f14R)
-  call apply_pbc_edge_rear_west(f15R)
-  call apply_pbc_edge_rear_west(f16R)
-  call apply_pbc_edge_rear_west(f17R)
-  call apply_pbc_edge_rear_west(f18R)
+  call apply_pbc_edge_rear_west(f00sub)
+  call apply_pbc_edge_rear_west(f01sub)
+  call apply_pbc_edge_rear_west(f02sub)
+  call apply_pbc_edge_rear_west(f03sub)
+  call apply_pbc_edge_rear_west(f04sub)
+  call apply_pbc_edge_rear_west(f05sub)
+  call apply_pbc_edge_rear_west(f06sub)
+  call apply_pbc_edge_rear_west(f07sub)
+  call apply_pbc_edge_rear_west(f08sub)
+  call apply_pbc_edge_rear_west(f09sub)
+  call apply_pbc_edge_rear_west(f10sub)
+  call apply_pbc_edge_rear_west(f11sub)
+  call apply_pbc_edge_rear_west(f12sub)
+  call apply_pbc_edge_rear_west(f13sub)
+  call apply_pbc_edge_rear_west(f14sub)
+  call apply_pbc_edge_rear_west(f15sub)
+  call apply_pbc_edge_rear_west(f16sub)
+  call apply_pbc_edge_rear_west(f17sub)
+  call apply_pbc_edge_rear_west(f18sub)
   
   !apply pbc at south east 9 !xz
   !red fluid
-  call apply_pbc_edge_south_east(f00R)
-  call apply_pbc_edge_south_east(f01R)
-  call apply_pbc_edge_south_east(f02R)
-  call apply_pbc_edge_south_east(f03R)
-  call apply_pbc_edge_south_east(f04R)
-  call apply_pbc_edge_south_east(f05R)
-  call apply_pbc_edge_south_east(f06R)
-  call apply_pbc_edge_south_east(f07R)
-  call apply_pbc_edge_south_east(f08R)
-  call apply_pbc_edge_south_east(f09R)
-  call apply_pbc_edge_south_east(f10R)
-  call apply_pbc_edge_south_east(f11R)
-  call apply_pbc_edge_south_east(f12R)
-  call apply_pbc_edge_south_east(f13R)
-  call apply_pbc_edge_south_east(f14R)
-  call apply_pbc_edge_south_east(f15R)
-  call apply_pbc_edge_south_east(f16R)
-  call apply_pbc_edge_south_east(f17R)
-  call apply_pbc_edge_south_east(f18R)
+  call apply_pbc_edge_south_east(f00sub)
+  call apply_pbc_edge_south_east(f01sub)
+  call apply_pbc_edge_south_east(f02sub)
+  call apply_pbc_edge_south_east(f03sub)
+  call apply_pbc_edge_south_east(f04sub)
+  call apply_pbc_edge_south_east(f05sub)
+  call apply_pbc_edge_south_east(f06sub)
+  call apply_pbc_edge_south_east(f07sub)
+  call apply_pbc_edge_south_east(f08sub)
+  call apply_pbc_edge_south_east(f09sub)
+  call apply_pbc_edge_south_east(f10sub)
+  call apply_pbc_edge_south_east(f11sub)
+  call apply_pbc_edge_south_east(f12sub)
+  call apply_pbc_edge_south_east(f13sub)
+  call apply_pbc_edge_south_east(f14sub)
+  call apply_pbc_edge_south_east(f15sub)
+  call apply_pbc_edge_south_east(f16sub)
+  call apply_pbc_edge_south_east(f17sub)
+  call apply_pbc_edge_south_east(f18sub)
   
   !apply pbc at south front 10 !yz
   !red fluid
-  call apply_pbc_edge_south_front(f00R)
-  call apply_pbc_edge_south_front(f01R)
-  call apply_pbc_edge_south_front(f02R)
-  call apply_pbc_edge_south_front(f03R)
-  call apply_pbc_edge_south_front(f04R)
-  call apply_pbc_edge_south_front(f05R)
-  call apply_pbc_edge_south_front(f06R)
-  call apply_pbc_edge_south_front(f07R)
-  call apply_pbc_edge_south_front(f08R)
-  call apply_pbc_edge_south_front(f09R)
-  call apply_pbc_edge_south_front(f10R)
-  call apply_pbc_edge_south_front(f11R)
-  call apply_pbc_edge_south_front(f12R)
-  call apply_pbc_edge_south_front(f13R)
-  call apply_pbc_edge_south_front(f14R)
-  call apply_pbc_edge_south_front(f15R)
-  call apply_pbc_edge_south_front(f16R)
-  call apply_pbc_edge_south_front(f17R)
-  call apply_pbc_edge_south_front(f18R)
+  call apply_pbc_edge_south_front(f00sub)
+  call apply_pbc_edge_south_front(f01sub)
+  call apply_pbc_edge_south_front(f02sub)
+  call apply_pbc_edge_south_front(f03sub)
+  call apply_pbc_edge_south_front(f04sub)
+  call apply_pbc_edge_south_front(f05sub)
+  call apply_pbc_edge_south_front(f06sub)
+  call apply_pbc_edge_south_front(f07sub)
+  call apply_pbc_edge_south_front(f08sub)
+  call apply_pbc_edge_south_front(f09sub)
+  call apply_pbc_edge_south_front(f10sub)
+  call apply_pbc_edge_south_front(f11sub)
+  call apply_pbc_edge_south_front(f12sub)
+  call apply_pbc_edge_south_front(f13sub)
+  call apply_pbc_edge_south_front(f14sub)
+  call apply_pbc_edge_south_front(f15sub)
+  call apply_pbc_edge_south_front(f16sub)
+  call apply_pbc_edge_south_front(f17sub)
+  call apply_pbc_edge_south_front(f18sub)
   
   !apply pbc at south rear 11 !yz
   !red fluid
-  call apply_pbc_edge_south_rear(f00R)
-  call apply_pbc_edge_south_rear(f01R)
-  call apply_pbc_edge_south_rear(f02R)
-  call apply_pbc_edge_south_rear(f03R)
-  call apply_pbc_edge_south_rear(f04R)
-  call apply_pbc_edge_south_rear(f05R)
-  call apply_pbc_edge_south_rear(f06R)
-  call apply_pbc_edge_south_rear(f07R)
-  call apply_pbc_edge_south_rear(f08R)
-  call apply_pbc_edge_south_rear(f09R)
-  call apply_pbc_edge_south_rear(f10R)
-  call apply_pbc_edge_south_rear(f11R)
-  call apply_pbc_edge_south_rear(f12R)
-  call apply_pbc_edge_south_rear(f13R)
-  call apply_pbc_edge_south_rear(f14R)
-  call apply_pbc_edge_south_rear(f15R)
-  call apply_pbc_edge_south_rear(f16R)
-  call apply_pbc_edge_south_rear(f17R)
-  call apply_pbc_edge_south_rear(f18R)
+  call apply_pbc_edge_south_rear(f00sub)
+  call apply_pbc_edge_south_rear(f01sub)
+  call apply_pbc_edge_south_rear(f02sub)
+  call apply_pbc_edge_south_rear(f03sub)
+  call apply_pbc_edge_south_rear(f04sub)
+  call apply_pbc_edge_south_rear(f05sub)
+  call apply_pbc_edge_south_rear(f06sub)
+  call apply_pbc_edge_south_rear(f07sub)
+  call apply_pbc_edge_south_rear(f08sub)
+  call apply_pbc_edge_south_rear(f09sub)
+  call apply_pbc_edge_south_rear(f10sub)
+  call apply_pbc_edge_south_rear(f11sub)
+  call apply_pbc_edge_south_rear(f12sub)
+  call apply_pbc_edge_south_rear(f13sub)
+  call apply_pbc_edge_south_rear(f14sub)
+  call apply_pbc_edge_south_rear(f15sub)
+  call apply_pbc_edge_south_rear(f16sub)
+  call apply_pbc_edge_south_rear(f17sub)
+  call apply_pbc_edge_south_rear(f18sub)
   
   !apply pbc at south west 12 !xz
   !red fluid
-  call apply_pbc_edge_south_west(f00R)
-  call apply_pbc_edge_south_west(f01R)
-  call apply_pbc_edge_south_west(f02R)
-  call apply_pbc_edge_south_west(f03R)
-  call apply_pbc_edge_south_west(f04R)
-  call apply_pbc_edge_south_west(f05R)
-  call apply_pbc_edge_south_west(f06R)
-  call apply_pbc_edge_south_west(f07R)
-  call apply_pbc_edge_south_west(f08R)
-  call apply_pbc_edge_south_west(f09R)
-  call apply_pbc_edge_south_west(f10R)
-  call apply_pbc_edge_south_west(f11R)
-  call apply_pbc_edge_south_west(f12R)
-  call apply_pbc_edge_south_west(f13R)
-  call apply_pbc_edge_south_west(f14R)
-  call apply_pbc_edge_south_west(f15R)
-  call apply_pbc_edge_south_west(f16R)
-  call apply_pbc_edge_south_west(f17R)
-  call apply_pbc_edge_south_west(f18R)
+  call apply_pbc_edge_south_west(f00sub)
+  call apply_pbc_edge_south_west(f01sub)
+  call apply_pbc_edge_south_west(f02sub)
+  call apply_pbc_edge_south_west(f03sub)
+  call apply_pbc_edge_south_west(f04sub)
+  call apply_pbc_edge_south_west(f05sub)
+  call apply_pbc_edge_south_west(f06sub)
+  call apply_pbc_edge_south_west(f07sub)
+  call apply_pbc_edge_south_west(f08sub)
+  call apply_pbc_edge_south_west(f09sub)
+  call apply_pbc_edge_south_west(f10sub)
+  call apply_pbc_edge_south_west(f11sub)
+  call apply_pbc_edge_south_west(f12sub)
+  call apply_pbc_edge_south_west(f13sub)
+  call apply_pbc_edge_south_west(f14sub)
+  call apply_pbc_edge_south_west(f15sub)
+  call apply_pbc_edge_south_west(f16sub)
+  call apply_pbc_edge_south_west(f17sub)
+  call apply_pbc_edge_south_west(f18sub)
   
   !corner 8
   
   !apply pbc at north east front 1
   !red fluid
-  call apply_pbc_corner_north_east_front(f00R)
-  call apply_pbc_corner_north_east_front(f01R)
-  call apply_pbc_corner_north_east_front(f02R)
-  call apply_pbc_corner_north_east_front(f03R)
-  call apply_pbc_corner_north_east_front(f04R)
-  call apply_pbc_corner_north_east_front(f05R)
-  call apply_pbc_corner_north_east_front(f06R)
-  call apply_pbc_corner_north_east_front(f07R)
-  call apply_pbc_corner_north_east_front(f08R)
-  call apply_pbc_corner_north_east_front(f09R)
-  call apply_pbc_corner_north_east_front(f10R)
-  call apply_pbc_corner_north_east_front(f11R)
-  call apply_pbc_corner_north_east_front(f12R)
-  call apply_pbc_corner_north_east_front(f13R)
-  call apply_pbc_corner_north_east_front(f14R)
-  call apply_pbc_corner_north_east_front(f15R)
-  call apply_pbc_corner_north_east_front(f16R)
-  call apply_pbc_corner_north_east_front(f17R)
-  call apply_pbc_corner_north_east_front(f18R)
+  call apply_pbc_corner_north_east_front(f00sub)
+  call apply_pbc_corner_north_east_front(f01sub)
+  call apply_pbc_corner_north_east_front(f02sub)
+  call apply_pbc_corner_north_east_front(f03sub)
+  call apply_pbc_corner_north_east_front(f04sub)
+  call apply_pbc_corner_north_east_front(f05sub)
+  call apply_pbc_corner_north_east_front(f06sub)
+  call apply_pbc_corner_north_east_front(f07sub)
+  call apply_pbc_corner_north_east_front(f08sub)
+  call apply_pbc_corner_north_east_front(f09sub)
+  call apply_pbc_corner_north_east_front(f10sub)
+  call apply_pbc_corner_north_east_front(f11sub)
+  call apply_pbc_corner_north_east_front(f12sub)
+  call apply_pbc_corner_north_east_front(f13sub)
+  call apply_pbc_corner_north_east_front(f14sub)
+  call apply_pbc_corner_north_east_front(f15sub)
+  call apply_pbc_corner_north_east_front(f16sub)
+  call apply_pbc_corner_north_east_front(f17sub)
+  call apply_pbc_corner_north_east_front(f18sub)
   
   !apply pbc at north east rear 2
   !red fluid
-  call apply_pbc_corner_north_east_rear(f00R)
-  call apply_pbc_corner_north_east_rear(f01R)
-  call apply_pbc_corner_north_east_rear(f02R)
-  call apply_pbc_corner_north_east_rear(f03R)
-  call apply_pbc_corner_north_east_rear(f04R)
-  call apply_pbc_corner_north_east_rear(f05R)
-  call apply_pbc_corner_north_east_rear(f06R)
-  call apply_pbc_corner_north_east_rear(f07R)
-  call apply_pbc_corner_north_east_rear(f08R)
-  call apply_pbc_corner_north_east_rear(f09R)
-  call apply_pbc_corner_north_east_rear(f10R)
-  call apply_pbc_corner_north_east_rear(f11R)
-  call apply_pbc_corner_north_east_rear(f12R)
-  call apply_pbc_corner_north_east_rear(f13R)
-  call apply_pbc_corner_north_east_rear(f14R)
-  call apply_pbc_corner_north_east_rear(f15R)
-  call apply_pbc_corner_north_east_rear(f16R)
-  call apply_pbc_corner_north_east_rear(f17R)
-  call apply_pbc_corner_north_east_rear(f18R)
+  call apply_pbc_corner_north_east_rear(f00sub)
+  call apply_pbc_corner_north_east_rear(f01sub)
+  call apply_pbc_corner_north_east_rear(f02sub)
+  call apply_pbc_corner_north_east_rear(f03sub)
+  call apply_pbc_corner_north_east_rear(f04sub)
+  call apply_pbc_corner_north_east_rear(f05sub)
+  call apply_pbc_corner_north_east_rear(f06sub)
+  call apply_pbc_corner_north_east_rear(f07sub)
+  call apply_pbc_corner_north_east_rear(f08sub)
+  call apply_pbc_corner_north_east_rear(f09sub)
+  call apply_pbc_corner_north_east_rear(f10sub)
+  call apply_pbc_corner_north_east_rear(f11sub)
+  call apply_pbc_corner_north_east_rear(f12sub)
+  call apply_pbc_corner_north_east_rear(f13sub)
+  call apply_pbc_corner_north_east_rear(f14sub)
+  call apply_pbc_corner_north_east_rear(f15sub)
+  call apply_pbc_corner_north_east_rear(f16sub)
+  call apply_pbc_corner_north_east_rear(f17sub)
+  call apply_pbc_corner_north_east_rear(f18sub)
   
   !apply pbc at north west rear 3
   !red fluid
-  call apply_pbc_corner_north_west_rear(f00R)
-  call apply_pbc_corner_north_west_rear(f01R)
-  call apply_pbc_corner_north_west_rear(f02R)
-  call apply_pbc_corner_north_west_rear(f03R)
-  call apply_pbc_corner_north_west_rear(f04R)
-  call apply_pbc_corner_north_west_rear(f05R)
-  call apply_pbc_corner_north_west_rear(f06R)
-  call apply_pbc_corner_north_west_rear(f07R)
-  call apply_pbc_corner_north_west_rear(f08R)
-  call apply_pbc_corner_north_west_rear(f09R)
-  call apply_pbc_corner_north_west_rear(f10R)
-  call apply_pbc_corner_north_west_rear(f11R)
-  call apply_pbc_corner_north_west_rear(f12R)
-  call apply_pbc_corner_north_west_rear(f13R)
-  call apply_pbc_corner_north_west_rear(f14R)
-  call apply_pbc_corner_north_west_rear(f15R)
-  call apply_pbc_corner_north_west_rear(f16R)
-  call apply_pbc_corner_north_west_rear(f17R)
-  call apply_pbc_corner_north_west_rear(f18R)
+  call apply_pbc_corner_north_west_rear(f00sub)
+  call apply_pbc_corner_north_west_rear(f01sub)
+  call apply_pbc_corner_north_west_rear(f02sub)
+  call apply_pbc_corner_north_west_rear(f03sub)
+  call apply_pbc_corner_north_west_rear(f04sub)
+  call apply_pbc_corner_north_west_rear(f05sub)
+  call apply_pbc_corner_north_west_rear(f06sub)
+  call apply_pbc_corner_north_west_rear(f07sub)
+  call apply_pbc_corner_north_west_rear(f08sub)
+  call apply_pbc_corner_north_west_rear(f09sub)
+  call apply_pbc_corner_north_west_rear(f10sub)
+  call apply_pbc_corner_north_west_rear(f11sub)
+  call apply_pbc_corner_north_west_rear(f12sub)
+  call apply_pbc_corner_north_west_rear(f13sub)
+  call apply_pbc_corner_north_west_rear(f14sub)
+  call apply_pbc_corner_north_west_rear(f15sub)
+  call apply_pbc_corner_north_west_rear(f16sub)
+  call apply_pbc_corner_north_west_rear(f17sub)
+  call apply_pbc_corner_north_west_rear(f18sub)
   
   !apply pbc at north west front 4
   !red fluid
-  call apply_pbc_corner_north_west_front(f00R)
-  call apply_pbc_corner_north_west_front(f01R)
-  call apply_pbc_corner_north_west_front(f02R)
-  call apply_pbc_corner_north_west_front(f03R)
-  call apply_pbc_corner_north_west_front(f04R)
-  call apply_pbc_corner_north_west_front(f05R)
-  call apply_pbc_corner_north_west_front(f06R)
-  call apply_pbc_corner_north_west_front(f07R)
-  call apply_pbc_corner_north_west_front(f08R)
-  call apply_pbc_corner_north_west_front(f09R)
-  call apply_pbc_corner_north_west_front(f10R)
-  call apply_pbc_corner_north_west_front(f11R)
-  call apply_pbc_corner_north_west_front(f12R)
-  call apply_pbc_corner_north_west_front(f13R)
-  call apply_pbc_corner_north_west_front(f14R)
-  call apply_pbc_corner_north_west_front(f15R)
-  call apply_pbc_corner_north_west_front(f16R)
-  call apply_pbc_corner_north_west_front(f17R)
-  call apply_pbc_corner_north_west_front(f18R)
+  call apply_pbc_corner_north_west_front(f00sub)
+  call apply_pbc_corner_north_west_front(f01sub)
+  call apply_pbc_corner_north_west_front(f02sub)
+  call apply_pbc_corner_north_west_front(f03sub)
+  call apply_pbc_corner_north_west_front(f04sub)
+  call apply_pbc_corner_north_west_front(f05sub)
+  call apply_pbc_corner_north_west_front(f06sub)
+  call apply_pbc_corner_north_west_front(f07sub)
+  call apply_pbc_corner_north_west_front(f08sub)
+  call apply_pbc_corner_north_west_front(f09sub)
+  call apply_pbc_corner_north_west_front(f10sub)
+  call apply_pbc_corner_north_west_front(f11sub)
+  call apply_pbc_corner_north_west_front(f12sub)
+  call apply_pbc_corner_north_west_front(f13sub)
+  call apply_pbc_corner_north_west_front(f14sub)
+  call apply_pbc_corner_north_west_front(f15sub)
+  call apply_pbc_corner_north_west_front(f16sub)
+  call apply_pbc_corner_north_west_front(f17sub)
+  call apply_pbc_corner_north_west_front(f18sub)
   
   !apply pbc at south east front 5
   !red fluid
-  call apply_pbc_corner_south_east_front(f00R)
-  call apply_pbc_corner_south_east_front(f01R)
-  call apply_pbc_corner_south_east_front(f02R)
-  call apply_pbc_corner_south_east_front(f03R)
-  call apply_pbc_corner_south_east_front(f04R)
-  call apply_pbc_corner_south_east_front(f05R)
-  call apply_pbc_corner_south_east_front(f06R)
-  call apply_pbc_corner_south_east_front(f07R)
-  call apply_pbc_corner_south_east_front(f08R)
-  call apply_pbc_corner_south_east_front(f09R)
-  call apply_pbc_corner_south_east_front(f10R)
-  call apply_pbc_corner_south_east_front(f11R)
-  call apply_pbc_corner_south_east_front(f12R)
-  call apply_pbc_corner_south_east_front(f13R)
-  call apply_pbc_corner_south_east_front(f14R)
-  call apply_pbc_corner_south_east_front(f15R)
-  call apply_pbc_corner_south_east_front(f16R)
-  call apply_pbc_corner_south_east_front(f17R)
-  call apply_pbc_corner_south_east_front(f18R)
+  call apply_pbc_corner_south_east_front(f00sub)
+  call apply_pbc_corner_south_east_front(f01sub)
+  call apply_pbc_corner_south_east_front(f02sub)
+  call apply_pbc_corner_south_east_front(f03sub)
+  call apply_pbc_corner_south_east_front(f04sub)
+  call apply_pbc_corner_south_east_front(f05sub)
+  call apply_pbc_corner_south_east_front(f06sub)
+  call apply_pbc_corner_south_east_front(f07sub)
+  call apply_pbc_corner_south_east_front(f08sub)
+  call apply_pbc_corner_south_east_front(f09sub)
+  call apply_pbc_corner_south_east_front(f10sub)
+  call apply_pbc_corner_south_east_front(f11sub)
+  call apply_pbc_corner_south_east_front(f12sub)
+  call apply_pbc_corner_south_east_front(f13sub)
+  call apply_pbc_corner_south_east_front(f14sub)
+  call apply_pbc_corner_south_east_front(f15sub)
+  call apply_pbc_corner_south_east_front(f16sub)
+  call apply_pbc_corner_south_east_front(f17sub)
+  call apply_pbc_corner_south_east_front(f18sub)
   
   !apply pbc at south west front 6
   !red fluid
-  call apply_pbc_corner_south_west_front(f00R)
-  call apply_pbc_corner_south_west_front(f01R)
-  call apply_pbc_corner_south_west_front(f02R)
-  call apply_pbc_corner_south_west_front(f03R)
-  call apply_pbc_corner_south_west_front(f04R)
-  call apply_pbc_corner_south_west_front(f05R)
-  call apply_pbc_corner_south_west_front(f06R)
-  call apply_pbc_corner_south_west_front(f07R)
-  call apply_pbc_corner_south_west_front(f08R)
-  call apply_pbc_corner_south_west_front(f09R)
-  call apply_pbc_corner_south_west_front(f10R)
-  call apply_pbc_corner_south_west_front(f11R)
-  call apply_pbc_corner_south_west_front(f12R)
-  call apply_pbc_corner_south_west_front(f13R)
-  call apply_pbc_corner_south_west_front(f14R)
-  call apply_pbc_corner_south_west_front(f15R)
-  call apply_pbc_corner_south_west_front(f16R)
-  call apply_pbc_corner_south_west_front(f17R)
-  call apply_pbc_corner_south_west_front(f18R)
+  call apply_pbc_corner_south_west_front(f00sub)
+  call apply_pbc_corner_south_west_front(f01sub)
+  call apply_pbc_corner_south_west_front(f02sub)
+  call apply_pbc_corner_south_west_front(f03sub)
+  call apply_pbc_corner_south_west_front(f04sub)
+  call apply_pbc_corner_south_west_front(f05sub)
+  call apply_pbc_corner_south_west_front(f06sub)
+  call apply_pbc_corner_south_west_front(f07sub)
+  call apply_pbc_corner_south_west_front(f08sub)
+  call apply_pbc_corner_south_west_front(f09sub)
+  call apply_pbc_corner_south_west_front(f10sub)
+  call apply_pbc_corner_south_west_front(f11sub)
+  call apply_pbc_corner_south_west_front(f12sub)
+  call apply_pbc_corner_south_west_front(f13sub)
+  call apply_pbc_corner_south_west_front(f14sub)
+  call apply_pbc_corner_south_west_front(f15sub)
+  call apply_pbc_corner_south_west_front(f16sub)
+  call apply_pbc_corner_south_west_front(f17sub)
+  call apply_pbc_corner_south_west_front(f18sub)
   
   !apply pbc at south west rear 7
   !red fluid
-  call apply_pbc_corner_south_west_rear(f00R)
-  call apply_pbc_corner_south_west_rear(f01R)
-  call apply_pbc_corner_south_west_rear(f02R)
-  call apply_pbc_corner_south_west_rear(f03R)
-  call apply_pbc_corner_south_west_rear(f04R)
-  call apply_pbc_corner_south_west_rear(f05R)
-  call apply_pbc_corner_south_west_rear(f06R)
-  call apply_pbc_corner_south_west_rear(f07R)
-  call apply_pbc_corner_south_west_rear(f08R)
-  call apply_pbc_corner_south_west_rear(f09R)
-  call apply_pbc_corner_south_west_rear(f10R)
-  call apply_pbc_corner_south_west_rear(f11R)
-  call apply_pbc_corner_south_west_rear(f12R)
-  call apply_pbc_corner_south_west_rear(f13R)
-  call apply_pbc_corner_south_west_rear(f14R)
-  call apply_pbc_corner_south_west_rear(f15R)
-  call apply_pbc_corner_south_west_rear(f16R)
-  call apply_pbc_corner_south_west_rear(f17R)
-  call apply_pbc_corner_south_west_rear(f18R)
+  call apply_pbc_corner_south_west_rear(f00sub)
+  call apply_pbc_corner_south_west_rear(f01sub)
+  call apply_pbc_corner_south_west_rear(f02sub)
+  call apply_pbc_corner_south_west_rear(f03sub)
+  call apply_pbc_corner_south_west_rear(f04sub)
+  call apply_pbc_corner_south_west_rear(f05sub)
+  call apply_pbc_corner_south_west_rear(f06sub)
+  call apply_pbc_corner_south_west_rear(f07sub)
+  call apply_pbc_corner_south_west_rear(f08sub)
+  call apply_pbc_corner_south_west_rear(f09sub)
+  call apply_pbc_corner_south_west_rear(f10sub)
+  call apply_pbc_corner_south_west_rear(f11sub)
+  call apply_pbc_corner_south_west_rear(f12sub)
+  call apply_pbc_corner_south_west_rear(f13sub)
+  call apply_pbc_corner_south_west_rear(f14sub)
+  call apply_pbc_corner_south_west_rear(f15sub)
+  call apply_pbc_corner_south_west_rear(f16sub)
+  call apply_pbc_corner_south_west_rear(f17sub)
+  call apply_pbc_corner_south_west_rear(f18sub)
   
   !apply pbc at south east rear 8
   !red fluid
-  call apply_pbc_corner_south_east_rear(f00R)
-  call apply_pbc_corner_south_east_rear(f01R)
-  call apply_pbc_corner_south_east_rear(f02R)
-  call apply_pbc_corner_south_east_rear(f03R)
-  call apply_pbc_corner_south_east_rear(f04R)
-  call apply_pbc_corner_south_east_rear(f05R)
-  call apply_pbc_corner_south_east_rear(f06R)
-  call apply_pbc_corner_south_east_rear(f07R)
-  call apply_pbc_corner_south_east_rear(f08R)
-  call apply_pbc_corner_south_east_rear(f09R)
-  call apply_pbc_corner_south_east_rear(f10R)
-  call apply_pbc_corner_south_east_rear(f11R)
-  call apply_pbc_corner_south_east_rear(f12R)
-  call apply_pbc_corner_south_east_rear(f13R)
-  call apply_pbc_corner_south_east_rear(f14R)
-  call apply_pbc_corner_south_east_rear(f15R)
-  call apply_pbc_corner_south_east_rear(f16R)
-  call apply_pbc_corner_south_east_rear(f17R)
-  call apply_pbc_corner_south_east_rear(f18R)
-  
-  if(lsingle_fluid)return
-  
-  !sides 6
-  
-  !apply pbc at north 1 !z
-  !blue fluid
-  call apply_pbc_north(f00B)
-  call apply_pbc_north(f01B)
-  call apply_pbc_north(f02B)
-  call apply_pbc_north(f03B)
-  call apply_pbc_north(f04B)
-  call apply_pbc_north(f05B)
-  call apply_pbc_north(f06B)
-  call apply_pbc_north(f07B)
-  call apply_pbc_north(f08B)
-  call apply_pbc_north(f09B)
-  call apply_pbc_north(f10B)
-  call apply_pbc_north(f11B)
-  call apply_pbc_north(f12B)
-  call apply_pbc_north(f13B)
-  call apply_pbc_north(f14B)
-  call apply_pbc_north(f15B)
-  call apply_pbc_north(f16B)
-  call apply_pbc_north(f17B)
-  call apply_pbc_north(f18B)
-  
-  !apply pbc at south 2 !z
-  !blue fluid
-  call apply_pbc_south(f00B)
-  call apply_pbc_south(f01B)
-  call apply_pbc_south(f02B)
-  call apply_pbc_south(f03B)
-  call apply_pbc_south(f04B)
-  call apply_pbc_south(f05B)
-  call apply_pbc_south(f06B)
-  call apply_pbc_south(f07B)
-  call apply_pbc_south(f08B)
-  call apply_pbc_south(f09B)
-  call apply_pbc_south(f10B)
-  call apply_pbc_south(f11B)
-  call apply_pbc_south(f12B)
-  call apply_pbc_south(f13B)
-  call apply_pbc_south(f14B)
-  call apply_pbc_south(f15B)
-  call apply_pbc_south(f16B)
-  call apply_pbc_south(f17B)
-  call apply_pbc_south(f18B)
-  
-  !apply pbc at east 3 !x
-  !blue fluid
-  call apply_pbc_east(f00B)
-  call apply_pbc_east(f01B)
-  call apply_pbc_east(f02B)
-  call apply_pbc_east(f03B)
-  call apply_pbc_east(f04B)
-  call apply_pbc_east(f05B)
-  call apply_pbc_east(f06B)
-  call apply_pbc_east(f07B)
-  call apply_pbc_east(f08B)
-  call apply_pbc_east(f09B)
-  call apply_pbc_east(f10B)
-  call apply_pbc_east(f11B)
-  call apply_pbc_east(f12B)
-  call apply_pbc_east(f13B)
-  call apply_pbc_east(f14B)
-  call apply_pbc_east(f15B)
-  call apply_pbc_east(f16B)
-  call apply_pbc_east(f17B)
-  call apply_pbc_east(f18B)
-  
-  !apply pbc at west 4 !x
-  !blue fluid
-  call apply_pbc_west(f00B)
-  call apply_pbc_west(f01B)
-  call apply_pbc_west(f02B)
-  call apply_pbc_west(f03B)
-  call apply_pbc_west(f04B)
-  call apply_pbc_west(f05B)
-  call apply_pbc_west(f06B)
-  call apply_pbc_west(f07B)
-  call apply_pbc_west(f08B)
-  call apply_pbc_west(f09B)
-  call apply_pbc_west(f10B)
-  call apply_pbc_west(f11B)
-  call apply_pbc_west(f12B)
-  call apply_pbc_west(f13B)
-  call apply_pbc_west(f14B)
-  call apply_pbc_west(f15B)
-  call apply_pbc_west(f16B)
-  call apply_pbc_west(f17B)
-  call apply_pbc_west(f18B)
-  
-  !apply pbc at front 5 !y
-  !red fluid
-  !blue fluid
-  call apply_pbc_front(f00B)
-  call apply_pbc_front(f01B)
-  call apply_pbc_front(f02B)
-  call apply_pbc_front(f03B)
-  call apply_pbc_front(f04B)
-  call apply_pbc_front(f05B)
-  call apply_pbc_front(f06B)
-  call apply_pbc_front(f07B)
-  call apply_pbc_front(f08B)
-  call apply_pbc_front(f09B)
-  call apply_pbc_front(f10B)
-  call apply_pbc_front(f11B)
-  call apply_pbc_front(f12B)
-  call apply_pbc_front(f13B)
-  call apply_pbc_front(f14B)
-  call apply_pbc_front(f15B)
-  call apply_pbc_front(f16B)
-  call apply_pbc_front(f17B)
-  call apply_pbc_front(f18B)
-  
-  !apply pbc at rear 6 !y
-  !blue fluid
-  call apply_pbc_rear(f00B)
-  call apply_pbc_rear(f01B)
-  call apply_pbc_rear(f02B)
-  call apply_pbc_rear(f03B)
-  call apply_pbc_rear(f04B)
-  call apply_pbc_rear(f05B)
-  call apply_pbc_rear(f06B)
-  call apply_pbc_rear(f07B)
-  call apply_pbc_rear(f08B)
-  call apply_pbc_rear(f09B)
-  call apply_pbc_rear(f10B)
-  call apply_pbc_rear(f11B)
-  call apply_pbc_rear(f12B)
-  call apply_pbc_rear(f13B)
-  call apply_pbc_rear(f14B)
-  call apply_pbc_rear(f15B)
-  call apply_pbc_rear(f16B)
-  call apply_pbc_rear(f17B)
-  call apply_pbc_rear(f18B)
-  
-  !edges 12
-  
-  !apply pbc at front east 1 !xy
-  !blue fluid
-  call apply_pbc_edge_front_east(f00B)
-  call apply_pbc_edge_front_east(f01B)
-  call apply_pbc_edge_front_east(f02B)
-  call apply_pbc_edge_front_east(f03B)
-  call apply_pbc_edge_front_east(f04B)
-  call apply_pbc_edge_front_east(f05B)
-  call apply_pbc_edge_front_east(f06B)
-  call apply_pbc_edge_front_east(f07B)
-  call apply_pbc_edge_front_east(f08B)
-  call apply_pbc_edge_front_east(f09B)
-  call apply_pbc_edge_front_east(f10B)
-  call apply_pbc_edge_front_east(f11B)
-  call apply_pbc_edge_front_east(f12B)
-  call apply_pbc_edge_front_east(f13B)
-  call apply_pbc_edge_front_east(f14B)
-  call apply_pbc_edge_front_east(f15B)
-  call apply_pbc_edge_front_east(f16B)
-  call apply_pbc_edge_front_east(f17B)
-  call apply_pbc_edge_front_east(f18B)
-  
-  !apply pbc at front west 2 !xy
-  !blue fluid
-  call apply_pbc_edge_front_west(f00B)
-  call apply_pbc_edge_front_west(f01B)
-  call apply_pbc_edge_front_west(f02B)
-  call apply_pbc_edge_front_west(f03B)
-  call apply_pbc_edge_front_west(f04B)
-  call apply_pbc_edge_front_west(f05B)
-  call apply_pbc_edge_front_west(f06B)
-  call apply_pbc_edge_front_west(f07B)
-  call apply_pbc_edge_front_west(f08B)
-  call apply_pbc_edge_front_west(f09B)
-  call apply_pbc_edge_front_west(f10B)
-  call apply_pbc_edge_front_west(f11B)
-  call apply_pbc_edge_front_west(f12B)
-  call apply_pbc_edge_front_west(f13B)
-  call apply_pbc_edge_front_west(f14B)
-  call apply_pbc_edge_front_west(f15B)
-  call apply_pbc_edge_front_west(f16B)
-  call apply_pbc_edge_front_west(f17B)
-  call apply_pbc_edge_front_west(f18B)
-  
-  !apply pbc at north east 3 !xz
-  !blue fluid
-  call apply_pbc_edge_north_east(f00B)
-  call apply_pbc_edge_north_east(f01B)
-  call apply_pbc_edge_north_east(f02B)
-  call apply_pbc_edge_north_east(f03B)
-  call apply_pbc_edge_north_east(f04B)
-  call apply_pbc_edge_north_east(f05B)
-  call apply_pbc_edge_north_east(f06B)
-  call apply_pbc_edge_north_east(f07B)
-  call apply_pbc_edge_north_east(f08B)
-  call apply_pbc_edge_north_east(f09B)
-  call apply_pbc_edge_north_east(f10B)
-  call apply_pbc_edge_north_east(f11B)
-  call apply_pbc_edge_north_east(f12B)
-  call apply_pbc_edge_north_east(f13B)
-  call apply_pbc_edge_north_east(f14B)
-  call apply_pbc_edge_north_east(f15B)
-  call apply_pbc_edge_north_east(f16B)
-  call apply_pbc_edge_north_east(f17B)
-  call apply_pbc_edge_north_east(f18B)
-  
-  !apply pbc at north front 4 !yz
-  !blue fluid
-  call apply_pbc_edge_north_front(f00B)
-  call apply_pbc_edge_north_front(f01B)
-  call apply_pbc_edge_north_front(f02B)
-  call apply_pbc_edge_north_front(f03B)
-  call apply_pbc_edge_north_front(f04B)
-  call apply_pbc_edge_north_front(f05B)
-  call apply_pbc_edge_north_front(f06B)
-  call apply_pbc_edge_north_front(f07B)
-  call apply_pbc_edge_north_front(f08B)
-  call apply_pbc_edge_north_front(f09B)
-  call apply_pbc_edge_north_front(f10B)
-  call apply_pbc_edge_north_front(f11B)
-  call apply_pbc_edge_north_front(f12B)
-  call apply_pbc_edge_north_front(f13B)
-  call apply_pbc_edge_north_front(f14B)
-  call apply_pbc_edge_north_front(f15B)
-  call apply_pbc_edge_north_front(f16B)
-  call apply_pbc_edge_north_front(f17B)
-  call apply_pbc_edge_north_front(f18B)
-  
-  !apply pbc at north rear 5 !yz
-  !blue fluid
-  call apply_pbc_edge_north_rear(f00B)
-  call apply_pbc_edge_north_rear(f01B)
-  call apply_pbc_edge_north_rear(f02B)
-  call apply_pbc_edge_north_rear(f03B)
-  call apply_pbc_edge_north_rear(f04B)
-  call apply_pbc_edge_north_rear(f05B)
-  call apply_pbc_edge_north_rear(f06B)
-  call apply_pbc_edge_north_rear(f07B)
-  call apply_pbc_edge_north_rear(f08B)
-  call apply_pbc_edge_north_rear(f09B)
-  call apply_pbc_edge_north_rear(f10B)
-  call apply_pbc_edge_north_rear(f11B)
-  call apply_pbc_edge_north_rear(f12B)
-  call apply_pbc_edge_north_rear(f13B)
-  call apply_pbc_edge_north_rear(f14B)
-  call apply_pbc_edge_north_rear(f15B)
-  call apply_pbc_edge_north_rear(f16B)
-  call apply_pbc_edge_north_rear(f17B)
-  call apply_pbc_edge_north_rear(f18B)
-  
-  !apply pbc at north west 6 !xz
-  !blue fluid
-  call apply_pbc_edge_north_west(f00B)
-  call apply_pbc_edge_north_west(f01B)
-  call apply_pbc_edge_north_west(f02B)
-  call apply_pbc_edge_north_west(f03B)
-  call apply_pbc_edge_north_west(f04B)
-  call apply_pbc_edge_north_west(f05B)
-  call apply_pbc_edge_north_west(f06B)
-  call apply_pbc_edge_north_west(f07B)
-  call apply_pbc_edge_north_west(f08B)
-  call apply_pbc_edge_north_west(f09B)
-  call apply_pbc_edge_north_west(f10B)
-  call apply_pbc_edge_north_west(f11B)
-  call apply_pbc_edge_north_west(f12B)
-  call apply_pbc_edge_north_west(f13B)
-  call apply_pbc_edge_north_west(f14B)
-  call apply_pbc_edge_north_west(f15B)
-  call apply_pbc_edge_north_west(f16B)
-  call apply_pbc_edge_north_west(f17B)
-  call apply_pbc_edge_north_west(f18B)
-  
-  !apply pbc at rear east 7 !xy
-  !blue fluid
-  call apply_pbc_edge_rear_east(f00B)
-  call apply_pbc_edge_rear_east(f01B)
-  call apply_pbc_edge_rear_east(f02B)
-  call apply_pbc_edge_rear_east(f03B)
-  call apply_pbc_edge_rear_east(f04B)
-  call apply_pbc_edge_rear_east(f05B)
-  call apply_pbc_edge_rear_east(f06B)
-  call apply_pbc_edge_rear_east(f07B)
-  call apply_pbc_edge_rear_east(f08B)
-  call apply_pbc_edge_rear_east(f09B)
-  call apply_pbc_edge_rear_east(f10B)
-  call apply_pbc_edge_rear_east(f11B)
-  call apply_pbc_edge_rear_east(f12B)
-  call apply_pbc_edge_rear_east(f13B)
-  call apply_pbc_edge_rear_east(f14B)
-  call apply_pbc_edge_rear_east(f15B)
-  call apply_pbc_edge_rear_east(f16B)
-  call apply_pbc_edge_rear_east(f17B)
-  call apply_pbc_edge_rear_east(f18B)
-  
-  !apply pbc at rear west 8 !xy
-  !blue fluid
-  call apply_pbc_edge_rear_west(f00B)
-  call apply_pbc_edge_rear_west(f01B)
-  call apply_pbc_edge_rear_west(f02B)
-  call apply_pbc_edge_rear_west(f03B)
-  call apply_pbc_edge_rear_west(f04B)
-  call apply_pbc_edge_rear_west(f05B)
-  call apply_pbc_edge_rear_west(f06B)
-  call apply_pbc_edge_rear_west(f07B)
-  call apply_pbc_edge_rear_west(f08B)
-  call apply_pbc_edge_rear_west(f09B)
-  call apply_pbc_edge_rear_west(f10B)
-  call apply_pbc_edge_rear_west(f11B)
-  call apply_pbc_edge_rear_west(f12B)
-  call apply_pbc_edge_rear_west(f13B)
-  call apply_pbc_edge_rear_west(f14B)
-  call apply_pbc_edge_rear_west(f15B)
-  call apply_pbc_edge_rear_west(f16B)
-  call apply_pbc_edge_rear_west(f17B)
-  call apply_pbc_edge_rear_west(f18B)
-  
-  !apply pbc at south east 9 !xz
-  !blue fluid
-  call apply_pbc_edge_south_east(f00B)
-  call apply_pbc_edge_south_east(f01B)
-  call apply_pbc_edge_south_east(f02B)
-  call apply_pbc_edge_south_east(f03B)
-  call apply_pbc_edge_south_east(f04B)
-  call apply_pbc_edge_south_east(f05B)
-  call apply_pbc_edge_south_east(f06B)
-  call apply_pbc_edge_south_east(f07B)
-  call apply_pbc_edge_south_east(f08B)
-  call apply_pbc_edge_south_east(f09B)
-  call apply_pbc_edge_south_east(f10B)
-  call apply_pbc_edge_south_east(f11B)
-  call apply_pbc_edge_south_east(f12B)
-  call apply_pbc_edge_south_east(f13B)
-  call apply_pbc_edge_south_east(f14B)
-  call apply_pbc_edge_south_east(f15B)
-  call apply_pbc_edge_south_east(f16B)
-  call apply_pbc_edge_south_east(f17B)
-  call apply_pbc_edge_south_east(f18B)
-  
-  !apply pbc at south front 10 !yz
-  !blue fluid
-  call apply_pbc_edge_south_front(f00B)
-  call apply_pbc_edge_south_front(f01B)
-  call apply_pbc_edge_south_front(f02B)
-  call apply_pbc_edge_south_front(f03B)
-  call apply_pbc_edge_south_front(f04B)
-  call apply_pbc_edge_south_front(f05B)
-  call apply_pbc_edge_south_front(f06B)
-  call apply_pbc_edge_south_front(f07B)
-  call apply_pbc_edge_south_front(f08B)
-  call apply_pbc_edge_south_front(f09B)
-  call apply_pbc_edge_south_front(f10B)
-  call apply_pbc_edge_south_front(f11B)
-  call apply_pbc_edge_south_front(f12B)
-  call apply_pbc_edge_south_front(f13B)
-  call apply_pbc_edge_south_front(f14B)
-  call apply_pbc_edge_south_front(f15B)
-  call apply_pbc_edge_south_front(f16B)
-  call apply_pbc_edge_south_front(f17B)
-  call apply_pbc_edge_south_front(f18B)
-  
-  !apply pbc at south rear 11 !yz
-  !blue fluid
-  call apply_pbc_edge_south_rear(f00B)
-  call apply_pbc_edge_south_rear(f01B)
-  call apply_pbc_edge_south_rear(f02B)
-  call apply_pbc_edge_south_rear(f03B)
-  call apply_pbc_edge_south_rear(f04B)
-  call apply_pbc_edge_south_rear(f05B)
-  call apply_pbc_edge_south_rear(f06B)
-  call apply_pbc_edge_south_rear(f07B)
-  call apply_pbc_edge_south_rear(f08B)
-  call apply_pbc_edge_south_rear(f09B)
-  call apply_pbc_edge_south_rear(f10B)
-  call apply_pbc_edge_south_rear(f11B)
-  call apply_pbc_edge_south_rear(f12B)
-  call apply_pbc_edge_south_rear(f13B)
-  call apply_pbc_edge_south_rear(f14B)
-  call apply_pbc_edge_south_rear(f15B)
-  call apply_pbc_edge_south_rear(f16B)
-  call apply_pbc_edge_south_rear(f17B)
-  call apply_pbc_edge_south_rear(f18B)
-  
-  !apply pbc at south west 12 !xz
-  !blue fluid
-  call apply_pbc_edge_south_west(f00B)
-  call apply_pbc_edge_south_west(f01B)
-  call apply_pbc_edge_south_west(f02B)
-  call apply_pbc_edge_south_west(f03B)
-  call apply_pbc_edge_south_west(f04B)
-  call apply_pbc_edge_south_west(f05B)
-  call apply_pbc_edge_south_west(f06B)
-  call apply_pbc_edge_south_west(f07B)
-  call apply_pbc_edge_south_west(f08B)
-  call apply_pbc_edge_south_west(f09B)
-  call apply_pbc_edge_south_west(f10B)
-  call apply_pbc_edge_south_west(f11B)
-  call apply_pbc_edge_south_west(f12B)
-  call apply_pbc_edge_south_west(f13B)
-  call apply_pbc_edge_south_west(f14B)
-  call apply_pbc_edge_south_west(f15B)
-  call apply_pbc_edge_south_west(f16B)
-  call apply_pbc_edge_south_west(f17B)
-  call apply_pbc_edge_south_west(f18B)
-  
-  !corner 8
-  
-  !apply pbc at north east front 1
-  !blue fluid
-  call apply_pbc_corner_north_east_front(f00B)
-  call apply_pbc_corner_north_east_front(f01B)
-  call apply_pbc_corner_north_east_front(f02B)
-  call apply_pbc_corner_north_east_front(f03B)
-  call apply_pbc_corner_north_east_front(f04B)
-  call apply_pbc_corner_north_east_front(f05B)
-  call apply_pbc_corner_north_east_front(f06B)
-  call apply_pbc_corner_north_east_front(f07B)
-  call apply_pbc_corner_north_east_front(f08B)
-  call apply_pbc_corner_north_east_front(f09B)
-  call apply_pbc_corner_north_east_front(f10B)
-  call apply_pbc_corner_north_east_front(f11B)
-  call apply_pbc_corner_north_east_front(f12B)
-  call apply_pbc_corner_north_east_front(f13B)
-  call apply_pbc_corner_north_east_front(f14B)
-  call apply_pbc_corner_north_east_front(f15B)
-  call apply_pbc_corner_north_east_front(f16B)
-  call apply_pbc_corner_north_east_front(f17B)
-  call apply_pbc_corner_north_east_front(f18B)
-  
-  !apply pbc at north east rear 2
-  !blue fluid
-  call apply_pbc_corner_north_east_rear(f00B)
-  call apply_pbc_corner_north_east_rear(f01B)
-  call apply_pbc_corner_north_east_rear(f02B)
-  call apply_pbc_corner_north_east_rear(f03B)
-  call apply_pbc_corner_north_east_rear(f04B)
-  call apply_pbc_corner_north_east_rear(f05B)
-  call apply_pbc_corner_north_east_rear(f06B)
-  call apply_pbc_corner_north_east_rear(f07B)
-  call apply_pbc_corner_north_east_rear(f08B)
-  call apply_pbc_corner_north_east_rear(f09B)
-  call apply_pbc_corner_north_east_rear(f10B)
-  call apply_pbc_corner_north_east_rear(f11B)
-  call apply_pbc_corner_north_east_rear(f12B)
-  call apply_pbc_corner_north_east_rear(f13B)
-  call apply_pbc_corner_north_east_rear(f14B)
-  call apply_pbc_corner_north_east_rear(f15B)
-  call apply_pbc_corner_north_east_rear(f16B)
-  call apply_pbc_corner_north_east_rear(f17B)
-  call apply_pbc_corner_north_east_rear(f18B)
-  
-  !apply pbc at north west rear 3
-  !blue fluid
-  call apply_pbc_corner_north_west_rear(f00B)
-  call apply_pbc_corner_north_west_rear(f01B)
-  call apply_pbc_corner_north_west_rear(f02B)
-  call apply_pbc_corner_north_west_rear(f03B)
-  call apply_pbc_corner_north_west_rear(f04B)
-  call apply_pbc_corner_north_west_rear(f05B)
-  call apply_pbc_corner_north_west_rear(f06B)
-  call apply_pbc_corner_north_west_rear(f07B)
-  call apply_pbc_corner_north_west_rear(f08B)
-  call apply_pbc_corner_north_west_rear(f09B)
-  call apply_pbc_corner_north_west_rear(f10B)
-  call apply_pbc_corner_north_west_rear(f11B)
-  call apply_pbc_corner_north_west_rear(f12B)
-  call apply_pbc_corner_north_west_rear(f13B)
-  call apply_pbc_corner_north_west_rear(f14B)
-  call apply_pbc_corner_north_west_rear(f15B)
-  call apply_pbc_corner_north_west_rear(f16B)
-  call apply_pbc_corner_north_west_rear(f17B)
-  call apply_pbc_corner_north_west_rear(f18B)
-  
-  !apply pbc at north west front 4
-  !blue fluid
-  call apply_pbc_corner_north_west_front(f00B)
-  call apply_pbc_corner_north_west_front(f01B)
-  call apply_pbc_corner_north_west_front(f02B)
-  call apply_pbc_corner_north_west_front(f03B)
-  call apply_pbc_corner_north_west_front(f04B)
-  call apply_pbc_corner_north_west_front(f05B)
-  call apply_pbc_corner_north_west_front(f06B)
-  call apply_pbc_corner_north_west_front(f07B)
-  call apply_pbc_corner_north_west_front(f08B)
-  call apply_pbc_corner_north_west_front(f09B)
-  call apply_pbc_corner_north_west_front(f10B)
-  call apply_pbc_corner_north_west_front(f11B)
-  call apply_pbc_corner_north_west_front(f12B)
-  call apply_pbc_corner_north_west_front(f13B)
-  call apply_pbc_corner_north_west_front(f14B)
-  call apply_pbc_corner_north_west_front(f15B)
-  call apply_pbc_corner_north_west_front(f16B)
-  call apply_pbc_corner_north_west_front(f17B)
-  call apply_pbc_corner_north_west_front(f18B)
-  
-  !apply pbc at south east front 5
-  !blue fluid
-  call apply_pbc_corner_south_east_front(f00B)
-  call apply_pbc_corner_south_east_front(f01B)
-  call apply_pbc_corner_south_east_front(f02B)
-  call apply_pbc_corner_south_east_front(f03B)
-  call apply_pbc_corner_south_east_front(f04B)
-  call apply_pbc_corner_south_east_front(f05B)
-  call apply_pbc_corner_south_east_front(f06B)
-  call apply_pbc_corner_south_east_front(f07B)
-  call apply_pbc_corner_south_east_front(f08B)
-  call apply_pbc_corner_south_east_front(f09B)
-  call apply_pbc_corner_south_east_front(f10B)
-  call apply_pbc_corner_south_east_front(f11B)
-  call apply_pbc_corner_south_east_front(f12B)
-  call apply_pbc_corner_south_east_front(f13B)
-  call apply_pbc_corner_south_east_front(f14B)
-  call apply_pbc_corner_south_east_front(f15B)
-  call apply_pbc_corner_south_east_front(f16B)
-  call apply_pbc_corner_south_east_front(f17B)
-  call apply_pbc_corner_south_east_front(f18B)
-  
-  !apply pbc at south west front 6
-  !blue fluid
-  call apply_pbc_corner_south_west_front(f00B)
-  call apply_pbc_corner_south_west_front(f01B)
-  call apply_pbc_corner_south_west_front(f02B)
-  call apply_pbc_corner_south_west_front(f03B)
-  call apply_pbc_corner_south_west_front(f04B)
-  call apply_pbc_corner_south_west_front(f05B)
-  call apply_pbc_corner_south_west_front(f06B)
-  call apply_pbc_corner_south_west_front(f07B)
-  call apply_pbc_corner_south_west_front(f08B)
-  call apply_pbc_corner_south_west_front(f09B)
-  call apply_pbc_corner_south_west_front(f10B)
-  call apply_pbc_corner_south_west_front(f11B)
-  call apply_pbc_corner_south_west_front(f12B)
-  call apply_pbc_corner_south_west_front(f13B)
-  call apply_pbc_corner_south_west_front(f14B)
-  call apply_pbc_corner_south_west_front(f15B)
-  call apply_pbc_corner_south_west_front(f16B)
-  call apply_pbc_corner_south_west_front(f17B)
-  call apply_pbc_corner_south_west_front(f18B)
-  
-  !apply pbc at south west rear 7
-  !blue fluid
-  call apply_pbc_corner_south_west_rear(f00B)
-  call apply_pbc_corner_south_west_rear(f01B)
-  call apply_pbc_corner_south_west_rear(f02B)
-  call apply_pbc_corner_south_west_rear(f03B)
-  call apply_pbc_corner_south_west_rear(f04B)
-  call apply_pbc_corner_south_west_rear(f05B)
-  call apply_pbc_corner_south_west_rear(f06B)
-  call apply_pbc_corner_south_west_rear(f07B)
-  call apply_pbc_corner_south_west_rear(f08B)
-  call apply_pbc_corner_south_west_rear(f09B)
-  call apply_pbc_corner_south_west_rear(f10B)
-  call apply_pbc_corner_south_west_rear(f11B)
-  call apply_pbc_corner_south_west_rear(f12B)
-  call apply_pbc_corner_south_west_rear(f13B)
-  call apply_pbc_corner_south_west_rear(f14B)
-  call apply_pbc_corner_south_west_rear(f15B)
-  call apply_pbc_corner_south_west_rear(f16B)
-  call apply_pbc_corner_south_west_rear(f17B)
-  call apply_pbc_corner_south_west_rear(f18B)
-  
-  !apply pbc at south east rear 8
-  !blue fluid
-  call apply_pbc_corner_south_east_rear(f00B)
-  call apply_pbc_corner_south_east_rear(f01B)
-  call apply_pbc_corner_south_east_rear(f02B)
-  call apply_pbc_corner_south_east_rear(f03B)
-  call apply_pbc_corner_south_east_rear(f04B)
-  call apply_pbc_corner_south_east_rear(f05B)
-  call apply_pbc_corner_south_east_rear(f06B)
-  call apply_pbc_corner_south_east_rear(f07B)
-  call apply_pbc_corner_south_east_rear(f08B)
-  call apply_pbc_corner_south_east_rear(f09B)
-  call apply_pbc_corner_south_east_rear(f10B)
-  call apply_pbc_corner_south_east_rear(f11B)
-  call apply_pbc_corner_south_east_rear(f12B)
-  call apply_pbc_corner_south_east_rear(f13B)
-  call apply_pbc_corner_south_east_rear(f14B)
-  call apply_pbc_corner_south_east_rear(f15B)
-  call apply_pbc_corner_south_east_rear(f16B)
-  call apply_pbc_corner_south_east_rear(f17B)
-  call apply_pbc_corner_south_east_rear(f18B)
+  call apply_pbc_corner_south_east_rear(f00sub)
+  call apply_pbc_corner_south_east_rear(f01sub)
+  call apply_pbc_corner_south_east_rear(f02sub)
+  call apply_pbc_corner_south_east_rear(f03sub)
+  call apply_pbc_corner_south_east_rear(f04sub)
+  call apply_pbc_corner_south_east_rear(f05sub)
+  call apply_pbc_corner_south_east_rear(f06sub)
+  call apply_pbc_corner_south_east_rear(f07sub)
+  call apply_pbc_corner_south_east_rear(f08sub)
+  call apply_pbc_corner_south_east_rear(f09sub)
+  call apply_pbc_corner_south_east_rear(f10sub)
+  call apply_pbc_corner_south_east_rear(f11sub)
+  call apply_pbc_corner_south_east_rear(f12sub)
+  call apply_pbc_corner_south_east_rear(f13sub)
+  call apply_pbc_corner_south_east_rear(f14sub)
+  call apply_pbc_corner_south_east_rear(f15sub)
+  call apply_pbc_corner_south_east_rear(f16sub)
+  call apply_pbc_corner_south_east_rear(f17sub)
+  call apply_pbc_corner_south_east_rear(f18sub)
   
   return
   
  end subroutine apply_pbc_pops
  
- subroutine apply_pbc_pops_along_x
+ subroutine driver_pbc_pops_along_x
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the periodic boundary 
+!     conditions to fluid populations along x
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+ 
+  call apply_pbc_pops_along_x(f00R,f01R,f02R,f03R,f04R,f05R,f06R,f07R, &
+   f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R) 
+  
+  if(lsingle_fluid)return
+ 
+  call apply_pbc_pops_along_x(f00B,f01B,f02B,f03B,f04B,f05B,f06B,f07B, &
+   f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+   
+  return
+  
+ end subroutine driver_pbc_pops_along_x
+ 
+ subroutine apply_pbc_pops_along_x(f00sub,f01sub,f02sub,f03sub,f04sub, &
+  f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
+  f14sub,f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -6931,105 +6406,90 @@ subroutine driver_bc_densities
  
   implicit none
   
-  !sides 2 (6)
-  
-  !apply pbc at east 3 !x
-  !red fluid
-  call apply_pbc_east(f00R)
-  call apply_pbc_east(f01R)
-  call apply_pbc_east(f02R)
-  call apply_pbc_east(f03R)
-  call apply_pbc_east(f04R)
-  call apply_pbc_east(f05R)
-  call apply_pbc_east(f06R)
-  call apply_pbc_east(f07R)
-  call apply_pbc_east(f08R)
-  call apply_pbc_east(f09R)
-  call apply_pbc_east(f10R)
-  call apply_pbc_east(f11R)
-  call apply_pbc_east(f12R)
-  call apply_pbc_east(f13R)
-  call apply_pbc_east(f14R)
-  call apply_pbc_east(f15R)
-  call apply_pbc_east(f16R)
-  call apply_pbc_east(f17R)
-  call apply_pbc_east(f18R)
-  
-  !apply pbc at west 4 !x
-  !red fluid
-  call apply_pbc_west(f00R)
-  call apply_pbc_west(f01R)
-  call apply_pbc_west(f02R)
-  call apply_pbc_west(f03R)
-  call apply_pbc_west(f04R)
-  call apply_pbc_west(f05R)
-  call apply_pbc_west(f06R)
-  call apply_pbc_west(f07R)
-  call apply_pbc_west(f08R)
-  call apply_pbc_west(f09R)
-  call apply_pbc_west(f10R)
-  call apply_pbc_west(f11R)
-  call apply_pbc_west(f12R)
-  call apply_pbc_west(f13R)
-  call apply_pbc_west(f14R)
-  call apply_pbc_west(f15R)
-  call apply_pbc_west(f16R)
-  call apply_pbc_west(f17R)
-  call apply_pbc_west(f18R)
-  
-  if(lsingle_fluid)return
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: f00sub,f01sub, &
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
   
   !sides 2 (6)
   
   !apply pbc at east 3 !x
-  !blue fluid
-  call apply_pbc_east(f00B)
-  call apply_pbc_east(f01B)
-  call apply_pbc_east(f02B)
-  call apply_pbc_east(f03B)
-  call apply_pbc_east(f04B)
-  call apply_pbc_east(f05B)
-  call apply_pbc_east(f06B)
-  call apply_pbc_east(f07B)
-  call apply_pbc_east(f08B)
-  call apply_pbc_east(f09B)
-  call apply_pbc_east(f10B)
-  call apply_pbc_east(f11B)
-  call apply_pbc_east(f12B)
-  call apply_pbc_east(f13B)
-  call apply_pbc_east(f14B)
-  call apply_pbc_east(f15B)
-  call apply_pbc_east(f16B)
-  call apply_pbc_east(f17B)
-  call apply_pbc_east(f18B)
+  !red fluid
+  call apply_pbc_east(f00sub)
+  call apply_pbc_east(f01sub)
+  call apply_pbc_east(f02sub)
+  call apply_pbc_east(f03sub)
+  call apply_pbc_east(f04sub)
+  call apply_pbc_east(f05sub)
+  call apply_pbc_east(f06sub)
+  call apply_pbc_east(f07sub)
+  call apply_pbc_east(f08sub)
+  call apply_pbc_east(f09sub)
+  call apply_pbc_east(f10sub)
+  call apply_pbc_east(f11sub)
+  call apply_pbc_east(f12sub)
+  call apply_pbc_east(f13sub)
+  call apply_pbc_east(f14sub)
+  call apply_pbc_east(f15sub)
+  call apply_pbc_east(f16sub)
+  call apply_pbc_east(f17sub)
+  call apply_pbc_east(f18sub)
   
   !apply pbc at west 4 !x
-  !blue fluid
-  call apply_pbc_west(f00B)
-  call apply_pbc_west(f01B)
-  call apply_pbc_west(f02B)
-  call apply_pbc_west(f03B)
-  call apply_pbc_west(f04B)
-  call apply_pbc_west(f05B)
-  call apply_pbc_west(f06B)
-  call apply_pbc_west(f07B)
-  call apply_pbc_west(f08B)
-  call apply_pbc_west(f09B)
-  call apply_pbc_west(f10B)
-  call apply_pbc_west(f11B)
-  call apply_pbc_west(f12B)
-  call apply_pbc_west(f13B)
-  call apply_pbc_west(f14B)
-  call apply_pbc_west(f15B)
-  call apply_pbc_west(f16B)
-  call apply_pbc_west(f17B)
-  call apply_pbc_west(f18B)
+  !red fluid
+  call apply_pbc_west(f00sub)
+  call apply_pbc_west(f01sub)
+  call apply_pbc_west(f02sub)
+  call apply_pbc_west(f03sub)
+  call apply_pbc_west(f04sub)
+  call apply_pbc_west(f05sub)
+  call apply_pbc_west(f06sub)
+  call apply_pbc_west(f07sub)
+  call apply_pbc_west(f08sub)
+  call apply_pbc_west(f09sub)
+  call apply_pbc_west(f10sub)
+  call apply_pbc_west(f11sub)
+  call apply_pbc_west(f12sub)
+  call apply_pbc_west(f13sub)
+  call apply_pbc_west(f14sub)
+  call apply_pbc_west(f15sub)
+  call apply_pbc_west(f16sub)
+  call apply_pbc_west(f17sub)
+  call apply_pbc_west(f18sub)
   
   return
   
  end subroutine apply_pbc_pops_along_x
  
- subroutine apply_pbc_pops_along_y
+ subroutine driver_pbc_pops_along_y
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the periodic boundary 
+!     conditions to fluid populations along y
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+ 
+  call apply_pbc_pops_along_y(f00R,f01R,f02R,f03R,f04R,f05R,f06R,f07R, &
+   f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R) 
+  
+  if(lsingle_fluid)return
+ 
+  call apply_pbc_pops_along_y(f00B,f01B,f02B,f03B,f04B,f05B,f06B,f07B, &
+   f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+   
+  return
+  
+ end subroutine driver_pbc_pops_along_y
+ 
+ subroutine apply_pbc_pops_along_y(f00sub,f01sub,f02sub,f03sub,f04sub, &
+  f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
+  f14sub,f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -7044,105 +6504,90 @@ subroutine driver_bc_densities
  
   implicit none
   
-  !sides 2 (6)
-  
-  !apply pbc at front 5 !y
-  !red fluid
-  call apply_pbc_front(f00R)
-  call apply_pbc_front(f01R)
-  call apply_pbc_front(f02R)
-  call apply_pbc_front(f03R)
-  call apply_pbc_front(f04R)
-  call apply_pbc_front(f05R)
-  call apply_pbc_front(f06R)
-  call apply_pbc_front(f07R)
-  call apply_pbc_front(f08R)
-  call apply_pbc_front(f09R)
-  call apply_pbc_front(f10R)
-  call apply_pbc_front(f11R)
-  call apply_pbc_front(f12R)
-  call apply_pbc_front(f13R)
-  call apply_pbc_front(f14R)
-  call apply_pbc_front(f15R)
-  call apply_pbc_front(f16R)
-  call apply_pbc_front(f17R)
-  call apply_pbc_front(f18R)
-  
-  !apply pbc at rear 6 !y
-  !red fluid
-  call apply_pbc_rear(f00R)
-  call apply_pbc_rear(f01R)
-  call apply_pbc_rear(f02R)
-  call apply_pbc_rear(f03R)
-  call apply_pbc_rear(f04R)
-  call apply_pbc_rear(f05R)
-  call apply_pbc_rear(f06R)
-  call apply_pbc_rear(f07R)
-  call apply_pbc_rear(f08R)
-  call apply_pbc_rear(f09R)
-  call apply_pbc_rear(f10R)
-  call apply_pbc_rear(f11R)
-  call apply_pbc_rear(f12R)
-  call apply_pbc_rear(f13R)
-  call apply_pbc_rear(f14R)
-  call apply_pbc_rear(f15R)
-  call apply_pbc_rear(f16R)
-  call apply_pbc_rear(f17R)
-  call apply_pbc_rear(f18R)
-  
-  if(lsingle_fluid)return
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: f00sub,f01sub, &
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
   
   !sides 2 (6)
   
   !apply pbc at front 5 !y
-  !blue fluid
-  call apply_pbc_front(f00B)
-  call apply_pbc_front(f01B)
-  call apply_pbc_front(f02B)
-  call apply_pbc_front(f03B)
-  call apply_pbc_front(f04B)
-  call apply_pbc_front(f05B)
-  call apply_pbc_front(f06B)
-  call apply_pbc_front(f07B)
-  call apply_pbc_front(f08B)
-  call apply_pbc_front(f09B)
-  call apply_pbc_front(f10B)
-  call apply_pbc_front(f11B)
-  call apply_pbc_front(f12B)
-  call apply_pbc_front(f13B)
-  call apply_pbc_front(f14B)
-  call apply_pbc_front(f15B)
-  call apply_pbc_front(f16B)
-  call apply_pbc_front(f17B)
-  call apply_pbc_front(f18B)
+  !red fluid
+  call apply_pbc_front(f00sub)
+  call apply_pbc_front(f01sub)
+  call apply_pbc_front(f02sub)
+  call apply_pbc_front(f03sub)
+  call apply_pbc_front(f04sub)
+  call apply_pbc_front(f05sub)
+  call apply_pbc_front(f06sub)
+  call apply_pbc_front(f07sub)
+  call apply_pbc_front(f08sub)
+  call apply_pbc_front(f09sub)
+  call apply_pbc_front(f10sub)
+  call apply_pbc_front(f11sub)
+  call apply_pbc_front(f12sub)
+  call apply_pbc_front(f13sub)
+  call apply_pbc_front(f14sub)
+  call apply_pbc_front(f15sub)
+  call apply_pbc_front(f16sub)
+  call apply_pbc_front(f17sub)
+  call apply_pbc_front(f18sub)
   
   !apply pbc at rear 6 !y
-  !blue fluid
-  call apply_pbc_rear(f00B)
-  call apply_pbc_rear(f01B)
-  call apply_pbc_rear(f02B)
-  call apply_pbc_rear(f03B)
-  call apply_pbc_rear(f04B)
-  call apply_pbc_rear(f05B)
-  call apply_pbc_rear(f06B)
-  call apply_pbc_rear(f07B)
-  call apply_pbc_rear(f08B)
-  call apply_pbc_rear(f09B)
-  call apply_pbc_rear(f10B)
-  call apply_pbc_rear(f11B)
-  call apply_pbc_rear(f12B)
-  call apply_pbc_rear(f13B)
-  call apply_pbc_rear(f14B)
-  call apply_pbc_rear(f15B)
-  call apply_pbc_rear(f16B)
-  call apply_pbc_rear(f17B)
-  call apply_pbc_rear(f18B)
+  !red fluid
+  call apply_pbc_rear(f00sub)
+  call apply_pbc_rear(f01sub)
+  call apply_pbc_rear(f02sub)
+  call apply_pbc_rear(f03sub)
+  call apply_pbc_rear(f04sub)
+  call apply_pbc_rear(f05sub)
+  call apply_pbc_rear(f06sub)
+  call apply_pbc_rear(f07sub)
+  call apply_pbc_rear(f08sub)
+  call apply_pbc_rear(f09sub)
+  call apply_pbc_rear(f10sub)
+  call apply_pbc_rear(f11sub)
+  call apply_pbc_rear(f12sub)
+  call apply_pbc_rear(f13sub)
+  call apply_pbc_rear(f14sub)
+  call apply_pbc_rear(f15sub)
+  call apply_pbc_rear(f16sub)
+  call apply_pbc_rear(f17sub)
+  call apply_pbc_rear(f18sub)
   
   return
   
  end subroutine apply_pbc_pops_along_y
  
- subroutine apply_pbc_pops_along_z
+ subroutine driver_pbc_pops_along_z
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the periodic boundary 
+!     conditions to fluid populations along z
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+ 
+  call apply_pbc_pops_along_z(f00R,f01R,f02R,f03R,f04R,f05R,f06R,f07R, &
+   f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R) 
+  
+  if(lsingle_fluid)return
+ 
+  call apply_pbc_pops_along_z(f00B,f01B,f02B,f03B,f04B,f05B,f06B,f07B, &
+   f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+   
+  return
+  
+ end subroutine driver_pbc_pops_along_z
+ 
+ subroutine apply_pbc_pops_along_z(f00sub,f01sub,f02sub,f03sub,f04sub, &
+  f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
+  f14sub,f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -7157,105 +6602,90 @@ subroutine driver_bc_densities
  
   implicit none
   
-  !sides 2 (6)
-  
-  !apply pbc at north 1 !z
-  !red fluid
-  call apply_pbc_north(f00R)
-  call apply_pbc_north(f01R)
-  call apply_pbc_north(f02R)
-  call apply_pbc_north(f03R)
-  call apply_pbc_north(f04R)
-  call apply_pbc_north(f05R)
-  call apply_pbc_north(f06R)
-  call apply_pbc_north(f07R)
-  call apply_pbc_north(f08R)
-  call apply_pbc_north(f09R)
-  call apply_pbc_north(f10R)
-  call apply_pbc_north(f11R)
-  call apply_pbc_north(f12R)
-  call apply_pbc_north(f13R)
-  call apply_pbc_north(f14R)
-  call apply_pbc_north(f15R)
-  call apply_pbc_north(f16R)
-  call apply_pbc_north(f17R)
-  call apply_pbc_north(f18R)
-  
-  !apply pbc at south 2 !z
-  !red fluid
-  call apply_pbc_south(f00R)
-  call apply_pbc_south(f01R)
-  call apply_pbc_south(f02R)
-  call apply_pbc_south(f03R)
-  call apply_pbc_south(f04R)
-  call apply_pbc_south(f05R)
-  call apply_pbc_south(f06R)
-  call apply_pbc_south(f07R)
-  call apply_pbc_south(f08R)
-  call apply_pbc_south(f09R)
-  call apply_pbc_south(f10R)
-  call apply_pbc_south(f11R)
-  call apply_pbc_south(f12R)
-  call apply_pbc_south(f13R)
-  call apply_pbc_south(f14R)
-  call apply_pbc_south(f15R)
-  call apply_pbc_south(f16R)
-  call apply_pbc_south(f17R)
-  call apply_pbc_south(f18R)
-  
-  if(lsingle_fluid)return
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: f00sub,f01sub, &
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
   
   !sides 2 (6)
   
   !apply pbc at north 1 !z
-  !blue fluid
-  call apply_pbc_north(f00B)
-  call apply_pbc_north(f01B)
-  call apply_pbc_north(f02B)
-  call apply_pbc_north(f03B)
-  call apply_pbc_north(f04B)
-  call apply_pbc_north(f05B)
-  call apply_pbc_north(f06B)
-  call apply_pbc_north(f07B)
-  call apply_pbc_north(f08B)
-  call apply_pbc_north(f09B)
-  call apply_pbc_north(f10B)
-  call apply_pbc_north(f11B)
-  call apply_pbc_north(f12B)
-  call apply_pbc_north(f13B)
-  call apply_pbc_north(f14B)
-  call apply_pbc_north(f15B)
-  call apply_pbc_north(f16B)
-  call apply_pbc_north(f17B)
-  call apply_pbc_north(f18B)
+  !red fluid
+  call apply_pbc_north(f00sub)
+  call apply_pbc_north(f01sub)
+  call apply_pbc_north(f02sub)
+  call apply_pbc_north(f03sub)
+  call apply_pbc_north(f04sub)
+  call apply_pbc_north(f05sub)
+  call apply_pbc_north(f06sub)
+  call apply_pbc_north(f07sub)
+  call apply_pbc_north(f08sub)
+  call apply_pbc_north(f09sub)
+  call apply_pbc_north(f10sub)
+  call apply_pbc_north(f11sub)
+  call apply_pbc_north(f12sub)
+  call apply_pbc_north(f13sub)
+  call apply_pbc_north(f14sub)
+  call apply_pbc_north(f15sub)
+  call apply_pbc_north(f16sub)
+  call apply_pbc_north(f17sub)
+  call apply_pbc_north(f18sub)
   
   !apply pbc at south 2 !z
-  !blue fluid
-  call apply_pbc_south(f00B)
-  call apply_pbc_south(f01B)
-  call apply_pbc_south(f02B)
-  call apply_pbc_south(f03B)
-  call apply_pbc_south(f04B)
-  call apply_pbc_south(f05B)
-  call apply_pbc_south(f06B)
-  call apply_pbc_south(f07B)
-  call apply_pbc_south(f08B)
-  call apply_pbc_south(f09B)
-  call apply_pbc_south(f10B)
-  call apply_pbc_south(f11B)
-  call apply_pbc_south(f12B)
-  call apply_pbc_south(f13B)
-  call apply_pbc_south(f14B)
-  call apply_pbc_south(f15B)
-  call apply_pbc_south(f16B)
-  call apply_pbc_south(f17B)
-  call apply_pbc_south(f18B)
+  !red fluid
+  call apply_pbc_south(f00sub)
+  call apply_pbc_south(f01sub)
+  call apply_pbc_south(f02sub)
+  call apply_pbc_south(f03sub)
+  call apply_pbc_south(f04sub)
+  call apply_pbc_south(f05sub)
+  call apply_pbc_south(f06sub)
+  call apply_pbc_south(f07sub)
+  call apply_pbc_south(f08sub)
+  call apply_pbc_south(f09sub)
+  call apply_pbc_south(f10sub)
+  call apply_pbc_south(f11sub)
+  call apply_pbc_south(f12sub)
+  call apply_pbc_south(f13sub)
+  call apply_pbc_south(f14sub)
+  call apply_pbc_south(f15sub)
+  call apply_pbc_south(f16sub)
+  call apply_pbc_south(f17sub)
+  call apply_pbc_south(f18sub)
   
   return
   
  end subroutine apply_pbc_pops_along_z
  
- subroutine apply_pbc_pops_along_xy
+ subroutine driver_pbc_pops_along_xy
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the periodic boundary 
+!     conditions to fluid populations along x and y
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+ 
+  call apply_pbc_pops_along_xy(f00R,f01R,f02R,f03R,f04R,f05R,f06R,f07R,&
+   f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R) 
+  
+  if(lsingle_fluid)return
+ 
+  call apply_pbc_pops_along_xy(f00B,f01B,f02B,f03B,f04B,f05B,f06B,f07B,&
+   f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+   
+  return
+  
+ end subroutine driver_pbc_pops_along_xy
+ 
+ subroutine apply_pbc_pops_along_xy(f00sub,f01sub,f02sub,f03sub,f04sub,&
+  f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
+  f14sub,f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -7270,373 +6700,224 @@ subroutine driver_bc_densities
  
   implicit none
   
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: f00sub,f01sub, &
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  
   !sides 4 (6)
   
   !apply pbc at east 3 !x
   !red fluid
-  call apply_pbc_east(f00R)
-  call apply_pbc_east(f01R)
-  call apply_pbc_east(f02R)
-  call apply_pbc_east(f03R)
-  call apply_pbc_east(f04R)
-  call apply_pbc_east(f05R)
-  call apply_pbc_east(f06R)
-  call apply_pbc_east(f07R)
-  call apply_pbc_east(f08R)
-  call apply_pbc_east(f09R)
-  call apply_pbc_east(f10R)
-  call apply_pbc_east(f11R)
-  call apply_pbc_east(f12R)
-  call apply_pbc_east(f13R)
-  call apply_pbc_east(f14R)
-  call apply_pbc_east(f15R)
-  call apply_pbc_east(f16R)
-  call apply_pbc_east(f17R)
-  call apply_pbc_east(f18R)
+  call apply_pbc_east(f00sub)
+  call apply_pbc_east(f01sub)
+  call apply_pbc_east(f02sub)
+  call apply_pbc_east(f03sub)
+  call apply_pbc_east(f04sub)
+  call apply_pbc_east(f05sub)
+  call apply_pbc_east(f06sub)
+  call apply_pbc_east(f07sub)
+  call apply_pbc_east(f08sub)
+  call apply_pbc_east(f09sub)
+  call apply_pbc_east(f10sub)
+  call apply_pbc_east(f11sub)
+  call apply_pbc_east(f12sub)
+  call apply_pbc_east(f13sub)
+  call apply_pbc_east(f14sub)
+  call apply_pbc_east(f15sub)
+  call apply_pbc_east(f16sub)
+  call apply_pbc_east(f17sub)
+  call apply_pbc_east(f18sub)
   
   !apply pbc at west 4 !x
   !red fluid
-  call apply_pbc_west(f00R)
-  call apply_pbc_west(f01R)
-  call apply_pbc_west(f02R)
-  call apply_pbc_west(f03R)
-  call apply_pbc_west(f04R)
-  call apply_pbc_west(f05R)
-  call apply_pbc_west(f06R)
-  call apply_pbc_west(f07R)
-  call apply_pbc_west(f08R)
-  call apply_pbc_west(f09R)
-  call apply_pbc_west(f10R)
-  call apply_pbc_west(f11R)
-  call apply_pbc_west(f12R)
-  call apply_pbc_west(f13R)
-  call apply_pbc_west(f14R)
-  call apply_pbc_west(f15R)
-  call apply_pbc_west(f16R)
-  call apply_pbc_west(f17R)
-  call apply_pbc_west(f18R)
+  call apply_pbc_west(f00sub)
+  call apply_pbc_west(f01sub)
+  call apply_pbc_west(f02sub)
+  call apply_pbc_west(f03sub)
+  call apply_pbc_west(f04sub)
+  call apply_pbc_west(f05sub)
+  call apply_pbc_west(f06sub)
+  call apply_pbc_west(f07sub)
+  call apply_pbc_west(f08sub)
+  call apply_pbc_west(f09sub)
+  call apply_pbc_west(f10sub)
+  call apply_pbc_west(f11sub)
+  call apply_pbc_west(f12sub)
+  call apply_pbc_west(f13sub)
+  call apply_pbc_west(f14sub)
+  call apply_pbc_west(f15sub)
+  call apply_pbc_west(f16sub)
+  call apply_pbc_west(f17sub)
+  call apply_pbc_west(f18sub)
   
   !apply pbc at front 5 !y
   !red fluid
-  call apply_pbc_front(f00R)
-  call apply_pbc_front(f01R)
-  call apply_pbc_front(f02R)
-  call apply_pbc_front(f03R)
-  call apply_pbc_front(f04R)
-  call apply_pbc_front(f05R)
-  call apply_pbc_front(f06R)
-  call apply_pbc_front(f07R)
-  call apply_pbc_front(f08R)
-  call apply_pbc_front(f09R)
-  call apply_pbc_front(f10R)
-  call apply_pbc_front(f11R)
-  call apply_pbc_front(f12R)
-  call apply_pbc_front(f13R)
-  call apply_pbc_front(f14R)
-  call apply_pbc_front(f15R)
-  call apply_pbc_front(f16R)
-  call apply_pbc_front(f17R)
-  call apply_pbc_front(f18R)
+  call apply_pbc_front(f00sub)
+  call apply_pbc_front(f01sub)
+  call apply_pbc_front(f02sub)
+  call apply_pbc_front(f03sub)
+  call apply_pbc_front(f04sub)
+  call apply_pbc_front(f05sub)
+  call apply_pbc_front(f06sub)
+  call apply_pbc_front(f07sub)
+  call apply_pbc_front(f08sub)
+  call apply_pbc_front(f09sub)
+  call apply_pbc_front(f10sub)
+  call apply_pbc_front(f11sub)
+  call apply_pbc_front(f12sub)
+  call apply_pbc_front(f13sub)
+  call apply_pbc_front(f14sub)
+  call apply_pbc_front(f15sub)
+  call apply_pbc_front(f16sub)
+  call apply_pbc_front(f17sub)
+  call apply_pbc_front(f18sub)
   
   !apply pbc at rear 6 !y
   !red fluid
-  call apply_pbc_rear(f00R)
-  call apply_pbc_rear(f01R)
-  call apply_pbc_rear(f02R)
-  call apply_pbc_rear(f03R)
-  call apply_pbc_rear(f04R)
-  call apply_pbc_rear(f05R)
-  call apply_pbc_rear(f06R)
-  call apply_pbc_rear(f07R)
-  call apply_pbc_rear(f08R)
-  call apply_pbc_rear(f09R)
-  call apply_pbc_rear(f10R)
-  call apply_pbc_rear(f11R)
-  call apply_pbc_rear(f12R)
-  call apply_pbc_rear(f13R)
-  call apply_pbc_rear(f14R)
-  call apply_pbc_rear(f15R)
-  call apply_pbc_rear(f16R)
-  call apply_pbc_rear(f17R)
-  call apply_pbc_rear(f18R)
+  call apply_pbc_rear(f00sub)
+  call apply_pbc_rear(f01sub)
+  call apply_pbc_rear(f02sub)
+  call apply_pbc_rear(f03sub)
+  call apply_pbc_rear(f04sub)
+  call apply_pbc_rear(f05sub)
+  call apply_pbc_rear(f06sub)
+  call apply_pbc_rear(f07sub)
+  call apply_pbc_rear(f08sub)
+  call apply_pbc_rear(f09sub)
+  call apply_pbc_rear(f10sub)
+  call apply_pbc_rear(f11sub)
+  call apply_pbc_rear(f12sub)
+  call apply_pbc_rear(f13sub)
+  call apply_pbc_rear(f14sub)
+  call apply_pbc_rear(f15sub)
+  call apply_pbc_rear(f16sub)
+  call apply_pbc_rear(f17sub)
+  call apply_pbc_rear(f18sub)
   
   !edges 4 (12)
   
   !apply pbc at front east 1 !xy
   !red fluid
-  call apply_pbc_edge_front_east(f00R)
-  call apply_pbc_edge_front_east(f01R)
-  call apply_pbc_edge_front_east(f02R)
-  call apply_pbc_edge_front_east(f03R)
-  call apply_pbc_edge_front_east(f04R)
-  call apply_pbc_edge_front_east(f05R)
-  call apply_pbc_edge_front_east(f06R)
-  call apply_pbc_edge_front_east(f07R)
-  call apply_pbc_edge_front_east(f08R)
-  call apply_pbc_edge_front_east(f09R)
-  call apply_pbc_edge_front_east(f10R)
-  call apply_pbc_edge_front_east(f11R)
-  call apply_pbc_edge_front_east(f12R)
-  call apply_pbc_edge_front_east(f13R)
-  call apply_pbc_edge_front_east(f14R)
-  call apply_pbc_edge_front_east(f15R)
-  call apply_pbc_edge_front_east(f16R)
-  call apply_pbc_edge_front_east(f17R)
-  call apply_pbc_edge_front_east(f18R)
+  call apply_pbc_edge_front_east(f00sub)
+  call apply_pbc_edge_front_east(f01sub)
+  call apply_pbc_edge_front_east(f02sub)
+  call apply_pbc_edge_front_east(f03sub)
+  call apply_pbc_edge_front_east(f04sub)
+  call apply_pbc_edge_front_east(f05sub)
+  call apply_pbc_edge_front_east(f06sub)
+  call apply_pbc_edge_front_east(f07sub)
+  call apply_pbc_edge_front_east(f08sub)
+  call apply_pbc_edge_front_east(f09sub)
+  call apply_pbc_edge_front_east(f10sub)
+  call apply_pbc_edge_front_east(f11sub)
+  call apply_pbc_edge_front_east(f12sub)
+  call apply_pbc_edge_front_east(f13sub)
+  call apply_pbc_edge_front_east(f14sub)
+  call apply_pbc_edge_front_east(f15sub)
+  call apply_pbc_edge_front_east(f16sub)
+  call apply_pbc_edge_front_east(f17sub)
+  call apply_pbc_edge_front_east(f18sub)
   
   !apply pbc at front west 2 !xy
   !red fluid
-  call apply_pbc_edge_front_west(f00R)
-  call apply_pbc_edge_front_west(f01R)
-  call apply_pbc_edge_front_west(f02R)
-  call apply_pbc_edge_front_west(f03R)
-  call apply_pbc_edge_front_west(f04R)
-  call apply_pbc_edge_front_west(f05R)
-  call apply_pbc_edge_front_west(f06R)
-  call apply_pbc_edge_front_west(f07R)
-  call apply_pbc_edge_front_west(f08R)
-  call apply_pbc_edge_front_west(f09R)
-  call apply_pbc_edge_front_west(f10R)
-  call apply_pbc_edge_front_west(f11R)
-  call apply_pbc_edge_front_west(f12R)
-  call apply_pbc_edge_front_west(f13R)
-  call apply_pbc_edge_front_west(f14R)
-  call apply_pbc_edge_front_west(f15R)
-  call apply_pbc_edge_front_west(f16R)
-  call apply_pbc_edge_front_west(f17R)
-  call apply_pbc_edge_front_west(f18R)
+  call apply_pbc_edge_front_west(f00sub)
+  call apply_pbc_edge_front_west(f01sub)
+  call apply_pbc_edge_front_west(f02sub)
+  call apply_pbc_edge_front_west(f03sub)
+  call apply_pbc_edge_front_west(f04sub)
+  call apply_pbc_edge_front_west(f05sub)
+  call apply_pbc_edge_front_west(f06sub)
+  call apply_pbc_edge_front_west(f07sub)
+  call apply_pbc_edge_front_west(f08sub)
+  call apply_pbc_edge_front_west(f09sub)
+  call apply_pbc_edge_front_west(f10sub)
+  call apply_pbc_edge_front_west(f11sub)
+  call apply_pbc_edge_front_west(f12sub)
+  call apply_pbc_edge_front_west(f13sub)
+  call apply_pbc_edge_front_west(f14sub)
+  call apply_pbc_edge_front_west(f15sub)
+  call apply_pbc_edge_front_west(f16sub)
+  call apply_pbc_edge_front_west(f17sub)
+  call apply_pbc_edge_front_west(f18sub)
   
   !apply pbc at rear east 7 !xy
   !red fluid
-  call apply_pbc_edge_rear_east(f00R)
-  call apply_pbc_edge_rear_east(f01R)
-  call apply_pbc_edge_rear_east(f02R)
-  call apply_pbc_edge_rear_east(f03R)
-  call apply_pbc_edge_rear_east(f04R)
-  call apply_pbc_edge_rear_east(f05R)
-  call apply_pbc_edge_rear_east(f06R)
-  call apply_pbc_edge_rear_east(f07R)
-  call apply_pbc_edge_rear_east(f08R)
-  call apply_pbc_edge_rear_east(f09R)
-  call apply_pbc_edge_rear_east(f10R)
-  call apply_pbc_edge_rear_east(f11R)
-  call apply_pbc_edge_rear_east(f12R)
-  call apply_pbc_edge_rear_east(f13R)
-  call apply_pbc_edge_rear_east(f14R)
-  call apply_pbc_edge_rear_east(f15R)
-  call apply_pbc_edge_rear_east(f16R)
-  call apply_pbc_edge_rear_east(f17R)
-  call apply_pbc_edge_rear_east(f18R)
+  call apply_pbc_edge_rear_east(f00sub)
+  call apply_pbc_edge_rear_east(f01sub)
+  call apply_pbc_edge_rear_east(f02sub)
+  call apply_pbc_edge_rear_east(f03sub)
+  call apply_pbc_edge_rear_east(f04sub)
+  call apply_pbc_edge_rear_east(f05sub)
+  call apply_pbc_edge_rear_east(f06sub)
+  call apply_pbc_edge_rear_east(f07sub)
+  call apply_pbc_edge_rear_east(f08sub)
+  call apply_pbc_edge_rear_east(f09sub)
+  call apply_pbc_edge_rear_east(f10sub)
+  call apply_pbc_edge_rear_east(f11sub)
+  call apply_pbc_edge_rear_east(f12sub)
+  call apply_pbc_edge_rear_east(f13sub)
+  call apply_pbc_edge_rear_east(f14sub)
+  call apply_pbc_edge_rear_east(f15sub)
+  call apply_pbc_edge_rear_east(f16sub)
+  call apply_pbc_edge_rear_east(f17sub)
+  call apply_pbc_edge_rear_east(f18sub)
   
   !apply pbc at rear west 8 !xy
   !red fluid
-  call apply_pbc_edge_rear_west(f00R)
-  call apply_pbc_edge_rear_west(f01R)
-  call apply_pbc_edge_rear_west(f02R)
-  call apply_pbc_edge_rear_west(f03R)
-  call apply_pbc_edge_rear_west(f04R)
-  call apply_pbc_edge_rear_west(f05R)
-  call apply_pbc_edge_rear_west(f06R)
-  call apply_pbc_edge_rear_west(f07R)
-  call apply_pbc_edge_rear_west(f08R)
-  call apply_pbc_edge_rear_west(f09R)
-  call apply_pbc_edge_rear_west(f10R)
-  call apply_pbc_edge_rear_west(f11R)
-  call apply_pbc_edge_rear_west(f12R)
-  call apply_pbc_edge_rear_west(f13R)
-  call apply_pbc_edge_rear_west(f14R)
-  call apply_pbc_edge_rear_west(f15R)
-  call apply_pbc_edge_rear_west(f16R)
-  call apply_pbc_edge_rear_west(f17R)
-  call apply_pbc_edge_rear_west(f18R)
-  
-  if(lsingle_fluid)return
-  
-  !sides 4 (6)
-  
-  !apply pbc at east 3 !x
-  !blue fluid
-  call apply_pbc_east(f00B)
-  call apply_pbc_east(f01B)
-  call apply_pbc_east(f02B)
-  call apply_pbc_east(f03B)
-  call apply_pbc_east(f04B)
-  call apply_pbc_east(f05B)
-  call apply_pbc_east(f06B)
-  call apply_pbc_east(f07B)
-  call apply_pbc_east(f08B)
-  call apply_pbc_east(f09B)
-  call apply_pbc_east(f10B)
-  call apply_pbc_east(f11B)
-  call apply_pbc_east(f12B)
-  call apply_pbc_east(f13B)
-  call apply_pbc_east(f14B)
-  call apply_pbc_east(f15B)
-  call apply_pbc_east(f16B)
-  call apply_pbc_east(f17B)
-  call apply_pbc_east(f18B)
-  
-  !apply pbc at west 4 !x
-  !blue fluid
-  call apply_pbc_west(f00B)
-  call apply_pbc_west(f01B)
-  call apply_pbc_west(f02B)
-  call apply_pbc_west(f03B)
-  call apply_pbc_west(f04B)
-  call apply_pbc_west(f05B)
-  call apply_pbc_west(f06B)
-  call apply_pbc_west(f07B)
-  call apply_pbc_west(f08B)
-  call apply_pbc_west(f09B)
-  call apply_pbc_west(f10B)
-  call apply_pbc_west(f11B)
-  call apply_pbc_west(f12B)
-  call apply_pbc_west(f13B)
-  call apply_pbc_west(f14B)
-  call apply_pbc_west(f15B)
-  call apply_pbc_west(f16B)
-  call apply_pbc_west(f17B)
-  call apply_pbc_west(f18B)
-  
-  !apply pbc at front 5 !y
-  !blue fluid
-  call apply_pbc_front(f00B)
-  call apply_pbc_front(f01B)
-  call apply_pbc_front(f02B)
-  call apply_pbc_front(f03B)
-  call apply_pbc_front(f04B)
-  call apply_pbc_front(f05B)
-  call apply_pbc_front(f06B)
-  call apply_pbc_front(f07B)
-  call apply_pbc_front(f08B)
-  call apply_pbc_front(f09B)
-  call apply_pbc_front(f10B)
-  call apply_pbc_front(f11B)
-  call apply_pbc_front(f12B)
-  call apply_pbc_front(f13B)
-  call apply_pbc_front(f14B)
-  call apply_pbc_front(f15B)
-  call apply_pbc_front(f16B)
-  call apply_pbc_front(f17B)
-  call apply_pbc_front(f18B)
-  
-  !apply pbc at rear 6 !y
-  !blue fluid
-  call apply_pbc_rear(f00B)
-  call apply_pbc_rear(f01B)
-  call apply_pbc_rear(f02B)
-  call apply_pbc_rear(f03B)
-  call apply_pbc_rear(f04B)
-  call apply_pbc_rear(f05B)
-  call apply_pbc_rear(f06B)
-  call apply_pbc_rear(f07B)
-  call apply_pbc_rear(f08B)
-  call apply_pbc_rear(f09B)
-  call apply_pbc_rear(f10B)
-  call apply_pbc_rear(f11B)
-  call apply_pbc_rear(f12B)
-  call apply_pbc_rear(f13B)
-  call apply_pbc_rear(f14B)
-  call apply_pbc_rear(f15B)
-  call apply_pbc_rear(f16B)
-  call apply_pbc_rear(f17B)
-  call apply_pbc_rear(f18B)
-  
-  !edges 4 (12)
-  
-  !apply pbc at front east 1 !xy
-  !blue fluid
-  call apply_pbc_edge_front_east(f00B)
-  call apply_pbc_edge_front_east(f01B)
-  call apply_pbc_edge_front_east(f02B)
-  call apply_pbc_edge_front_east(f03B)
-  call apply_pbc_edge_front_east(f04B)
-  call apply_pbc_edge_front_east(f05B)
-  call apply_pbc_edge_front_east(f06B)
-  call apply_pbc_edge_front_east(f07B)
-  call apply_pbc_edge_front_east(f08B)
-  call apply_pbc_edge_front_east(f09B)
-  call apply_pbc_edge_front_east(f10B)
-  call apply_pbc_edge_front_east(f11B)
-  call apply_pbc_edge_front_east(f12B)
-  call apply_pbc_edge_front_east(f13B)
-  call apply_pbc_edge_front_east(f14B)
-  call apply_pbc_edge_front_east(f15B)
-  call apply_pbc_edge_front_east(f16B)
-  call apply_pbc_edge_front_east(f17B)
-  call apply_pbc_edge_front_east(f18B)
-  
-  !apply pbc at front west 2 !xy
-  !blue fluid
-  call apply_pbc_edge_front_west(f00B)
-  call apply_pbc_edge_front_west(f01B)
-  call apply_pbc_edge_front_west(f02B)
-  call apply_pbc_edge_front_west(f03B)
-  call apply_pbc_edge_front_west(f04B)
-  call apply_pbc_edge_front_west(f05B)
-  call apply_pbc_edge_front_west(f06B)
-  call apply_pbc_edge_front_west(f07B)
-  call apply_pbc_edge_front_west(f08B)
-  call apply_pbc_edge_front_west(f09B)
-  call apply_pbc_edge_front_west(f10B)
-  call apply_pbc_edge_front_west(f11B)
-  call apply_pbc_edge_front_west(f12B)
-  call apply_pbc_edge_front_west(f13B)
-  call apply_pbc_edge_front_west(f14B)
-  call apply_pbc_edge_front_west(f15B)
-  call apply_pbc_edge_front_west(f16B)
-  call apply_pbc_edge_front_west(f17B)
-  call apply_pbc_edge_front_west(f18B)
-  
-  !apply pbc at rear east 7 !xy
-  !blue fluid
-  call apply_pbc_edge_rear_east(f00B)
-  call apply_pbc_edge_rear_east(f01B)
-  call apply_pbc_edge_rear_east(f02B)
-  call apply_pbc_edge_rear_east(f03B)
-  call apply_pbc_edge_rear_east(f04B)
-  call apply_pbc_edge_rear_east(f05B)
-  call apply_pbc_edge_rear_east(f06B)
-  call apply_pbc_edge_rear_east(f07B)
-  call apply_pbc_edge_rear_east(f08B)
-  call apply_pbc_edge_rear_east(f09B)
-  call apply_pbc_edge_rear_east(f10B)
-  call apply_pbc_edge_rear_east(f11B)
-  call apply_pbc_edge_rear_east(f12B)
-  call apply_pbc_edge_rear_east(f13B)
-  call apply_pbc_edge_rear_east(f14B)
-  call apply_pbc_edge_rear_east(f15B)
-  call apply_pbc_edge_rear_east(f16B)
-  call apply_pbc_edge_rear_east(f17B)
-  call apply_pbc_edge_rear_east(f18B)
-  
-  !apply pbc at rear west 8 !xy
-  !blue fluid
-  call apply_pbc_edge_rear_west(f00B)
-  call apply_pbc_edge_rear_west(f01B)
-  call apply_pbc_edge_rear_west(f02B)
-  call apply_pbc_edge_rear_west(f03B)
-  call apply_pbc_edge_rear_west(f04B)
-  call apply_pbc_edge_rear_west(f05B)
-  call apply_pbc_edge_rear_west(f06B)
-  call apply_pbc_edge_rear_west(f07B)
-  call apply_pbc_edge_rear_west(f08B)
-  call apply_pbc_edge_rear_west(f09B)
-  call apply_pbc_edge_rear_west(f10B)
-  call apply_pbc_edge_rear_west(f11B)
-  call apply_pbc_edge_rear_west(f12B)
-  call apply_pbc_edge_rear_west(f13B)
-  call apply_pbc_edge_rear_west(f14B)
-  call apply_pbc_edge_rear_west(f15B)
-  call apply_pbc_edge_rear_west(f16B)
-  call apply_pbc_edge_rear_west(f17B)
-  call apply_pbc_edge_rear_west(f18B)
+  call apply_pbc_edge_rear_west(f00sub)
+  call apply_pbc_edge_rear_west(f01sub)
+  call apply_pbc_edge_rear_west(f02sub)
+  call apply_pbc_edge_rear_west(f03sub)
+  call apply_pbc_edge_rear_west(f04sub)
+  call apply_pbc_edge_rear_west(f05sub)
+  call apply_pbc_edge_rear_west(f06sub)
+  call apply_pbc_edge_rear_west(f07sub)
+  call apply_pbc_edge_rear_west(f08sub)
+  call apply_pbc_edge_rear_west(f09sub)
+  call apply_pbc_edge_rear_west(f10sub)
+  call apply_pbc_edge_rear_west(f11sub)
+  call apply_pbc_edge_rear_west(f12sub)
+  call apply_pbc_edge_rear_west(f13sub)
+  call apply_pbc_edge_rear_west(f14sub)
+  call apply_pbc_edge_rear_west(f15sub)
+  call apply_pbc_edge_rear_west(f16sub)
+  call apply_pbc_edge_rear_west(f17sub)
+  call apply_pbc_edge_rear_west(f18sub)
   
   return
   
  end subroutine apply_pbc_pops_along_xy
  
- subroutine apply_pbc_pops_along_xz
+ subroutine driver_pbc_pops_along_xz
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the periodic boundary 
+!     conditions to fluid populations along x and z
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+ 
+  call apply_pbc_pops_along_xz(f00R,f01R,f02R,f03R,f04R,f05R,f06R,f07R,&
+   f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R) 
+  
+  if(lsingle_fluid)return
+ 
+  call apply_pbc_pops_along_xz(f00B,f01B,f02B,f03B,f04B,f05B,f06B,f07B,&
+   f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+   
+  return
+  
+ end subroutine driver_pbc_pops_along_xz
+ 
+ subroutine apply_pbc_pops_along_xz(f00sub,f01sub,f02sub,f03sub,f04sub,f05sub, &
+  f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub,f14sub, &
+  f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -7651,374 +6932,224 @@ subroutine driver_bc_densities
  
   implicit none
   
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: f00sub,f01sub, &
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  
   !sides 4 (6)
   
   !apply pbc at north 1 !z
   !red fluid
-  call apply_pbc_north(f00R)
-  call apply_pbc_north(f01R)
-  call apply_pbc_north(f02R)
-  call apply_pbc_north(f03R)
-  call apply_pbc_north(f04R)
-  call apply_pbc_north(f05R)
-  call apply_pbc_north(f06R)
-  call apply_pbc_north(f07R)
-  call apply_pbc_north(f08R)
-  call apply_pbc_north(f09R)
-  call apply_pbc_north(f10R)
-  call apply_pbc_north(f11R)
-  call apply_pbc_north(f12R)
-  call apply_pbc_north(f13R)
-  call apply_pbc_north(f14R)
-  call apply_pbc_north(f15R)
-  call apply_pbc_north(f16R)
-  call apply_pbc_north(f17R)
-  call apply_pbc_north(f18R)
+  call apply_pbc_north(f00sub)
+  call apply_pbc_north(f01sub)
+  call apply_pbc_north(f02sub)
+  call apply_pbc_north(f03sub)
+  call apply_pbc_north(f04sub)
+  call apply_pbc_north(f05sub)
+  call apply_pbc_north(f06sub)
+  call apply_pbc_north(f07sub)
+  call apply_pbc_north(f08sub)
+  call apply_pbc_north(f09sub)
+  call apply_pbc_north(f10sub)
+  call apply_pbc_north(f11sub)
+  call apply_pbc_north(f12sub)
+  call apply_pbc_north(f13sub)
+  call apply_pbc_north(f14sub)
+  call apply_pbc_north(f15sub)
+  call apply_pbc_north(f16sub)
+  call apply_pbc_north(f17sub)
+  call apply_pbc_north(f18sub)
   
   !apply pbc at south 2 !z
   !red fluid
-  call apply_pbc_south(f00R)
-  call apply_pbc_south(f01R)
-  call apply_pbc_south(f02R)
-  call apply_pbc_south(f03R)
-  call apply_pbc_south(f04R)
-  call apply_pbc_south(f05R)
-  call apply_pbc_south(f06R)
-  call apply_pbc_south(f07R)
-  call apply_pbc_south(f08R)
-  call apply_pbc_south(f09R)
-  call apply_pbc_south(f10R)
-  call apply_pbc_south(f11R)
-  call apply_pbc_south(f12R)
-  call apply_pbc_south(f13R)
-  call apply_pbc_south(f14R)
-  call apply_pbc_south(f15R)
-  call apply_pbc_south(f16R)
-  call apply_pbc_south(f17R)
-  call apply_pbc_south(f18R)
+  call apply_pbc_south(f00sub)
+  call apply_pbc_south(f01sub)
+  call apply_pbc_south(f02sub)
+  call apply_pbc_south(f03sub)
+  call apply_pbc_south(f04sub)
+  call apply_pbc_south(f05sub)
+  call apply_pbc_south(f06sub)
+  call apply_pbc_south(f07sub)
+  call apply_pbc_south(f08sub)
+  call apply_pbc_south(f09sub)
+  call apply_pbc_south(f10sub)
+  call apply_pbc_south(f11sub)
+  call apply_pbc_south(f12sub)
+  call apply_pbc_south(f13sub)
+  call apply_pbc_south(f14sub)
+  call apply_pbc_south(f15sub)
+  call apply_pbc_south(f16sub)
+  call apply_pbc_south(f17sub)
+  call apply_pbc_south(f18sub)
   
   !apply pbc at east 3 !x
   !red fluid
-  call apply_pbc_east(f00R)
-  call apply_pbc_east(f01R)
-  call apply_pbc_east(f02R)
-  call apply_pbc_east(f03R)
-  call apply_pbc_east(f04R)
-  call apply_pbc_east(f05R)
-  call apply_pbc_east(f06R)
-  call apply_pbc_east(f07R)
-  call apply_pbc_east(f08R)
-  call apply_pbc_east(f09R)
-  call apply_pbc_east(f10R)
-  call apply_pbc_east(f11R)
-  call apply_pbc_east(f12R)
-  call apply_pbc_east(f13R)
-  call apply_pbc_east(f14R)
-  call apply_pbc_east(f15R)
-  call apply_pbc_east(f16R)
-  call apply_pbc_east(f17R)
-  call apply_pbc_east(f18R)
+  call apply_pbc_east(f00sub)
+  call apply_pbc_east(f01sub)
+  call apply_pbc_east(f02sub)
+  call apply_pbc_east(f03sub)
+  call apply_pbc_east(f04sub)
+  call apply_pbc_east(f05sub)
+  call apply_pbc_east(f06sub)
+  call apply_pbc_east(f07sub)
+  call apply_pbc_east(f08sub)
+  call apply_pbc_east(f09sub)
+  call apply_pbc_east(f10sub)
+  call apply_pbc_east(f11sub)
+  call apply_pbc_east(f12sub)
+  call apply_pbc_east(f13sub)
+  call apply_pbc_east(f14sub)
+  call apply_pbc_east(f15sub)
+  call apply_pbc_east(f16sub)
+  call apply_pbc_east(f17sub)
+  call apply_pbc_east(f18sub)
   
   !apply pbc at west 4 !x
   !red fluid
-  call apply_pbc_west(f00R)
-  call apply_pbc_west(f01R)
-  call apply_pbc_west(f02R)
-  call apply_pbc_west(f03R)
-  call apply_pbc_west(f04R)
-  call apply_pbc_west(f05R)
-  call apply_pbc_west(f06R)
-  call apply_pbc_west(f07R)
-  call apply_pbc_west(f08R)
-  call apply_pbc_west(f09R)
-  call apply_pbc_west(f10R)
-  call apply_pbc_west(f11R)
-  call apply_pbc_west(f12R)
-  call apply_pbc_west(f13R)
-  call apply_pbc_west(f14R)
-  call apply_pbc_west(f15R)
-  call apply_pbc_west(f16R)
-  call apply_pbc_west(f17R)
-  call apply_pbc_west(f18R)
+  call apply_pbc_west(f00sub)
+  call apply_pbc_west(f01sub)
+  call apply_pbc_west(f02sub)
+  call apply_pbc_west(f03sub)
+  call apply_pbc_west(f04sub)
+  call apply_pbc_west(f05sub)
+  call apply_pbc_west(f06sub)
+  call apply_pbc_west(f07sub)
+  call apply_pbc_west(f08sub)
+  call apply_pbc_west(f09sub)
+  call apply_pbc_west(f10sub)
+  call apply_pbc_west(f11sub)
+  call apply_pbc_west(f12sub)
+  call apply_pbc_west(f13sub)
+  call apply_pbc_west(f14sub)
+  call apply_pbc_west(f15sub)
+  call apply_pbc_west(f16sub)
+  call apply_pbc_west(f17sub)
+  call apply_pbc_west(f18sub)
   
   !edges 4 (12)
   
   !apply pbc at north east 3 !xz
   !red fluid
-  call apply_pbc_edge_north_east(f00R)
-  call apply_pbc_edge_north_east(f01R)
-  call apply_pbc_edge_north_east(f02R)
-  call apply_pbc_edge_north_east(f03R)
-  call apply_pbc_edge_north_east(f04R)
-  call apply_pbc_edge_north_east(f05R)
-  call apply_pbc_edge_north_east(f06R)
-  call apply_pbc_edge_north_east(f07R)
-  call apply_pbc_edge_north_east(f08R)
-  call apply_pbc_edge_north_east(f09R)
-  call apply_pbc_edge_north_east(f10R)
-  call apply_pbc_edge_north_east(f11R)
-  call apply_pbc_edge_north_east(f12R)
-  call apply_pbc_edge_north_east(f13R)
-  call apply_pbc_edge_north_east(f14R)
-  call apply_pbc_edge_north_east(f15R)
-  call apply_pbc_edge_north_east(f16R)
-  call apply_pbc_edge_north_east(f17R)
-  call apply_pbc_edge_north_east(f18R)
+  call apply_pbc_edge_north_east(f00sub)
+  call apply_pbc_edge_north_east(f01sub)
+  call apply_pbc_edge_north_east(f02sub)
+  call apply_pbc_edge_north_east(f03sub)
+  call apply_pbc_edge_north_east(f04sub)
+  call apply_pbc_edge_north_east(f05sub)
+  call apply_pbc_edge_north_east(f06sub)
+  call apply_pbc_edge_north_east(f07sub)
+  call apply_pbc_edge_north_east(f08sub)
+  call apply_pbc_edge_north_east(f09sub)
+  call apply_pbc_edge_north_east(f10sub)
+  call apply_pbc_edge_north_east(f11sub)
+  call apply_pbc_edge_north_east(f12sub)
+  call apply_pbc_edge_north_east(f13sub)
+  call apply_pbc_edge_north_east(f14sub)
+  call apply_pbc_edge_north_east(f15sub)
+  call apply_pbc_edge_north_east(f16sub)
+  call apply_pbc_edge_north_east(f17sub)
+  call apply_pbc_edge_north_east(f18sub)
   
   !apply pbc at north west 6 !xz
   !red fluid
-  call apply_pbc_edge_north_west(f00R)
-  call apply_pbc_edge_north_west(f01R)
-  call apply_pbc_edge_north_west(f02R)
-  call apply_pbc_edge_north_west(f03R)
-  call apply_pbc_edge_north_west(f04R)
-  call apply_pbc_edge_north_west(f05R)
-  call apply_pbc_edge_north_west(f06R)
-  call apply_pbc_edge_north_west(f07R)
-  call apply_pbc_edge_north_west(f08R)
-  call apply_pbc_edge_north_west(f09R)
-  call apply_pbc_edge_north_west(f10R)
-  call apply_pbc_edge_north_west(f11R)
-  call apply_pbc_edge_north_west(f12R)
-  call apply_pbc_edge_north_west(f13R)
-  call apply_pbc_edge_north_west(f14R)
-  call apply_pbc_edge_north_west(f15R)
-  call apply_pbc_edge_north_west(f16R)
-  call apply_pbc_edge_north_west(f17R)
-  call apply_pbc_edge_north_west(f18R)
+  call apply_pbc_edge_north_west(f00sub)
+  call apply_pbc_edge_north_west(f01sub)
+  call apply_pbc_edge_north_west(f02sub)
+  call apply_pbc_edge_north_west(f03sub)
+  call apply_pbc_edge_north_west(f04sub)
+  call apply_pbc_edge_north_west(f05sub)
+  call apply_pbc_edge_north_west(f06sub)
+  call apply_pbc_edge_north_west(f07sub)
+  call apply_pbc_edge_north_west(f08sub)
+  call apply_pbc_edge_north_west(f09sub)
+  call apply_pbc_edge_north_west(f10sub)
+  call apply_pbc_edge_north_west(f11sub)
+  call apply_pbc_edge_north_west(f12sub)
+  call apply_pbc_edge_north_west(f13sub)
+  call apply_pbc_edge_north_west(f14sub)
+  call apply_pbc_edge_north_west(f15sub)
+  call apply_pbc_edge_north_west(f16sub)
+  call apply_pbc_edge_north_west(f17sub)
+  call apply_pbc_edge_north_west(f18sub)
   
   !apply pbc at south east 9 !xz
   !red fluid
-  call apply_pbc_edge_south_east(f00R)
-  call apply_pbc_edge_south_east(f01R)
-  call apply_pbc_edge_south_east(f02R)
-  call apply_pbc_edge_south_east(f03R)
-  call apply_pbc_edge_south_east(f04R)
-  call apply_pbc_edge_south_east(f05R)
-  call apply_pbc_edge_south_east(f06R)
-  call apply_pbc_edge_south_east(f07R)
-  call apply_pbc_edge_south_east(f08R)
-  call apply_pbc_edge_south_east(f09R)
-  call apply_pbc_edge_south_east(f10R)
-  call apply_pbc_edge_south_east(f11R)
-  call apply_pbc_edge_south_east(f12R)
-  call apply_pbc_edge_south_east(f13R)
-  call apply_pbc_edge_south_east(f14R)
-  call apply_pbc_edge_south_east(f15R)
-  call apply_pbc_edge_south_east(f16R)
-  call apply_pbc_edge_south_east(f17R)
-  call apply_pbc_edge_south_east(f18R)
+  call apply_pbc_edge_south_east(f00sub)
+  call apply_pbc_edge_south_east(f01sub)
+  call apply_pbc_edge_south_east(f02sub)
+  call apply_pbc_edge_south_east(f03sub)
+  call apply_pbc_edge_south_east(f04sub)
+  call apply_pbc_edge_south_east(f05sub)
+  call apply_pbc_edge_south_east(f06sub)
+  call apply_pbc_edge_south_east(f07sub)
+  call apply_pbc_edge_south_east(f08sub)
+  call apply_pbc_edge_south_east(f09sub)
+  call apply_pbc_edge_south_east(f10sub)
+  call apply_pbc_edge_south_east(f11sub)
+  call apply_pbc_edge_south_east(f12sub)
+  call apply_pbc_edge_south_east(f13sub)
+  call apply_pbc_edge_south_east(f14sub)
+  call apply_pbc_edge_south_east(f15sub)
+  call apply_pbc_edge_south_east(f16sub)
+  call apply_pbc_edge_south_east(f17sub)
+  call apply_pbc_edge_south_east(f18sub)
   
   !apply pbc at south west 12 !xz
   !red fluid
-  call apply_pbc_edge_south_west(f00R)
-  call apply_pbc_edge_south_west(f01R)
-  call apply_pbc_edge_south_west(f02R)
-  call apply_pbc_edge_south_west(f03R)
-  call apply_pbc_edge_south_west(f04R)
-  call apply_pbc_edge_south_west(f05R)
-  call apply_pbc_edge_south_west(f06R)
-  call apply_pbc_edge_south_west(f07R)
-  call apply_pbc_edge_south_west(f08R)
-  call apply_pbc_edge_south_west(f09R)
-  call apply_pbc_edge_south_west(f10R)
-  call apply_pbc_edge_south_west(f11R)
-  call apply_pbc_edge_south_west(f12R)
-  call apply_pbc_edge_south_west(f13R)
-  call apply_pbc_edge_south_west(f14R)
-  call apply_pbc_edge_south_west(f15R)
-  call apply_pbc_edge_south_west(f16R)
-  call apply_pbc_edge_south_west(f17R)
-  call apply_pbc_edge_south_west(f18R)
-  
-  if(lsingle_fluid)return
-  
-  !sides 4 (6)
-  
-  !apply pbc at north 1 !z
-  !blue fluid
-  call apply_pbc_north(f00B)
-  call apply_pbc_north(f01B)
-  call apply_pbc_north(f02B)
-  call apply_pbc_north(f03B)
-  call apply_pbc_north(f04B)
-  call apply_pbc_north(f05B)
-  call apply_pbc_north(f06B)
-  call apply_pbc_north(f07B)
-  call apply_pbc_north(f08B)
-  call apply_pbc_north(f09B)
-  call apply_pbc_north(f10B)
-  call apply_pbc_north(f11B)
-  call apply_pbc_north(f12B)
-  call apply_pbc_north(f13B)
-  call apply_pbc_north(f14B)
-  call apply_pbc_north(f15B)
-  call apply_pbc_north(f16B)
-  call apply_pbc_north(f17B)
-  call apply_pbc_north(f18B)
-  
-  !apply pbc at south 2 !z
-  !blue fluid
-  call apply_pbc_south(f00B)
-  call apply_pbc_south(f01B)
-  call apply_pbc_south(f02B)
-  call apply_pbc_south(f03B)
-  call apply_pbc_south(f04B)
-  call apply_pbc_south(f05B)
-  call apply_pbc_south(f06B)
-  call apply_pbc_south(f07B)
-  call apply_pbc_south(f08B)
-  call apply_pbc_south(f09B)
-  call apply_pbc_south(f10B)
-  call apply_pbc_south(f11B)
-  call apply_pbc_south(f12B)
-  call apply_pbc_south(f13B)
-  call apply_pbc_south(f14B)
-  call apply_pbc_south(f15B)
-  call apply_pbc_south(f16B)
-  call apply_pbc_south(f17B)
-  call apply_pbc_south(f18B)
-  
-  !apply pbc at east 3 !x
-  !blue fluid
-  call apply_pbc_east(f00B)
-  call apply_pbc_east(f01B)
-  call apply_pbc_east(f02B)
-  call apply_pbc_east(f03B)
-  call apply_pbc_east(f04B)
-  call apply_pbc_east(f05B)
-  call apply_pbc_east(f06B)
-  call apply_pbc_east(f07B)
-  call apply_pbc_east(f08B)
-  call apply_pbc_east(f09B)
-  call apply_pbc_east(f10B)
-  call apply_pbc_east(f11B)
-  call apply_pbc_east(f12B)
-  call apply_pbc_east(f13B)
-  call apply_pbc_east(f14B)
-  call apply_pbc_east(f15B)
-  call apply_pbc_east(f16B)
-  call apply_pbc_east(f17B)
-  call apply_pbc_east(f18B)
-  
-  !apply pbc at west 4 !x
-  !blue fluid
-  call apply_pbc_west(f00B)
-  call apply_pbc_west(f01B)
-  call apply_pbc_west(f02B)
-  call apply_pbc_west(f03B)
-  call apply_pbc_west(f04B)
-  call apply_pbc_west(f05B)
-  call apply_pbc_west(f06B)
-  call apply_pbc_west(f07B)
-  call apply_pbc_west(f08B)
-  call apply_pbc_west(f09B)
-  call apply_pbc_west(f10B)
-  call apply_pbc_west(f11B)
-  call apply_pbc_west(f12B)
-  call apply_pbc_west(f13B)
-  call apply_pbc_west(f14B)
-  call apply_pbc_west(f15B)
-  call apply_pbc_west(f16B)
-  call apply_pbc_west(f17B)
-  call apply_pbc_west(f18B)
-  
-  !edges 4 (12)
-  
-  !apply pbc at north east 3 !xz
-  !blue fluid
-  call apply_pbc_edge_north_east(f00B)
-  call apply_pbc_edge_north_east(f01B)
-  call apply_pbc_edge_north_east(f02B)
-  call apply_pbc_edge_north_east(f03B)
-  call apply_pbc_edge_north_east(f04B)
-  call apply_pbc_edge_north_east(f05B)
-  call apply_pbc_edge_north_east(f06B)
-  call apply_pbc_edge_north_east(f07B)
-  call apply_pbc_edge_north_east(f08B)
-  call apply_pbc_edge_north_east(f09B)
-  call apply_pbc_edge_north_east(f10B)
-  call apply_pbc_edge_north_east(f11B)
-  call apply_pbc_edge_north_east(f12B)
-  call apply_pbc_edge_north_east(f13B)
-  call apply_pbc_edge_north_east(f14B)
-  call apply_pbc_edge_north_east(f15B)
-  call apply_pbc_edge_north_east(f16B)
-  call apply_pbc_edge_north_east(f17B)
-  call apply_pbc_edge_north_east(f18B)
-  
-  !apply pbc at north west 6 !xz
-  !blue fluid
-  call apply_pbc_edge_north_west(f00B)
-  call apply_pbc_edge_north_west(f01B)
-  call apply_pbc_edge_north_west(f02B)
-  call apply_pbc_edge_north_west(f03B)
-  call apply_pbc_edge_north_west(f04B)
-  call apply_pbc_edge_north_west(f05B)
-  call apply_pbc_edge_north_west(f06B)
-  call apply_pbc_edge_north_west(f07B)
-  call apply_pbc_edge_north_west(f08B)
-  call apply_pbc_edge_north_west(f09B)
-  call apply_pbc_edge_north_west(f10B)
-  call apply_pbc_edge_north_west(f11B)
-  call apply_pbc_edge_north_west(f12B)
-  call apply_pbc_edge_north_west(f13B)
-  call apply_pbc_edge_north_west(f14B)
-  call apply_pbc_edge_north_west(f15B)
-  call apply_pbc_edge_north_west(f16B)
-  call apply_pbc_edge_north_west(f17B)
-  call apply_pbc_edge_north_west(f18B)
-  
-  !apply pbc at south east 9 !xz
-  !blue fluid
-  call apply_pbc_edge_south_east(f00B)
-  call apply_pbc_edge_south_east(f01B)
-  call apply_pbc_edge_south_east(f02B)
-  call apply_pbc_edge_south_east(f03B)
-  call apply_pbc_edge_south_east(f04B)
-  call apply_pbc_edge_south_east(f05B)
-  call apply_pbc_edge_south_east(f06B)
-  call apply_pbc_edge_south_east(f07B)
-  call apply_pbc_edge_south_east(f08B)
-  call apply_pbc_edge_south_east(f09B)
-  call apply_pbc_edge_south_east(f10B)
-  call apply_pbc_edge_south_east(f11B)
-  call apply_pbc_edge_south_east(f12B)
-  call apply_pbc_edge_south_east(f13B)
-  call apply_pbc_edge_south_east(f14B)
-  call apply_pbc_edge_south_east(f15B)
-  call apply_pbc_edge_south_east(f16B)
-  call apply_pbc_edge_south_east(f17B)
-  call apply_pbc_edge_south_east(f18B)
-  
-  !apply pbc at south west 12 !xz
-  !blue fluid
-  call apply_pbc_edge_south_west(f00B)
-  call apply_pbc_edge_south_west(f01B)
-  call apply_pbc_edge_south_west(f02B)
-  call apply_pbc_edge_south_west(f03B)
-  call apply_pbc_edge_south_west(f04B)
-  call apply_pbc_edge_south_west(f05B)
-  call apply_pbc_edge_south_west(f06B)
-  call apply_pbc_edge_south_west(f07B)
-  call apply_pbc_edge_south_west(f08B)
-  call apply_pbc_edge_south_west(f09B)
-  call apply_pbc_edge_south_west(f10B)
-  call apply_pbc_edge_south_west(f11B)
-  call apply_pbc_edge_south_west(f12B)
-  call apply_pbc_edge_south_west(f13B)
-  call apply_pbc_edge_south_west(f14B)
-  call apply_pbc_edge_south_west(f15B)
-  call apply_pbc_edge_south_west(f16B)
-  call apply_pbc_edge_south_west(f17B)
-  call apply_pbc_edge_south_west(f18B)
-  
+  call apply_pbc_edge_south_west(f00sub)
+  call apply_pbc_edge_south_west(f01sub)
+  call apply_pbc_edge_south_west(f02sub)
+  call apply_pbc_edge_south_west(f03sub)
+  call apply_pbc_edge_south_west(f04sub)
+  call apply_pbc_edge_south_west(f05sub)
+  call apply_pbc_edge_south_west(f06sub)
+  call apply_pbc_edge_south_west(f07sub)
+  call apply_pbc_edge_south_west(f08sub)
+  call apply_pbc_edge_south_west(f09sub)
+  call apply_pbc_edge_south_west(f10sub)
+  call apply_pbc_edge_south_west(f11sub)
+  call apply_pbc_edge_south_west(f12sub)
+  call apply_pbc_edge_south_west(f13sub)
+  call apply_pbc_edge_south_west(f14sub)
+  call apply_pbc_edge_south_west(f15sub)
+  call apply_pbc_edge_south_west(f16sub)
+  call apply_pbc_edge_south_west(f17sub)
+  call apply_pbc_edge_south_west(f18sub)
   
   return
   
  end subroutine apply_pbc_pops_along_xz
  
- subroutine apply_pbc_pops_along_yz
+ subroutine driver_pbc_pops_along_yz
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the periodic boundary 
+!     conditions to fluid populations along y and z
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+ 
+  call apply_pbc_pops_along_yz(f00R,f01R,f02R,f03R,f04R,f05R,f06R,f07R,&
+   f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R) 
+  
+  if(lsingle_fluid)return
+ 
+  call apply_pbc_pops_along_yz(f00B,f01B,f02B,f03B,f04B,f05B,f06B,f07B,&
+   f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+   
+  return
+  
+ end subroutine driver_pbc_pops_along_yz
+ 
+ subroutine apply_pbc_pops_along_yz(f00sub,f01sub,f02sub,f03sub,f04sub, &
+  f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
+  f14sub,f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -8033,367 +7164,189 @@ subroutine driver_bc_densities
  
   implicit none
   
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: f00sub,f01sub, &
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  
   !sides 4 (6)
   
   !apply pbc at north 1 !z
   !red fluid
-  call apply_pbc_north(f00R)
-  call apply_pbc_north(f01R)
-  call apply_pbc_north(f02R)
-  call apply_pbc_north(f03R)
-  call apply_pbc_north(f04R)
-  call apply_pbc_north(f05R)
-  call apply_pbc_north(f06R)
-  call apply_pbc_north(f07R)
-  call apply_pbc_north(f08R)
-  call apply_pbc_north(f09R)
-  call apply_pbc_north(f10R)
-  call apply_pbc_north(f11R)
-  call apply_pbc_north(f12R)
-  call apply_pbc_north(f13R)
-  call apply_pbc_north(f14R)
-  call apply_pbc_north(f15R)
-  call apply_pbc_north(f16R)
-  call apply_pbc_north(f17R)
-  call apply_pbc_north(f18R)
+  call apply_pbc_north(f00sub)
+  call apply_pbc_north(f01sub)
+  call apply_pbc_north(f02sub)
+  call apply_pbc_north(f03sub)
+  call apply_pbc_north(f04sub)
+  call apply_pbc_north(f05sub)
+  call apply_pbc_north(f06sub)
+  call apply_pbc_north(f07sub)
+  call apply_pbc_north(f08sub)
+  call apply_pbc_north(f09sub)
+  call apply_pbc_north(f10sub)
+  call apply_pbc_north(f11sub)
+  call apply_pbc_north(f12sub)
+  call apply_pbc_north(f13sub)
+  call apply_pbc_north(f14sub)
+  call apply_pbc_north(f15sub)
+  call apply_pbc_north(f16sub)
+  call apply_pbc_north(f17sub)
+  call apply_pbc_north(f18sub)
   
   !apply pbc at south 2 !z
   !red fluid
-  call apply_pbc_south(f00R)
-  call apply_pbc_south(f01R)
-  call apply_pbc_south(f02R)
-  call apply_pbc_south(f03R)
-  call apply_pbc_south(f04R)
-  call apply_pbc_south(f05R)
-  call apply_pbc_south(f06R)
-  call apply_pbc_south(f07R)
-  call apply_pbc_south(f08R)
-  call apply_pbc_south(f09R)
-  call apply_pbc_south(f10R)
-  call apply_pbc_south(f11R)
-  call apply_pbc_south(f12R)
-  call apply_pbc_south(f13R)
-  call apply_pbc_south(f14R)
-  call apply_pbc_south(f15R)
-  call apply_pbc_south(f16R)
-  call apply_pbc_south(f17R)
-  call apply_pbc_south(f18R)
+  call apply_pbc_south(f00sub)
+  call apply_pbc_south(f01sub)
+  call apply_pbc_south(f02sub)
+  call apply_pbc_south(f03sub)
+  call apply_pbc_south(f04sub)
+  call apply_pbc_south(f05sub)
+  call apply_pbc_south(f06sub)
+  call apply_pbc_south(f07sub)
+  call apply_pbc_south(f08sub)
+  call apply_pbc_south(f09sub)
+  call apply_pbc_south(f10sub)
+  call apply_pbc_south(f11sub)
+  call apply_pbc_south(f12sub)
+  call apply_pbc_south(f13sub)
+  call apply_pbc_south(f14sub)
+  call apply_pbc_south(f15sub)
+  call apply_pbc_south(f16sub)
+  call apply_pbc_south(f17sub)
+  call apply_pbc_south(f18sub)
   
   !apply pbc at front 5 !y
   !red fluid
-  call apply_pbc_front(f00R)
-  call apply_pbc_front(f01R)
-  call apply_pbc_front(f02R)
-  call apply_pbc_front(f03R)
-  call apply_pbc_front(f04R)
-  call apply_pbc_front(f05R)
-  call apply_pbc_front(f06R)
-  call apply_pbc_front(f07R)
-  call apply_pbc_front(f08R)
-  call apply_pbc_front(f09R)
-  call apply_pbc_front(f10R)
-  call apply_pbc_front(f11R)
-  call apply_pbc_front(f12R)
-  call apply_pbc_front(f13R)
-  call apply_pbc_front(f14R)
-  call apply_pbc_front(f15R)
-  call apply_pbc_front(f16R)
-  call apply_pbc_front(f17R)
-  call apply_pbc_front(f18R)
+  call apply_pbc_front(f00sub)
+  call apply_pbc_front(f01sub)
+  call apply_pbc_front(f02sub)
+  call apply_pbc_front(f03sub)
+  call apply_pbc_front(f04sub)
+  call apply_pbc_front(f05sub)
+  call apply_pbc_front(f06sub)
+  call apply_pbc_front(f07sub)
+  call apply_pbc_front(f08sub)
+  call apply_pbc_front(f09sub)
+  call apply_pbc_front(f10sub)
+  call apply_pbc_front(f11sub)
+  call apply_pbc_front(f12sub)
+  call apply_pbc_front(f13sub)
+  call apply_pbc_front(f14sub)
+  call apply_pbc_front(f15sub)
+  call apply_pbc_front(f16sub)
+  call apply_pbc_front(f17sub)
+  call apply_pbc_front(f18sub)
   
   !apply pbc at rear 6 !y
   !red fluid
-  call apply_pbc_rear(f00R)
-  call apply_pbc_rear(f01R)
-  call apply_pbc_rear(f02R)
-  call apply_pbc_rear(f03R)
-  call apply_pbc_rear(f04R)
-  call apply_pbc_rear(f05R)
-  call apply_pbc_rear(f06R)
-  call apply_pbc_rear(f07R)
-  call apply_pbc_rear(f08R)
-  call apply_pbc_rear(f09R)
-  call apply_pbc_rear(f10R)
-  call apply_pbc_rear(f11R)
-  call apply_pbc_rear(f12R)
-  call apply_pbc_rear(f13R)
-  call apply_pbc_rear(f14R)
-  call apply_pbc_rear(f15R)
-  call apply_pbc_rear(f16R)
-  call apply_pbc_rear(f17R)
-  call apply_pbc_rear(f18R)
+  call apply_pbc_rear(f00sub)
+  call apply_pbc_rear(f01sub)
+  call apply_pbc_rear(f02sub)
+  call apply_pbc_rear(f03sub)
+  call apply_pbc_rear(f04sub)
+  call apply_pbc_rear(f05sub)
+  call apply_pbc_rear(f06sub)
+  call apply_pbc_rear(f07sub)
+  call apply_pbc_rear(f08sub)
+  call apply_pbc_rear(f09sub)
+  call apply_pbc_rear(f10sub)
+  call apply_pbc_rear(f11sub)
+  call apply_pbc_rear(f12sub)
+  call apply_pbc_rear(f13sub)
+  call apply_pbc_rear(f14sub)
+  call apply_pbc_rear(f15sub)
+  call apply_pbc_rear(f16sub)
+  call apply_pbc_rear(f17sub)
+  call apply_pbc_rear(f18sub)
   
   !edges 4 (12)
   
   !apply pbc at north front 4 !yz
   !red fluid
-  call apply_pbc_edge_north_front(f00R)
-  call apply_pbc_edge_north_front(f01R)
-  call apply_pbc_edge_north_front(f02R)
-  call apply_pbc_edge_north_front(f03R)
-  call apply_pbc_edge_north_front(f04R)
-  call apply_pbc_edge_north_front(f05R)
-  call apply_pbc_edge_north_front(f06R)
-  call apply_pbc_edge_north_front(f07R)
-  call apply_pbc_edge_north_front(f08R)
-  call apply_pbc_edge_north_front(f09R)
-  call apply_pbc_edge_north_front(f10R)
-  call apply_pbc_edge_north_front(f11R)
-  call apply_pbc_edge_north_front(f12R)
-  call apply_pbc_edge_north_front(f13R)
-  call apply_pbc_edge_north_front(f14R)
-  call apply_pbc_edge_north_front(f15R)
-  call apply_pbc_edge_north_front(f16R)
-  call apply_pbc_edge_north_front(f17R)
-  call apply_pbc_edge_north_front(f18R)
+  call apply_pbc_edge_north_front(f00sub)
+  call apply_pbc_edge_north_front(f01sub)
+  call apply_pbc_edge_north_front(f02sub)
+  call apply_pbc_edge_north_front(f03sub)
+  call apply_pbc_edge_north_front(f04sub)
+  call apply_pbc_edge_north_front(f05sub)
+  call apply_pbc_edge_north_front(f06sub)
+  call apply_pbc_edge_north_front(f07sub)
+  call apply_pbc_edge_north_front(f08sub)
+  call apply_pbc_edge_north_front(f09sub)
+  call apply_pbc_edge_north_front(f10sub)
+  call apply_pbc_edge_north_front(f11sub)
+  call apply_pbc_edge_north_front(f12sub)
+  call apply_pbc_edge_north_front(f13sub)
+  call apply_pbc_edge_north_front(f14sub)
+  call apply_pbc_edge_north_front(f15sub)
+  call apply_pbc_edge_north_front(f16sub)
+  call apply_pbc_edge_north_front(f17sub)
+  call apply_pbc_edge_north_front(f18sub)
   
   !apply pbc at north rear 5 !yz
   !red fluid
-  call apply_pbc_edge_north_rear(f00R)
-  call apply_pbc_edge_north_rear(f01R)
-  call apply_pbc_edge_north_rear(f02R)
-  call apply_pbc_edge_north_rear(f03R)
-  call apply_pbc_edge_north_rear(f04R)
-  call apply_pbc_edge_north_rear(f05R)
-  call apply_pbc_edge_north_rear(f06R)
-  call apply_pbc_edge_north_rear(f07R)
-  call apply_pbc_edge_north_rear(f08R)
-  call apply_pbc_edge_north_rear(f09R)
-  call apply_pbc_edge_north_rear(f10R)
-  call apply_pbc_edge_north_rear(f11R)
-  call apply_pbc_edge_north_rear(f12R)
-  call apply_pbc_edge_north_rear(f13R)
-  call apply_pbc_edge_north_rear(f14R)
-  call apply_pbc_edge_north_rear(f15R)
-  call apply_pbc_edge_north_rear(f16R)
-  call apply_pbc_edge_north_rear(f17R)
-  call apply_pbc_edge_north_rear(f18R)
+  call apply_pbc_edge_north_rear(f00sub)
+  call apply_pbc_edge_north_rear(f01sub)
+  call apply_pbc_edge_north_rear(f02sub)
+  call apply_pbc_edge_north_rear(f03sub)
+  call apply_pbc_edge_north_rear(f04sub)
+  call apply_pbc_edge_north_rear(f05sub)
+  call apply_pbc_edge_north_rear(f06sub)
+  call apply_pbc_edge_north_rear(f07sub)
+  call apply_pbc_edge_north_rear(f08sub)
+  call apply_pbc_edge_north_rear(f09sub)
+  call apply_pbc_edge_north_rear(f10sub)
+  call apply_pbc_edge_north_rear(f11sub)
+  call apply_pbc_edge_north_rear(f12sub)
+  call apply_pbc_edge_north_rear(f13sub)
+  call apply_pbc_edge_north_rear(f14sub)
+  call apply_pbc_edge_north_rear(f15sub)
+  call apply_pbc_edge_north_rear(f16sub)
+  call apply_pbc_edge_north_rear(f17sub)
+  call apply_pbc_edge_north_rear(f18sub)
   
   !apply pbc at south front 10 !yz
   !red fluid
-  call apply_pbc_edge_south_front(f00R)
-  call apply_pbc_edge_south_front(f01R)
-  call apply_pbc_edge_south_front(f02R)
-  call apply_pbc_edge_south_front(f03R)
-  call apply_pbc_edge_south_front(f04R)
-  call apply_pbc_edge_south_front(f05R)
-  call apply_pbc_edge_south_front(f06R)
-  call apply_pbc_edge_south_front(f07R)
-  call apply_pbc_edge_south_front(f08R)
-  call apply_pbc_edge_south_front(f09R)
-  call apply_pbc_edge_south_front(f10R)
-  call apply_pbc_edge_south_front(f11R)
-  call apply_pbc_edge_south_front(f12R)
-  call apply_pbc_edge_south_front(f13R)
-  call apply_pbc_edge_south_front(f14R)
-  call apply_pbc_edge_south_front(f15R)
-  call apply_pbc_edge_south_front(f16R)
-  call apply_pbc_edge_south_front(f17R)
-  call apply_pbc_edge_south_front(f18R)
+  call apply_pbc_edge_south_front(f00sub)
+  call apply_pbc_edge_south_front(f01sub)
+  call apply_pbc_edge_south_front(f02sub)
+  call apply_pbc_edge_south_front(f03sub)
+  call apply_pbc_edge_south_front(f04sub)
+  call apply_pbc_edge_south_front(f05sub)
+  call apply_pbc_edge_south_front(f06sub)
+  call apply_pbc_edge_south_front(f07sub)
+  call apply_pbc_edge_south_front(f08sub)
+  call apply_pbc_edge_south_front(f09sub)
+  call apply_pbc_edge_south_front(f10sub)
+  call apply_pbc_edge_south_front(f11sub)
+  call apply_pbc_edge_south_front(f12sub)
+  call apply_pbc_edge_south_front(f13sub)
+  call apply_pbc_edge_south_front(f14sub)
+  call apply_pbc_edge_south_front(f15sub)
+  call apply_pbc_edge_south_front(f16sub)
+  call apply_pbc_edge_south_front(f17sub)
+  call apply_pbc_edge_south_front(f18sub)
   
   !apply pbc at south rear 11 !yz
   !red fluid
-  call apply_pbc_edge_south_rear(f00R)
-  call apply_pbc_edge_south_rear(f01R)
-  call apply_pbc_edge_south_rear(f02R)
-  call apply_pbc_edge_south_rear(f03R)
-  call apply_pbc_edge_south_rear(f04R)
-  call apply_pbc_edge_south_rear(f05R)
-  call apply_pbc_edge_south_rear(f06R)
-  call apply_pbc_edge_south_rear(f07R)
-  call apply_pbc_edge_south_rear(f08R)
-  call apply_pbc_edge_south_rear(f09R)
-  call apply_pbc_edge_south_rear(f10R)
-  call apply_pbc_edge_south_rear(f11R)
-  call apply_pbc_edge_south_rear(f12R)
-  call apply_pbc_edge_south_rear(f13R)
-  call apply_pbc_edge_south_rear(f14R)
-  call apply_pbc_edge_south_rear(f15R)
-  call apply_pbc_edge_south_rear(f16R)
-  call apply_pbc_edge_south_rear(f17R)
-  call apply_pbc_edge_south_rear(f18R)
-  
-  if(lsingle_fluid)return
-  
-  !sides 4 (6)
-  
-  !apply pbc at north 1 !z
-  !blue fluid
-  call apply_pbc_north(f00B)
-  call apply_pbc_north(f01B)
-  call apply_pbc_north(f02B)
-  call apply_pbc_north(f03B)
-  call apply_pbc_north(f04B)
-  call apply_pbc_north(f05B)
-  call apply_pbc_north(f06B)
-  call apply_pbc_north(f07B)
-  call apply_pbc_north(f08B)
-  call apply_pbc_north(f09B)
-  call apply_pbc_north(f10B)
-  call apply_pbc_north(f11B)
-  call apply_pbc_north(f12B)
-  call apply_pbc_north(f13B)
-  call apply_pbc_north(f14B)
-  call apply_pbc_north(f15B)
-  call apply_pbc_north(f16B)
-  call apply_pbc_north(f17B)
-  call apply_pbc_north(f18B)
-  
-  !apply pbc at south 2 !z
-  !blue fluid
-  call apply_pbc_south(f00B)
-  call apply_pbc_south(f01B)
-  call apply_pbc_south(f02B)
-  call apply_pbc_south(f03B)
-  call apply_pbc_south(f04B)
-  call apply_pbc_south(f05B)
-  call apply_pbc_south(f06B)
-  call apply_pbc_south(f07B)
-  call apply_pbc_south(f08B)
-  call apply_pbc_south(f09B)
-  call apply_pbc_south(f10B)
-  call apply_pbc_south(f11B)
-  call apply_pbc_south(f12B)
-  call apply_pbc_south(f13B)
-  call apply_pbc_south(f14B)
-  call apply_pbc_south(f15B)
-  call apply_pbc_south(f16B)
-  call apply_pbc_south(f17B)
-  call apply_pbc_south(f18B)
-  
-  !apply pbc at front 5 !y
-  !blue fluid
-  call apply_pbc_front(f00B)
-  call apply_pbc_front(f01B)
-  call apply_pbc_front(f02B)
-  call apply_pbc_front(f03B)
-  call apply_pbc_front(f04B)
-  call apply_pbc_front(f05B)
-  call apply_pbc_front(f06B)
-  call apply_pbc_front(f07B)
-  call apply_pbc_front(f08B)
-  call apply_pbc_front(f09B)
-  call apply_pbc_front(f10B)
-  call apply_pbc_front(f11B)
-  call apply_pbc_front(f12B)
-  call apply_pbc_front(f13B)
-  call apply_pbc_front(f14B)
-  call apply_pbc_front(f15B)
-  call apply_pbc_front(f16B)
-  call apply_pbc_front(f17B)
-  call apply_pbc_front(f18B)
-  
-  !apply pbc at rear 6 !y
-  !blue fluid
-  call apply_pbc_rear(f00B)
-  call apply_pbc_rear(f01B)
-  call apply_pbc_rear(f02B)
-  call apply_pbc_rear(f03B)
-  call apply_pbc_rear(f04B)
-  call apply_pbc_rear(f05B)
-  call apply_pbc_rear(f06B)
-  call apply_pbc_rear(f07B)
-  call apply_pbc_rear(f08B)
-  call apply_pbc_rear(f09B)
-  call apply_pbc_rear(f10B)
-  call apply_pbc_rear(f11B)
-  call apply_pbc_rear(f12B)
-  call apply_pbc_rear(f13B)
-  call apply_pbc_rear(f14B)
-  call apply_pbc_rear(f15B)
-  call apply_pbc_rear(f16B)
-  call apply_pbc_rear(f17B)
-  call apply_pbc_rear(f18B)
-  
-  !edges 4 (12)
-  
-  !apply pbc at north front 4 !yz
-  !blue fluid
-  call apply_pbc_edge_north_front(f00B)
-  call apply_pbc_edge_north_front(f01B)
-  call apply_pbc_edge_north_front(f02B)
-  call apply_pbc_edge_north_front(f03B)
-  call apply_pbc_edge_north_front(f04B)
-  call apply_pbc_edge_north_front(f05B)
-  call apply_pbc_edge_north_front(f06B)
-  call apply_pbc_edge_north_front(f07B)
-  call apply_pbc_edge_north_front(f08B)
-  call apply_pbc_edge_north_front(f09B)
-  call apply_pbc_edge_north_front(f10B)
-  call apply_pbc_edge_north_front(f11B)
-  call apply_pbc_edge_north_front(f12B)
-  call apply_pbc_edge_north_front(f13B)
-  call apply_pbc_edge_north_front(f14B)
-  call apply_pbc_edge_north_front(f15B)
-  call apply_pbc_edge_north_front(f16B)
-  call apply_pbc_edge_north_front(f17B)
-  call apply_pbc_edge_north_front(f18B)
-  
-  !apply pbc at north rear 5 !yz
-  !blue fluid
-  call apply_pbc_edge_north_rear(f00B)
-  call apply_pbc_edge_north_rear(f01B)
-  call apply_pbc_edge_north_rear(f02B)
-  call apply_pbc_edge_north_rear(f03B)
-  call apply_pbc_edge_north_rear(f04B)
-  call apply_pbc_edge_north_rear(f05B)
-  call apply_pbc_edge_north_rear(f06B)
-  call apply_pbc_edge_north_rear(f07B)
-  call apply_pbc_edge_north_rear(f08B)
-  call apply_pbc_edge_north_rear(f09B)
-  call apply_pbc_edge_north_rear(f10B)
-  call apply_pbc_edge_north_rear(f11B)
-  call apply_pbc_edge_north_rear(f12B)
-  call apply_pbc_edge_north_rear(f13B)
-  call apply_pbc_edge_north_rear(f14B)
-  call apply_pbc_edge_north_rear(f15B)
-  call apply_pbc_edge_north_rear(f16B)
-  call apply_pbc_edge_north_rear(f17B)
-  call apply_pbc_edge_north_rear(f18B)
-  
-  !apply pbc at south front 10 !yz
-  !blue fluid
-  call apply_pbc_edge_south_front(f00B)
-  call apply_pbc_edge_south_front(f01B)
-  call apply_pbc_edge_south_front(f02B)
-  call apply_pbc_edge_south_front(f03B)
-  call apply_pbc_edge_south_front(f04B)
-  call apply_pbc_edge_south_front(f05B)
-  call apply_pbc_edge_south_front(f06B)
-  call apply_pbc_edge_south_front(f07B)
-  call apply_pbc_edge_south_front(f08B)
-  call apply_pbc_edge_south_front(f09B)
-  call apply_pbc_edge_south_front(f10B)
-  call apply_pbc_edge_south_front(f11B)
-  call apply_pbc_edge_south_front(f12B)
-  call apply_pbc_edge_south_front(f13B)
-  call apply_pbc_edge_south_front(f14B)
-  call apply_pbc_edge_south_front(f15B)
-  call apply_pbc_edge_south_front(f16B)
-  call apply_pbc_edge_south_front(f17B)
-  call apply_pbc_edge_south_front(f18B)
-  
-  !apply pbc at south rear 11 !yz
-  !blue fluid
-  call apply_pbc_edge_south_rear(f00B)
-  call apply_pbc_edge_south_rear(f01B)
-  call apply_pbc_edge_south_rear(f02B)
-  call apply_pbc_edge_south_rear(f03B)
-  call apply_pbc_edge_south_rear(f04B)
-  call apply_pbc_edge_south_rear(f05B)
-  call apply_pbc_edge_south_rear(f06B)
-  call apply_pbc_edge_south_rear(f07B)
-  call apply_pbc_edge_south_rear(f08B)
-  call apply_pbc_edge_south_rear(f09B)
-  call apply_pbc_edge_south_rear(f10B)
-  call apply_pbc_edge_south_rear(f11B)
-  call apply_pbc_edge_south_rear(f12B)
-  call apply_pbc_edge_south_rear(f13B)
-  call apply_pbc_edge_south_rear(f14B)
-  call apply_pbc_edge_south_rear(f15B)
-  call apply_pbc_edge_south_rear(f16B)
-  call apply_pbc_edge_south_rear(f17B)
-  call apply_pbc_edge_south_rear(f18B)
+  call apply_pbc_edge_south_rear(f00sub)
+  call apply_pbc_edge_south_rear(f01sub)
+  call apply_pbc_edge_south_rear(f02sub)
+  call apply_pbc_edge_south_rear(f03sub)
+  call apply_pbc_edge_south_rear(f04sub)
+  call apply_pbc_edge_south_rear(f05sub)
+  call apply_pbc_edge_south_rear(f06sub)
+  call apply_pbc_edge_south_rear(f07sub)
+  call apply_pbc_edge_south_rear(f08sub)
+  call apply_pbc_edge_south_rear(f09sub)
+  call apply_pbc_edge_south_rear(f10sub)
+  call apply_pbc_edge_south_rear(f11sub)
+  call apply_pbc_edge_south_rear(f12sub)
+  call apply_pbc_edge_south_rear(f13sub)
+  call apply_pbc_edge_south_rear(f14sub)
+  call apply_pbc_edge_south_rear(f15sub)
+  call apply_pbc_edge_south_rear(f16sub)
+  call apply_pbc_edge_south_rear(f17sub)
+  call apply_pbc_edge_south_rear(f18sub)
   
   return
   
@@ -9165,22 +8118,22 @@ subroutine driver_bc_densities
   !sides 6
   
   !apply bounceback at north 1   !z
-  call apply_bounceback_north
+  call driver_bounceback_north(1,nx,1,ny)
   
   !apply bounceback at south 2   !z
-  call apply_bounceback_south
+  call driver_bounceback_south(1,nx,1,ny)
   
   !apply bounceback at east 3    !x
-  call apply_bounceback_east
+  call driver_bounceback_east(1,ny,1,nz)
   
   !apply bounceback at west 4    !x
-  call apply_bounceback_west
+  call driver_bounceback_west(1,ny,1,nz)
   
   !apply bounceback at front 5   !y
-  call apply_bounceback_front
+  call driver_bounceback_front(1,nx,1,nz)
   
   !apply bounceback at rear 6   !y
-  call apply_bounceback_rear
+  call driver_bounceback_rear(1,nx,1,nz)
   
   !edges 12
   
@@ -9276,16 +8229,16 @@ subroutine driver_bc_densities
   !sides 4 (6)
   
   !apply bounceback at north 1   !z
-  call apply_bounceback_north_frame_x
+  call driver_bounceback_north(1-nbuff,nx+nbuff,1,ny) !frame_x
   
   !apply bounceback at south 2   !z
-  call apply_bounceback_south_frame_x
+  call driver_bounceback_south(1-nbuff,nx+nbuff,1,ny) !frame_x
   
   !apply bounceback at front 5   !y
-  call apply_bounceback_front_frame_x
+  call driver_bounceback_front(1-nbuff,nx+nbuff,1,nz) !frame_x
   
   !apply bounceback at rear 6   !y
-  call apply_bounceback_rear_frame_x
+  call driver_bounceback_rear(1-nbuff,nx+nbuff,1,nz) !frame_x
   
   !edges 4 (12)
   
@@ -9331,16 +8284,16 @@ subroutine driver_bc_densities
   !sides 4 (6)
   
   !apply bounceback at north 1   !z
-  call apply_bounceback_north_frame_y
+  call driver_bounceback_north(1,nx,1-nbuff,ny+nbuff) !frame_y
   
   !apply bounceback at south 2   !z
-  call apply_bounceback_south_frame_y
+  call driver_bounceback_south(1,nx,1-nbuff,ny+nbuff) !frame_y
   
   !apply bounceback at east 3    !x
-  call apply_bounceback_east_frame_y
+  call driver_bounceback_east(1-nbuff,ny+nbuff,1,nz) !frame_y
   
   !apply bounceback at west 4    !x
-  call apply_bounceback_west_frame_y
+  call driver_bounceback_west(1-nbuff,ny+nbuff,1,nz) !frame_y
   
   !edges 4 (12)
   
@@ -9386,16 +8339,16 @@ subroutine driver_bc_densities
   !sides 4 (6)
   
   !apply bounceback at east 3    !x
-  call apply_bounceback_east_frame_z
+  call driver_bounceback_east(1,ny,1-nbuff,nz+nbuff) !frame_z
   
   !apply bounceback at west 4    !x
-  call apply_bounceback_west_frame_z
+  call driver_bounceback_west(1,ny,1-nbuff,nz+nbuff) !frame_z
   
   !apply bounceback at front 5   !y
-  call apply_bounceback_front_frame_z
+  call driver_bounceback_front(1,nx,1-nbuff,nz+nbuff) !frame_z
   
   !apply bounceback at rear 6   !y
-  call apply_bounceback_rear_frame_z
+  call driver_bounceback_rear(1,nx,1-nbuff,nz+nbuff) !frame_z
   
   !edges 4 (12)
   
@@ -9443,10 +8396,10 @@ subroutine driver_bc_densities
   !sides 6
   
   !apply pbc at north 1 !z
-  call apply_bounceback_north_frame
+  call driver_bounceback_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff) !frame
   
   !apply pbc at south 2 !z
-  call apply_bounceback_south_frame
+  call driver_bounceback_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff) !frame
   
 #else
   
@@ -9479,10 +8432,10 @@ subroutine driver_bc_densities
   !sides 6
   
   !apply pbc at front 5 !y
-  call apply_bounceback_front_frame
+  call driver_bounceback_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff) !frame
   
   !apply pbc at rear 6 !y
-  call apply_bounceback_rear_frame
+  call driver_bounceback_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff) !frame
   
 #else
   
@@ -9515,10 +8468,10 @@ subroutine driver_bc_densities
   !sides 6
   
   !apply pbc at east 3 !x
-  call apply_bounceback_east_frame
+  call driver_bounceback_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff) !frame
   
   !apply pbc at west 4 !x
-  call apply_bounceback_west_frame
+  call driver_bounceback_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff) !frame
   
 #else
   
@@ -9531,12 +8484,12 @@ subroutine driver_bc_densities
   
  end subroutine apply_bounceback_pops_along_x
  
- subroutine apply_bounceback_east_frame
+ subroutine driver_bounceback_east(sy,ey,sz,ez)
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for applying the bounceback
-!     at the east side alongside with its frame
+!     LBsoft subroutine for driving the bounceback
+!     at the east side along the space defined in input sy,ey,sz,ez
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -9545,6 +8498,46 @@ subroutine driver_bc_densities
 !***********************************************************************
  
   implicit none
+  
+  integer, intent(in) :: sy,ey,sz,ez
+  
+  call apply_bounceback_east(sy,ey,sz,ez,bc_rhoR_east,bc_u_east, &
+   bc_v_east,bc_w_east,rhoR,u,v,w,f00R,f01R,f02R,f03R,f04R,f05R,f06R, &
+   f07R,f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+  
+  if(lsingle_fluid)return
+ 
+  call apply_bounceback_east(sy,ey,sz,ez,bc_rhoB_east,bc_u_east, &
+   bc_v_east,bc_w_east,rhoB,u,v,w,f00B,f01B,f02B,f03B,f04B,f05B,f06B, &
+   f07B,f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+   
+  return
+  
+ end subroutine driver_bounceback_east
+ 
+ subroutine apply_bounceback_east(sy,ey,sz,ez,rho_east,u_east, &
+  v_east,w_east,rho_s,u_s,v_s,w_s,f00sub,f01sub,f02sub,f03sub,f04sub, &
+  f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
+  f14sub,f15sub,f16sub,f17sub,f18sub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback
+!     at the east side along the space defined in input sy,ey,sz,ez
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: sy,ey,sz,ez
+  real(kind=PRC), intent(in) :: rho_east,u_east,v_east,w_east
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: rho_s,u_s,v_s,w_s, &
+   f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub, &
+   f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
   
   integer :: i,j,k
   integer, parameter :: kk = 1
@@ -9559,8749 +8552,217 @@ subroutine driver_bc_densities
   case (0)
   
     ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f01R(nx+kk,j,k)
-      f01R(nx+kk,j,k)=f02R(nx+kk,j,k)
-      f02R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(nx+kk,j,k)=f01sub(nx+kk,j,k)
+      f01sub(nx+kk,j,k)=f02sub(nx+kk,j,k)
+      f02sub(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
     end forall
     
     ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f07R(nx+kk,j,k)
-      f07R(nx+kk,j,k)=f08R(nx+kk,j,k)
-      f08R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(nx+kk,j,k)=f07sub(nx+kk,j,k)
+      f07sub(nx+kk,j,k)=f08sub(nx+kk,j,k)
+      f08sub(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
     end forall
     
     ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f09R(nx+kk,j,k)
-      f09R(nx+kk,j,k)=f10R(nx+kk,j,k)
-      f10R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(nx+kk,j,k)=f09sub(nx+kk,j,k)
+      f09sub(nx+kk,j,k)=f10sub(nx+kk,j,k)
+      f10sub(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
     end forall
     
     ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f11R(nx+kk,j,k)
-      f11R(nx+kk,j,k)=f12R(nx+kk,j,k)
-      f12R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(nx+kk,j,k)=f11sub(nx+kk,j,k)
+      f11sub(nx+kk,j,k)=f12sub(nx+kk,j,k)
+      f12sub(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
     end forall
     
     ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f13R(nx+kk,j,k)
-      f13R(nx+kk,j,k)=f14R(nx+kk,j,k)
-      f14R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f01B(nx+kk,j,k)
-      f01B(nx+kk,j,k)=f02B(nx+kk,j,k)
-      f02B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f07B(nx+kk,j,k)
-      f07B(nx+kk,j,k)=f08B(nx+kk,j,k)
-      f08B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f09B(nx+kk,j,k)
-      f09B(nx+kk,j,k)=f10B(nx+kk,j,k)
-      f10B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f11B(nx+kk,j,k)
-      f11B(nx+kk,j,k)=f12B(nx+kk,j,k)
-      f12B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-  
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f13B(nx+kk,j,k)
-      f13B(nx+kk,j,k)=f14B(nx+kk,j,k)
-      f14B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(nx+kk,j,k)=f13sub(nx+kk,j,k)
+      f13sub(nx+kk,j,k)=f14sub(nx+kk,j,k)
+      f14sub(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
     end forall
     
   case (1)
   
     ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f01R(nx+kk,j,k)
-      f01R(nx+kk,j,k)=-f02R(nx+kk,j,k) + p(1)*TWO*bc_rhoR_east* &
-       (ONE+(dex(1)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f02R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*TWO*bc_rhoR_east* &
-       (ONE+(dex(2)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(nx+kk,j,k)=-f01sub(nx+kk,j,k)
+      f01sub(nx+kk,j,k)=-f02sub(nx+kk,j,k) + p(1)*TWO*rho_east* &
+       (ONE+(dex(1)*u_s(nx-kk+1,j,k))**TWO/cssq4 - u_s(nx-kk+1,j,k)**TWO/cssq2)
+      f02sub(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*TWO*rho_east* &
+       (ONE+(dex(2)*u_s(nx-kk+1,j,k))**TWO/cssq4 - u_s(nx-kk+1,j,k)**TWO/cssq2)
     end forall
     
     ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f07R(nx+kk,j,k)
-      f07R(nx+kk,j,k)=-f08R(nx+kk,j,k) + p(7)*TWO*bc_rhoR_east* &
-       (ONE+(dex(7)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f08R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*TWO*bc_rhoR_east* &
-       (ONE+(dex(8)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(nx+kk,j,k)=-f07sub(nx+kk,j,k)
+      f07sub(nx+kk,j,k)=-f08sub(nx+kk,j,k) + p(7)*TWO*rho_east* &
+       (ONE+(dex(7)*u_s(nx-kk+1,j,k))**TWO/cssq4 - u_s(nx-kk+1,j,k)**TWO/cssq2)
+      f08sub(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*TWO*rho_east* &
+       (ONE+(dex(8)*u_s(nx-kk+1,j,k))**TWO/cssq4 - u_s(nx-kk+1,j,k)**TWO/cssq2)
     end forall
     
     ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f09R(nx+kk,j,k)
-      f09R(nx+kk,j,k)=-f10R(nx+kk,j,k) + p(9)*TWO*bc_rhoR_east* &
-       (ONE+(dex(9)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f10R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*TWO*bc_rhoR_east* &
-       (ONE+(dex(10)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(nx+kk,j,k)=-f09sub(nx+kk,j,k)
+      f09sub(nx+kk,j,k)=-f10sub(nx+kk,j,k) + p(9)*TWO*rho_east* &
+       (ONE+(dex(9)*u_s(nx-kk+1,j,k))**TWO/cssq4 - u_s(nx-kk+1,j,k)**TWO/cssq2)
+      f10sub(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*TWO*rho_east* &
+       (ONE+(dex(10)*u_s(nx-kk+1,j,k))**TWO/cssq4 - u_s(nx-kk+1,j,k)**TWO/cssq2)
     end forall
     
     ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f11R(nx+kk,j,k)
-      f11R(nx+kk,j,k)=-f12R(nx+kk,j,k) + p(11)*TWO*bc_rhoR_east* &
-       (ONE+(dex(11)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f12R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*TWO*bc_rhoR_east* &
-       (ONE+(dex(12)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(nx+kk,j,k)=-f11sub(nx+kk,j,k)
+      f11sub(nx+kk,j,k)=-f12sub(nx+kk,j,k) + p(11)*TWO*rho_east* &
+       (ONE+(dex(11)*u_s(nx-kk+1,j,k))**TWO/cssq4 - u_s(nx-kk+1,j,k)**TWO/cssq2)
+      f12sub(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*TWO*rho_east* &
+       (ONE+(dex(12)*u_s(nx-kk+1,j,k))**TWO/cssq4 - u_s(nx-kk+1,j,k)**TWO/cssq2)
     end forall
     
     ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f13R(nx+kk,j,k)
-      f13R(nx+kk,j,k)=-f14R(nx+kk,j,k) + p(13)*TWO*bc_rhoR_east* &
-       (ONE+(dex(13)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f14R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*TWO*bc_rhoR_east* &
-       (ONE+(dex(14)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f01B(nx+kk,j,k)
-      f01B(nx+kk,j,k)=-f02B(nx+kk,j,k) + p(1)*TWO*bc_rhoB_east* &
-       (ONE+(dex(1)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f02B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*TWO*bc_rhoB_east* &
-       (ONE+(dex(2)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f07B(nx+kk,j,k)
-      f07B(nx+kk,j,k)=-f08B(nx+kk,j,k) + p(7)*TWO*bc_rhoB_east* &
-       (ONE+(dex(7)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f08B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*TWO*bc_rhoB_east* &
-       (ONE+(dex(8)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f09B(nx+kk,j,k)
-      f09B(nx+kk,j,k)=-f10B(nx+kk,j,k) + p(9)*TWO*bc_rhoB_east* &
-       (ONE+(dex(9)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f10B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*TWO*bc_rhoB_east* &
-       (ONE+(dex(10)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f11B(nx+kk,j,k)
-      f11B(nx+kk,j,k)=-f12B(nx+kk,j,k) + p(11)*TWO*bc_rhoB_east* &
-       (ONE+(dex(11)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f12B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*TWO*bc_rhoB_east* &
-       (ONE+(dex(12)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f13B(nx+kk,j,k)
-      f13B(nx+kk,j,k)=-f14B(nx+kk,j,k) + p(13)*TWO*bc_rhoB_east* &
-       (ONE+(dex(13)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f14B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*TWO*bc_rhoB_east* &
-       (ONE+(dex(14)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(nx+kk,j,k)=-f13sub(nx+kk,j,k)
+      f13sub(nx+kk,j,k)=-f14sub(nx+kk,j,k) + p(13)*TWO*rho_east* &
+       (ONE+(dex(13)*u_s(nx-kk+1,j,k))**TWO/cssq4 - u_s(nx-kk+1,j,k)**TWO/cssq2)
+      f14sub(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*TWO*rho_east* &
+       (ONE+(dex(14)*u_s(nx-kk+1,j,k))**TWO/cssq4 - u_s(nx-kk+1,j,k)**TWO/cssq2)
     end forall
     
   case (2)
   
     ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f01R(nx+kk,j,k)
-      f01R(nx+kk,j,k)=f02R(nx+kk,j,k) + p(1)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(1)*bc_u_east+dey(1)*bc_v_east+dez(1)*bc_w_east)
-      f02R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(2)*bc_u_east+dey(2)*bc_v_east+dez(2)*bc_w_east)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(nx+kk,j,k)=f01sub(nx+kk,j,k)
+      f01sub(nx+kk,j,k)=f02sub(nx+kk,j,k) + p(1)*pref_bouzidi*rho_s(nx-kk+1,j,k)* &
+       (dex(1)*u_east+dey(1)*v_east+dez(1)*w_east)
+      f02sub(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*pref_bouzidi*rho_s(nx-kk+1,j,k)* &
+       (dex(2)*u_east+dey(2)*v_east+dez(2)*w_east)
     end forall
     
     ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f07R(nx+kk,j,k)
-      f07R(nx+kk,j,k)=f08R(nx+kk,j,k) + p(7)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(7)*bc_u_east+dey(7)*bc_v_east+dez(7)*bc_w_east)
-      f08R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(8)*bc_u_east+dey(8)*bc_v_east+dez(8)*bc_w_east)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(nx+kk,j,k)=f07sub(nx+kk,j,k)
+      f07sub(nx+kk,j,k)=f08sub(nx+kk,j,k) + p(7)*pref_bouzidi*rho_s(nx-kk+1,j,k)* &
+       (dex(7)*u_east+dey(7)*v_east+dez(7)*w_east)
+      f08sub(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*pref_bouzidi*rho_s(nx-kk+1,j,k)* &
+       (dex(8)*u_east+dey(8)*v_east+dez(8)*w_east)
     end forall
     
     ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f09R(nx+kk,j,k)
-      f09R(nx+kk,j,k)=f10R(nx+kk,j,k) + p(9)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(9)*bc_u_east+dey(9)*bc_v_east+dez(9)*bc_w_east)
-      f10R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(10)*bc_u_east+dey(10)*bc_v_east+dez(10)*bc_w_east)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(nx+kk,j,k)=f09sub(nx+kk,j,k)
+      f09sub(nx+kk,j,k)=f10sub(nx+kk,j,k) + p(9)*pref_bouzidi*rho_s(nx-kk+1,j,k)* &
+       (dex(9)*u_east+dey(9)*v_east+dez(9)*w_east)
+      f10sub(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*pref_bouzidi*rho_s(nx-kk+1,j,k)* &
+       (dex(10)*u_east+dey(10)*v_east+dez(10)*w_east)
     end forall
     
     ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f11R(nx+kk,j,k)
-      f11R(nx+kk,j,k)=f12R(nx+kk,j,k) + p(11)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(11)*bc_u_east+dey(11)*bc_v_east+dez(11)*bc_w_east)
-      f12R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(12)*bc_u_east+dey(12)*bc_v_east+dez(12)*bc_w_east)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(nx+kk,j,k)=f11sub(nx+kk,j,k)
+      f11sub(nx+kk,j,k)=f12sub(nx+kk,j,k) + p(11)*pref_bouzidi*rho_s(nx-kk+1,j,k)* &
+       (dex(11)*u_east+dey(11)*v_east+dez(11)*w_east)
+      f12sub(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*pref_bouzidi*rho_s(nx-kk+1,j,k)* &
+       (dex(12)*u_east+dey(12)*v_east+dez(12)*w_east)
     end forall
     
     ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f13R(nx+kk,j,k)
-      f13R(nx+kk,j,k)=f14R(nx+kk,j,k) + p(13)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(13)*bc_u_east+dey(13)*bc_v_east+dez(13)*bc_w_east)
-      f14R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(14)*bc_u_east+dey(14)*bc_v_east+dez(14)*bc_w_east)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f01B(nx+kk,j,k)
-      f01B(nx+kk,j,k)=f02B(nx+kk,j,k) + p(1)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(1)*bc_u_east+dey(1)*bc_v_east+dez(1)*bc_w_east)
-      f02B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(2)*bc_u_east+dey(2)*bc_v_east+dez(2)*bc_w_east)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f07B(nx+kk,j,k)
-      f07B(nx+kk,j,k)=f08B(nx+kk,j,k) + p(7)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(7)*bc_u_east+dey(7)*bc_v_east+dez(7)*bc_w_east)
-      f08B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(8)*bc_u_east+dey(8)*bc_v_east+dez(8)*bc_w_east)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f09B(nx+kk,j,k)
-      f09B(nx+kk,j,k)=f10B(nx+kk,j,k) + p(9)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(9)*bc_u_east+dey(9)*bc_v_east+dez(9)*bc_w_east)
-      f10B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(10)*bc_u_east+dey(10)*bc_v_east+dez(10)*bc_w_east)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f11B(nx+kk,j,k)
-      f11B(nx+kk,j,k)=f12B(nx+kk,j,k) + p(11)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(11)*bc_u_east+dey(11)*bc_v_east+dez(11)*bc_w_east)
-      f12B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(12)*bc_u_east+dey(12)*bc_v_east+dez(12)*bc_w_east)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f13B(nx+kk,j,k)
-      f13B(nx+kk,j,k)=f14B(nx+kk,j,k) + p(13)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(13)*bc_u_east+dey(13)*bc_v_east+dez(13)*bc_w_east)
-      f14B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(14)*bc_u_east+dey(14)*bc_v_east+dez(14)*bc_w_east)
-    end forall
-  
-  case (3)
-  
-    !red fluid
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f00R(nx+kk,j,k)=equil_pop00(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f01R(nx+kk,j,k)=equil_pop01(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f02R(nx+kk,j,k)=equil_pop02(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f03R(nx+kk,j,k)=equil_pop03(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f04R(nx+kk,j,k)=equil_pop04(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f05R(nx+kk,j,k)=equil_pop05(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f06R(nx+kk,j,k)=equil_pop06(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f07R(nx+kk,j,k)=equil_pop07(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f08R(nx+kk,j,k)=equil_pop08(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f09R(nx+kk,j,k)=equil_pop09(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f10R(nx+kk,j,k)=equil_pop10(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f11R(nx+kk,j,k)=equil_pop11(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f12R(nx+kk,j,k)=equil_pop12(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f13R(nx+kk,j,k)=equil_pop13(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f14R(nx+kk,j,k)=equil_pop14(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f15R(nx+kk,j,k)=equil_pop15(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f16R(nx+kk,j,k)=equil_pop16(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f17R(nx+kk,j,k)=equil_pop17(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f18R(nx+kk,j,k)=equil_pop18(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f00B(nx+kk,j,k)=equil_pop00(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f01B(nx+kk,j,k)=equil_pop01(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f02B(nx+kk,j,k)=equil_pop02(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f03B(nx+kk,j,k)=equil_pop03(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f04B(nx+kk,j,k)=equil_pop04(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f05B(nx+kk,j,k)=equil_pop05(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f06B(nx+kk,j,k)=equil_pop06(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f07B(nx+kk,j,k)=equil_pop07(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f08B(nx+kk,j,k)=equil_pop08(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f09B(nx+kk,j,k)=equil_pop09(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f10B(nx+kk,j,k)=equil_pop10(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f11B(nx+kk,j,k)=equil_pop11(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f12B(nx+kk,j,k)=equil_pop12(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f13B(nx+kk,j,k)=equil_pop13(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f14B(nx+kk,j,k)=equil_pop14(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f15B(nx+kk,j,k)=equil_pop15(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f16B(nx+kk,j,k)=equil_pop16(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f17B(nx+kk,j,k)=equil_pop17(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-  
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f18B(nx+kk,j,k)=equil_pop18(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-  
-  case default
-    call error(13)
-  end select
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-  
-  return
-  
- end subroutine apply_bounceback_east_frame
- 
- subroutine apply_bounceback_east_frame_y
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback
-!     at the east side alongside with its frame only along y
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_east)  
-  case (0)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f01R(nx+kk,j,k)
-      f01R(nx+kk,j,k)=f02R(nx+kk,j,k)
-      f02R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f07R(nx+kk,j,k)
-      f07R(nx+kk,j,k)=f08R(nx+kk,j,k)
-      f08R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f09R(nx+kk,j,k)
-      f09R(nx+kk,j,k)=f10R(nx+kk,j,k)
-      f10R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f11R(nx+kk,j,k)
-      f11R(nx+kk,j,k)=f12R(nx+kk,j,k)
-      f12R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f13R(nx+kk,j,k)
-      f13R(nx+kk,j,k)=f14R(nx+kk,j,k)
-      f14R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f01B(nx+kk,j,k)
-      f01B(nx+kk,j,k)=f02B(nx+kk,j,k)
-      f02B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f07B(nx+kk,j,k)
-      f07B(nx+kk,j,k)=f08B(nx+kk,j,k)
-      f08B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f09B(nx+kk,j,k)
-      f09B(nx+kk,j,k)=f10B(nx+kk,j,k)
-      f10B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f11B(nx+kk,j,k)
-      f11B(nx+kk,j,k)=f12B(nx+kk,j,k)
-      f12B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f13B(nx+kk,j,k)
-      f13B(nx+kk,j,k)=f14B(nx+kk,j,k)
-      f14B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-  case (1)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f01R(nx+kk,j,k)
-      f01R(nx+kk,j,k)=-f02R(nx+kk,j,k) + p(1)*TWO*bc_rhoR_east* &
-       (ONE+(dex(1)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f02R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*TWO*bc_rhoR_east* &
-       (ONE+(dex(2)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f07R(nx+kk,j,k)
-      f07R(nx+kk,j,k)=-f08R(nx+kk,j,k) + p(7)*TWO*bc_rhoR_east* &
-       (ONE+(dex(7)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f08R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*TWO*bc_rhoR_east* &
-       (ONE+(dex(8)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f09R(nx+kk,j,k)
-      f09R(nx+kk,j,k)=-f10R(nx+kk,j,k) + p(9)*TWO*bc_rhoR_east* &
-       (ONE+(dex(9)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f10R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*TWO*bc_rhoR_east* &
-       (ONE+(dex(10)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f11R(nx+kk,j,k)
-      f11R(nx+kk,j,k)=-f12R(nx+kk,j,k) + p(11)*TWO*bc_rhoR_east* &
-       (ONE+(dex(11)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f12R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*TWO*bc_rhoR_east* &
-       (ONE+(dex(12)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f13R(nx+kk,j,k)
-      f13R(nx+kk,j,k)=-f14R(nx+kk,j,k) + p(13)*TWO*bc_rhoR_east* &
-       (ONE+(dex(13)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f14R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*TWO*bc_rhoR_east* &
-       (ONE+(dex(14)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f01B(nx+kk,j,k)
-      f01B(nx+kk,j,k)=-f02B(nx+kk,j,k) + p(1)*TWO*bc_rhoB_east* &
-       (ONE+(dex(1)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f02B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*TWO*bc_rhoB_east* &
-       (ONE+(dex(2)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f07B(nx+kk,j,k)
-      f07B(nx+kk,j,k)=-f08B(nx+kk,j,k) + p(7)*TWO*bc_rhoB_east* &
-       (ONE+(dex(7)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f08B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*TWO*bc_rhoB_east* &
-       (ONE+(dex(8)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f09B(nx+kk,j,k)
-      f09B(nx+kk,j,k)=-f10B(nx+kk,j,k) + p(9)*TWO*bc_rhoB_east* &
-       (ONE+(dex(9)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f10B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*TWO*bc_rhoB_east* &
-       (ONE+(dex(10)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f11B(nx+kk,j,k)
-      f11B(nx+kk,j,k)=-f12B(nx+kk,j,k) + p(11)*TWO*bc_rhoB_east* &
-       (ONE+(dex(11)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f12B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*TWO*bc_rhoB_east* &
-       (ONE+(dex(12)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f13B(nx+kk,j,k)
-      f13B(nx+kk,j,k)=-f14B(nx+kk,j,k) + p(13)*TWO*bc_rhoB_east* &
-       (ONE+(dex(13)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f14B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*TWO*bc_rhoB_east* &
-       (ONE+(dex(14)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-  case (2)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f01R(nx+kk,j,k)
-      f01R(nx+kk,j,k)=f02R(nx+kk,j,k) + p(1)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(1)*bc_u_east+dey(1)*bc_v_east+dez(1)*bc_w_east)
-      f02R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(2)*bc_u_east+dey(2)*bc_v_east+dez(2)*bc_w_east)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f07R(nx+kk,j,k)
-      f07R(nx+kk,j,k)=f08R(nx+kk,j,k) + p(7)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(7)*bc_u_east+dey(7)*bc_v_east+dez(7)*bc_w_east)
-      f08R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(8)*bc_u_east+dey(8)*bc_v_east+dez(8)*bc_w_east)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f09R(nx+kk,j,k)
-      f09R(nx+kk,j,k)=f10R(nx+kk,j,k) + p(9)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(9)*bc_u_east+dey(9)*bc_v_east+dez(9)*bc_w_east)
-      f10R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(10)*bc_u_east+dey(10)*bc_v_east+dez(10)*bc_w_east)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f11R(nx+kk,j,k)
-      f11R(nx+kk,j,k)=f12R(nx+kk,j,k) + p(11)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(11)*bc_u_east+dey(11)*bc_v_east+dez(11)*bc_w_east)
-      f12R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(12)*bc_u_east+dey(12)*bc_v_east+dez(12)*bc_w_east)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f13R(nx+kk,j,k)
-      f13R(nx+kk,j,k)=f14R(nx+kk,j,k) + p(13)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(13)*bc_u_east+dey(13)*bc_v_east+dez(13)*bc_w_east)
-      f14R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(14)*bc_u_east+dey(14)*bc_v_east+dez(14)*bc_w_east)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f01B(nx+kk,j,k)
-      f01B(nx+kk,j,k)=f02B(nx+kk,j,k) + p(1)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(1)*bc_u_east+dey(1)*bc_v_east+dez(1)*bc_w_east)
-      f02B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(2)*bc_u_east+dey(2)*bc_v_east+dez(2)*bc_w_east)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f07B(nx+kk,j,k)
-      f07B(nx+kk,j,k)=f08B(nx+kk,j,k) + p(7)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(7)*bc_u_east+dey(7)*bc_v_east+dez(7)*bc_w_east)
-      f08B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(8)*bc_u_east+dey(8)*bc_v_east+dez(8)*bc_w_east)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f09B(nx+kk,j,k)
-      f09B(nx+kk,j,k)=f10B(nx+kk,j,k) + p(9)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(9)*bc_u_east+dey(9)*bc_v_east+dez(9)*bc_w_east)
-      f10B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(10)*bc_u_east+dey(10)*bc_v_east+dez(10)*bc_w_east)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f11B(nx+kk,j,k)
-      f11B(nx+kk,j,k)=f12B(nx+kk,j,k) + p(11)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(11)*bc_u_east+dey(11)*bc_v_east+dez(11)*bc_w_east)
-      f12B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(12)*bc_u_east+dey(12)*bc_v_east+dez(12)*bc_w_east)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f13B(nx+kk,j,k)
-      f13B(nx+kk,j,k)=f14B(nx+kk,j,k) + p(13)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(13)*bc_u_east+dey(13)*bc_v_east+dez(13)*bc_w_east)
-      f14B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(14)*bc_u_east+dey(14)*bc_v_east+dez(14)*bc_w_east)
-    end forall
-    
-  case (3)
-  
-    !red fluid
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f00R(nx+kk,j,k)=equil_pop00(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f01R(nx+kk,j,k)=equil_pop01(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f02R(nx+kk,j,k)=equil_pop02(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f03R(nx+kk,j,k)=equil_pop03(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f04R(nx+kk,j,k)=equil_pop04(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f05R(nx+kk,j,k)=equil_pop05(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f06R(nx+kk,j,k)=equil_pop06(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f07R(nx+kk,j,k)=equil_pop07(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f08R(nx+kk,j,k)=equil_pop08(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f09R(nx+kk,j,k)=equil_pop09(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f10R(nx+kk,j,k)=equil_pop10(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f11R(nx+kk,j,k)=equil_pop11(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f12R(nx+kk,j,k)=equil_pop12(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f13R(nx+kk,j,k)=equil_pop13(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f14R(nx+kk,j,k)=equil_pop14(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f15R(nx+kk,j,k)=equil_pop15(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f16R(nx+kk,j,k)=equil_pop16(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f17R(nx+kk,j,k)=equil_pop17(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f18R(nx+kk,j,k)=equil_pop18(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f00B(nx+kk,j,k)=equil_pop00(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f01B(nx+kk,j,k)=equil_pop01(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f02B(nx+kk,j,k)=equil_pop02(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f03B(nx+kk,j,k)=equil_pop03(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f04B(nx+kk,j,k)=equil_pop04(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f05B(nx+kk,j,k)=equil_pop05(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f06B(nx+kk,j,k)=equil_pop06(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f07B(nx+kk,j,k)=equil_pop07(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f08B(nx+kk,j,k)=equil_pop08(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f09B(nx+kk,j,k)=equil_pop09(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f10B(nx+kk,j,k)=equil_pop10(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f11B(nx+kk,j,k)=equil_pop11(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f12B(nx+kk,j,k)=equil_pop12(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f13B(nx+kk,j,k)=equil_pop13(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f14B(nx+kk,j,k)=equil_pop14(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f15B(nx+kk,j,k)=equil_pop15(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f16B(nx+kk,j,k)=equil_pop16(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f17B(nx+kk,j,k)=equil_pop17(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-  
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f18B(nx+kk,j,k)=equil_pop18(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-  
-  case default
-    call error(13)
-  end select
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-  
-  return
-  
- end subroutine apply_bounceback_east_frame_y
- 
- subroutine apply_bounceback_east_frame_z
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback
-!     at the east side alongside with its frame only along z
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_east)  
-  case (0)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f01R(nx+kk,j,k)
-      f01R(nx+kk,j,k)=f02R(nx+kk,j,k)
-      f02R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f07R(nx+kk,j,k)
-      f07R(nx+kk,j,k)=f08R(nx+kk,j,k)
-      f08R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f09R(nx+kk,j,k)
-      f09R(nx+kk,j,k)=f10R(nx+kk,j,k)
-      f10R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f11R(nx+kk,j,k)
-      f11R(nx+kk,j,k)=f12R(nx+kk,j,k)
-      f12R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f13R(nx+kk,j,k)
-      f13R(nx+kk,j,k)=f14R(nx+kk,j,k)
-      f14R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f01B(nx+kk,j,k)
-      f01B(nx+kk,j,k)=f02B(nx+kk,j,k)
-      f02B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f07B(nx+kk,j,k)
-      f07B(nx+kk,j,k)=f08B(nx+kk,j,k)
-      f08B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f09B(nx+kk,j,k)
-      f09B(nx+kk,j,k)=f10B(nx+kk,j,k)
-      f10B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f11B(nx+kk,j,k)
-      f11B(nx+kk,j,k)=f12B(nx+kk,j,k)
-      f12B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f13B(nx+kk,j,k)
-      f13B(nx+kk,j,k)=f14B(nx+kk,j,k)
-      f14B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-  case (1)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f01R(nx+kk,j,k)
-      f01R(nx+kk,j,k)=-f02R(nx+kk,j,k) + p(1)*TWO*bc_rhoR_east* &
-       (ONE+(dex(1)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f02R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*TWO*bc_rhoR_east* &
-       (ONE+(dex(2)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f07R(nx+kk,j,k)
-      f07R(nx+kk,j,k)=-f08R(nx+kk,j,k) + p(7)*TWO*bc_rhoR_east* &
-       (ONE+(dex(7)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f08R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*TWO*bc_rhoR_east* &
-       (ONE+(dex(8)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f09R(nx+kk,j,k)
-      f09R(nx+kk,j,k)=-f10R(nx+kk,j,k) + p(9)*TWO*bc_rhoR_east* &
-       (ONE+(dex(9)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f10R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*TWO*bc_rhoR_east* &
-       (ONE+(dex(10)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f11R(nx+kk,j,k)
-      f11R(nx+kk,j,k)=-f12R(nx+kk,j,k) + p(11)*TWO*bc_rhoR_east* &
-       (ONE+(dex(11)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f12R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*TWO*bc_rhoR_east* &
-       (ONE+(dex(12)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f13R(nx+kk,j,k)
-      f13R(nx+kk,j,k)=-f14R(nx+kk,j,k) + p(13)*TWO*bc_rhoR_east* &
-       (ONE+(dex(13)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f14R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*TWO*bc_rhoR_east* &
-       (ONE+(dex(14)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f01B(nx+kk,j,k)
-      f01B(nx+kk,j,k)=-f02B(nx+kk,j,k) + p(1)*TWO*bc_rhoB_east* &
-       (ONE+(dex(1)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f02B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*TWO*bc_rhoB_east* &
-       (ONE+(dex(2)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f07B(nx+kk,j,k)
-      f07B(nx+kk,j,k)=-f08B(nx+kk,j,k) + p(7)*TWO*bc_rhoB_east* &
-       (ONE+(dex(7)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f08B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*TWO*bc_rhoB_east* &
-       (ONE+(dex(8)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f09B(nx+kk,j,k)
-      f09B(nx+kk,j,k)=-f10B(nx+kk,j,k) + p(9)*TWO*bc_rhoB_east* &
-       (ONE+(dex(9)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f10B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*TWO*bc_rhoB_east* &
-       (ONE+(dex(10)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f11B(nx+kk,j,k)
-      f11B(nx+kk,j,k)=-f12B(nx+kk,j,k) + p(11)*TWO*bc_rhoB_east* &
-       (ONE+(dex(11)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f12B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*TWO*bc_rhoB_east* &
-       (ONE+(dex(12)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=-f13B(nx+kk,j,k)
-      f13B(nx+kk,j,k)=-f14B(nx+kk,j,k) + p(13)*TWO*bc_rhoB_east* &
-       (ONE+(dex(13)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f14B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*TWO*bc_rhoB_east* &
-       (ONE+(dex(14)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-  case (2)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f01R(nx+kk,j,k)
-      f01R(nx+kk,j,k)=f02R(nx+kk,j,k) + p(1)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(1)*bc_u_east+dey(1)*bc_v_east+dez(1)*bc_w_east)
-      f02R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(2)*bc_u_east+dey(2)*bc_v_east+dez(2)*bc_w_east)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f07R(nx+kk,j,k)
-      f07R(nx+kk,j,k)=f08R(nx+kk,j,k) + p(7)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(7)*bc_u_east+dey(7)*bc_v_east+dez(7)*bc_w_east)
-      f08R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(8)*bc_u_east+dey(8)*bc_v_east+dez(8)*bc_w_east)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f09R(nx+kk,j,k)
-      f09R(nx+kk,j,k)=f10R(nx+kk,j,k) + p(9)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(9)*bc_u_east+dey(9)*bc_v_east+dez(9)*bc_w_east)
-      f10R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(10)*bc_u_east+dey(10)*bc_v_east+dez(10)*bc_w_east)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f11R(nx+kk,j,k)
-      f11R(nx+kk,j,k)=f12R(nx+kk,j,k) + p(11)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(11)*bc_u_east+dey(11)*bc_v_east+dez(11)*bc_w_east)
-      f12R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(12)*bc_u_east+dey(12)*bc_v_east+dez(12)*bc_w_east)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f13R(nx+kk,j,k)
-      f13R(nx+kk,j,k)=f14R(nx+kk,j,k) + p(13)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(13)*bc_u_east+dey(13)*bc_v_east+dez(13)*bc_w_east)
-      f14R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(14)*bc_u_east+dey(14)*bc_v_east+dez(14)*bc_w_east)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f01B(nx+kk,j,k)
-      f01B(nx+kk,j,k)=f02B(nx+kk,j,k) + p(1)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(1)*bc_u_east+dey(1)*bc_v_east+dez(1)*bc_w_east)
-      f02B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(2)*bc_u_east+dey(2)*bc_v_east+dez(2)*bc_w_east)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f07B(nx+kk,j,k)
-      f07B(nx+kk,j,k)=f08B(nx+kk,j,k) + p(7)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(7)*bc_u_east+dey(7)*bc_v_east+dez(7)*bc_w_east)
-      f08B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(8)*bc_u_east+dey(8)*bc_v_east+dez(8)*bc_w_east)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f09B(nx+kk,j,k)
-      f09B(nx+kk,j,k)=f10B(nx+kk,j,k) + p(9)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(9)*bc_u_east+dey(9)*bc_v_east+dez(9)*bc_w_east)
-      f10B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(10)*bc_u_east+dey(10)*bc_v_east+dez(10)*bc_w_east)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f11B(nx+kk,j,k)
-      f11B(nx+kk,j,k)=f12B(nx+kk,j,k) + p(11)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(11)*bc_u_east+dey(11)*bc_v_east+dez(11)*bc_w_east)
-      f12B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(12)*bc_u_east+dey(12)*bc_v_east+dez(12)*bc_w_east)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(nx+kk,j,k)=f13B(nx+kk,j,k)
-      f13B(nx+kk,j,k)=f14B(nx+kk,j,k) + p(13)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(13)*bc_u_east+dey(13)*bc_v_east+dez(13)*bc_w_east)
-      f14B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(14)*bc_u_east+dey(14)*bc_v_east+dez(14)*bc_w_east)
-    end forall
-    
-  case (3)
-  
-    !red fluid
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f00R(nx+kk,j,k)=equil_pop00(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f01R(nx+kk,j,k)=equil_pop01(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f02R(nx+kk,j,k)=equil_pop02(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f03R(nx+kk,j,k)=equil_pop03(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f04R(nx+kk,j,k)=equil_pop04(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f05R(nx+kk,j,k)=equil_pop05(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f06R(nx+kk,j,k)=equil_pop06(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f07R(nx+kk,j,k)=equil_pop07(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f08R(nx+kk,j,k)=equil_pop08(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f09R(nx+kk,j,k)=equil_pop09(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f10R(nx+kk,j,k)=equil_pop10(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f11R(nx+kk,j,k)=equil_pop11(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f12R(nx+kk,j,k)=equil_pop12(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f13R(nx+kk,j,k)=equil_pop13(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f14R(nx+kk,j,k)=equil_pop14(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f15R(nx+kk,j,k)=equil_pop15(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f16R(nx+kk,j,k)=equil_pop16(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f17R(nx+kk,j,k)=equil_pop17(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f18R(nx+kk,j,k)=equil_pop18(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f00B(nx+kk,j,k)=equil_pop00(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f01B(nx+kk,j,k)=equil_pop01(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f02B(nx+kk,j,k)=equil_pop02(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f03B(nx+kk,j,k)=equil_pop03(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f04B(nx+kk,j,k)=equil_pop04(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f05B(nx+kk,j,k)=equil_pop05(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f06B(nx+kk,j,k)=equil_pop06(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f07B(nx+kk,j,k)=equil_pop07(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f08B(nx+kk,j,k)=equil_pop08(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f09B(nx+kk,j,k)=equil_pop09(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f10B(nx+kk,j,k)=equil_pop10(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f11B(nx+kk,j,k)=equil_pop11(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f12B(nx+kk,j,k)=equil_pop12(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f13B(nx+kk,j,k)=equil_pop13(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f14B(nx+kk,j,k)=equil_pop14(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f15B(nx+kk,j,k)=equil_pop15(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f16B(nx+kk,j,k)=equil_pop16(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f17B(nx+kk,j,k)=equil_pop17(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-  
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f18B(nx+kk,j,k)=equil_pop18(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-  case default
-    call error(13)
-  end select
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-  
-  return
-  
- end subroutine apply_bounceback_east_frame_z
- 
- subroutine apply_bounceback_west_frame
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback
-!     at the west side alongside with its frame
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_west)  
-  case (0)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f01R(1-kk,j,k)
-      f01R(1-kk,j,k)=f02R(1-kk,j,k)
-      f02R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f07R(1-kk,j,k)
-      f07R(1-kk,j,k)=f08R(1-kk,j,k)
-      f08R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f09R(1-kk,j,k)
-      f09R(1-kk,j,k)=f10R(1-kk,j,k)
-      f10R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-   
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f11R(1-kk,j,k)
-      f11R(1-kk,j,k)=f12R(1-kk,j,k)
-      f12R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f13R(1-kk,j,k)
-      f13R(1-kk,j,k)=f14R(1-kk,j,k)
-      f14R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f01B(1-kk,j,k)
-      f01B(1-kk,j,k)=f02B(1-kk,j,k)
-      f02B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f07B(1-kk,j,k)
-      f07B(1-kk,j,k)=f08B(1-kk,j,k)
-      f08B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-  
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f09B(1-kk,j,k)
-      f09B(1-kk,j,k)=f10B(1-kk,j,k)
-     f10B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-  
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f11B(1-kk,j,k)
-      f11B(1-kk,j,k)=f12B(1-kk,j,k)
-      f12B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f13B(1-kk,j,k)
-      f13B(1-kk,j,k)=f14B(1-kk,j,k)
-      f14B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-       
-  case (1)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f01R(1-kk,j,k)
-      f01R(1-kk,j,k)=-f02R(1-kk,j,k) + p(1)*TWO*bc_rhoR_west* &
-       (ONE+(dex(1)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f02R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*TWO*bc_rhoR_west* &
-       (ONE+(dex(2)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f07R(1-kk,j,k)
-      f07R(1-kk,j,k)=-f08R(1-kk,j,k) + p(7)*TWO*bc_rhoR_west* &
-       (ONE+(dex(7)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f08R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*TWO*bc_rhoR_west* &
-       (ONE+(dex(8)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f09R(1-kk,j,k)
-      f09R(1-kk,j,k)=-f10R(1-kk,j,k) + p(9)*TWO*bc_rhoR_west* &
-       (ONE+(dex(9)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f10R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*TWO*bc_rhoR_west* &
-       (ONE+(dex(10)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-   
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f11R(1-kk,j,k)
-      f11R(1-kk,j,k)=-f12R(1-kk,j,k) + p(11)*TWO*bc_rhoR_west* &
-       (ONE+(dex(11)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f12R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*TWO*bc_rhoR_west* &
-       (ONE+(dex(12)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f13R(1-kk,j,k)
-      f13R(1-kk,j,k)=-f14R(1-kk,j,k) + p(13)*TWO*bc_rhoR_west* &
-       (ONE+(dex(13)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f14R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*TWO*bc_rhoR_west* &
-       (ONE+(dex(14)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f01B(1-kk,j,k)
-      f01B(1-kk,j,k)=-f02B(1-kk,j,k) + p(1)*TWO*bc_rhoB_west* &
-       (ONE+(dex(1)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f02B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*TWO*bc_rhoB_west* &
-       (ONE+(dex(2)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f07B(1-kk,j,k)
-      f07B(1-kk,j,k)=-f08B(1-kk,j,k) + p(7)*TWO*bc_rhoB_west* &
-       (ONE+(dex(7)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f08B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*TWO*bc_rhoB_west* &
-       (ONE+(dex(8)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f09B(1-kk,j,k)
-      f09B(1-kk,j,k)=-f10B(1-kk,j,k) + p(9)*TWO*bc_rhoB_west* &
-       (ONE+(dex(9)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f10B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*TWO*bc_rhoB_west* &
-       (ONE+(dex(10)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-   
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f11B(1-kk,j,k)
-      f11B(1-kk,j,k)=-f12B(1-kk,j,k) + p(11)*TWO*bc_rhoB_west* &
-       (ONE+(dex(11)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f12B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*TWO*bc_rhoB_west* &
-       (ONE+(dex(12)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f13B(1-kk,j,k)
-      f13B(1-kk,j,k)=-f14B(1-kk,j,k) + p(13)*TWO*bc_rhoB_west* &
-       (ONE+(dex(13)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f14B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*TWO*bc_rhoB_west* &
-       (ONE+(dex(14)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-  
-  case (2)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f01R(1-kk,j,k)
-      f01R(1-kk,j,k)=f02R(1-kk,j,k) + p(1)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(1)*bc_u_west+dey(1)*bc_v_west+dez(1)*bc_w_west)
-      f02R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(2)*bc_u_west+dey(2)*bc_v_west+dez(2)*bc_w_west)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f07R(1-kk,j,k)
-      f07R(1-kk,j,k)=f08R(1-kk,j,k) + p(7)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(7)*bc_u_west+dey(7)*bc_v_west+dez(7)*bc_w_west)
-      f08R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(8)*bc_u_west+dey(8)*bc_v_west+dez(8)*bc_w_west)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f09R(1-kk,j,k)
-      f09R(1-kk,j,k)=f10R(1-kk,j,k) + p(9)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(9)*bc_u_west+dey(9)*bc_v_west+dez(9)*bc_w_west)
-      f10R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(10)*bc_u_west+dey(10)*bc_v_west+dez(10)*bc_w_west)
-    end forall
-   
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f11R(1-kk,j,k)
-      f11R(1-kk,j,k)=f12R(1-kk,j,k) + p(11)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(11)*bc_u_west+dey(11)*bc_v_west+dez(11)*bc_w_west)
-      f12R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(12)*bc_u_west+dey(12)*bc_v_west+dez(12)*bc_w_west)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f13R(1-kk,j,k)
-      f13R(1-kk,j,k)=f14R(1-kk,j,k) + p(13)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(13)*bc_u_west+dey(13)*bc_v_west+dez(13)*bc_w_west)
-      f14R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(14)*bc_u_west+dey(14)*bc_v_west+dez(14)*bc_w_west)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f01B(1-kk,j,k)
-      f01B(1-kk,j,k)=f02B(1-kk,j,k) + p(1)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(1)*bc_u_west+dey(1)*bc_v_west+dez(1)*bc_w_west)
-      f02B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(2)*bc_u_west+dey(2)*bc_v_west+dez(2)*bc_w_west)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f07B(1-kk,j,k)
-      f07B(1-kk,j,k)=f08B(1-kk,j,k) + p(7)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(7)*bc_u_west+dey(7)*bc_v_west+dez(7)*bc_w_west)
-      f08B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(8)*bc_u_west+dey(8)*bc_v_west+dez(8)*bc_w_west)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f09B(1-kk,j,k)
-      f09B(1-kk,j,k)=f10B(1-kk,j,k) + p(9)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(9)*bc_u_west+dey(9)*bc_v_west+dez(9)*bc_w_west)
-      f10B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(10)*bc_u_west+dey(10)*bc_v_west+dez(10)*bc_w_west)
-    end forall
-   
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f11B(1-kk,j,k)
-      f11B(1-kk,j,k)=f12B(1-kk,j,k) + p(11)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(11)*bc_u_west+dey(11)*bc_v_west+dez(11)*bc_w_west)
-      f12B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(12)*bc_u_west+dey(12)*bc_v_west+dez(12)*bc_w_west)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f13B(1-kk,j,k)
-      f13B(1-kk,j,k)=f14B(1-kk,j,k) + p(13)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(13)*bc_u_west+dey(13)*bc_v_west+dez(13)*bc_w_west)
-      f14B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(14)*bc_u_west+dey(14)*bc_v_west+dez(14)*bc_w_west)
-    end forall
-
-  case (3)
-  
-    !red fluid
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f00R(1-kk,j,k)=equil_pop00(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f01R(1-kk,j,k)=equil_pop01(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f02R(1-kk,j,k)=equil_pop02(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f03R(1-kk,j,k)=equil_pop03(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f04R(1-kk,j,k)=equil_pop04(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f05R(1-kk,j,k)=equil_pop05(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f06R(1-kk,j,k)=equil_pop06(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f07R(1-kk,j,k)=equil_pop07(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f08R(1-kk,j,k)=equil_pop08(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f09R(1-kk,j,k)=equil_pop09(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f10R(1-kk,j,k)=equil_pop10(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f11R(1-kk,j,k)=equil_pop11(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f12R(1-kk,j,k)=equil_pop12(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f13R(1-kk,j,k)=equil_pop13(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f14R(1-kk,j,k)=equil_pop14(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f15R(1-kk,j,k)=equil_pop15(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f16R(1-kk,j,k)=equil_pop16(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f17R(1-kk,j,k)=equil_pop17(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f18R(1-kk,j,k)=equil_pop18(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f00B(1-kk,j,k)=equil_pop00(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f01B(1-kk,j,k)=equil_pop01(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f02B(1-kk,j,k)=equil_pop02(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f03B(1-kk,j,k)=equil_pop03(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f04B(1-kk,j,k)=equil_pop04(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f05B(1-kk,j,k)=equil_pop05(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f06B(1-kk,j,k)=equil_pop06(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f07B(1-kk,j,k)=equil_pop07(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f08B(1-kk,j,k)=equil_pop08(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f09B(1-kk,j,k)=equil_pop09(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f10B(1-kk,j,k)=equil_pop10(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f11B(1-kk,j,k)=equil_pop11(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f12B(1-kk,j,k)=equil_pop12(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f13B(1-kk,j,k)=equil_pop13(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f14B(1-kk,j,k)=equil_pop14(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f15B(1-kk,j,k)=equil_pop15(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f16B(1-kk,j,k)=equil_pop16(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f17B(1-kk,j,k)=equil_pop17(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-  
-    forall(j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
-      f18B(1-kk,j,k)=equil_pop18(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-  case default
-    call error(13)
-  end select
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-  
-  return
-  
- end subroutine apply_bounceback_west_frame
- 
- subroutine apply_bounceback_west_frame_y
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback
-!     at the west side alongside with its frame only along y
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_west)  
-  case (0)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f01R(1-kk,j,k)
-      f01R(1-kk,j,k)=f02R(1-kk,j,k)
-      f02R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f07R(1-kk,j,k)
-      f07R(1-kk,j,k)=f08R(1-kk,j,k)
-      f08R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f09R(1-kk,j,k)
-      f09R(1-kk,j,k)=f10R(1-kk,j,k)
-      f10R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f11R(1-kk,j,k)
-      f11R(1-kk,j,k)=f12R(1-kk,j,k)
-      f12R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f13R(1-kk,j,k)
-      f13R(1-kk,j,k)=f14R(1-kk,j,k)
-      f14R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f01B(1-kk,j,k)
-      f01B(1-kk,j,k)=f02B(1-kk,j,k)
-      f02B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-  
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f07B(1-kk,j,k)
-      f07B(1-kk,j,k)=f08B(1-kk,j,k)
-      f08B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f09B(1-kk,j,k)
-      f09B(1-kk,j,k)=f10B(1-kk,j,k)
-      f10B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f11B(1-kk,j,k)
-      f11B(1-kk,j,k)=f12B(1-kk,j,k)
-      f12B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f13B(1-kk,j,k)
-      f13B(1-kk,j,k)=f14B(1-kk,j,k)
-      f14B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-  case (1)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f01R(1-kk,j,k)
-      f01R(1-kk,j,k)=-f02R(1-kk,j,k) + p(1)*TWO*bc_rhoR_west* &
-       (ONE+(dex(1)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f02R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*TWO*bc_rhoR_west* &
-       (ONE+(dex(2)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f07R(1-kk,j,k)
-      f07R(1-kk,j,k)=-f08R(1-kk,j,k) + p(7)*TWO*bc_rhoR_west* &
-       (ONE+(dex(7)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f08R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*TWO*bc_rhoR_west* &
-       (ONE+(dex(8)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f09R(1-kk,j,k)
-      f09R(1-kk,j,k)=-f10R(1-kk,j,k) + p(9)*TWO*bc_rhoR_west* &
-       (ONE+(dex(9)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f10R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*TWO*bc_rhoR_west* &
-       (ONE+(dex(10)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-   
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f11R(1-kk,j,k)
-      f11R(1-kk,j,k)=-f12R(1-kk,j,k) + p(11)*TWO*bc_rhoR_west* &
-       (ONE+(dex(11)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f12R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*TWO*bc_rhoR_west* &
-       (ONE+(dex(12)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f13R(1-kk,j,k)
-      f13R(1-kk,j,k)=-f14R(1-kk,j,k) + p(13)*TWO*bc_rhoR_west* &
-       (ONE+(dex(13)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f14R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*TWO*bc_rhoR_west* &
-       (ONE+(dex(14)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f01B(1-kk,j,k)
-      f01B(1-kk,j,k)=-f02B(1-kk,j,k) + p(1)*TWO*bc_rhoB_west* &
-       (ONE+(dex(1)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f02B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*TWO*bc_rhoB_west* &
-       (ONE+(dex(2)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f07B(1-kk,j,k)
-      f07B(1-kk,j,k)=-f08B(1-kk,j,k) + p(7)*TWO*bc_rhoB_west* &
-       (ONE+(dex(7)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f08B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*TWO*bc_rhoB_west* &
-       (ONE+(dex(8)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f09B(1-kk,j,k)
-      f09B(1-kk,j,k)=-f10B(1-kk,j,k) + p(9)*TWO*bc_rhoB_west* &
-       (ONE+(dex(9)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f10B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*TWO*bc_rhoB_west* &
-       (ONE+(dex(10)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-   
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f11B(1-kk,j,k)
-      f11B(1-kk,j,k)=-f12B(1-kk,j,k) + p(11)*TWO*bc_rhoB_west* &
-       (ONE+(dex(11)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f12B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*TWO*bc_rhoB_west* &
-       (ONE+(dex(12)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f13B(1-kk,j,k)
-      f13B(1-kk,j,k)=-f14B(1-kk,j,k) + p(13)*TWO*bc_rhoB_west* &
-       (ONE+(dex(13)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f14B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*TWO*bc_rhoB_west* &
-       (ONE+(dex(14)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-  
-  case (2)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f01R(1-kk,j,k)
-      f01R(1-kk,j,k)=f02R(1-kk,j,k) + p(1)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(1)*bc_u_west+dey(1)*bc_v_west+dez(1)*bc_w_west)
-      f02R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(2)*bc_u_west+dey(2)*bc_v_west+dez(2)*bc_w_west)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f07R(1-kk,j,k)
-      f07R(1-kk,j,k)=f08R(1-kk,j,k) + p(7)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(7)*bc_u_west+dey(7)*bc_v_west+dez(7)*bc_w_west)
-      f08R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(8)*bc_u_west+dey(8)*bc_v_west+dez(8)*bc_w_west)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f09R(1-kk,j,k)
-      f09R(1-kk,j,k)=f10R(1-kk,j,k) + p(9)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(9)*bc_u_west+dey(9)*bc_v_west+dez(9)*bc_w_west)
-      f10R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(10)*bc_u_west+dey(10)*bc_v_west+dez(10)*bc_w_west)
-    end forall
-   
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f11R(1-kk,j,k)
-      f11R(1-kk,j,k)=f12R(1-kk,j,k) + p(11)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(11)*bc_u_west+dey(11)*bc_v_west+dez(11)*bc_w_west)
-      f12R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(12)*bc_u_west+dey(12)*bc_v_west+dez(12)*bc_w_west)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f13R(1-kk,j,k)
-      f13R(1-kk,j,k)=f14R(1-kk,j,k) + p(13)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(13)*bc_u_west+dey(13)*bc_v_west+dez(13)*bc_w_west)
-      f14R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(14)*bc_u_west+dey(14)*bc_v_west+dez(14)*bc_w_west)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f01B(1-kk,j,k)
-      f01B(1-kk,j,k)=f02B(1-kk,j,k) + p(1)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(1)*bc_u_west+dey(1)*bc_v_west+dez(1)*bc_w_west)
-      f02B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(2)*bc_u_west+dey(2)*bc_v_west+dez(2)*bc_w_west)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f07B(1-kk,j,k)
-      f07B(1-kk,j,k)=f08B(1-kk,j,k) + p(7)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(7)*bc_u_west+dey(7)*bc_v_west+dez(7)*bc_w_west)
-      f08B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(8)*bc_u_west+dey(8)*bc_v_west+dez(8)*bc_w_west)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f09B(1-kk,j,k)
-      f09B(1-kk,j,k)=f10B(1-kk,j,k) + p(9)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(9)*bc_u_west+dey(9)*bc_v_west+dez(9)*bc_w_west)
-      f10B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(10)*bc_u_west+dey(10)*bc_v_west+dez(10)*bc_w_west)
-    end forall
-   
-    ! swap pop11 and pop12 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f11B(1-kk,j,k)
-      f11B(1-kk,j,k)=f12B(1-kk,j,k) + p(11)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(11)*bc_u_west+dey(11)*bc_v_west+dez(11)*bc_w_west)
-      f12B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(12)*bc_u_west+dey(12)*bc_v_west+dez(12)*bc_w_west)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      buffservice3d(1-kk,j,k)=f13B(1-kk,j,k)
-      f13B(1-kk,j,k)=f14B(1-kk,j,k) + p(13)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(13)*bc_u_west+dey(13)*bc_v_west+dez(13)*bc_w_west)
-      f14B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(14)*bc_u_west+dey(14)*bc_v_west+dez(14)*bc_w_west)
-    end forall
-    
-  case (3)
-  
-    !red fluid
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f00R(1-kk,j,k)=equil_pop00(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f01R(1-kk,j,k)=equil_pop01(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f02R(1-kk,j,k)=equil_pop02(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f03R(1-kk,j,k)=equil_pop03(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f04R(1-kk,j,k)=equil_pop04(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f05R(1-kk,j,k)=equil_pop05(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f06R(1-kk,j,k)=equil_pop06(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f07R(1-kk,j,k)=equil_pop07(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f08R(1-kk,j,k)=equil_pop08(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f09R(1-kk,j,k)=equil_pop09(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f10R(1-kk,j,k)=equil_pop10(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f11R(1-kk,j,k)=equil_pop11(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f12R(1-kk,j,k)=equil_pop12(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f13R(1-kk,j,k)=equil_pop13(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f14R(1-kk,j,k)=equil_pop14(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f15R(1-kk,j,k)=equil_pop15(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f16R(1-kk,j,k)=equil_pop16(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f17R(1-kk,j,k)=equil_pop17(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f18R(1-kk,j,k)=equil_pop18(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f00B(1-kk,j,k)=equil_pop00(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f01B(1-kk,j,k)=equil_pop01(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f02B(1-kk,j,k)=equil_pop02(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f03B(1-kk,j,k)=equil_pop03(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f04B(1-kk,j,k)=equil_pop04(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f05B(1-kk,j,k)=equil_pop05(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f06B(1-kk,j,k)=equil_pop06(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f07B(1-kk,j,k)=equil_pop07(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f08B(1-kk,j,k)=equil_pop08(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f09B(1-kk,j,k)=equil_pop09(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f10B(1-kk,j,k)=equil_pop10(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f11B(1-kk,j,k)=equil_pop11(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f12B(1-kk,j,k)=equil_pop12(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f13B(1-kk,j,k)=equil_pop13(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f14B(1-kk,j,k)=equil_pop14(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f15B(1-kk,j,k)=equil_pop15(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f16B(1-kk,j,k)=equil_pop16(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f17B(1-kk,j,k)=equil_pop17(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-  
-    forall(j=1-nbuff:ny+nbuff,k=1:nz)
-      f18B(1-kk,j,k)=equil_pop18(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-  case default
-    call error(13)
-  end select
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-  
-  return
-  
- end subroutine apply_bounceback_west_frame_y
- 
- subroutine apply_bounceback_west_frame_z
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback
-!     at the west side alongside with its frame only along z 
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_west)  
-  case (0)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f01R(1-kk,j,k)
-      f01R(1-kk,j,k)=f02R(1-kk,j,k)
-      f02R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f07R(1-kk,j,k)
-      f07R(1-kk,j,k)=f08R(1-kk,j,k)
-      f08R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f09R(1-kk,j,k)
-      f09R(1-kk,j,k)=f10R(1-kk,j,k)
-      f10R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f11R(1-kk,j,k)
-      f11R(1-kk,j,k)=f12R(1-kk,j,k)
-      f12R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f13R(1-kk,j,k)
-      f13R(1-kk,j,k)=f14R(1-kk,j,k)
-      f14R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f01B(1-kk,j,k)
-      f01B(1-kk,j,k)=f02B(1-kk,j,k)
-      f02B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f07B(1-kk,j,k)
-      f07B(1-kk,j,k)=f08B(1-kk,j,k)
-      f08B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f09B(1-kk,j,k)
-      f09B(1-kk,j,k)=f10B(1-kk,j,k)
-      f10B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f11B(1-kk,j,k)
-      f11B(1-kk,j,k)=f12B(1-kk,j,k)
-      f12B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f13B(1-kk,j,k)
-      f13B(1-kk,j,k)=f14B(1-kk,j,k)
-      f14B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-  case (1)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f01R(1-kk,j,k)
-      f01R(1-kk,j,k)=-f02R(1-kk,j,k) + p(1)*TWO*bc_rhoR_west* &
-       (ONE+(dex(1)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f02R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*TWO*bc_rhoR_west* &
-       (ONE+(dex(2)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f07R(1-kk,j,k)
-      f07R(1-kk,j,k)=-f08R(1-kk,j,k) + p(7)*TWO*bc_rhoR_west* &
-       (ONE+(dex(7)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f08R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*TWO*bc_rhoR_west* &
-       (ONE+(dex(8)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f09R(1-kk,j,k)
-      f09R(1-kk,j,k)=-f10R(1-kk,j,k) + p(9)*TWO*bc_rhoR_west* &
-       (ONE+(dex(9)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f10R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*TWO*bc_rhoR_west* &
-       (ONE+(dex(10)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-   
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f11R(1-kk,j,k)
-      f11R(1-kk,j,k)=-f12R(1-kk,j,k) + p(11)*TWO*bc_rhoR_west* &
-       (ONE+(dex(11)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f12R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*TWO*bc_rhoR_west* &
-       (ONE+(dex(12)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f13R(1-kk,j,k)
-      f13R(1-kk,j,k)=-f14R(1-kk,j,k) + p(13)*TWO*bc_rhoR_west* &
-       (ONE+(dex(13)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f14R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*TWO*bc_rhoR_west* &
-       (ONE+(dex(14)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f01B(1-kk,j,k)
-      f01B(1-kk,j,k)=-f02B(1-kk,j,k) + p(1)*TWO*bc_rhoB_west* &
-       (ONE+(dex(1)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f02B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*TWO*bc_rhoB_west* &
-       (ONE+(dex(2)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f07B(1-kk,j,k)
-      f07B(1-kk,j,k)=-f08B(1-kk,j,k) + p(7)*TWO*bc_rhoB_west* &
-       (ONE+(dex(7)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f08B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*TWO*bc_rhoB_west* &
-       (ONE+(dex(8)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f09B(1-kk,j,k)
-      f09B(1-kk,j,k)=-f10B(1-kk,j,k) + p(9)*TWO*bc_rhoB_west* &
-       (ONE+(dex(9)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f10B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*TWO*bc_rhoB_west* &
-       (ONE+(dex(10)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-   
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f11B(1-kk,j,k)
-      f11B(1-kk,j,k)=-f12B(1-kk,j,k) + p(11)*TWO*bc_rhoB_west* &
-       (ONE+(dex(11)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f12B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*TWO*bc_rhoB_west* &
-       (ONE+(dex(12)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=-f13B(1-kk,j,k)
-      f13B(1-kk,j,k)=-f14B(1-kk,j,k) + p(13)*TWO*bc_rhoB_west* &
-       (ONE+(dex(13)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f14B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*TWO*bc_rhoB_west* &
-       (ONE+(dex(14)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-  
-  case (2)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f01R(1-kk,j,k)
-      f01R(1-kk,j,k)=f02R(1-kk,j,k) + p(1)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(1)*bc_u_west+dey(1)*bc_v_west+dez(1)*bc_w_west)
-      f02R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(2)*bc_u_west+dey(2)*bc_v_west+dez(2)*bc_w_west)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f07R(1-kk,j,k)
-      f07R(1-kk,j,k)=f08R(1-kk,j,k) + p(7)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(7)*bc_u_west+dey(7)*bc_v_west+dez(7)*bc_w_west)
-      f08R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(8)*bc_u_west+dey(8)*bc_v_west+dez(8)*bc_w_west)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f09R(1-kk,j,k)
-      f09R(1-kk,j,k)=f10R(1-kk,j,k) + p(9)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(9)*bc_u_west+dey(9)*bc_v_west+dez(9)*bc_w_west)
-      f10R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(10)*bc_u_west+dey(10)*bc_v_west+dez(10)*bc_w_west)
-    end forall
-   
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f11R(1-kk,j,k)
-      f11R(1-kk,j,k)=f12R(1-kk,j,k) + p(11)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(11)*bc_u_west+dey(11)*bc_v_west+dez(11)*bc_w_west)
-      f12R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(12)*bc_u_west+dey(12)*bc_v_west+dez(12)*bc_w_west)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f13R(1-kk,j,k)
-      f13R(1-kk,j,k)=f14R(1-kk,j,k) + p(13)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(13)*bc_u_west+dey(13)*bc_v_west+dez(13)*bc_w_west)
-      f14R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(14)*bc_u_west+dey(14)*bc_v_west+dez(14)*bc_w_west)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f01B(1-kk,j,k)
-      f01B(1-kk,j,k)=f02B(1-kk,j,k) + p(1)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(1)*bc_u_west+dey(1)*bc_v_west+dez(1)*bc_w_west)
-      f02B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(2)*bc_u_west+dey(2)*bc_v_west+dez(2)*bc_w_west)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f07B(1-kk,j,k)
-      f07B(1-kk,j,k)=f08B(1-kk,j,k) + p(7)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(7)*bc_u_west+dey(7)*bc_v_west+dez(7)*bc_w_west)
-      f08B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(8)*bc_u_west+dey(8)*bc_v_west+dez(8)*bc_w_west)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f09B(1-kk,j,k)
-      f09B(1-kk,j,k)=f10B(1-kk,j,k) + p(9)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(9)*bc_u_west+dey(9)*bc_v_west+dez(9)*bc_w_west)
-      f10B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(10)*bc_u_west+dey(10)*bc_v_west+dez(10)*bc_w_west)
-    end forall
-   
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f11B(1-kk,j,k)
-      f11B(1-kk,j,k)=f12B(1-kk,j,k) + p(11)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(11)*bc_u_west+dey(11)*bc_v_west+dez(11)*bc_w_west)
-      f12B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(12)*bc_u_west+dey(12)*bc_v_west+dez(12)*bc_w_west)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      buffservice3d(1-kk,j,k)=f13B(1-kk,j,k)
-      f13B(1-kk,j,k)=f14B(1-kk,j,k) + p(13)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(13)*bc_u_west+dey(13)*bc_v_west+dez(13)*bc_w_west)
-      f14B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(14)*bc_u_west+dey(14)*bc_v_west+dez(14)*bc_w_west)
-    end forall
-    
-  case (3)
-  
-    !red fluid
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f00R(1-kk,j,k)=equil_pop00(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f01R(1-kk,j,k)=equil_pop01(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f02R(1-kk,j,k)=equil_pop02(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f03R(1-kk,j,k)=equil_pop03(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f04R(1-kk,j,k)=equil_pop04(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f05R(1-kk,j,k)=equil_pop05(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f06R(1-kk,j,k)=equil_pop06(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f07R(1-kk,j,k)=equil_pop07(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f08R(1-kk,j,k)=equil_pop08(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f09R(1-kk,j,k)=equil_pop09(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f10R(1-kk,j,k)=equil_pop10(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f11R(1-kk,j,k)=equil_pop11(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f12R(1-kk,j,k)=equil_pop12(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f13R(1-kk,j,k)=equil_pop13(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f14R(1-kk,j,k)=equil_pop14(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f15R(1-kk,j,k)=equil_pop15(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f16R(1-kk,j,k)=equil_pop16(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f17R(1-kk,j,k)=equil_pop17(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f18R(1-kk,j,k)=equil_pop18(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f00B(1-kk,j,k)=equil_pop00(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f01B(1-kk,j,k)=equil_pop01(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f02B(1-kk,j,k)=equil_pop02(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f03B(1-kk,j,k)=equil_pop03(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f04B(1-kk,j,k)=equil_pop04(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f05B(1-kk,j,k)=equil_pop05(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f06B(1-kk,j,k)=equil_pop06(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f07B(1-kk,j,k)=equil_pop07(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f08B(1-kk,j,k)=equil_pop08(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f09B(1-kk,j,k)=equil_pop09(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f10B(1-kk,j,k)=equil_pop10(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f11B(1-kk,j,k)=equil_pop11(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f12B(1-kk,j,k)=equil_pop12(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f13B(1-kk,j,k)=equil_pop13(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f14B(1-kk,j,k)=equil_pop14(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f15B(1-kk,j,k)=equil_pop15(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f16B(1-kk,j,k)=equil_pop16(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f17B(1-kk,j,k)=equil_pop17(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-  
-    forall(j=1:ny,k=1-nbuff:nz+nbuff)
-      f18B(1-kk,j,k)=equil_pop18(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-  
-  case default
-    call error(13)
-  end select
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-  
-  return
-  
- end subroutine apply_bounceback_west_frame_z
- 
- subroutine apply_bounceback_north_frame
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback
-!     at the north side alongside with its frame
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_north)  
-  case (0)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f05R(i,j,nz+kk)
-      f05R(i,j,nz+kk)=f06R(i,j,nz+kk)
-      f06R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f11R(i,j,nz+kk)
-      f11R(i,j,nz+kk)=f12R(i,j,nz+kk)
-      f12R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f13R(i,j,nz+kk)
-      f13R(i,j,nz+kk)=f14R(i,j,nz+kk)
-      f14R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f15R(i,j,nz+kk)
-      f15R(i,j,nz+kk)=f16R(i,j,nz+kk)
-      f16R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f17R(i,j,nz+kk)
-      f17R(i,j,nz+kk)=f18R(i,j,nz+kk)
-      f18R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-  
-    if(lsingle_fluid)return
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f05B(i,j,nz+kk)
-      f05B(i,j,nz+kk)=f06B(i,j,nz+kk)
-      f06B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f11B(i,j,nz+kk)
-      f11B(i,j,nz+kk)=f12B(i,j,nz+kk)
-      f12B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f13B(i,j,nz+kk)
-      f13B(i,j,nz+kk)=f14B(i,j,nz+kk)
-      f14B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f15B(i,j,nz+kk)
-      f15B(i,j,nz+kk)=f16B(i,j,nz+kk)
-      f16B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f17B(i,j,nz+kk)
-      f17B(i,j,nz+kk)=f18B(i,j,nz+kk)
-      f18B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-  case (1)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f05R(i,j,nz+kk)
-      f05R(i,j,nz+kk)=-f06R(i,j,nz+kk) + TWO*p(5)*bc_rhoR_north* &
-       (ONE+(dez(5)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f06R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(6)*bc_rhoR_north* &
-       (ONE+(dez(6)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f11R(i,j,nz+kk)
-      f11R(i,j,nz+kk)=-f12R(i,j,nz+kk) + TWO*p(11)*bc_rhoR_north* &
-       (ONE+(dez(11)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f12R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(12)*bc_rhoR_north* &
-       (ONE+(dez(12)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f13R(i,j,nz+kk)
-      f13R(i,j,nz+kk)=-f14R(i,j,nz+kk) + TWO*p(13)*bc_rhoR_north* &
-       (ONE+(dez(13)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f14R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(14)*bc_rhoR_north* &
-       (ONE+(dez(14)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f15R(i,j,nz+kk)
-      f15R(i,j,nz+kk)=-f16R(i,j,nz+kk) + TWO*p(15)*bc_rhoR_north* &
-       (ONE+(dez(15)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f16R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(16)*bc_rhoR_north* &
-       (ONE+(dez(16)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f17R(i,j,nz+kk)
-      f17R(i,j,nz+kk)=-f18R(i,j,nz+kk) + TWO*p(17)*bc_rhoR_north* &
-       (ONE+(dez(17)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f18R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(18)*bc_rhoR_north* &
-       (ONE+(dez(18)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    if(lsingle_fluid)return
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f05B(i,j,nz+kk)
-      f05B(i,j,nz+kk)=-f06B(i,j,nz+kk) + TWO*p(5)*bc_rhoB_north* &
-       (ONE+(dez(5)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f06B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(6)*bc_rhoB_north* &
-       (ONE+(dez(6)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f11B(i,j,nz+kk)
-      f11B(i,j,nz+kk)=-f12B(i,j,nz+kk) + TWO*p(11)*bc_rhoB_north* &
-       (ONE+(dez(11)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f12B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(12)*bc_rhoB_north* &
-       (ONE+(dez(12)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f13B(i,j,nz+kk)
-      f13B(i,j,nz+kk)=-f14B(i,j,nz+kk) + TWO*p(13)*bc_rhoB_north* &
-       (ONE+(dez(13)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f14B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(14)*bc_rhoB_north* &
-       (ONE+(dez(14)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f15B(i,j,nz+kk)
-      f15B(i,j,nz+kk)=-f16B(i,j,nz+kk) + TWO*p(15)*bc_rhoB_north* &
-       (ONE+(dez(15)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f16B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(16)*bc_rhoB_north* &
-       (ONE+(dez(16)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f17B(i,j,nz+kk)
-      f17B(i,j,nz+kk)=-f18B(i,j,nz+kk) + TWO*p(17)*bc_rhoB_north* &
-       (ONE+(dez(17)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f18B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(18)*bc_rhoB_north* &
-       (ONE+(dez(18)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-    
-  case (2)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f05R(i,j,nz+kk)
-      f05R(i,j,nz+kk)=f06R(i,j,nz+kk) + p(5)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(5)*bc_u_north+dey(5)*bc_v_north+dez(5)*bc_w_north)
-      f06R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(6)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(6)*bc_u_north+dey(6)*bc_v_north+dez(6)*bc_w_north)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f11R(i,j,nz+kk)
-      f11R(i,j,nz+kk)=f12R(i,j,nz+kk) + p(11)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(11)*bc_u_north+dey(11)*bc_v_north+dez(11)*bc_w_north)
-      f12R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(12)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(12)*bc_u_north+dey(12)*bc_v_north+dez(12)*bc_w_north)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f13R(i,j,nz+kk)
-      f13R(i,j,nz+kk)=f14R(i,j,nz+kk) + p(13)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(13)*bc_u_north+dey(13)*bc_v_north+dez(13)*bc_w_north)
-      f14R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(14)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(14)*bc_u_north+dey(14)*bc_v_north+dez(14)*bc_w_north)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f15R(i,j,nz+kk)
-      f15R(i,j,nz+kk)=f16R(i,j,nz+kk) + p(15)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(15)*bc_u_north+dey(15)*bc_v_north+dez(15)*bc_w_north)
-      f16R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(16)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(16)*bc_u_north+dey(16)*bc_v_north+dez(16)*bc_w_north)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f17R(i,j,nz+kk)
-      f17R(i,j,nz+kk)=f18R(i,j,nz+kk) + p(17)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(17)*bc_u_north+dey(17)*bc_v_north+dez(17)*bc_w_north)
-      f18R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(18)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(18)*bc_u_north+dey(18)*bc_v_north+dez(18)*bc_w_north)
-    end forall
-  
-    if(lsingle_fluid)return
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f05B(i,j,nz+kk)
-      f05B(i,j,nz+kk)=f06B(i,j,nz+kk) + p(5)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(5)*bc_u_north+dey(5)*bc_v_north+dez(5)*bc_w_north)
-      f06B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(6)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(6)*bc_u_north+dey(6)*bc_v_north+dez(6)*bc_w_north)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f11B(i,j,nz+kk)
-      f11B(i,j,nz+kk)=f12B(i,j,nz+kk) + p(11)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(11)*bc_u_north+dey(11)*bc_v_north+dez(11)*bc_w_north)
-      f12B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(12)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(12)*bc_u_north+dey(12)*bc_v_north+dez(12)*bc_w_north)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f13B(i,j,nz+kk)
-      f13B(i,j,nz+kk)=f14B(i,j,nz+kk) + p(13)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(13)*bc_u_north+dey(13)*bc_v_north+dez(13)*bc_w_north)
-      f14B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(14)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(14)*bc_u_north+dey(14)*bc_v_north+dez(14)*bc_w_north)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f15B(i,j,nz+kk)
-      f15B(i,j,nz+kk)=f16B(i,j,nz+kk) + p(15)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(15)*bc_u_north+dey(15)*bc_v_north+dez(15)*bc_w_north)
-      f16B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(16)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(16)*bc_u_north+dey(16)*bc_v_north+dez(16)*bc_w_north)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f17B(i,j,nz+kk)
-      f17B(i,j,nz+kk)=f18B(i,j,nz+kk) + p(17)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(17)*bc_u_north+dey(17)*bc_v_north+dez(17)*bc_w_north)
-      f18B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(18)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(18)*bc_u_north+dey(18)*bc_v_north+dez(18)*bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(nx+kk,j,k)=f13sub(nx+kk,j,k)
+      f13sub(nx+kk,j,k)=f14sub(nx+kk,j,k) + p(13)*pref_bouzidi*rho_s(nx-kk+1,j,k)* &
+       (dex(13)*u_east+dey(13)*v_east+dez(13)*w_east)
+      f14sub(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*pref_bouzidi*rho_s(nx-kk+1,j,k)* &
+       (dex(14)*u_east+dey(14)*v_east+dez(14)*w_east)
     end forall
     
   
   case (3)
   
     !red fluid
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f00R(i,j,nz+kk)=equil_pop00(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f00sub(nx+kk,j,k)=equil_pop00(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f01R(i,j,nz+kk)=equil_pop01(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f01sub(nx+kk,j,k)=equil_pop01(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f02R(i,j,nz+kk)=equil_pop02(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f02sub(nx+kk,j,k)=equil_pop02(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f03R(i,j,nz+kk)=equil_pop03(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f03sub(nx+kk,j,k)=equil_pop03(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f04R(i,j,nz+kk)=equil_pop04(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f04sub(nx+kk,j,k)=equil_pop04(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f05R(i,j,nz+kk)=equil_pop05(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f05sub(nx+kk,j,k)=equil_pop05(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f06R(i,j,nz+kk)=equil_pop06(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f06sub(nx+kk,j,k)=equil_pop06(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f07R(i,j,nz+kk)=equil_pop07(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f07sub(nx+kk,j,k)=equil_pop07(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f08R(i,j,nz+kk)=equil_pop08(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f08sub(nx+kk,j,k)=equil_pop08(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f09R(i,j,nz+kk)=equil_pop09(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f09sub(nx+kk,j,k)=equil_pop09(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f10R(i,j,nz+kk)=equil_pop10(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f10sub(nx+kk,j,k)=equil_pop10(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f11R(i,j,nz+kk)=equil_pop11(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f11sub(nx+kk,j,k)=equil_pop11(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f12R(i,j,nz+kk)=equil_pop12(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f12sub(nx+kk,j,k)=equil_pop12(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f13R(i,j,nz+kk)=equil_pop13(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f13sub(nx+kk,j,k)=equil_pop13(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f14R(i,j,nz+kk)=equil_pop14(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f14sub(nx+kk,j,k)=equil_pop14(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f15R(i,j,nz+kk)=equil_pop15(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f15sub(nx+kk,j,k)=equil_pop15(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f16R(i,j,nz+kk)=equil_pop16(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f16sub(nx+kk,j,k)=equil_pop16(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f17R(i,j,nz+kk)=equil_pop17(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(j=sy:ey,k=sz:ez)
+      f17sub(nx+kk,j,k)=equil_pop17(rho_east,u_east,v_east,w_east)
     end forall
     
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f18R(i,j,nz+kk)=equil_pop18(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f00B(i,j,nz+kk)=equil_pop00(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f01B(i,j,nz+kk)=equil_pop01(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f02B(i,j,nz+kk)=equil_pop02(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f03B(i,j,nz+kk)=equil_pop03(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f04B(i,j,nz+kk)=equil_pop04(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f05B(i,j,nz+kk)=equil_pop05(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f06B(i,j,nz+kk)=equil_pop06(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f07B(i,j,nz+kk)=equil_pop07(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f08B(i,j,nz+kk)=equil_pop08(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f09B(i,j,nz+kk)=equil_pop09(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f10B(i,j,nz+kk)=equil_pop10(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f11B(i,j,nz+kk)=equil_pop11(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f12B(i,j,nz+kk)=equil_pop12(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f13B(i,j,nz+kk)=equil_pop13(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f14B(i,j,nz+kk)=equil_pop14(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f15B(i,j,nz+kk)=equil_pop15(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f16B(i,j,nz+kk)=equil_pop16(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f17B(i,j,nz+kk)=equil_pop17(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-  
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f18B(i,j,nz+kk)=equil_pop18(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    
-  case default
-    call error(13)
-  end select
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-  
-  return
-  
- end subroutine apply_bounceback_north_frame
- 
- subroutine apply_bounceback_north_frame_x
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback
-!     at the north side alongside with its frame only along x
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_north)  
-  
-  case (0)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f05R(i,j,nz+kk)
-      f05R(i,j,nz+kk)=f06R(i,j,nz+kk)
-      f06R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f11R(i,j,nz+kk)
-      f11R(i,j,nz+kk)=f12R(i,j,nz+kk)
-      f12R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f13R(i,j,nz+kk)
-      f13R(i,j,nz+kk)=f14R(i,j,nz+kk)
-      f14R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f15R(i,j,nz+kk)
-      f15R(i,j,nz+kk)=f16R(i,j,nz+kk)
-      f16R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f17R(i,j,nz+kk)
-      f17R(i,j,nz+kk)=f18R(i,j,nz+kk)
-      f18R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-      
-    if(lsingle_fluid)return
-    
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f05B(i,j,nz+kk)
-      f05B(i,j,nz+kk)=f06B(i,j,nz+kk)
-      f06B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f11B(i,j,nz+kk)
-      f11B(i,j,nz+kk)=f12B(i,j,nz+kk)
-      f12B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f13B(i,j,nz+kk)
-      f13B(i,j,nz+kk)=f14B(i,j,nz+kk)
-      f14B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f15B(i,j,nz+kk)
-      f15B(i,j,nz+kk)=f16B(i,j,nz+kk)
-      f16B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f17B(i,j,nz+kk)
-      f17B(i,j,nz+kk)=f18B(i,j,nz+kk)
-      f18B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-  case (1)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f05R(i,j,nz+kk)
-      f05R(i,j,nz+kk)=-f06R(i,j,nz+kk) + TWO*p(5)*bc_rhoR_north* &
-       (ONE+(dez(5)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f06R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(6)*bc_rhoR_north* &
-       (ONE+(dez(6)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f11R(i,j,nz+kk)
-      f11R(i,j,nz+kk)=-f12R(i,j,nz+kk) + TWO*p(11)*bc_rhoR_north* &
-       (ONE+(dez(11)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f12R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(12)*bc_rhoR_north* &
-       (ONE+(dez(12)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f13R(i,j,nz+kk)
-      f13R(i,j,nz+kk)=-f14R(i,j,nz+kk) + TWO*p(13)*bc_rhoR_north* &
-       (ONE+(dez(13)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f14R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(14)*bc_rhoR_north* &
-       (ONE+(dez(14)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f15R(i,j,nz+kk)
-      f15R(i,j,nz+kk)=-f16R(i,j,nz+kk) + TWO*p(15)*bc_rhoR_north* &
-       (ONE+(dez(15)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f16R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(16)*bc_rhoR_north* &
-       (ONE+(dez(16)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f17R(i,j,nz+kk)
-      f17R(i,j,nz+kk)=-f18R(i,j,nz+kk) + TWO*p(17)*bc_rhoR_north* &
-       (ONE+(dez(17)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f18R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(18)*bc_rhoR_north* &
-       (ONE+(dez(18)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    if(lsingle_fluid)return
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f05B(i,j,nz+kk)
-      f05B(i,j,nz+kk)=-f06B(i,j,nz+kk) + TWO*p(5)*bc_rhoB_north* &
-       (ONE+(dez(5)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f06B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(6)*bc_rhoB_north* &
-       (ONE+(dez(6)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f11B(i,j,nz+kk)
-      f11B(i,j,nz+kk)=-f12B(i,j,nz+kk) + TWO*p(11)*bc_rhoB_north* &
-       (ONE+(dez(11)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f12B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(12)*bc_rhoB_north* &
-       (ONE+(dez(12)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f13B(i,j,nz+kk)
-      f13B(i,j,nz+kk)=-f14B(i,j,nz+kk) + TWO*p(13)*bc_rhoB_north* &
-       (ONE+(dez(13)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f14B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(14)*bc_rhoB_north* &
-       (ONE+(dez(14)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f15B(i,j,nz+kk)
-      f15B(i,j,nz+kk)=-f16B(i,j,nz+kk) + TWO*p(15)*bc_rhoB_north* &
-       (ONE+(dez(15)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f16B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(16)*bc_rhoB_north* &
-       (ONE+(dez(16)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f17B(i,j,nz+kk)
-      f17B(i,j,nz+kk)=-f18B(i,j,nz+kk) + TWO*p(17)*bc_rhoB_north* &
-       (ONE+(dez(17)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f18B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(18)*bc_rhoB_north* &
-       (ONE+(dez(18)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-    
-  case (2)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f05R(i,j,nz+kk)
-      f05R(i,j,nz+kk)=f06R(i,j,nz+kk) + p(5)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(5)*bc_u_north+dey(5)*bc_v_north+dez(5)*bc_w_north)
-      f06R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(6)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(6)*bc_u_north+dey(6)*bc_v_north+dez(6)*bc_w_north)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f11R(i,j,nz+kk)
-      f11R(i,j,nz+kk)=f12R(i,j,nz+kk) + p(11)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(11)*bc_u_north+dey(11)*bc_v_north+dez(11)*bc_w_north)
-      f12R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(12)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(12)*bc_u_north+dey(12)*bc_v_north+dez(12)*bc_w_north)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f13R(i,j,nz+kk)
-      f13R(i,j,nz+kk)=f14R(i,j,nz+kk) + p(13)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(13)*bc_u_north+dey(13)*bc_v_north+dez(13)*bc_w_north)
-      f14R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(14)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(14)*bc_u_north+dey(14)*bc_v_north+dez(14)*bc_w_north)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f15R(i,j,nz+kk)
-      f15R(i,j,nz+kk)=f16R(i,j,nz+kk) + p(15)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(15)*bc_u_north+dey(15)*bc_v_north+dez(15)*bc_w_north)
-      f16R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(16)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(16)*bc_u_north+dey(16)*bc_v_north+dez(16)*bc_w_north)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f17R(i,j,nz+kk)
-      f17R(i,j,nz+kk)=f18R(i,j,nz+kk) + p(17)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(17)*bc_u_north+dey(17)*bc_v_north+dez(17)*bc_w_north)
-      f18R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(18)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(18)*bc_u_north+dey(18)*bc_v_north+dez(18)*bc_w_north)
-    end forall
-  
-    if(lsingle_fluid)return
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f05B(i,j,nz+kk)
-      f05B(i,j,nz+kk)=f06B(i,j,nz+kk) + p(5)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(5)*bc_u_north+dey(5)*bc_v_north+dez(5)*bc_w_north)
-      f06B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(6)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(6)*bc_u_north+dey(6)*bc_v_north+dez(6)*bc_w_north)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f11B(i,j,nz+kk)
-      f11B(i,j,nz+kk)=f12B(i,j,nz+kk) + p(11)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(11)*bc_u_north+dey(11)*bc_v_north+dez(11)*bc_w_north)
-      f12B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(12)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(12)*bc_u_north+dey(12)*bc_v_north+dez(12)*bc_w_north)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f13B(i,j,nz+kk)
-      f13B(i,j,nz+kk)=f14B(i,j,nz+kk) + p(13)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(13)*bc_u_north+dey(13)*bc_v_north+dez(13)*bc_w_north)
-      f14B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(14)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(14)*bc_u_north+dey(14)*bc_v_north+dez(14)*bc_w_north)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f15B(i,j,nz+kk)
-      f15B(i,j,nz+kk)=f16B(i,j,nz+kk) + p(15)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(15)*bc_u_north+dey(15)*bc_v_north+dez(15)*bc_w_north)
-      f16B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(16)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(16)*bc_u_north+dey(16)*bc_v_north+dez(16)*bc_w_north)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f17B(i,j,nz+kk)
-      f17B(i,j,nz+kk)=f18B(i,j,nz+kk) + p(17)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(17)*bc_u_north+dey(17)*bc_v_north+dez(17)*bc_w_north)
-      f18B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(18)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(18)*bc_u_north+dey(18)*bc_v_north+dez(18)*bc_w_north)
-    end forall
-    
-  
-  case (3)
-  
-    !red fluid
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f00R(i,j,nz+kk)=equil_pop00(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f01R(i,j,nz+kk)=equil_pop01(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f02R(i,j,nz+kk)=equil_pop02(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f03R(i,j,nz+kk)=equil_pop03(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f04R(i,j,nz+kk)=equil_pop04(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f05R(i,j,nz+kk)=equil_pop05(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f06R(i,j,nz+kk)=equil_pop06(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f07R(i,j,nz+kk)=equil_pop07(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f08R(i,j,nz+kk)=equil_pop08(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f09R(i,j,nz+kk)=equil_pop09(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f10R(i,j,nz+kk)=equil_pop10(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f11R(i,j,nz+kk)=equil_pop11(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f12R(i,j,nz+kk)=equil_pop12(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f13R(i,j,nz+kk)=equil_pop13(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f14R(i,j,nz+kk)=equil_pop14(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f15R(i,j,nz+kk)=equil_pop15(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f16R(i,j,nz+kk)=equil_pop16(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f17R(i,j,nz+kk)=equil_pop17(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f18R(i,j,nz+kk)=equil_pop18(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f00B(i,j,nz+kk)=equil_pop00(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f01B(i,j,nz+kk)=equil_pop01(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f02B(i,j,nz+kk)=equil_pop02(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f03B(i,j,nz+kk)=equil_pop03(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f04B(i,j,nz+kk)=equil_pop04(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f05B(i,j,nz+kk)=equil_pop05(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f06B(i,j,nz+kk)=equil_pop06(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f07B(i,j,nz+kk)=equil_pop07(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f08B(i,j,nz+kk)=equil_pop08(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f09B(i,j,nz+kk)=equil_pop09(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f10B(i,j,nz+kk)=equil_pop10(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f11B(i,j,nz+kk)=equil_pop11(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f12B(i,j,nz+kk)=equil_pop12(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f13B(i,j,nz+kk)=equil_pop13(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f14B(i,j,nz+kk)=equil_pop14(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f15B(i,j,nz+kk)=equil_pop15(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f16B(i,j,nz+kk)=equil_pop16(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f17B(i,j,nz+kk)=equil_pop17(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-  
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f18B(i,j,nz+kk)=equil_pop18(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-  case default
-    call error(13)
-  end select
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-  
-  return
-  
- end subroutine apply_bounceback_north_frame_x
- 
- subroutine apply_bounceback_north_frame_y
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback
-!     at the north side alongside with its frame only along y
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_north)  
-  case (0)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f05R(i,j,nz+kk)
-      f05R(i,j,nz+kk)=f06R(i,j,nz+kk)
-      f06R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f11R(i,j,nz+kk)
-      f11R(i,j,nz+kk)=f12R(i,j,nz+kk)
-      f12R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f13R(i,j,nz+kk)
-      f13R(i,j,nz+kk)=f14R(i,j,nz+kk)
-      f14R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f15R(i,j,nz+kk)
-      f15R(i,j,nz+kk)=f16R(i,j,nz+kk)
-      f16R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f17R(i,j,nz+kk)
-      f17R(i,j,nz+kk)=f18R(i,j,nz+kk)
-      f18R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f05B(i,j,nz+kk)
-      f05B(i,j,nz+kk)=f06B(i,j,nz+kk)
-      f06B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f11B(i,j,nz+kk)
-      f11B(i,j,nz+kk)=f12B(i,j,nz+kk)
-      f12B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f13B(i,j,nz+kk)
-      f13B(i,j,nz+kk)=f14B(i,j,nz+kk)
-      f14B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f15B(i,j,nz+kk)
-      f15B(i,j,nz+kk)=f16B(i,j,nz+kk)
-      f16B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f17B(i,j,nz+kk)
-      f17B(i,j,nz+kk)=f18B(i,j,nz+kk)
-      f18B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-  case (1)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f05R(i,j,nz+kk)
-      f05R(i,j,nz+kk)=-f06R(i,j,nz+kk) + TWO*p(5)*bc_rhoR_north* &
-       (ONE+(dez(5)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f06R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(6)*bc_rhoR_north* &
-       (ONE+(dez(6)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f11R(i,j,nz+kk)
-      f11R(i,j,nz+kk)=-f12R(i,j,nz+kk) + TWO*p(11)*bc_rhoR_north* &
-       (ONE+(dez(11)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f12R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(12)*bc_rhoR_north* &
-       (ONE+(dez(12)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f13R(i,j,nz+kk)
-      f13R(i,j,nz+kk)=-f14R(i,j,nz+kk) + TWO*p(13)*bc_rhoR_north* &
-       (ONE+(dez(13)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f14R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(14)*bc_rhoR_north* &
-       (ONE+(dez(14)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f15R(i,j,nz+kk)
-      f15R(i,j,nz+kk)=-f16R(i,j,nz+kk) + TWO*p(15)*bc_rhoR_north* &
-       (ONE+(dez(15)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f16R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(16)*bc_rhoR_north* &
-       (ONE+(dez(16)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f17R(i,j,nz+kk)
-      f17R(i,j,nz+kk)=-f18R(i,j,nz+kk) + TWO*p(17)*bc_rhoR_north* &
-       (ONE+(dez(17)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f18R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(18)*bc_rhoR_north* &
-       (ONE+(dez(18)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    if(lsingle_fluid)return
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f05B(i,j,nz+kk)
-      f05B(i,j,nz+kk)=-f06B(i,j,nz+kk) + TWO*p(5)*bc_rhoB_north* &
-       (ONE+(dez(5)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f06B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(6)*bc_rhoB_north* &
-       (ONE+(dez(6)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f11B(i,j,nz+kk)
-      f11B(i,j,nz+kk)=-f12B(i,j,nz+kk) + TWO*p(11)*bc_rhoB_north* &
-       (ONE+(dez(11)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f12B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(12)*bc_rhoB_north* &
-       (ONE+(dez(12)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f13B(i,j,nz+kk)
-      f13B(i,j,nz+kk)=-f14B(i,j,nz+kk) + TWO*p(13)*bc_rhoB_north* &
-       (ONE+(dez(13)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f14B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(14)*bc_rhoB_north* &
-       (ONE+(dez(14)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f15B(i,j,nz+kk)
-      f15B(i,j,nz+kk)=-f16B(i,j,nz+kk) + TWO*p(15)*bc_rhoB_north* &
-       (ONE+(dez(15)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f16B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(16)*bc_rhoB_north* &
-       (ONE+(dez(16)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=-f17B(i,j,nz+kk)
-      f17B(i,j,nz+kk)=-f18B(i,j,nz+kk) + TWO*p(17)*bc_rhoB_north* &
-       (ONE+(dez(17)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f18B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(18)*bc_rhoB_north* &
-       (ONE+(dez(18)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-    
-  case (2)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f05R(i,j,nz+kk)
-      f05R(i,j,nz+kk)=f06R(i,j,nz+kk) + p(5)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(5)*bc_u_north+dey(5)*bc_v_north+dez(5)*bc_w_north)
-      f06R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(6)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(6)*bc_u_north+dey(6)*bc_v_north+dez(6)*bc_w_north)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f11R(i,j,nz+kk)
-      f11R(i,j,nz+kk)=f12R(i,j,nz+kk) + p(11)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(11)*bc_u_north+dey(11)*bc_v_north+dez(11)*bc_w_north)
-      f12R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(12)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(12)*bc_u_north+dey(12)*bc_v_north+dez(12)*bc_w_north)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f13R(i,j,nz+kk)
-      f13R(i,j,nz+kk)=f14R(i,j,nz+kk) + p(13)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(13)*bc_u_north+dey(13)*bc_v_north+dez(13)*bc_w_north)
-      f14R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(14)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(14)*bc_u_north+dey(14)*bc_v_north+dez(14)*bc_w_north)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f15R(i,j,nz+kk)
-      f15R(i,j,nz+kk)=f16R(i,j,nz+kk) + p(15)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(15)*bc_u_north+dey(15)*bc_v_north+dez(15)*bc_w_north)
-      f16R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(16)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(16)*bc_u_north+dey(16)*bc_v_north+dez(16)*bc_w_north)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f17R(i,j,nz+kk)
-      f17R(i,j,nz+kk)=f18R(i,j,nz+kk) + p(17)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(17)*bc_u_north+dey(17)*bc_v_north+dez(17)*bc_w_north)
-      f18R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(18)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(18)*bc_u_north+dey(18)*bc_v_north+dez(18)*bc_w_north)
-    end forall
-  
-    if(lsingle_fluid)return
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f05B(i,j,nz+kk)
-      f05B(i,j,nz+kk)=f06B(i,j,nz+kk) + p(5)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(5)*bc_u_north+dey(5)*bc_v_north+dez(5)*bc_w_north)
-      f06B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(6)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(6)*bc_u_north+dey(6)*bc_v_north+dez(6)*bc_w_north)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f11B(i,j,nz+kk)
-      f11B(i,j,nz+kk)=f12B(i,j,nz+kk) + p(11)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(11)*bc_u_north+dey(11)*bc_v_north+dez(11)*bc_w_north)
-      f12B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(12)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(12)*bc_u_north+dey(12)*bc_v_north+dez(12)*bc_w_north)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f13B(i,j,nz+kk)
-      f13B(i,j,nz+kk)=f14B(i,j,nz+kk) + p(13)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(13)*bc_u_north+dey(13)*bc_v_north+dez(13)*bc_w_north)
-      f14B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(14)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(14)*bc_u_north+dey(14)*bc_v_north+dez(14)*bc_w_north)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f15B(i,j,nz+kk)
-      f15B(i,j,nz+kk)=f16B(i,j,nz+kk) + p(15)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(15)*bc_u_north+dey(15)*bc_v_north+dez(15)*bc_w_north)
-      f16B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(16)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(16)*bc_u_north+dey(16)*bc_v_north+dez(16)*bc_w_north)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,nz+kk)=f17B(i,j,nz+kk)
-      f17B(i,j,nz+kk)=f18B(i,j,nz+kk) + p(17)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(17)*bc_u_north+dey(17)*bc_v_north+dez(17)*bc_w_north)
-      f18B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(18)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(18)*bc_u_north+dey(18)*bc_v_north+dez(18)*bc_w_north)
-    end forall
-    
-  
-  case (3)
-  
-    !red fluid
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f00R(i,j,nz+kk)=equil_pop00(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f01R(i,j,nz+kk)=equil_pop01(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f02R(i,j,nz+kk)=equil_pop02(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f03R(i,j,nz+kk)=equil_pop03(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f04R(i,j,nz+kk)=equil_pop04(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f05R(i,j,nz+kk)=equil_pop05(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f06R(i,j,nz+kk)=equil_pop06(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f07R(i,j,nz+kk)=equil_pop07(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f08R(i,j,nz+kk)=equil_pop08(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f09R(i,j,nz+kk)=equil_pop09(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f10R(i,j,nz+kk)=equil_pop10(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f11R(i,j,nz+kk)=equil_pop11(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f12R(i,j,nz+kk)=equil_pop12(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f13R(i,j,nz+kk)=equil_pop13(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f14R(i,j,nz+kk)=equil_pop14(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f15R(i,j,nz+kk)=equil_pop15(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f16R(i,j,nz+kk)=equil_pop16(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f17R(i,j,nz+kk)=equil_pop17(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f18R(i,j,nz+kk)=equil_pop18(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f00B(i,j,nz+kk)=equil_pop00(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f01B(i,j,nz+kk)=equil_pop01(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f02B(i,j,nz+kk)=equil_pop02(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f03B(i,j,nz+kk)=equil_pop03(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f04B(i,j,nz+kk)=equil_pop04(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f05B(i,j,nz+kk)=equil_pop05(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f06B(i,j,nz+kk)=equil_pop06(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f07B(i,j,nz+kk)=equil_pop07(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f08B(i,j,nz+kk)=equil_pop08(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f09B(i,j,nz+kk)=equil_pop09(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f10B(i,j,nz+kk)=equil_pop10(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f11B(i,j,nz+kk)=equil_pop11(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f12B(i,j,nz+kk)=equil_pop12(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f13B(i,j,nz+kk)=equil_pop13(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f14B(i,j,nz+kk)=equil_pop14(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f15B(i,j,nz+kk)=equil_pop15(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f16B(i,j,nz+kk)=equil_pop16(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f17B(i,j,nz+kk)=equil_pop17(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-  
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f18B(i,j,nz+kk)=equil_pop18(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-  case default
-    call error(13)
-  end select
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-  
-  return
-  
- end subroutine apply_bounceback_north_frame_y
- 
- subroutine apply_bounceback_south_frame
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback 
-!     at the south side alongside with its frame
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_south)  
-  case (0)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f05R(i,j,1-kk)
-      f05R(i,j,1-kk)=f06R(i,j,1-kk)
-      f06R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f11R(i,j,1-kk)
-      f11R(i,j,1-kk)=f12R(i,j,1-kk)
-      f12R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f13R(i,j,1-kk)
-      f13R(i,j,1-kk)=f14R(i,j,1-kk)
-      f14R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f15R(i,j,1-kk)
-      f15R(i,j,1-kk)=f16R(i,j,1-kk)
-      f16R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f17R(i,j,1-kk)
-      f17R(i,j,1-kk)=f18R(i,j,1-kk)
-      f18R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f05B(i,j,1-kk)
-      f05B(i,j,1-kk)=f06B(i,j,1-kk)
-      f06B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f11B(i,j,1-kk)
-      f11B(i,j,1-kk)=f12B(i,j,1-kk)
-      f12B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f13B(i,j,1-kk)
-      f13B(i,j,1-kk)=f14B(i,j,1-kk)
-      f14B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f15B(i,j,1-kk)
-      f15B(i,j,1-kk)=f16B(i,j,1-kk)
-      f16B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f17B(i,j,1-kk)
-      f17B(i,j,1-kk)=f18B(i,j,1-kk)
-      f18B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-  case (1)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f05R(i,j,1-kk)
-      f05R(i,j,1-kk)=-f06R(i,j,1-kk) + TWO*p(5)*bc_rhoR_south* &
-       (ONE+(dez(5)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f06R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(6)*bc_rhoR_south* &
-       (ONE+(dez(6)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f11R(i,j,1-kk)
-      f11R(i,j,1-kk)=-f12R(i,j,1-kk) + TWO*p(11)*bc_rhoR_south* &
-       (ONE+(dez(11)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f12R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(12)*bc_rhoR_south* &
-       (ONE+(dez(12)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f13R(i,j,1-kk)
-      f13R(i,j,1-kk)=-f14R(i,j,1-kk) + TWO*p(13)*bc_rhoR_south* &
-       (ONE+(dez(13)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f14R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(14)*bc_rhoR_south* &
-       (ONE+(dez(14)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f15R(i,j,1-kk)
-      f15R(i,j,1-kk)=-f16R(i,j,1-kk) + TWO*p(15)*bc_rhoR_south* &
-       (ONE+(dez(15)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f16R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(16)*bc_rhoR_south* &
-       (ONE+(dez(16)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f17R(i,j,1-kk)
-      f17R(i,j,1-kk)=-f18R(i,j,1-kk) + TWO*p(17)*bc_rhoR_south* &
-       (ONE+(dez(17)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f18R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(18)*bc_rhoR_south* &
-       (ONE+(dez(18)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f05B(i,j,1-kk)
-      f05B(i,j,1-kk)=-f06B(i,j,1-kk) + TWO*p(5)*bc_rhoB_south* &
-       (ONE+(dez(5)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f06B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(6)*bc_rhoB_south* &
-       (ONE+(dez(6)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f11B(i,j,1-kk)
-      f11B(i,j,1-kk)=-f12B(i,j,1-kk) + TWO*p(11)*bc_rhoB_south* &
-       (ONE+(dez(11)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f12B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(12)*bc_rhoB_south* &
-       (ONE+(dez(12)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f13B(i,j,1-kk)
-      f13B(i,j,1-kk)=-f14B(i,j,1-kk) + TWO*p(13)*bc_rhoB_south* &
-       (ONE+(dez(13)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f14B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(14)*bc_rhoB_south* &
-       (ONE+(dez(14)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f15B(i,j,1-kk)
-      f15B(i,j,1-kk)=-f16B(i,j,1-kk) + TWO*p(15)*bc_rhoB_south* &
-       (ONE+(dez(15)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f16B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(16)*bc_rhoB_south* &
-       (ONE+(dez(16)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f17B(i,j,1-kk)
-      f17B(i,j,1-kk)=-f18B(i,j,1-kk) + TWO*p(17)*bc_rhoB_south* &
-       (ONE+(dez(17)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f18B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(18)*bc_rhoB_south* &
-       (ONE+(dez(18)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-  case (2)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f05R(i,j,1-kk)
-      f05R(i,j,1-kk)=f06R(i,j,1-kk) + p(5)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(5)*bc_u_south+dey(5)*bc_v_south+dez(5)*bc_w_south)
-      f06R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(6)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(6)*bc_u_south+dey(6)*bc_v_south+dez(6)*bc_w_south)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f11R(i,j,1-kk)
-      f11R(i,j,1-kk)=f12R(i,j,1-kk) + p(11)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(11)*bc_u_south+dey(11)*bc_v_south+dez(11)*bc_w_south)
-      f12R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(12)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(12)*bc_u_south+dey(12)*bc_v_south+dez(12)*bc_w_south)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f13R(i,j,1-kk)
-      f13R(i,j,1-kk)=f14R(i,j,1-kk) + p(13)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(13)*bc_u_south+dey(13)*bc_v_south+dez(13)*bc_w_south)
-      f14R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(14)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(14)*bc_u_south+dey(14)*bc_v_south+dez(14)*bc_w_south)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f15R(i,j,1-kk)
-      f15R(i,j,1-kk)=f16R(i,j,1-kk) + p(15)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(15)*bc_u_south+dey(15)*bc_v_south+dez(15)*bc_w_south)
-      f16R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(16)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(16)*bc_u_south+dey(16)*bc_v_south+dez(16)*bc_w_south)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f17R(i,j,1-kk)
-      f17R(i,j,1-kk)=f18R(i,j,1-kk) + p(17)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(17)*bc_u_south+dey(17)*bc_v_south+dez(17)*bc_w_south)
-      f18R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(18)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(18)*bc_u_south+dey(18)*bc_v_south+dez(18)*bc_w_south)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f05B(i,j,1-kk)
-      f05B(i,j,1-kk)=f06B(i,j,1-kk) + p(5)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(5)*bc_u_south+dey(5)*bc_v_south+dez(5)*bc_w_south)
-      f06B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(6)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(6)*bc_u_south+dey(6)*bc_v_south+dez(6)*bc_w_south)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f11B(i,j,1-kk)
-      f11B(i,j,1-kk)=f12B(i,j,1-kk) + p(11)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(11)*bc_u_south+dey(11)*bc_v_south+dez(11)*bc_w_south)
-      f12B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(12)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(12)*bc_u_south+dey(12)*bc_v_south+dez(12)*bc_w_south)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f13B(i,j,1-kk)
-      f13B(i,j,1-kk)=f14B(i,j,1-kk) + p(13)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(13)*bc_u_south+dey(13)*bc_v_south+dez(13)*bc_w_south)
-      f14B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(14)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(14)*bc_u_south+dey(14)*bc_v_south+dez(14)*bc_w_south)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f15B(i,j,1-kk)
-      f15B(i,j,1-kk)=f16B(i,j,1-kk) + p(15)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(15)*bc_u_south+dey(15)*bc_v_south+dez(15)*bc_w_south)
-      f16B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(16)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(16)*bc_u_south+dey(16)*bc_v_south+dez(16)*bc_w_south)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f17B(i,j,1-kk)
-      f17B(i,j,1-kk)=f18B(i,j,1-kk) + p(17)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(17)*bc_u_south+dey(17)*bc_v_south+dez(17)*bc_w_south)
-      f18B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(18)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(18)*bc_u_south+dey(18)*bc_v_south+dez(18)*bc_w_south)
-    end forall
-    
-  case (3)
-    
-    !red fluid
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f00R(i,j,1-kk)=equil_pop00(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f01R(i,j,1-kk)=equil_pop01(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f02R(i,j,1-kk)=equil_pop02(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f03R(i,j,1-kk)=equil_pop03(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f04R(i,j,1-kk)=equil_pop04(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f05R(i,j,1-kk)=equil_pop05(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f06R(i,j,1-kk)=equil_pop06(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f07R(i,j,1-kk)=equil_pop07(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f08R(i,j,1-kk)=equil_pop08(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f09R(i,j,1-kk)=equil_pop09(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f10R(i,j,1-kk)=equil_pop10(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f11R(i,j,1-kk)=equil_pop11(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f12R(i,j,1-kk)=equil_pop12(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f13R(i,j,1-kk)=equil_pop13(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f14R(i,j,1-kk)=equil_pop14(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f15R(i,j,1-kk)=equil_pop15(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f16R(i,j,1-kk)=equil_pop16(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f17R(i,j,1-kk)=equil_pop17(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f18R(i,j,1-kk)=equil_pop18(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f00B(i,j,1-kk)=equil_pop00(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f01B(i,j,1-kk)=equil_pop01(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f02B(i,j,1-kk)=equil_pop02(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f03B(i,j,1-kk)=equil_pop03(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f04B(i,j,1-kk)=equil_pop04(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f05B(i,j,1-kk)=equil_pop05(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f06B(i,j,1-kk)=equil_pop06(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f07B(i,j,1-kk)=equil_pop07(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f08B(i,j,1-kk)=equil_pop08(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f09B(i,j,1-kk)=equil_pop09(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f10B(i,j,1-kk)=equil_pop10(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f11B(i,j,1-kk)=equil_pop11(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f12B(i,j,1-kk)=equil_pop12(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f13B(i,j,1-kk)=equil_pop13(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f14B(i,j,1-kk)=equil_pop14(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f15B(i,j,1-kk)=equil_pop15(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f16B(i,j,1-kk)=equil_pop16(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f17B(i,j,1-kk)=equil_pop17(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-  
-    forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff)
-      f18B(i,j,1-kk)=equil_pop18(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(j=sy:ey,k=sz:ez)
+      f18sub(nx+kk,j,k)=equil_pop18(rho_east,u_east,v_east,w_east)
     end forall
   
   case default
     call error(13)
   end select
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-  
-  return
-  
- end subroutine apply_bounceback_south_frame
- 
- subroutine apply_bounceback_south_frame_x
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback 
-!     at the south side alongside with its frame only along x
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_south)  
-  case (0)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f05R(i,j,1-kk)
-      f05R(i,j,1-kk)=f06R(i,j,1-kk)
-      f06R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f11R(i,j,1-kk)
-      f11R(i,j,1-kk)=f12R(i,j,1-kk)
-      f12R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f13R(i,j,1-kk)
-      f13R(i,j,1-kk)=f14R(i,j,1-kk)
-      f14R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f15R(i,j,1-kk)
-      f15R(i,j,1-kk)=f16R(i,j,1-kk)
-      f16R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f17R(i,j,1-kk)
-      f17R(i,j,1-kk)=f18R(i,j,1-kk)
-      f18R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f05B(i,j,1-kk)
-      f05B(i,j,1-kk)=f06B(i,j,1-kk)
-      f06B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f11B(i,j,1-kk)
-      f11B(i,j,1-kk)=f12B(i,j,1-kk)
-      f12B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f13B(i,j,1-kk)
-      f13B(i,j,1-kk)=f14B(i,j,1-kk)
-      f14B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f15B(i,j,1-kk)
-      f15B(i,j,1-kk)=f16B(i,j,1-kk)
-      f16B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f17B(i,j,1-kk)
-      f17B(i,j,1-kk)=f18B(i,j,1-kk)
-      f18B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-  case (1)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f05R(i,j,1-kk)
-      f05R(i,j,1-kk)=-f06R(i,j,1-kk) + TWO*p(5)*bc_rhoR_south* &
-       (ONE+(dez(5)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f06R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(6)*bc_rhoR_south* &
-       (ONE+(dez(6)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f11R(i,j,1-kk)
-      f11R(i,j,1-kk)=-f12R(i,j,1-kk) + TWO*p(11)*bc_rhoR_south* &
-       (ONE+(dez(11)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f12R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(12)*bc_rhoR_south* &
-       (ONE+(dez(12)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f13R(i,j,1-kk)
-      f13R(i,j,1-kk)=-f14R(i,j,1-kk) + TWO*p(13)*bc_rhoR_south* &
-       (ONE+(dez(13)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f14R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(14)*bc_rhoR_south* &
-       (ONE+(dez(14)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f15R(i,j,1-kk)
-      f15R(i,j,1-kk)=-f16R(i,j,1-kk) + TWO*p(15)*bc_rhoR_south* &
-       (ONE+(dez(15)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f16R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(16)*bc_rhoR_south* &
-       (ONE+(dez(16)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f17R(i,j,1-kk)
-      f17R(i,j,1-kk)=-f18R(i,j,1-kk) + TWO*p(17)*bc_rhoR_south* &
-       (ONE+(dez(17)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f18R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(18)*bc_rhoR_south* &
-       (ONE+(dez(18)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f05B(i,j,1-kk)
-      f05B(i,j,1-kk)=-f06B(i,j,1-kk) + TWO*p(5)*bc_rhoB_south* &
-       (ONE+(dez(5)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f06B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(6)*bc_rhoB_south* &
-       (ONE+(dez(6)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f11B(i,j,1-kk)
-      f11B(i,j,1-kk)=-f12B(i,j,1-kk) + TWO*p(11)*bc_rhoB_south* &
-       (ONE+(dez(11)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f12B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(12)*bc_rhoB_south* &
-       (ONE+(dez(12)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f13B(i,j,1-kk)
-      f13B(i,j,1-kk)=-f14B(i,j,1-kk) + TWO*p(13)*bc_rhoB_south* &
-       (ONE+(dez(13)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f14B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(14)*bc_rhoB_south* &
-       (ONE+(dez(14)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f15B(i,j,1-kk)
-      f15B(i,j,1-kk)=-f16B(i,j,1-kk) + TWO*p(15)*bc_rhoB_south* &
-       (ONE+(dez(15)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f16B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(16)*bc_rhoB_south* &
-       (ONE+(dez(16)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f17B(i,j,1-kk)
-      f17B(i,j,1-kk)=-f18B(i,j,1-kk) + TWO*p(17)*bc_rhoB_south* &
-       (ONE+(dez(17)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f18B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(18)*bc_rhoB_south* &
-       (ONE+(dez(18)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-  case (2)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f05R(i,j,1-kk)
-      f05R(i,j,1-kk)=f06R(i,j,1-kk) + p(5)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(5)*bc_u_south+dey(5)*bc_v_south+dez(5)*bc_w_south)
-      f06R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(6)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(6)*bc_u_south+dey(6)*bc_v_south+dez(6)*bc_w_south)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f11R(i,j,1-kk)
-      f11R(i,j,1-kk)=f12R(i,j,1-kk) + p(11)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(11)*bc_u_south+dey(11)*bc_v_south+dez(11)*bc_w_south)
-      f12R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(12)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(12)*bc_u_south+dey(12)*bc_v_south+dez(12)*bc_w_south)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f13R(i,j,1-kk)
-      f13R(i,j,1-kk)=f14R(i,j,1-kk) + p(13)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(13)*bc_u_south+dey(13)*bc_v_south+dez(13)*bc_w_south)
-      f14R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(14)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(14)*bc_u_south+dey(14)*bc_v_south+dez(14)*bc_w_south)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f15R(i,j,1-kk)
-      f15R(i,j,1-kk)=f16R(i,j,1-kk) + p(15)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(15)*bc_u_south+dey(15)*bc_v_south+dez(15)*bc_w_south)
-      f16R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(16)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(16)*bc_u_south+dey(16)*bc_v_south+dez(16)*bc_w_south)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f17R(i,j,1-kk)
-      f17R(i,j,1-kk)=f18R(i,j,1-kk) + p(17)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(17)*bc_u_south+dey(17)*bc_v_south+dez(17)*bc_w_south)
-      f18R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(18)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(18)*bc_u_south+dey(18)*bc_v_south+dez(18)*bc_w_south)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop5 and pop6 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f05B(i,j,1-kk)
-      f05B(i,j,1-kk)=f06B(i,j,1-kk) + p(5)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(5)*bc_u_south+dey(5)*bc_v_south+dez(5)*bc_w_south)
-      f06B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(6)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(6)*bc_u_south+dey(6)*bc_v_south+dez(6)*bc_w_south)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f11B(i,j,1-kk)
-      f11B(i,j,1-kk)=f12B(i,j,1-kk) + p(11)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(11)*bc_u_south+dey(11)*bc_v_south+dez(11)*bc_w_south)
-      f12B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(12)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(12)*bc_u_south+dey(12)*bc_v_south+dez(12)*bc_w_south)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f13B(i,j,1-kk)
-      f13B(i,j,1-kk)=f14B(i,j,1-kk) + p(13)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(13)*bc_u_south+dey(13)*bc_v_south+dez(13)*bc_w_south)
-      f14B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(14)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(14)*bc_u_south+dey(14)*bc_v_south+dez(14)*bc_w_south)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f15B(i,j,1-kk)
-      f15B(i,j,1-kk)=f16B(i,j,1-kk) + p(15)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(15)*bc_u_south+dey(15)*bc_v_south+dez(15)*bc_w_south)
-      f16B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(16)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(16)*bc_u_south+dey(16)*bc_v_south+dez(16)*bc_w_south)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      buffservice3d(i,j,1-kk)=f17B(i,j,1-kk)
-      f17B(i,j,1-kk)=f18B(i,j,1-kk) + p(17)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(17)*bc_u_south+dey(17)*bc_v_south+dez(17)*bc_w_south)
-      f18B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(18)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(18)*bc_u_south+dey(18)*bc_v_south+dez(18)*bc_w_south)
-    end forall
-    
-  case (3)
-    
-    !red fluid
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f00R(i,j,1-kk)=equil_pop00(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f01R(i,j,1-kk)=equil_pop01(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f02R(i,j,1-kk)=equil_pop02(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f03R(i,j,1-kk)=equil_pop03(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f04R(i,j,1-kk)=equil_pop04(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f05R(i,j,1-kk)=equil_pop05(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f06R(i,j,1-kk)=equil_pop06(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f07R(i,j,1-kk)=equil_pop07(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f08R(i,j,1-kk)=equil_pop08(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f09R(i,j,1-kk)=equil_pop09(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f10R(i,j,1-kk)=equil_pop10(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f11R(i,j,1-kk)=equil_pop11(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f12R(i,j,1-kk)=equil_pop12(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f13R(i,j,1-kk)=equil_pop13(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f14R(i,j,1-kk)=equil_pop14(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f15R(i,j,1-kk)=equil_pop15(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f16R(i,j,1-kk)=equil_pop16(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f17R(i,j,1-kk)=equil_pop17(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f18R(i,j,1-kk)=equil_pop18(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f00B(i,j,1-kk)=equil_pop00(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f01B(i,j,1-kk)=equil_pop01(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f02B(i,j,1-kk)=equil_pop02(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f03B(i,j,1-kk)=equil_pop03(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f04B(i,j,1-kk)=equil_pop04(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f05B(i,j,1-kk)=equil_pop05(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f06B(i,j,1-kk)=equil_pop06(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f07B(i,j,1-kk)=equil_pop07(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f08B(i,j,1-kk)=equil_pop08(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f09B(i,j,1-kk)=equil_pop09(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f10B(i,j,1-kk)=equil_pop10(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f11B(i,j,1-kk)=equil_pop11(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f12B(i,j,1-kk)=equil_pop12(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f13B(i,j,1-kk)=equil_pop13(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f14B(i,j,1-kk)=equil_pop14(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f15B(i,j,1-kk)=equil_pop15(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f16B(i,j,1-kk)=equil_pop16(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f17B(i,j,1-kk)=equil_pop17(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-  
-    forall(i=1-nbuff:nx+nbuff,j=1:ny)
-      f18B(i,j,1-kk)=equil_pop18(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-  case default
-    call error(13)
-  end select
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-  
-  return
-  
- end subroutine apply_bounceback_south_frame_x
- 
- subroutine apply_bounceback_south_frame_y
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback 
-!     at the south side alongside with its frame only along y
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_south)  
-  case (0)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-     buffservice3d(i,j,1-kk)=f05R(i,j,1-kk)
-     f05R(i,j,1-kk)=f06R(i,j,1-kk)
-      f06R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-   
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f11R(i,j,1-kk)
-      f11R(i,j,1-kk)=f12R(i,j,1-kk)
-      f12R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f13R(i,j,1-kk)
-      f13R(i,j,1-kk)=f14R(i,j,1-kk)
-      f14R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f15R(i,j,1-kk)
-      f15R(i,j,1-kk)=f16R(i,j,1-kk)
-      f16R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f17R(i,j,1-kk)
-      f17R(i,j,1-kk)=f18R(i,j,1-kk)
-      f18R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f05B(i,j,1-kk)
-      f05B(i,j,1-kk)=f06B(i,j,1-kk)
-      f06B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f11B(i,j,1-kk)
-      f11B(i,j,1-kk)=f12B(i,j,1-kk)
-      f12B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f13B(i,j,1-kk)
-      f13B(i,j,1-kk)=f14B(i,j,1-kk)
-      f14B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f15B(i,j,1-kk)
-      f15B(i,j,1-kk)=f16B(i,j,1-kk)
-      f16B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f17B(i,j,1-kk)
-      f17B(i,j,1-kk)=f18B(i,j,1-kk)
-      f18B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-  case (1)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f05R(i,j,1-kk)
-      f05R(i,j,1-kk)=-f06R(i,j,1-kk) + TWO*p(5)*bc_rhoR_south* &
-       (ONE+(dez(5)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f06R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(6)*bc_rhoR_south* &
-       (ONE+(dez(6)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f11R(i,j,1-kk)
-      f11R(i,j,1-kk)=-f12R(i,j,1-kk) + TWO*p(11)*bc_rhoR_south* &
-       (ONE+(dez(11)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f12R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(12)*bc_rhoR_south* &
-       (ONE+(dez(12)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f13R(i,j,1-kk)
-      f13R(i,j,1-kk)=-f14R(i,j,1-kk) + TWO*p(13)*bc_rhoR_south* &
-       (ONE+(dez(13)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f14R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(14)*bc_rhoR_south* &
-       (ONE+(dez(14)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f15R(i,j,1-kk)
-      f15R(i,j,1-kk)=-f16R(i,j,1-kk) + TWO*p(15)*bc_rhoR_south* &
-       (ONE+(dez(15)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f16R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(16)*bc_rhoR_south* &
-       (ONE+(dez(16)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f17R(i,j,1-kk)
-      f17R(i,j,1-kk)=-f18R(i,j,1-kk) + TWO*p(17)*bc_rhoR_south* &
-       (ONE+(dez(17)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f18R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(18)*bc_rhoR_south* &
-       (ONE+(dez(18)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f05B(i,j,1-kk)
-      f05B(i,j,1-kk)=-f06B(i,j,1-kk) + TWO*p(5)*bc_rhoB_south* &
-       (ONE+(dez(5)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f06B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(6)*bc_rhoB_south* &
-       (ONE+(dez(6)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f11B(i,j,1-kk)
-      f11B(i,j,1-kk)=-f12B(i,j,1-kk) + TWO*p(11)*bc_rhoB_south* &
-       (ONE+(dez(11)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f12B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(12)*bc_rhoB_south* &
-       (ONE+(dez(12)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f13B(i,j,1-kk)
-      f13B(i,j,1-kk)=-f14B(i,j,1-kk) + TWO*p(13)*bc_rhoB_south* &
-       (ONE+(dez(13)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f14B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(14)*bc_rhoB_south* &
-       (ONE+(dez(14)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f15B(i,j,1-kk)
-      f15B(i,j,1-kk)=-f16B(i,j,1-kk) + TWO*p(15)*bc_rhoB_south* &
-       (ONE+(dez(15)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f16B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(16)*bc_rhoB_south* &
-       (ONE+(dez(16)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=-f17B(i,j,1-kk)
-      f17B(i,j,1-kk)=-f18B(i,j,1-kk) + TWO*p(17)*bc_rhoB_south* &
-       (ONE+(dez(17)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f18B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(18)*bc_rhoB_south* &
-       (ONE+(dez(18)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-  case (2)
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f05R(i,j,1-kk)
-      f05R(i,j,1-kk)=f06R(i,j,1-kk) + p(5)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(5)*bc_u_south+dey(5)*bc_v_south+dez(5)*bc_w_south)
-      f06R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(6)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(6)*bc_u_south+dey(6)*bc_v_south+dez(6)*bc_w_south)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f11R(i,j,1-kk)
-      f11R(i,j,1-kk)=f12R(i,j,1-kk) + p(11)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(11)*bc_u_south+dey(11)*bc_v_south+dez(11)*bc_w_south)
-      f12R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(12)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(12)*bc_u_south+dey(12)*bc_v_south+dez(12)*bc_w_south)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f13R(i,j,1-kk)
-      f13R(i,j,1-kk)=f14R(i,j,1-kk) + p(13)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(13)*bc_u_south+dey(13)*bc_v_south+dez(13)*bc_w_south)
-      f14R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(14)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(14)*bc_u_south+dey(14)*bc_v_south+dez(14)*bc_w_south)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f15R(i,j,1-kk)
-      f15R(i,j,1-kk)=f16R(i,j,1-kk) + p(15)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(15)*bc_u_south+dey(15)*bc_v_south+dez(15)*bc_w_south)
-      f16R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(16)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(16)*bc_u_south+dey(16)*bc_v_south+dez(16)*bc_w_south)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f17R(i,j,1-kk)
-      f17R(i,j,1-kk)=f18R(i,j,1-kk) + p(17)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(17)*bc_u_south+dey(17)*bc_v_south+dez(17)*bc_w_south)
-      f18R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(18)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(18)*bc_u_south+dey(18)*bc_v_south+dez(18)*bc_w_south)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f05B(i,j,1-kk)
-      f05B(i,j,1-kk)=f06B(i,j,1-kk) + p(5)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(5)*bc_u_south+dey(5)*bc_v_south+dez(5)*bc_w_south)
-      f06B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(6)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(6)*bc_u_south+dey(6)*bc_v_south+dez(6)*bc_w_south)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f11B(i,j,1-kk)
-      f11B(i,j,1-kk)=f12B(i,j,1-kk) + p(11)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(11)*bc_u_south+dey(11)*bc_v_south+dez(11)*bc_w_south)
-      f12B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(12)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(12)*bc_u_south+dey(12)*bc_v_south+dez(12)*bc_w_south)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f13B(i,j,1-kk)
-      f13B(i,j,1-kk)=f14B(i,j,1-kk) + p(13)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(13)*bc_u_south+dey(13)*bc_v_south+dez(13)*bc_w_south)
-      f14B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(14)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(14)*bc_u_south+dey(14)*bc_v_south+dez(14)*bc_w_south)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f15B(i,j,1-kk)
-      f15B(i,j,1-kk)=f16B(i,j,1-kk) + p(15)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(15)*bc_u_south+dey(15)*bc_v_south+dez(15)*bc_w_south)
-      f16B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(16)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(16)*bc_u_south+dey(16)*bc_v_south+dez(16)*bc_w_south)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      buffservice3d(i,j,1-kk)=f17B(i,j,1-kk)
-      f17B(i,j,1-kk)=f18B(i,j,1-kk) + p(17)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(17)*bc_u_south+dey(17)*bc_v_south+dez(17)*bc_w_south)
-      f18B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(18)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(18)*bc_u_south+dey(18)*bc_v_south+dez(18)*bc_w_south)
-    end forall
-    
-  case (3)
-    
-    !red fluid
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f00R(i,j,1-kk)=equil_pop00(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f01R(i,j,1-kk)=equil_pop01(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f02R(i,j,1-kk)=equil_pop02(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f03R(i,j,1-kk)=equil_pop03(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f04R(i,j,1-kk)=equil_pop04(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f05R(i,j,1-kk)=equil_pop05(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f06R(i,j,1-kk)=equil_pop06(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f07R(i,j,1-kk)=equil_pop07(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f08R(i,j,1-kk)=equil_pop08(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f09R(i,j,1-kk)=equil_pop09(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f10R(i,j,1-kk)=equil_pop10(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f11R(i,j,1-kk)=equil_pop11(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f12R(i,j,1-kk)=equil_pop12(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f13R(i,j,1-kk)=equil_pop13(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f14R(i,j,1-kk)=equil_pop14(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f15R(i,j,1-kk)=equil_pop15(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f16R(i,j,1-kk)=equil_pop16(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f17R(i,j,1-kk)=equil_pop17(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f18R(i,j,1-kk)=equil_pop18(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f00B(i,j,1-kk)=equil_pop00(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f01B(i,j,1-kk)=equil_pop01(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f02B(i,j,1-kk)=equil_pop02(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f03B(i,j,1-kk)=equil_pop03(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f04B(i,j,1-kk)=equil_pop04(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f05B(i,j,1-kk)=equil_pop05(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f06B(i,j,1-kk)=equil_pop06(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f07B(i,j,1-kk)=equil_pop07(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f08B(i,j,1-kk)=equil_pop08(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f09B(i,j,1-kk)=equil_pop09(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f10B(i,j,1-kk)=equil_pop10(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f11B(i,j,1-kk)=equil_pop11(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f12B(i,j,1-kk)=equil_pop12(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f13B(i,j,1-kk)=equil_pop13(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f14B(i,j,1-kk)=equil_pop14(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f15B(i,j,1-kk)=equil_pop15(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f16B(i,j,1-kk)=equil_pop16(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f17B(i,j,1-kk)=equil_pop17(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-  
-    forall(i=1:nx,j=1-nbuff:ny+nbuff)
-      f18B(i,j,1-kk)=equil_pop18(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-  case default
-    call error(13)
-  end select
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-  
-  return
-  
- end subroutine apply_bounceback_south_frame_y
- 
- subroutine apply_bounceback_front_frame
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback
-!     at the front side alongside with its frame
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_front)  
-  case (0)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f03R(i,1-kk,k)
-      f03R(i,1-kk,k)=f04R(i,1-kk,k)
-      f04R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f07R(i,1-kk,k)
-      f07R(i,1-kk,k)=f08R(i,1-kk,k)
-      f08R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f09R(i,1-kk,k)
-      f09R(i,1-kk,k)=f10R(i,1-kk,k)
-      f10R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f15R(i,1-kk,k)
-      f15R(i,1-kk,k)=f16R(i,1-kk,k)
-      f16R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f17R(i,1-kk,k)
-      f17R(i,1-kk,k)=f18R(i,1-kk,k)
-      f18R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f03B(i,1-kk,k)
-      f03B(i,1-kk,k)=f04B(i,1-kk,k)
-      f04B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f07B(i,1-kk,k)
-      f07B(i,1-kk,k)=f08B(i,1-kk,k)
-      f08B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f09B(i,1-kk,k)
-      f09B(i,1-kk,k)=f10B(i,1-kk,k)
-      f10B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-  
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f15B(i,1-kk,k)
-      f15B(i,1-kk,k)=f16B(i,1-kk,k)
-      f16B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f17B(i,1-kk,k)
-      f17B(i,1-kk,k)=f18B(i,1-kk,k)
-      f18B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-  case (1)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f03R(i,1-kk,k)
-      f03R(i,1-kk,k)=-f04R(i,1-kk,k) + TWO*p(3)*bc_rhoR_front* &
-       (ONE+(dey(3)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f04R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(4)*bc_rhoR_front* &
-       (ONE+(dey(4)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f07R(i,1-kk,k)
-      f07R(i,1-kk,k)=-f08R(i,1-kk,k) + TWO*p(7)*bc_rhoR_front* &
-       (ONE+(dey(7)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f08R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(8)*bc_rhoR_front* &
-       (ONE+(dey(8)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f09R(i,1-kk,k)
-      f09R(i,1-kk,k)=-f10R(i,1-kk,k) + TWO*p(9)*bc_rhoR_front* &
-       (ONE+(dey(9)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f10R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(10)*bc_rhoR_front* &
-       (ONE+(dey(10)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f15R(i,1-kk,k)
-      f15R(i,1-kk,k)=-f16R(i,1-kk,k) + TWO*p(15)*bc_rhoR_front* &
-       (ONE+(dey(15)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f16R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(16)*bc_rhoR_front* &
-       (ONE+(dey(16)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f17R(i,1-kk,k)
-      f17R(i,1-kk,k)=-f18R(i,1-kk,k) + TWO*p(17)*bc_rhoR_front* &
-       (ONE+(dey(17)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f18R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(18)*bc_rhoR_front* &
-       (ONE+(dey(18)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f03B(i,1-kk,k)
-      f03B(i,1-kk,k)=-f04B(i,1-kk,k) + TWO*p(3)*bc_rhoB_front* &
-       (ONE+(dey(3)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f04B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(4)*bc_rhoB_front* &
-       (ONE+(dey(4)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f07B(i,1-kk,k)
-      f07B(i,1-kk,k)=-f08B(i,1-kk,k) + TWO*p(7)*bc_rhoB_front* &
-       (ONE+(dey(7)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f08B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(8)*bc_rhoB_front* &
-       (ONE+(dey(8)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f09B(i,1-kk,k)
-      f09B(i,1-kk,k)=-f10B(i,1-kk,k) + TWO*p(9)*bc_rhoB_front* &
-       (ONE+(dey(9)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f10B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(10)*bc_rhoB_front* &
-       (ONE+(dey(10)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f15B(i,1-kk,k)
-      f15B(i,1-kk,k)=-f16B(i,1-kk,k) + TWO*p(15)*bc_rhoB_front* &
-       (ONE+(dey(15)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f16B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(16)*bc_rhoB_front* &
-       (ONE+(dey(16)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f17B(i,1-kk,k)
-      f17B(i,1-kk,k)=-f18B(i,1-kk,k) + TWO*p(17)*bc_rhoB_front* &
-       (ONE+(dey(17)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f18B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(18)*bc_rhoB_front* &
-       (ONE+(dey(18)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-  
-  case (2)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f03R(i,1-kk,k)
-      f03R(i,1-kk,k)=f04R(i,1-kk,k) + p(3)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(3)*bc_u_front+dey(3)*bc_v_front+dez(3)*bc_w_front)
-      f04R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(4)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(4)*bc_u_front+dey(4)*bc_v_front+dez(4)*bc_w_front)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f07R(i,1-kk,k)
-      f07R(i,1-kk,k)=f08R(i,1-kk,k) + p(7)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(7)*bc_u_front+dey(7)*bc_v_front+dez(7)*bc_w_front)
-      f08R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(8)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(8)*bc_u_front+dey(8)*bc_v_front+dez(8)*bc_w_front)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f09R(i,1-kk,k)
-      f09R(i,1-kk,k)=f10R(i,1-kk,k) + p(9)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(9)*bc_u_front+dey(9)*bc_v_front+dez(9)*bc_w_front)
-      f10R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(10)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(10)*bc_u_front+dey(10)*bc_v_front+dez(10)*bc_w_front)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f15R(i,1-kk,k)
-      f15R(i,1-kk,k)=f16R(i,1-kk,k) + p(15)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(15)*bc_u_front+dey(15)*bc_v_front+dez(15)*bc_w_front)
-      f16R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(16)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(16)*bc_u_front+dey(16)*bc_v_front+dez(16)*bc_w_front)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f17R(i,1-kk,k)
-      f17R(i,1-kk,k)=f18R(i,1-kk,k) + p(17)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(17)*bc_u_front+dey(17)*bc_v_front+dez(17)*bc_w_front)
-      f18R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(18)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(18)*bc_u_front+dey(18)*bc_v_front+dez(18)*bc_w_front)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f03B(i,1-kk,k)
-      f03B(i,1-kk,k)=f04B(i,1-kk,k) + p(3)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(3)*bc_u_front+dey(3)*bc_v_front+dez(3)*bc_w_front)
-      f04B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(4)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(4)*bc_u_front+dey(4)*bc_v_front+dez(4)*bc_w_front)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f07B(i,1-kk,k)
-      f07B(i,1-kk,k)=f08B(i,1-kk,k) + p(7)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(7)*bc_u_front+dey(7)*bc_v_front+dez(7)*bc_w_front)
-      f08B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(8)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(8)*bc_u_front+dey(8)*bc_v_front+dez(8)*bc_w_front)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f09B(i,1-kk,k)
-      f09B(i,1-kk,k)=f10B(i,1-kk,k) + p(9)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(9)*bc_u_front+dey(9)*bc_v_front+dez(9)*bc_w_front)
-      f10B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(10)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(10)*bc_u_front+dey(10)*bc_v_front+dez(10)*bc_w_front)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f15B(i,1-kk,k)
-      f15B(i,1-kk,k)=f16B(i,1-kk,k) + p(15)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(15)*bc_u_front+dey(15)*bc_v_front+dez(15)*bc_w_front)
-      f16B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(16)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(16)*bc_u_front+dey(16)*bc_v_front+dez(16)*bc_w_front)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f17B(i,1-kk,k)
-      f17B(i,1-kk,k)=f18B(i,1-kk,k) + p(17)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(17)*bc_u_front+dey(17)*bc_v_front+dez(17)*bc_w_front)
-      f18B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(18)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(18)*bc_u_front+dey(18)*bc_v_front+dez(18)*bc_w_front)
-    end forall
-  
-  case (3)
-    
-    !red fluid
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f00R(i,1-kk,k)=equil_pop00(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f01R(i,1-kk,k)=equil_pop01(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f02R(i,1-kk,k)=equil_pop02(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f03R(i,1-kk,k)=equil_pop03(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f04R(i,1-kk,k)=equil_pop04(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f05R(i,1-kk,k)=equil_pop05(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f06R(i,1-kk,k)=equil_pop06(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f07R(i,1-kk,k)=equil_pop07(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f08R(i,1-kk,k)=equil_pop08(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f09R(i,1-kk,k)=equil_pop09(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f10R(i,1-kk,k)=equil_pop10(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f11R(i,1-kk,k)=equil_pop11(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f12R(i,1-kk,k)=equil_pop12(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f13R(i,1-kk,k)=equil_pop13(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f14R(i,1-kk,k)=equil_pop14(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f15R(i,1-kk,k)=equil_pop15(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f16R(i,1-kk,k)=equil_pop16(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f17R(i,1-kk,k)=equil_pop17(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f18R(i,1-kk,k)=equil_pop18(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f00B(i,1-kk,k)=equil_pop00(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f01B(i,1-kk,k)=equil_pop01(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f02B(i,1-kk,k)=equil_pop02(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f03B(i,1-kk,k)=equil_pop03(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f04B(i,1-kk,k)=equil_pop04(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f05B(i,1-kk,k)=equil_pop05(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f06B(i,1-kk,k)=equil_pop06(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f07B(i,1-kk,k)=equil_pop07(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f08B(i,1-kk,k)=equil_pop08(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f09B(i,1-kk,k)=equil_pop09(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f10B(i,1-kk,k)=equil_pop10(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f11B(i,1-kk,k)=equil_pop11(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f12B(i,1-kk,k)=equil_pop12(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f13B(i,1-kk,k)=equil_pop13(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f14B(i,1-kk,k)=equil_pop14(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f15B(i,1-kk,k)=equil_pop15(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f16B(i,1-kk,k)=equil_pop16(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f17B(i,1-kk,k)=equil_pop17(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-  
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f18B(i,1-kk,k)=equil_pop18(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-  case default
-    call error(13)
-  end select
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-  
-  return
-  
- end subroutine apply_bounceback_front_frame
- 
- subroutine apply_bounceback_front_frame_x
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback
-!     at the front side alongside with its frame only along x
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_front)  
-  case (0)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f03R(i,1-kk,k)
-      f03R(i,1-kk,k)=f04R(i,1-kk,k)
-      f04R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f07R(i,1-kk,k)
-      f07R(i,1-kk,k)=f08R(i,1-kk,k)
-      f08R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f09R(i,1-kk,k)
-      f09R(i,1-kk,k)=f10R(i,1-kk,k)
-      f10R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f15R(i,1-kk,k)
-      f15R(i,1-kk,k)=f16R(i,1-kk,k)
-      f16R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f17R(i,1-kk,k)
-      f17R(i,1-kk,k)=f18R(i,1-kk,k)
-      f18R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f03B(i,1-kk,k)
-      f03B(i,1-kk,k)=f04B(i,1-kk,k)
-      f04B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f07B(i,1-kk,k)
-      f07B(i,1-kk,k)=f08B(i,1-kk,k)
-      f08B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f09B(i,1-kk,k)
-      f09B(i,1-kk,k)=f10B(i,1-kk,k)
-      f10B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-  
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f15B(i,1-kk,k)
-      f15B(i,1-kk,k)=f16B(i,1-kk,k)
-      f16B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-  
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f17B(i,1-kk,k)
-      f17B(i,1-kk,k)=f18B(i,1-kk,k)
-      f18B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-  case (1)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f03R(i,1-kk,k)
-      f03R(i,1-kk,k)=-f04R(i,1-kk,k) + TWO*p(3)*bc_rhoR_front* &
-       (ONE+(dey(3)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f04R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(4)*bc_rhoR_front* &
-       (ONE+(dey(4)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f07R(i,1-kk,k)
-      f07R(i,1-kk,k)=-f08R(i,1-kk,k) + TWO*p(7)*bc_rhoR_front* &
-       (ONE+(dey(7)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f08R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(8)*bc_rhoR_front* &
-       (ONE+(dey(8)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f09R(i,1-kk,k)
-      f09R(i,1-kk,k)=-f10R(i,1-kk,k) + TWO*p(9)*bc_rhoR_front* &
-       (ONE+(dey(9)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f10R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(10)*bc_rhoR_front* &
-       (ONE+(dey(10)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f15R(i,1-kk,k)
-      f15R(i,1-kk,k)=-f16R(i,1-kk,k) + TWO*p(15)*bc_rhoR_front* &
-       (ONE+(dey(15)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f16R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(16)*bc_rhoR_front* &
-       (ONE+(dey(16)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f17R(i,1-kk,k)
-      f17R(i,1-kk,k)=-f18R(i,1-kk,k) + TWO*p(17)*bc_rhoR_front* &
-       (ONE+(dey(17)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f18R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(18)*bc_rhoR_front* &
-       (ONE+(dey(18)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f03B(i,1-kk,k)
-      f03B(i,1-kk,k)=-f04B(i,1-kk,k) + TWO*p(3)*bc_rhoB_front* &
-       (ONE+(dey(3)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f04B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(4)*bc_rhoB_front* &
-       (ONE+(dey(4)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f07B(i,1-kk,k)
-      f07B(i,1-kk,k)=-f08B(i,1-kk,k) + TWO*p(7)*bc_rhoB_front* &
-       (ONE+(dey(7)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f08B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(8)*bc_rhoB_front* &
-       (ONE+(dey(8)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f09B(i,1-kk,k)
-      f09B(i,1-kk,k)=-f10B(i,1-kk,k) + TWO*p(9)*bc_rhoB_front* &
-       (ONE+(dey(9)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f10B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(10)*bc_rhoB_front* &
-       (ONE+(dey(10)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f15B(i,1-kk,k)
-      f15B(i,1-kk,k)=-f16B(i,1-kk,k) + TWO*p(15)*bc_rhoB_front* &
-       (ONE+(dey(15)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f16B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(16)*bc_rhoB_front* &
-       (ONE+(dey(16)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f17B(i,1-kk,k)
-      f17B(i,1-kk,k)=-f18B(i,1-kk,k) + TWO*p(17)*bc_rhoB_front* &
-       (ONE+(dey(17)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f18B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(18)*bc_rhoB_front* &
-       (ONE+(dey(18)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-  
-  case (2)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f03R(i,1-kk,k)
-      f03R(i,1-kk,k)=f04R(i,1-kk,k) + p(3)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(3)*bc_u_front+dey(3)*bc_v_front+dez(3)*bc_w_front)
-      f04R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(4)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(4)*bc_u_front+dey(4)*bc_v_front+dez(4)*bc_w_front)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f07R(i,1-kk,k)
-      f07R(i,1-kk,k)=f08R(i,1-kk,k) + p(7)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(7)*bc_u_front+dey(7)*bc_v_front+dez(7)*bc_w_front)
-      f08R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(8)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(8)*bc_u_front+dey(8)*bc_v_front+dez(8)*bc_w_front)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f09R(i,1-kk,k)
-      f09R(i,1-kk,k)=f10R(i,1-kk,k) + p(9)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(9)*bc_u_front+dey(9)*bc_v_front+dez(9)*bc_w_front)
-      f10R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(10)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(10)*bc_u_front+dey(10)*bc_v_front+dez(10)*bc_w_front)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f15R(i,1-kk,k)
-      f15R(i,1-kk,k)=f16R(i,1-kk,k) + p(15)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(15)*bc_u_front+dey(15)*bc_v_front+dez(15)*bc_w_front)
-      f16R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(16)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(16)*bc_u_front+dey(16)*bc_v_front+dez(16)*bc_w_front)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f17R(i,1-kk,k)
-      f17R(i,1-kk,k)=f18R(i,1-kk,k) + p(17)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(17)*bc_u_front+dey(17)*bc_v_front+dez(17)*bc_w_front)
-      f18R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(18)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(18)*bc_u_front+dey(18)*bc_v_front+dez(18)*bc_w_front)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f03B(i,1-kk,k)
-      f03B(i,1-kk,k)=f04B(i,1-kk,k) + p(3)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(3)*bc_u_front+dey(3)*bc_v_front+dez(3)*bc_w_front)
-      f04B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(4)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(4)*bc_u_front+dey(4)*bc_v_front+dez(4)*bc_w_front)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f07B(i,1-kk,k)
-      f07B(i,1-kk,k)=f08B(i,1-kk,k) + p(7)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(7)*bc_u_front+dey(7)*bc_v_front+dez(7)*bc_w_front)
-      f08B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(8)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(8)*bc_u_front+dey(8)*bc_v_front+dez(8)*bc_w_front)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f09B(i,1-kk,k)
-      f09B(i,1-kk,k)=f10B(i,1-kk,k) + p(9)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(9)*bc_u_front+dey(9)*bc_v_front+dez(9)*bc_w_front)
-      f10B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(10)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(10)*bc_u_front+dey(10)*bc_v_front+dez(10)*bc_w_front)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f15B(i,1-kk,k)
-      f15B(i,1-kk,k)=f16B(i,1-kk,k) + p(15)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(15)*bc_u_front+dey(15)*bc_v_front+dez(15)*bc_w_front)
-      f16B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(16)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(16)*bc_u_front+dey(16)*bc_v_front+dez(16)*bc_w_front)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,1-kk,k)=f17B(i,1-kk,k)
-      f17B(i,1-kk,k)=f18B(i,1-kk,k) + p(17)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(17)*bc_u_front+dey(17)*bc_v_front+dez(17)*bc_w_front)
-      f18B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(18)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(18)*bc_u_front+dey(18)*bc_v_front+dez(18)*bc_w_front)
-    end forall
-  
-  case (3)
-    
-    !red fluid
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f00R(i,1-kk,k)=equil_pop00(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f01R(i,1-kk,k)=equil_pop01(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f02R(i,1-kk,k)=equil_pop02(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f03R(i,1-kk,k)=equil_pop03(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f04R(i,1-kk,k)=equil_pop04(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f05R(i,1-kk,k)=equil_pop05(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f06R(i,1-kk,k)=equil_pop06(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f07R(i,1-kk,k)=equil_pop07(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f08R(i,1-kk,k)=equil_pop08(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f09R(i,1-kk,k)=equil_pop09(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f10R(i,1-kk,k)=equil_pop10(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f11R(i,1-kk,k)=equil_pop11(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f12R(i,1-kk,k)=equil_pop12(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f13R(i,1-kk,k)=equil_pop13(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f14R(i,1-kk,k)=equil_pop14(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f15R(i,1-kk,k)=equil_pop15(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f16R(i,1-kk,k)=equil_pop16(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f17R(i,1-kk,k)=equil_pop17(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f18R(i,1-kk,k)=equil_pop18(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f00B(i,1-kk,k)=equil_pop00(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f01B(i,1-kk,k)=equil_pop01(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f02B(i,1-kk,k)=equil_pop02(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f03B(i,1-kk,k)=equil_pop03(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f04B(i,1-kk,k)=equil_pop04(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f05B(i,1-kk,k)=equil_pop05(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f06B(i,1-kk,k)=equil_pop06(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f07B(i,1-kk,k)=equil_pop07(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f08B(i,1-kk,k)=equil_pop08(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f09B(i,1-kk,k)=equil_pop09(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f10B(i,1-kk,k)=equil_pop10(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f11B(i,1-kk,k)=equil_pop11(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f12B(i,1-kk,k)=equil_pop12(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f13B(i,1-kk,k)=equil_pop13(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f14B(i,1-kk,k)=equil_pop14(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f15B(i,1-kk,k)=equil_pop15(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f16B(i,1-kk,k)=equil_pop16(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f17B(i,1-kk,k)=equil_pop17(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-  
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f18B(i,1-kk,k)=equil_pop18(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-  
-  case default
-    call error(13)
-  end select
-  
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-  
-  return
-  
- end subroutine apply_bounceback_front_frame_x
- 
- subroutine apply_bounceback_front_frame_z
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback
-!     at the front side alongside with its frame
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_front)  
-  case (0)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f03R(i,1-kk,k)
-      f03R(i,1-kk,k)=f04R(i,1-kk,k)
-      f04R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f07R(i,1-kk,k)
-      f07R(i,1-kk,k)=f08R(i,1-kk,k)
-      f08R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f09R(i,1-kk,k)
-      f09R(i,1-kk,k)=f10R(i,1-kk,k)
-      f10R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f15R(i,1-kk,k)
-      f15R(i,1-kk,k)=f16R(i,1-kk,k)
-      f16R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f17R(i,1-kk,k)
-      f17R(i,1-kk,k)=f18R(i,1-kk,k)
-      f18R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f03B(i,1-kk,k)
-      f03B(i,1-kk,k)=f04B(i,1-kk,k)
-      f04B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f07B(i,1-kk,k)
-      f07B(i,1-kk,k)=f08B(i,1-kk,k)
-      f08B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f09B(i,1-kk,k)
-      f09B(i,1-kk,k)=f10B(i,1-kk,k)
-      f10B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f15B(i,1-kk,k)
-      f15B(i,1-kk,k)=f16B(i,1-kk,k)
-      f16B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f17B(i,1-kk,k)
-      f17B(i,1-kk,k)=f18B(i,1-kk,k)
-      f18B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-  case (1)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f03R(i,1-kk,k)
-      f03R(i,1-kk,k)=-f04R(i,1-kk,k) + TWO*p(3)*bc_rhoR_front* &
-       (ONE+(dey(3)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f04R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(4)*bc_rhoR_front* &
-       (ONE+(dey(4)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f07R(i,1-kk,k)
-      f07R(i,1-kk,k)=-f08R(i,1-kk,k) + TWO*p(7)*bc_rhoR_front* &
-       (ONE+(dey(7)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f08R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(8)*bc_rhoR_front* &
-       (ONE+(dey(8)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f09R(i,1-kk,k)
-      f09R(i,1-kk,k)=-f10R(i,1-kk,k) + TWO*p(9)*bc_rhoR_front* &
-       (ONE+(dey(9)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f10R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(10)*bc_rhoR_front* &
-       (ONE+(dey(10)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f15R(i,1-kk,k)
-      f15R(i,1-kk,k)=-f16R(i,1-kk,k) + TWO*p(15)*bc_rhoR_front* &
-       (ONE+(dey(15)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f16R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(16)*bc_rhoR_front* &
-       (ONE+(dey(16)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f17R(i,1-kk,k)
-      f17R(i,1-kk,k)=-f18R(i,1-kk,k) + TWO*p(17)*bc_rhoR_front* &
-       (ONE+(dey(17)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f18R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(18)*bc_rhoR_front* &
-       (ONE+(dey(18)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f03B(i,1-kk,k)
-      f03B(i,1-kk,k)=-f04B(i,1-kk,k) + TWO*p(3)*bc_rhoB_front* &
-       (ONE+(dey(3)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f04B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(4)*bc_rhoB_front* &
-       (ONE+(dey(4)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f07B(i,1-kk,k)
-      f07B(i,1-kk,k)=-f08B(i,1-kk,k) + TWO*p(7)*bc_rhoB_front* &
-       (ONE+(dey(7)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f08B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(8)*bc_rhoB_front* &
-       (ONE+(dey(8)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f09B(i,1-kk,k)
-      f09B(i,1-kk,k)=-f10B(i,1-kk,k) + TWO*p(9)*bc_rhoB_front* &
-       (ONE+(dey(9)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f10B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(10)*bc_rhoB_front* &
-       (ONE+(dey(10)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f15B(i,1-kk,k)
-      f15B(i,1-kk,k)=-f16B(i,1-kk,k) + TWO*p(15)*bc_rhoB_front* &
-       (ONE+(dey(15)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f16B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(16)*bc_rhoB_front* &
-       (ONE+(dey(16)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=-f17B(i,1-kk,k)
-      f17B(i,1-kk,k)=-f18B(i,1-kk,k) + TWO*p(17)*bc_rhoB_front* &
-       (ONE+(dey(17)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f18B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(18)*bc_rhoB_front* &
-       (ONE+(dey(18)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-  
-  case (2)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f03R(i,1-kk,k)
-      f03R(i,1-kk,k)=f04R(i,1-kk,k) + p(3)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(3)*bc_u_front+dey(3)*bc_v_front+dez(3)*bc_w_front)
-      f04R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(4)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(4)*bc_u_front+dey(4)*bc_v_front+dez(4)*bc_w_front)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f07R(i,1-kk,k)
-      f07R(i,1-kk,k)=f08R(i,1-kk,k) + p(7)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(7)*bc_u_front+dey(7)*bc_v_front+dez(7)*bc_w_front)
-      f08R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(8)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(8)*bc_u_front+dey(8)*bc_v_front+dez(8)*bc_w_front)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f09R(i,1-kk,k)
-      f09R(i,1-kk,k)=f10R(i,1-kk,k) + p(9)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(9)*bc_u_front+dey(9)*bc_v_front+dez(9)*bc_w_front)
-      f10R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(10)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(10)*bc_u_front+dey(10)*bc_v_front+dez(10)*bc_w_front)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f15R(i,1-kk,k)
-      f15R(i,1-kk,k)=f16R(i,1-kk,k) + p(15)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(15)*bc_u_front+dey(15)*bc_v_front+dez(15)*bc_w_front)
-      f16R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(16)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(16)*bc_u_front+dey(16)*bc_v_front+dez(16)*bc_w_front)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f17R(i,1-kk,k)
-      f17R(i,1-kk,k)=f18R(i,1-kk,k) + p(17)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(17)*bc_u_front+dey(17)*bc_v_front+dez(17)*bc_w_front)
-      f18R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(18)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(18)*bc_u_front+dey(18)*bc_v_front+dez(18)*bc_w_front)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f03B(i,1-kk,k)
-      f03B(i,1-kk,k)=f04B(i,1-kk,k) + p(3)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(3)*bc_u_front+dey(3)*bc_v_front+dez(3)*bc_w_front)
-      f04B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(4)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(4)*bc_u_front+dey(4)*bc_v_front+dez(4)*bc_w_front)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f07B(i,1-kk,k)
-      f07B(i,1-kk,k)=f08B(i,1-kk,k) + p(7)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(7)*bc_u_front+dey(7)*bc_v_front+dez(7)*bc_w_front)
-      f08B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(8)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(8)*bc_u_front+dey(8)*bc_v_front+dez(8)*bc_w_front)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f09B(i,1-kk,k)
-      f09B(i,1-kk,k)=f10B(i,1-kk,k) + p(9)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(9)*bc_u_front+dey(9)*bc_v_front+dez(9)*bc_w_front)
-      f10B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(10)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(10)*bc_u_front+dey(10)*bc_v_front+dez(10)*bc_w_front)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f15B(i,1-kk,k)
-      f15B(i,1-kk,k)=f16B(i,1-kk,k) + p(15)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(15)*bc_u_front+dey(15)*bc_v_front+dez(15)*bc_w_front)
-      f16B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(16)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(16)*bc_u_front+dey(16)*bc_v_front+dez(16)*bc_w_front)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,1-kk,k)=f17B(i,1-kk,k)
-      f17B(i,1-kk,k)=f18B(i,1-kk,k) + p(17)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(17)*bc_u_front+dey(17)*bc_v_front+dez(17)*bc_w_front)
-      f18B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(18)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(18)*bc_u_front+dey(18)*bc_v_front+dez(18)*bc_w_front)
-    end forall
-  
-  case (3)
-    
-    !red fluid
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f00R(i,1-kk,k)=equil_pop00(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f01R(i,1-kk,k)=equil_pop01(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f02R(i,1-kk,k)=equil_pop02(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f03R(i,1-kk,k)=equil_pop03(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f04R(i,1-kk,k)=equil_pop04(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f05R(i,1-kk,k)=equil_pop05(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f06R(i,1-kk,k)=equil_pop06(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f07R(i,1-kk,k)=equil_pop07(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f08R(i,1-kk,k)=equil_pop08(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f09R(i,1-kk,k)=equil_pop09(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f10R(i,1-kk,k)=equil_pop10(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f11R(i,1-kk,k)=equil_pop11(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f12R(i,1-kk,k)=equil_pop12(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f13R(i,1-kk,k)=equil_pop13(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f14R(i,1-kk,k)=equil_pop14(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f15R(i,1-kk,k)=equil_pop15(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f16R(i,1-kk,k)=equil_pop16(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f17R(i,1-kk,k)=equil_pop17(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f18R(i,1-kk,k)=equil_pop18(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f00B(i,1-kk,k)=equil_pop00(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f01B(i,1-kk,k)=equil_pop01(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f02B(i,1-kk,k)=equil_pop02(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f03B(i,1-kk,k)=equil_pop03(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f04B(i,1-kk,k)=equil_pop04(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f05B(i,1-kk,k)=equil_pop05(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f06B(i,1-kk,k)=equil_pop06(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f07B(i,1-kk,k)=equil_pop07(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f08B(i,1-kk,k)=equil_pop08(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f09B(i,1-kk,k)=equil_pop09(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f10B(i,1-kk,k)=equil_pop10(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f11B(i,1-kk,k)=equil_pop11(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f12B(i,1-kk,k)=equil_pop12(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f13B(i,1-kk,k)=equil_pop13(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f14B(i,1-kk,k)=equil_pop14(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f15B(i,1-kk,k)=equil_pop15(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f16B(i,1-kk,k)=equil_pop16(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f17B(i,1-kk,k)=equil_pop17(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-  
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f18B(i,1-kk,k)=equil_pop18(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-  
-  case default
-    call error(13)
-  end select
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-  
-  return
-  
- end subroutine apply_bounceback_front_frame_z
- 
- subroutine apply_bounceback_rear_frame
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback 
-!     at the rear side alongside with its frame
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_rear)  
-  case (0)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f03R(i,ny+kk,k)
-      f03R(i,ny+kk,k)=f04R(i,ny+kk,k)
-      f04R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f07R(i,ny+kk,k)
-      f07R(i,ny+kk,k)=f08R(i,ny+kk,k)
-      f08R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f09R(i,ny+kk,k)
-      f09R(i,ny+kk,k)=f10R(i,ny+kk,k)
-      f10R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f15R(i,ny+kk,k)
-      f15R(i,ny+kk,k)=f16R(i,ny+kk,k)
-      f16R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f17R(i,ny+kk,k)
-      f17R(i,ny+kk,k)=f18R(i,ny+kk,k)
-      f18R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f03B(i,ny+kk,k)
-      f03B(i,ny+kk,k)=f04B(i,ny+kk,k)
-      f04B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f07B(i,ny+kk,k)
-      f07B(i,ny+kk,k)=f08B(i,ny+kk,k)
-      f08B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f09B(i,ny+kk,k)
-      f09B(i,ny+kk,k)=f10B(i,ny+kk,k)
-      f10B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f15B(i,ny+kk,k)
-      f15B(i,ny+kk,k)=f16B(i,ny+kk,k)
-      f16B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f17B(i,ny+kk,k)
-      f17B(i,ny+kk,k)=f18B(i,ny+kk,k)
-      f18B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-  case (1)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f03R(i,ny+kk,k)
-      f03R(i,ny+kk,k)=-f04R(i,ny+kk,k) + TWO*p(3)*bc_rhoR_rear* &
-       (ONE+(dey(3)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f04R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(4)*bc_rhoR_rear* &
-       (ONE+(dey(4)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f07R(i,ny+kk,k)
-      f07R(i,ny+kk,k)=-f08R(i,ny+kk,k) + TWO*p(7)*bc_rhoR_rear* &
-       (ONE+(dey(7)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f08R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(8)*bc_rhoR_rear* &
-       (ONE+(dey(8)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f09R(i,ny+kk,k)
-      f09R(i,ny+kk,k)=-f10R(i,ny+kk,k) + TWO*p(9)*bc_rhoR_rear* &
-       (ONE+(dey(9)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f10R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(10)*bc_rhoR_rear* &
-       (ONE+(dey(10)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f15R(i,ny+kk,k)
-      f15R(i,ny+kk,k)=-f16R(i,ny+kk,k) + TWO*p(15)*bc_rhoR_rear* &
-       (ONE+(dey(15)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f16R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(16)*bc_rhoR_rear* &
-       (ONE+(dey(16)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f17R(i,ny+kk,k)
-      f17R(i,ny+kk,k)=-f18R(i,ny+kk,k) + TWO*p(17)*bc_rhoR_rear* &
-       (ONE+(dey(17)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f18R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(18)*bc_rhoR_rear* &
-       (ONE+(dey(18)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f03B(i,ny+kk,k)
-      f03B(i,ny+kk,k)=-f04B(i,ny+kk,k) + TWO*p(3)*bc_rhoB_rear* &
-       (ONE+(dey(3)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f04B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(4)*bc_rhoB_rear* &
-       (ONE+(dey(4)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f07B(i,ny+kk,k)
-      f07B(i,ny+kk,k)=-f08B(i,ny+kk,k) + TWO*p(7)*bc_rhoB_rear* &
-       (ONE+(dey(7)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f08B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(8)*bc_rhoB_rear* &
-       (ONE+(dey(8)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f09B(i,ny+kk,k)
-      f09B(i,ny+kk,k)=-f10B(i,ny+kk,k) + TWO*p(9)*bc_rhoB_rear* &
-       (ONE+(dey(9)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f10B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(10)*bc_rhoB_rear* &
-       (ONE+(dey(10)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f15B(i,ny+kk,k)
-      f15B(i,ny+kk,k)=-f16B(i,ny+kk,k) + TWO*p(15)*bc_rhoB_rear* &
-       (ONE+(dey(15)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f16B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(16)*bc_rhoB_rear* &
-       (ONE+(dey(16)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f17B(i,ny+kk,k)
-      f17B(i,ny+kk,k)=-f18B(i,ny+kk,k) + TWO*p(17)*bc_rhoB_rear* &
-       (ONE+(dey(17)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f18B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(18)*bc_rhoB_rear* &
-       (ONE+(dey(18)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-  case (2)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f03R(i,ny+kk,k)
-      f03R(i,ny+kk,k)=f04R(i,ny+kk,k) + p(3)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(3)*bc_u_rear+dey(3)*bc_v_rear+dez(3)*bc_w_rear)
-      f04R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(4)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(4)*bc_u_rear+dey(4)*bc_v_rear+dez(4)*bc_w_rear)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f07R(i,ny+kk,k)
-      f07R(i,ny+kk,k)=f08R(i,ny+kk,k) + p(7)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(7)*bc_u_rear+dey(7)*bc_v_rear+dez(7)*bc_w_rear)
-      f08R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(8)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(8)*bc_u_rear+dey(8)*bc_v_rear+dez(8)*bc_w_rear)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f09R(i,ny+kk,k)
-      f09R(i,ny+kk,k)=f10R(i,ny+kk,k) + p(9)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(9)*bc_u_rear+dey(9)*bc_v_rear+dez(9)*bc_w_rear)
-      f10R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(10)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(10)*bc_u_rear+dey(10)*bc_v_rear+dez(10)*bc_w_rear)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f15R(i,ny+kk,k)
-      f15R(i,ny+kk,k)=f16R(i,ny+kk,k) + p(15)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(15)*bc_u_rear+dey(15)*bc_v_rear+dez(15)*bc_w_rear)
-      f16R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(16)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(16)*bc_u_rear+dey(16)*bc_v_rear+dez(16)*bc_w_rear)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f17R(i,ny+kk,k)
-      f17R(i,ny+kk,k)=f18R(i,ny+kk,k) + p(17)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(17)*bc_u_rear+dey(17)*bc_v_rear+dez(17)*bc_w_rear)
-      f18R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(18)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(18)*bc_u_rear+dey(18)*bc_v_rear+dez(18)*bc_w_rear)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f03B(i,ny+kk,k)
-      f03B(i,ny+kk,k)=f04B(i,ny+kk,k) + p(3)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(3)*bc_u_rear+dey(3)*bc_v_rear+dez(3)*bc_w_rear)
-      f04B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(4)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(4)*bc_u_rear+dey(4)*bc_v_rear+dez(4)*bc_w_rear)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f07B(i,ny+kk,k)
-      f07B(i,ny+kk,k)=f08B(i,ny+kk,k) + p(7)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(7)*bc_u_rear+dey(7)*bc_v_rear+dez(7)*bc_w_rear)
-      f08B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(8)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(8)*bc_u_rear+dey(8)*bc_v_rear+dez(8)*bc_w_rear)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f09B(i,ny+kk,k)
-      f09B(i,ny+kk,k)=f10B(i,ny+kk,k) + p(9)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(9)*bc_u_rear+dey(9)*bc_v_rear+dez(9)*bc_w_rear)
-      f10B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(10)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(10)*bc_u_rear+dey(10)*bc_v_rear+dez(10)*bc_w_rear)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f15B(i,ny+kk,k)
-      f15B(i,ny+kk,k)=f16B(i,ny+kk,k) + p(15)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(15)*bc_u_rear+dey(15)*bc_v_rear+dez(15)*bc_w_rear)
-      f16B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(16)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(16)*bc_u_rear+dey(16)*bc_v_rear+dez(16)*bc_w_rear)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f17B(i,ny+kk,k)
-      f17B(i,ny+kk,k)=f18B(i,ny+kk,k) + p(17)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(17)*bc_u_rear+dey(17)*bc_v_rear+dez(17)*bc_w_rear)
-      f18B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(18)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(18)*bc_u_rear+dey(18)*bc_v_rear+dez(18)*bc_w_rear)
-    end forall
-    
-  case (3)
-    
-    !red fluid
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f00R(i,ny+kk,k)=equil_pop00(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f01R(i,ny+kk,k)=equil_pop01(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f02R(i,ny+kk,k)=equil_pop02(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f03R(i,ny+kk,k)=equil_pop03(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f04R(i,ny+kk,k)=equil_pop04(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f05R(i,ny+kk,k)=equil_pop05(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f06R(i,ny+kk,k)=equil_pop06(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f07R(i,ny+kk,k)=equil_pop07(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f08R(i,ny+kk,k)=equil_pop08(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f09R(i,ny+kk,k)=equil_pop09(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f10R(i,ny+kk,k)=equil_pop10(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f11R(i,ny+kk,k)=equil_pop11(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f12R(i,ny+kk,k)=equil_pop12(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f13R(i,ny+kk,k)=equil_pop13(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f14R(i,ny+kk,k)=equil_pop14(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f15R(i,ny+kk,k)=equil_pop15(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f16R(i,ny+kk,k)=equil_pop16(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f17R(i,ny+kk,k)=equil_pop17(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f18R(i,ny+kk,k)=equil_pop18(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f00B(i,ny+kk,k)=equil_pop00(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f01B(i,ny+kk,k)=equil_pop01(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f02B(i,ny+kk,k)=equil_pop02(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f03B(i,ny+kk,k)=equil_pop03(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f04B(i,ny+kk,k)=equil_pop04(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f05B(i,ny+kk,k)=equil_pop05(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f06B(i,ny+kk,k)=equil_pop06(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f07B(i,ny+kk,k)=equil_pop07(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f08B(i,ny+kk,k)=equil_pop08(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f09B(i,ny+kk,k)=equil_pop09(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f10B(i,ny+kk,k)=equil_pop10(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f11B(i,ny+kk,k)=equil_pop11(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f12B(i,ny+kk,k)=equil_pop12(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f13B(i,ny+kk,k)=equil_pop13(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f14B(i,ny+kk,k)=equil_pop14(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f15B(i,ny+kk,k)=equil_pop15(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f16B(i,ny+kk,k)=equil_pop16(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f17B(i,ny+kk,k)=equil_pop17(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-  
-    forall(i=1-nbuff:nx+nbuff,k=1-nbuff:nz+nbuff)
-      f18B(i,ny+kk,k)=equil_pop18(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-  case default
-    call error(13)
-  end select
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-
-  return
-  
- end subroutine apply_bounceback_rear_frame
- 
- subroutine apply_bounceback_rear_frame_x
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback 
-!     at the rear side alongside with its frame only along x
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_rear)  
-  case (0)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f03R(i,ny+kk,k)
-      f03R(i,ny+kk,k)=f04R(i,ny+kk,k)
-      f04R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f07R(i,ny+kk,k)
-      f07R(i,ny+kk,k)=f08R(i,ny+kk,k)
-      f08R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f09R(i,ny+kk,k)
-      f09R(i,ny+kk,k)=f10R(i,ny+kk,k)
-      f10R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f15R(i,ny+kk,k)
-      f15R(i,ny+kk,k)=f16R(i,ny+kk,k)
-      f16R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f17R(i,ny+kk,k)
-      f17R(i,ny+kk,k)=f18R(i,ny+kk,k)
-      f18R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f03B(i,ny+kk,k)
-      f03B(i,ny+kk,k)=f04B(i,ny+kk,k)
-      f04B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f07B(i,ny+kk,k)
-      f07B(i,ny+kk,k)=f08B(i,ny+kk,k)
-      f08B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f09B(i,ny+kk,k)
-      f09B(i,ny+kk,k)=f10B(i,ny+kk,k)
-      f10B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f15B(i,ny+kk,k)
-      f15B(i,ny+kk,k)=f16B(i,ny+kk,k)
-      f16B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f17B(i,ny+kk,k)
-      f17B(i,ny+kk,k)=f18B(i,ny+kk,k)
-      f18B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-  case (1)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f03R(i,ny+kk,k)
-      f03R(i,ny+kk,k)=-f04R(i,ny+kk,k) + TWO*p(3)*bc_rhoR_rear* &
-       (ONE+(dey(3)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f04R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(4)*bc_rhoR_rear* &
-       (ONE+(dey(4)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f07R(i,ny+kk,k)
-      f07R(i,ny+kk,k)=-f08R(i,ny+kk,k) + TWO*p(7)*bc_rhoR_rear* &
-       (ONE+(dey(7)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f08R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(8)*bc_rhoR_rear* &
-       (ONE+(dey(8)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f09R(i,ny+kk,k)
-      f09R(i,ny+kk,k)=-f10R(i,ny+kk,k) + TWO*p(9)*bc_rhoR_rear* &
-       (ONE+(dey(9)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f10R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(10)*bc_rhoR_rear* &
-       (ONE+(dey(10)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f15R(i,ny+kk,k)
-      f15R(i,ny+kk,k)=-f16R(i,ny+kk,k) + TWO*p(15)*bc_rhoR_rear* &
-       (ONE+(dey(15)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f16R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(16)*bc_rhoR_rear* &
-       (ONE+(dey(16)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f17R(i,ny+kk,k)
-      f17R(i,ny+kk,k)=-f18R(i,ny+kk,k) + TWO*p(17)*bc_rhoR_rear* &
-       (ONE+(dey(17)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f18R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(18)*bc_rhoR_rear* &
-       (ONE+(dey(18)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f03B(i,ny+kk,k)
-      f03B(i,ny+kk,k)=-f04B(i,ny+kk,k) + TWO*p(3)*bc_rhoB_rear* &
-       (ONE+(dey(3)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f04B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(4)*bc_rhoB_rear* &
-       (ONE+(dey(4)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f07B(i,ny+kk,k)
-      f07B(i,ny+kk,k)=-f08B(i,ny+kk,k) + TWO*p(7)*bc_rhoB_rear* &
-       (ONE+(dey(7)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f08B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(8)*bc_rhoB_rear* &
-       (ONE+(dey(8)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f09B(i,ny+kk,k)
-      f09B(i,ny+kk,k)=-f10B(i,ny+kk,k) + TWO*p(9)*bc_rhoB_rear* &
-       (ONE+(dey(9)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f10B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(10)*bc_rhoB_rear* &
-       (ONE+(dey(10)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f15B(i,ny+kk,k)
-      f15B(i,ny+kk,k)=-f16B(i,ny+kk,k) + TWO*p(15)*bc_rhoB_rear* &
-       (ONE+(dey(15)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f16B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(16)*bc_rhoB_rear* &
-       (ONE+(dey(16)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f17B(i,ny+kk,k)
-      f17B(i,ny+kk,k)=-f18B(i,ny+kk,k) + TWO*p(17)*bc_rhoB_rear* &
-       (ONE+(dey(17)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f18B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(18)*bc_rhoB_rear* &
-       (ONE+(dey(18)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-  case (2)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f03R(i,ny+kk,k)
-      f03R(i,ny+kk,k)=f04R(i,ny+kk,k) + p(3)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(3)*bc_u_rear+dey(3)*bc_v_rear+dez(3)*bc_w_rear)
-      f04R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(4)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(4)*bc_u_rear+dey(4)*bc_v_rear+dez(4)*bc_w_rear)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f07R(i,ny+kk,k)
-      f07R(i,ny+kk,k)=f08R(i,ny+kk,k) + p(7)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(7)*bc_u_rear+dey(7)*bc_v_rear+dez(7)*bc_w_rear)
-      f08R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(8)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(8)*bc_u_rear+dey(8)*bc_v_rear+dez(8)*bc_w_rear)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f09R(i,ny+kk,k)
-      f09R(i,ny+kk,k)=f10R(i,ny+kk,k) + p(9)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(9)*bc_u_rear+dey(9)*bc_v_rear+dez(9)*bc_w_rear)
-      f10R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(10)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(10)*bc_u_rear+dey(10)*bc_v_rear+dez(10)*bc_w_rear)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f15R(i,ny+kk,k)
-      f15R(i,ny+kk,k)=f16R(i,ny+kk,k) + p(15)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(15)*bc_u_rear+dey(15)*bc_v_rear+dez(15)*bc_w_rear)
-      f16R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(16)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(16)*bc_u_rear+dey(16)*bc_v_rear+dez(16)*bc_w_rear)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f17R(i,ny+kk,k)
-      f17R(i,ny+kk,k)=f18R(i,ny+kk,k) + p(17)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(17)*bc_u_rear+dey(17)*bc_v_rear+dez(17)*bc_w_rear)
-      f18R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(18)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(18)*bc_u_rear+dey(18)*bc_v_rear+dez(18)*bc_w_rear)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f03B(i,ny+kk,k)
-      f03B(i,ny+kk,k)=f04B(i,ny+kk,k) + p(3)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(3)*bc_u_rear+dey(3)*bc_v_rear+dez(3)*bc_w_rear)
-      f04B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(4)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(4)*bc_u_rear+dey(4)*bc_v_rear+dez(4)*bc_w_rear)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f07B(i,ny+kk,k)
-      f07B(i,ny+kk,k)=f08B(i,ny+kk,k) + p(7)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(7)*bc_u_rear+dey(7)*bc_v_rear+dez(7)*bc_w_rear)
-      f08B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(8)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(8)*bc_u_rear+dey(8)*bc_v_rear+dez(8)*bc_w_rear)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f09B(i,ny+kk,k)
-      f09B(i,ny+kk,k)=f10B(i,ny+kk,k) + p(9)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(9)*bc_u_rear+dey(9)*bc_v_rear+dez(9)*bc_w_rear)
-      f10B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(10)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(10)*bc_u_rear+dey(10)*bc_v_rear+dez(10)*bc_w_rear)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f15B(i,ny+kk,k)
-      f15B(i,ny+kk,k)=f16B(i,ny+kk,k) + p(15)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(15)*bc_u_rear+dey(15)*bc_v_rear+dez(15)*bc_w_rear)
-      f16B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(16)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(16)*bc_u_rear+dey(16)*bc_v_rear+dez(16)*bc_w_rear)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f17B(i,ny+kk,k)
-      f17B(i,ny+kk,k)=f18B(i,ny+kk,k) + p(17)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(17)*bc_u_rear+dey(17)*bc_v_rear+dez(17)*bc_w_rear)
-      f18B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(18)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(18)*bc_u_rear+dey(18)*bc_v_rear+dez(18)*bc_w_rear)
-    end forall
-    
-  case (3)
-    
-    !red fluid
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f00R(i,ny+kk,k)=equil_pop00(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f01R(i,ny+kk,k)=equil_pop01(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f02R(i,ny+kk,k)=equil_pop02(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f03R(i,ny+kk,k)=equil_pop03(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f04R(i,ny+kk,k)=equil_pop04(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f05R(i,ny+kk,k)=equil_pop05(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f06R(i,ny+kk,k)=equil_pop06(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f07R(i,ny+kk,k)=equil_pop07(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f08R(i,ny+kk,k)=equil_pop08(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f09R(i,ny+kk,k)=equil_pop09(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f10R(i,ny+kk,k)=equil_pop10(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f11R(i,ny+kk,k)=equil_pop11(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f12R(i,ny+kk,k)=equil_pop12(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f13R(i,ny+kk,k)=equil_pop13(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f14R(i,ny+kk,k)=equil_pop14(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f15R(i,ny+kk,k)=equil_pop15(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f16R(i,ny+kk,k)=equil_pop16(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f17R(i,ny+kk,k)=equil_pop17(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f18R(i,ny+kk,k)=equil_pop18(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f00B(i,ny+kk,k)=equil_pop00(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f01B(i,ny+kk,k)=equil_pop01(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f02B(i,ny+kk,k)=equil_pop02(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f03B(i,ny+kk,k)=equil_pop03(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f04B(i,ny+kk,k)=equil_pop04(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f05B(i,ny+kk,k)=equil_pop05(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f06B(i,ny+kk,k)=equil_pop06(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f07B(i,ny+kk,k)=equil_pop07(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f08B(i,ny+kk,k)=equil_pop08(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f09B(i,ny+kk,k)=equil_pop09(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f10B(i,ny+kk,k)=equil_pop10(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f11B(i,ny+kk,k)=equil_pop11(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f12B(i,ny+kk,k)=equil_pop12(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f13B(i,ny+kk,k)=equil_pop13(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f14B(i,ny+kk,k)=equil_pop14(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f15B(i,ny+kk,k)=equil_pop15(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f16B(i,ny+kk,k)=equil_pop16(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f17B(i,ny+kk,k)=equil_pop17(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-  
-    forall(i=1-nbuff:nx+nbuff,k=1:nz)
-      f18B(i,ny+kk,k)=equil_pop18(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-  case default
-    call error(13)
-  end select
-  
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-
-  return
-  
- end subroutine apply_bounceback_rear_frame_x
- 
- subroutine apply_bounceback_rear_frame_z
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback 
-!     at the rear side alongside with its frame only along z
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_rear)  
-  case (0)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f03R(i,ny+kk,k)
-      f03R(i,ny+kk,k)=f04R(i,ny+kk,k)
-      f04R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-   end forall
-    
-   ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f07R(i,ny+kk,k)
-      f07R(i,ny+kk,k)=f08R(i,ny+kk,k)
-      f08R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-   end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f09R(i,ny+kk,k)
-      f09R(i,ny+kk,k)=f10R(i,ny+kk,k)
-      f10R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f15R(i,ny+kk,k)
-      f15R(i,ny+kk,k)=f16R(i,ny+kk,k)
-      f16R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f17R(i,ny+kk,k)
-      f17R(i,ny+kk,k)=f18R(i,ny+kk,k)
-      f18R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f03B(i,ny+kk,k)
-      f03B(i,ny+kk,k)=f04B(i,ny+kk,k)
-      f04B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f07B(i,ny+kk,k)
-      f07B(i,ny+kk,k)=f08B(i,ny+kk,k)
-      f08B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f09B(i,ny+kk,k)
-      f09B(i,ny+kk,k)=f10B(i,ny+kk,k)
-      f10B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-  
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f15B(i,ny+kk,k)
-      f15B(i,ny+kk,k)=f16B(i,ny+kk,k)
-      f16B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f17B(i,ny+kk,k)
-      f17B(i,ny+kk,k)=f18B(i,ny+kk,k)
-      f18B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-  case (1)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f03R(i,ny+kk,k)
-      f03R(i,ny+kk,k)=-f04R(i,ny+kk,k) + TWO*p(3)*bc_rhoR_rear* &
-       (ONE+(dey(3)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f04R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(4)*bc_rhoR_rear* &
-       (ONE+(dey(4)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f07R(i,ny+kk,k)
-      f07R(i,ny+kk,k)=-f08R(i,ny+kk,k) + TWO*p(7)*bc_rhoR_rear* &
-       (ONE+(dey(7)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f08R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(8)*bc_rhoR_rear* &
-       (ONE+(dey(8)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f09R(i,ny+kk,k)
-      f09R(i,ny+kk,k)=-f10R(i,ny+kk,k) + TWO*p(9)*bc_rhoR_rear* &
-       (ONE+(dey(9)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f10R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(10)*bc_rhoR_rear* &
-       (ONE+(dey(10)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f15R(i,ny+kk,k)
-      f15R(i,ny+kk,k)=-f16R(i,ny+kk,k) + TWO*p(15)*bc_rhoR_rear* &
-       (ONE+(dey(15)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f16R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(16)*bc_rhoR_rear* &
-       (ONE+(dey(16)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f17R(i,ny+kk,k)
-      f17R(i,ny+kk,k)=-f18R(i,ny+kk,k) + TWO*p(17)*bc_rhoR_rear* &
-       (ONE+(dey(17)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f18R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(18)*bc_rhoR_rear* &
-       (ONE+(dey(18)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f03B(i,ny+kk,k)
-      f03B(i,ny+kk,k)=-f04B(i,ny+kk,k) + TWO*p(3)*bc_rhoB_rear* &
-       (ONE+(dey(3)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f04B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(4)*bc_rhoB_rear* &
-       (ONE+(dey(4)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f07B(i,ny+kk,k)
-      f07B(i,ny+kk,k)=-f08B(i,ny+kk,k) + TWO*p(7)*bc_rhoB_rear* &
-       (ONE+(dey(7)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f08B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(8)*bc_rhoB_rear* &
-       (ONE+(dey(8)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f09B(i,ny+kk,k)
-      f09B(i,ny+kk,k)=-f10B(i,ny+kk,k) + TWO*p(9)*bc_rhoB_rear* &
-       (ONE+(dey(9)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f10B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(10)*bc_rhoB_rear* &
-       (ONE+(dey(10)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f15B(i,ny+kk,k)
-      f15B(i,ny+kk,k)=-f16B(i,ny+kk,k) + TWO*p(15)*bc_rhoB_rear* &
-       (ONE+(dey(15)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f16B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(16)*bc_rhoB_rear* &
-       (ONE+(dey(16)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=-f17B(i,ny+kk,k)
-      f17B(i,ny+kk,k)=-f18B(i,ny+kk,k) + TWO*p(17)*bc_rhoB_rear* &
-       (ONE+(dey(17)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f18B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(18)*bc_rhoB_rear* &
-       (ONE+(dey(18)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-  case (2)
-  
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f03R(i,ny+kk,k)
-      f03R(i,ny+kk,k)=f04R(i,ny+kk,k) + p(3)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(3)*bc_u_rear+dey(3)*bc_v_rear+dez(3)*bc_w_rear)
-      f04R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(4)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(4)*bc_u_rear+dey(4)*bc_v_rear+dez(4)*bc_w_rear)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f07R(i,ny+kk,k)
-      f07R(i,ny+kk,k)=f08R(i,ny+kk,k) + p(7)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(7)*bc_u_rear+dey(7)*bc_v_rear+dez(7)*bc_w_rear)
-      f08R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(8)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(8)*bc_u_rear+dey(8)*bc_v_rear+dez(8)*bc_w_rear)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f09R(i,ny+kk,k)
-      f09R(i,ny+kk,k)=f10R(i,ny+kk,k) + p(9)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(9)*bc_u_rear+dey(9)*bc_v_rear+dez(9)*bc_w_rear)
-      f10R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(10)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(10)*bc_u_rear+dey(10)*bc_v_rear+dez(10)*bc_w_rear)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f15R(i,ny+kk,k)
-      f15R(i,ny+kk,k)=f16R(i,ny+kk,k) + p(15)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(15)*bc_u_rear+dey(15)*bc_v_rear+dez(15)*bc_w_rear)
-      f16R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(16)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(16)*bc_u_rear+dey(16)*bc_v_rear+dez(16)*bc_w_rear)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f17R(i,ny+kk,k)
-      f17R(i,ny+kk,k)=f18R(i,ny+kk,k) + p(17)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(17)*bc_u_rear+dey(17)*bc_v_rear+dez(17)*bc_w_rear)
-      f18R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(18)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(18)*bc_u_rear+dey(18)*bc_v_rear+dez(18)*bc_w_rear)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f03B(i,ny+kk,k)
-      f03B(i,ny+kk,k)=f04B(i,ny+kk,k) + p(3)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(3)*bc_u_rear+dey(3)*bc_v_rear+dez(3)*bc_w_rear)
-      f04B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(4)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(4)*bc_u_rear+dey(4)*bc_v_rear+dez(4)*bc_w_rear)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f07B(i,ny+kk,k)
-      f07B(i,ny+kk,k)=f08B(i,ny+kk,k) + p(7)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(7)*bc_u_rear+dey(7)*bc_v_rear+dez(7)*bc_w_rear)
-      f08B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(8)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(8)*bc_u_rear+dey(8)*bc_v_rear+dez(8)*bc_w_rear)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f09B(i,ny+kk,k)
-      f09B(i,ny+kk,k)=f10B(i,ny+kk,k) + p(9)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(9)*bc_u_rear+dey(9)*bc_v_rear+dez(9)*bc_w_rear)
-      f10B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(10)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(10)*bc_u_rear+dey(10)*bc_v_rear+dez(10)*bc_w_rear)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f15B(i,ny+kk,k)
-      f15B(i,ny+kk,k)=f16B(i,ny+kk,k) + p(15)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(15)*bc_u_rear+dey(15)*bc_v_rear+dez(15)*bc_w_rear)
-      f16B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(16)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(16)*bc_u_rear+dey(16)*bc_v_rear+dez(16)*bc_w_rear)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      buffservice3d(i,ny+kk,k)=f17B(i,ny+kk,k)
-      f17B(i,ny+kk,k)=f18B(i,ny+kk,k) + p(17)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(17)*bc_u_rear+dey(17)*bc_v_rear+dez(17)*bc_w_rear)
-      f18B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(18)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(18)*bc_u_rear+dey(18)*bc_v_rear+dez(18)*bc_w_rear)
-    end forall
-    
-  case (3)
-    
-    !red fluid
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f00R(i,ny+kk,k)=equil_pop00(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f01R(i,ny+kk,k)=equil_pop01(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f02R(i,ny+kk,k)=equil_pop02(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f03R(i,ny+kk,k)=equil_pop03(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f04R(i,ny+kk,k)=equil_pop04(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f05R(i,ny+kk,k)=equil_pop05(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f06R(i,ny+kk,k)=equil_pop06(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f07R(i,ny+kk,k)=equil_pop07(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f08R(i,ny+kk,k)=equil_pop08(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f09R(i,ny+kk,k)=equil_pop09(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f10R(i,ny+kk,k)=equil_pop10(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f11R(i,ny+kk,k)=equil_pop11(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f12R(i,ny+kk,k)=equil_pop12(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f13R(i,ny+kk,k)=equil_pop13(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f14R(i,ny+kk,k)=equil_pop14(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f15R(i,ny+kk,k)=equil_pop15(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f16R(i,ny+kk,k)=equil_pop16(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f17R(i,ny+kk,k)=equil_pop17(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f18R(i,ny+kk,k)=equil_pop18(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f00B(i,ny+kk,k)=equil_pop00(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f01B(i,ny+kk,k)=equil_pop01(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f02B(i,ny+kk,k)=equil_pop02(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f03B(i,ny+kk,k)=equil_pop03(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f04B(i,ny+kk,k)=equil_pop04(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f05B(i,ny+kk,k)=equil_pop05(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f06B(i,ny+kk,k)=equil_pop06(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f07B(i,ny+kk,k)=equil_pop07(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f08B(i,ny+kk,k)=equil_pop08(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f09B(i,ny+kk,k)=equil_pop09(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f10B(i,ny+kk,k)=equil_pop10(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f11B(i,ny+kk,k)=equil_pop11(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f12B(i,ny+kk,k)=equil_pop12(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f13B(i,ny+kk,k)=equil_pop13(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f14B(i,ny+kk,k)=equil_pop14(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f15B(i,ny+kk,k)=equil_pop15(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f16B(i,ny+kk,k)=equil_pop16(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f17B(i,ny+kk,k)=equil_pop17(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-  
-    forall(i=1:nx,k=1-nbuff:nz+nbuff)
-      f18B(i,ny+kk,k)=equil_pop18(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-  case default
-    call error(13)
-  end select
-   
-#else
-  
-  call warning(9,ZERO,latt_name)
-  call error(12)
-  
-#endif
-
-  return
-  
- end subroutine apply_bounceback_rear_frame_z
- 
- subroutine apply_bounceback_east
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback
-!     at the east side alongside with its frame
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  integer, parameter :: kk = 1
-  
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
-  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  
-#if LATTICE==319
-  
-  select case (bc_type_east)  
-  case (0)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1:nz)
-     buffservice3d(nx+kk,j,k)=f01R(nx+kk,j,k)
-      f01R(nx+kk,j,k)=f02R(nx+kk,j,k)
-      f02R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f07R(nx+kk,j,k)
-     f07R(nx+kk,j,k)=f08R(nx+kk,j,k)
-      f08R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f09R(nx+kk,j,k)
-      f09R(nx+kk,j,k)=f10R(nx+kk,j,k)
-      f10R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f11R(nx+kk,j,k)
-      f11R(nx+kk,j,k)=f12R(nx+kk,j,k)
-      f12R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f13R(nx+kk,j,k)
-      f13R(nx+kk,j,k)=f14R(nx+kk,j,k)
-      f14R(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f01B(nx+kk,j,k)
-      f01B(nx+kk,j,k)=f02B(nx+kk,j,k)
-      f02B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f07B(nx+kk,j,k)
-      f07B(nx+kk,j,k)=f08B(nx+kk,j,k)
-      f08B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f09B(nx+kk,j,k)
-      f09B(nx+kk,j,k)=f10B(nx+kk,j,k)
-      f10B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f11B(nx+kk,j,k)
-      f11B(nx+kk,j,k)=f12B(nx+kk,j,k)
-      f12B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-  
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f13B(nx+kk,j,k)
-      f13B(nx+kk,j,k)=f14B(nx+kk,j,k)
-      f14B(nx+kk,j,k)=buffservice3d(nx+kk,j,k)
-    end forall
-    
-  case (1)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f01R(nx+kk,j,k)
-      f01R(nx+kk,j,k)=-f02R(nx+kk,j,k) + p(1)*TWO*bc_rhoR_east* &
-       (ONE+(dex(1)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f02R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*TWO*bc_rhoR_east* &
-       (ONE+(dex(2)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f07R(nx+kk,j,k)
-      f07R(nx+kk,j,k)=-f08R(nx+kk,j,k) + p(7)*TWO*bc_rhoR_east* &
-       (ONE+(dex(7)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f08R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*TWO*bc_rhoR_east* &
-       (ONE+(dex(8)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f09R(nx+kk,j,k)
-      f09R(nx+kk,j,k)=-f10R(nx+kk,j,k) + p(9)*TWO*bc_rhoR_east* &
-       (ONE+(dex(9)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f10R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*TWO*bc_rhoR_east* &
-       (ONE+(dex(10)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f11R(nx+kk,j,k)
-      f11R(nx+kk,j,k)=-f12R(nx+kk,j,k) + p(11)*TWO*bc_rhoR_east* &
-       (ONE+(dex(11)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f12R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*TWO*bc_rhoR_east* &
-       (ONE+(dex(12)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f13R(nx+kk,j,k)
-      f13R(nx+kk,j,k)=-f14R(nx+kk,j,k) + p(13)*TWO*bc_rhoR_east* &
-       (ONE+(dex(13)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f14R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*TWO*bc_rhoR_east* &
-       (ONE+(dex(14)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f01B(nx+kk,j,k)
-      f01B(nx+kk,j,k)=-f02B(nx+kk,j,k) + p(1)*TWO*bc_rhoB_east* &
-       (ONE+(dex(1)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f02B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*TWO*bc_rhoB_east* &
-       (ONE+(dex(2)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f07B(nx+kk,j,k)
-      f07B(nx+kk,j,k)=-f08B(nx+kk,j,k) + p(7)*TWO*bc_rhoB_east* &
-       (ONE+(dex(7)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f08B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*TWO*bc_rhoB_east* &
-       (ONE+(dex(8)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f09B(nx+kk,j,k)
-      f09B(nx+kk,j,k)=-f10B(nx+kk,j,k) + p(9)*TWO*bc_rhoB_east* &
-       (ONE+(dex(9)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f10B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*TWO*bc_rhoB_east* &
-       (ONE+(dex(10)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f11B(nx+kk,j,k)
-      f11B(nx+kk,j,k)=-f12B(nx+kk,j,k) + p(11)*TWO*bc_rhoB_east* &
-       (ONE+(dex(11)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f12B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*TWO*bc_rhoB_east* &
-       (ONE+(dex(12)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=-f13B(nx+kk,j,k)
-      f13B(nx+kk,j,k)=-f14B(nx+kk,j,k) + p(13)*TWO*bc_rhoB_east* &
-       (ONE+(dex(13)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-      f14B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*TWO*bc_rhoB_east* &
-       (ONE+(dex(14)*u(nx-kk+1,j,k))**TWO/cssq4 - u(nx-kk+1,j,k)**TWO/cssq2)
-    end forall
-    
-  case (2)
-  
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f01R(nx+kk,j,k)
-      f01R(nx+kk,j,k)=f02R(nx+kk,j,k) + p(1)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(1)*bc_u_east+dey(1)*bc_v_east+dez(1)*bc_w_east)
-      f02R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(2)*bc_u_east+dey(2)*bc_v_east+dez(2)*bc_w_east)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f07R(nx+kk,j,k)
-      f07R(nx+kk,j,k)=f08R(nx+kk,j,k) + p(7)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(7)*bc_u_east+dey(7)*bc_v_east+dez(7)*bc_w_east)
-      f08R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(8)*bc_u_east+dey(8)*bc_v_east+dez(8)*bc_w_east)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f09R(nx+kk,j,k)
-      f09R(nx+kk,j,k)=f10R(nx+kk,j,k) + p(9)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(9)*bc_u_east+dey(9)*bc_v_east+dez(9)*bc_w_east)
-      f10R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(10)*bc_u_east+dey(10)*bc_v_east+dez(10)*bc_w_east)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f11R(nx+kk,j,k)
-      f11R(nx+kk,j,k)=f12R(nx+kk,j,k) + p(11)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(11)*bc_u_east+dey(11)*bc_v_east+dez(11)*bc_w_east)
-      f12R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(12)*bc_u_east+dey(12)*bc_v_east+dez(12)*bc_w_east)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f13R(nx+kk,j,k)
-      f13R(nx+kk,j,k)=f14R(nx+kk,j,k) + p(13)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(13)*bc_u_east+dey(13)*bc_v_east+dez(13)*bc_w_east)
-      f14R(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*pref_bouzidi*rhoR(nx-kk+1,j,k)* &
-       (dex(14)*bc_u_east+dey(14)*bc_v_east+dez(14)*bc_w_east)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f01B(nx+kk,j,k)
-      f01B(nx+kk,j,k)=f02B(nx+kk,j,k) + p(1)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(1)*bc_u_east+dey(1)*bc_v_east+dez(1)*bc_w_east)
-      f02B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(2)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(2)*bc_u_east+dey(2)*bc_v_east+dez(2)*bc_w_east)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f07B(nx+kk,j,k)
-      f07B(nx+kk,j,k)=f08B(nx+kk,j,k) + p(7)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(7)*bc_u_east+dey(7)*bc_v_east+dez(7)*bc_w_east)
-      f08B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(8)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(8)*bc_u_east+dey(8)*bc_v_east+dez(8)*bc_w_east)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f09B(nx+kk,j,k)
-      f09B(nx+kk,j,k)=f10B(nx+kk,j,k) + p(9)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(9)*bc_u_east+dey(9)*bc_v_east+dez(9)*bc_w_east)
-      f10B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(10)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(10)*bc_u_east+dey(10)*bc_v_east+dez(10)*bc_w_east)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f11B(nx+kk,j,k)
-      f11B(nx+kk,j,k)=f12B(nx+kk,j,k) + p(11)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(11)*bc_u_east+dey(11)*bc_v_east+dez(11)*bc_w_east)
-      f12B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(12)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(12)*bc_u_east+dey(12)*bc_v_east+dez(12)*bc_w_east)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(nx+kk,j,k)=f13B(nx+kk,j,k)
-      f13B(nx+kk,j,k)=f14B(nx+kk,j,k) + p(13)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(13)*bc_u_east+dey(13)*bc_v_east+dez(13)*bc_w_east)
-      f14B(nx+kk,j,k)=buffservice3d(nx+kk,j,k) + p(14)*pref_bouzidi*rhoB(nx-kk+1,j,k)* &
-       (dex(14)*bc_u_east+dey(14)*bc_v_east+dez(14)*bc_w_east)
-    end forall
-    
-  case (3)
-  
-    !red fluid
-    forall(j=1:ny,k=1:nz)
-      f00R(nx+kk,j,k)=equil_pop00(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f01R(nx+kk,j,k)=equil_pop01(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f02R(nx+kk,j,k)=equil_pop02(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f03R(nx+kk,j,k)=equil_pop03(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f04R(nx+kk,j,k)=equil_pop04(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f05R(nx+kk,j,k)=equil_pop05(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f06R(nx+kk,j,k)=equil_pop06(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f07R(nx+kk,j,k)=equil_pop07(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f08R(nx+kk,j,k)=equil_pop08(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f09R(nx+kk,j,k)=equil_pop09(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f10R(nx+kk,j,k)=equil_pop10(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f11R(nx+kk,j,k)=equil_pop11(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f12R(nx+kk,j,k)=equil_pop12(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f13R(nx+kk,j,k)=equil_pop13(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f14R(nx+kk,j,k)=equil_pop14(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f15R(nx+kk,j,k)=equil_pop15(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f16R(nx+kk,j,k)=equil_pop16(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f17R(nx+kk,j,k)=equil_pop17(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f18R(nx+kk,j,k)=equil_pop18(bc_rhoR_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(j=1:ny,k=1:nz)
-      f00B(nx+kk,j,k)=equil_pop00(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f01B(nx+kk,j,k)=equil_pop01(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f02B(nx+kk,j,k)=equil_pop02(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f03B(nx+kk,j,k)=equil_pop03(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f04B(nx+kk,j,k)=equil_pop04(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f05B(nx+kk,j,k)=equil_pop05(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f06B(nx+kk,j,k)=equil_pop06(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f07B(nx+kk,j,k)=equil_pop07(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f08B(nx+kk,j,k)=equil_pop08(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f09B(nx+kk,j,k)=equil_pop09(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f10B(nx+kk,j,k)=equil_pop10(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f11B(nx+kk,j,k)=equil_pop11(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f12B(nx+kk,j,k)=equil_pop12(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f13B(nx+kk,j,k)=equil_pop13(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f14B(nx+kk,j,k)=equil_pop14(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f15B(nx+kk,j,k)=equil_pop15(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f16B(nx+kk,j,k)=equil_pop16(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f17B(nx+kk,j,k)=equil_pop17(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-  
-    forall(j=1:ny,k=1:nz)
-      f18B(nx+kk,j,k)=equil_pop18(bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east)
-    end forall
-  
-  case default
-    call error(13)
-  end select
-  
 #else
   
   call warning(9,ZERO,latt_name)
@@ -18313,12 +8774,12 @@ subroutine driver_bc_densities
   
  end subroutine apply_bounceback_east
  
- subroutine apply_bounceback_west
+ subroutine driver_bounceback_west(sy,ey,sz,ez)
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for applying the bounceback
-!     at the west side alongside with its frame
+!     LBsoft subroutine for driving the bounceback
+!     at the west side along the space defined in input sy,ey,sz,ez
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -18327,6 +8788,46 @@ subroutine driver_bc_densities
 !***********************************************************************
  
   implicit none
+  
+  integer, intent(in) :: sy,ey,sz,ez
+  
+  call apply_bounceback_west(sy,ey,sz,ez,bc_rhoR_west,bc_u_west, &
+   bc_v_west,bc_w_west,rhoR,u,v,w,f00R,f01R,f02R,f03R,f04R,f05R,f06R, &
+   f07R,f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+  
+  if(lsingle_fluid)return
+ 
+  call apply_bounceback_west(sy,ey,sz,ez,bc_rhoB_west,bc_u_west, &
+   bc_v_west,bc_w_west,rhoB,u,v,w,f00B,f01B,f02B,f03B,f04B,f05B,f06B, &
+   f07B,f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+   
+  return
+  
+ end subroutine driver_bounceback_west
+ 
+ subroutine apply_bounceback_west(sy,ey,sz,ez,rho_west,u_west, &
+  v_west,w_west,rho_s,u_s,v_s,w_s,f00sub,f01sub,f02sub,f03sub,f04sub, &
+  f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
+  f14sub,f15sub,f16sub,f17sub,f18sub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback
+!     at the west side along the space defined in input sy,ey,sz,ez
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: sy,ey,sz,ez
+  real(kind=PRC), intent(in) :: rho_west,u_west,v_west,w_west
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: rho_s,u_s,v_s,w_s, &
+   f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub, &
+   f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
   
   integer :: i,j,k
   integer, parameter :: kk = 1
@@ -18340,424 +8841,213 @@ subroutine driver_bc_densities
   
   select case (bc_type_west)  
   case (0)
+  
+    ! swap pop1 and pop2 along x
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(1-kk,j,k)=f01sub(1-kk,j,k)
+      f01sub(1-kk,j,k)=f02sub(1-kk,j,k)
+      f02sub(1-kk,j,k)=buffservice3d(1-kk,j,k)
+    end forall
+    
+    ! swap pop7 and pop8 along x
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(1-kk,j,k)=f07sub(1-kk,j,k)
+      f07sub(1-kk,j,k)=f08sub(1-kk,j,k)
+      f08sub(1-kk,j,k)=buffservice3d(1-kk,j,k)
+    end forall
+    
+    ! swap pop9 and pop10 along x
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(1-kk,j,k)=f09sub(1-kk,j,k)
+      f09sub(1-kk,j,k)=f10sub(1-kk,j,k)
+      f10sub(1-kk,j,k)=buffservice3d(1-kk,j,k)
+    end forall
    
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f01R(1-kk,j,k)
-      f01R(1-kk,j,k)=f02R(1-kk,j,k)
-      f02R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f07R(1-kk,j,k)
-      f07R(1-kk,j,k)=f08R(1-kk,j,k)
-      f08R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f09R(1-kk,j,k)
-      f09R(1-kk,j,k)=f10R(1-kk,j,k)
-      f10R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
     ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f11R(1-kk,j,k)
-      f11R(1-kk,j,k)=f12R(1-kk,j,k)
-      f12R(1-kk,j,k)=buffservice3d(1-kk,j,k)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(1-kk,j,k)=f11sub(1-kk,j,k)
+      f11sub(1-kk,j,k)=f12sub(1-kk,j,k)
+      f12sub(1-kk,j,k)=buffservice3d(1-kk,j,k)
     end forall
     
     ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f13R(1-kk,j,k)
-      f13R(1-kk,j,k)=f14R(1-kk,j,k)
-      f14R(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f01B(1-kk,j,k)
-      f01B(1-kk,j,k)=f02B(1-kk,j,k)
-      f02B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f07B(1-kk,j,k)
-      f07B(1-kk,j,k)=f08B(1-kk,j,k)
-      f08B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f09B(1-kk,j,k)
-      f09B(1-kk,j,k)=f10B(1-kk,j,k)
-      f10B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f11B(1-kk,j,k)
-      f11B(1-kk,j,k)=f12B(1-kk,j,k)
-      f12B(1-kk,j,k)=buffservice3d(1-kk,j,k)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f13B(1-kk,j,k)
-      f13B(1-kk,j,k)=f14B(1-kk,j,k)
-      f14B(1-kk,j,k)=buffservice3d(1-kk,j,k)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(1-kk,j,k)=f13sub(1-kk,j,k)
+      f13sub(1-kk,j,k)=f14sub(1-kk,j,k)
+      f14sub(1-kk,j,k)=buffservice3d(1-kk,j,k)
     end forall
     
   case (1)
   
     ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f01R(1-kk,j,k)
-      f01R(1-kk,j,k)=-f02R(1-kk,j,k) + p(1)*TWO*bc_rhoR_west* &
-       (ONE+(dex(1)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f02R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*TWO*bc_rhoR_west* &
-       (ONE+(dex(2)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(1-kk,j,k)=-f01sub(1-kk,j,k)
+      f01sub(1-kk,j,k)=-f02sub(1-kk,j,k) + p(1)*TWO*rho_west* &
+       (ONE+(dex(1)*u_s(kk,j,k))**TWO/cssq4 - u_s(kk,j,k)**TWO/cssq2)
+      f02sub(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*TWO*rho_west* &
+       (ONE+(dex(2)*u_s(kk,j,k))**TWO/cssq4 - u_s(kk,j,k)**TWO/cssq2)
     end forall
     
     ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f07R(1-kk,j,k)
-      f07R(1-kk,j,k)=-f08R(1-kk,j,k) + p(7)*TWO*bc_rhoR_west* &
-       (ONE+(dex(7)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f08R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*TWO*bc_rhoR_west* &
-       (ONE+(dex(8)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(1-kk,j,k)=-f07sub(1-kk,j,k)
+      f07sub(1-kk,j,k)=-f08sub(1-kk,j,k) + p(7)*TWO*rho_west* &
+       (ONE+(dex(7)*u_s(kk,j,k))**TWO/cssq4 - u_s(kk,j,k)**TWO/cssq2)
+      f08sub(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*TWO*rho_west* &
+       (ONE+(dex(8)*u_s(kk,j,k))**TWO/cssq4 - u_s(kk,j,k)**TWO/cssq2)
     end forall
     
     ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f09R(1-kk,j,k)
-      f09R(1-kk,j,k)=-f10R(1-kk,j,k) + p(9)*TWO*bc_rhoR_west* &
-       (ONE+(dex(9)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f10R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*TWO*bc_rhoR_west* &
-       (ONE+(dex(10)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(1-kk,j,k)=-f09sub(1-kk,j,k)
+      f09sub(1-kk,j,k)=-f10sub(1-kk,j,k) + p(9)*TWO*rho_west* &
+       (ONE+(dex(9)*u_s(kk,j,k))**TWO/cssq4 - u_s(kk,j,k)**TWO/cssq2)
+      f10sub(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*TWO*rho_west* &
+       (ONE+(dex(10)*u_s(kk,j,k))**TWO/cssq4 - u_s(kk,j,k)**TWO/cssq2)
     end forall
    
     ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f11R(1-kk,j,k)
-      f11R(1-kk,j,k)=-f12R(1-kk,j,k) + p(11)*TWO*bc_rhoR_west* &
-       (ONE+(dex(11)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f12R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*TWO*bc_rhoR_west* &
-       (ONE+(dex(12)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(1-kk,j,k)=-f11sub(1-kk,j,k)
+      f11sub(1-kk,j,k)=-f12sub(1-kk,j,k) + p(11)*TWO*rho_west* &
+       (ONE+(dex(11)*u_s(kk,j,k))**TWO/cssq4 - u_s(kk,j,k)**TWO/cssq2)
+      f12sub(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*TWO*rho_west* &
+       (ONE+(dex(12)*u_s(kk,j,k))**TWO/cssq4 - u_s(kk,j,k)**TWO/cssq2)
     end forall
     
     ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f13R(1-kk,j,k)
-      f13R(1-kk,j,k)=-f14R(1-kk,j,k) + p(13)*TWO*bc_rhoR_west* &
-       (ONE+(dex(13)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f14R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*TWO*bc_rhoR_west* &
-       (ONE+(dex(14)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f01B(1-kk,j,k)
-      f01B(1-kk,j,k)=-f02B(1-kk,j,k) + p(1)*TWO*bc_rhoB_west* &
-       (ONE+(dex(1)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f02B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*TWO*bc_rhoB_west* &
-       (ONE+(dex(2)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f07B(1-kk,j,k)
-      f07B(1-kk,j,k)=-f08B(1-kk,j,k) + p(7)*TWO*bc_rhoB_west* &
-       (ONE+(dex(7)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f08B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*TWO*bc_rhoB_west* &
-       (ONE+(dex(8)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f09B(1-kk,j,k)
-      f09B(1-kk,j,k)=-f10B(1-kk,j,k) + p(9)*TWO*bc_rhoB_west* &
-       (ONE+(dex(9)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f10B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*TWO*bc_rhoB_west* &
-       (ONE+(dex(10)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-   
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f11B(1-kk,j,k)
-      f11B(1-kk,j,k)=-f12B(1-kk,j,k) + p(11)*TWO*bc_rhoB_west* &
-       (ONE+(dex(11)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f12B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*TWO*bc_rhoB_west* &
-       (ONE+(dex(12)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=-f13B(1-kk,j,k)
-      f13B(1-kk,j,k)=-f14B(1-kk,j,k) + p(13)*TWO*bc_rhoB_west* &
-       (ONE+(dex(13)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
-      f14B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*TWO*bc_rhoB_west* &
-       (ONE+(dex(14)*u(kk,j,k))**TWO/cssq4 - u(kk,j,k)**TWO/cssq2)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(1-kk,j,k)=-f13sub(1-kk,j,k)
+      f13sub(1-kk,j,k)=-f14sub(1-kk,j,k) + p(13)*TWO*rho_west* &
+       (ONE+(dex(13)*u_s(kk,j,k))**TWO/cssq4 - u_s(kk,j,k)**TWO/cssq2)
+      f14sub(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*TWO*rho_west* &
+       (ONE+(dex(14)*u_s(kk,j,k))**TWO/cssq4 - u_s(kk,j,k)**TWO/cssq2)
     end forall
   
   case (2)
   
     ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f01R(1-kk,j,k)
-      f01R(1-kk,j,k)=f02R(1-kk,j,k) + p(1)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(1)*bc_u_west+dey(1)*bc_v_west+dez(1)*bc_w_west)
-      f02R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(2)*bc_u_west+dey(2)*bc_v_west+dez(2)*bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(1-kk,j,k)=f01sub(1-kk,j,k)
+      f01sub(1-kk,j,k)=f02sub(1-kk,j,k) + p(1)*pref_bouzidi*rho_s(kk,j,k)* &
+       (dex(1)*u_west+dey(1)*v_west+dez(1)*w_west)
+      f02sub(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*pref_bouzidi*rho_s(kk,j,k)* &
+       (dex(2)*u_west+dey(2)*v_west+dez(2)*w_west)
     end forall
     
     ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f07R(1-kk,j,k)
-      f07R(1-kk,j,k)=f08R(1-kk,j,k) + p(7)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(7)*bc_u_west+dey(7)*bc_v_west+dez(7)*bc_w_west)
-      f08R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(8)*bc_u_west+dey(8)*bc_v_west+dez(8)*bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(1-kk,j,k)=f07sub(1-kk,j,k)
+      f07sub(1-kk,j,k)=f08sub(1-kk,j,k) + p(7)*pref_bouzidi*rho_s(kk,j,k)* &
+       (dex(7)*u_west+dey(7)*v_west+dez(7)*w_west)
+      f08sub(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*pref_bouzidi*rho_s(kk,j,k)* &
+       (dex(8)*u_west+dey(8)*v_west+dez(8)*w_west)
     end forall
     
     ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f09R(1-kk,j,k)
-      f09R(1-kk,j,k)=f10R(1-kk,j,k) + p(9)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(9)*bc_u_west+dey(9)*bc_v_west+dez(9)*bc_w_west)
-      f10R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(10)*bc_u_west+dey(10)*bc_v_west+dez(10)*bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(1-kk,j,k)=f09sub(1-kk,j,k)
+      f09sub(1-kk,j,k)=f10sub(1-kk,j,k) + p(9)*pref_bouzidi*rho_s(kk,j,k)* &
+       (dex(9)*u_west+dey(9)*v_west+dez(9)*w_west)
+      f10sub(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*pref_bouzidi*rho_s(kk,j,k)* &
+       (dex(10)*u_west+dey(10)*v_west+dez(10)*w_west)
     end forall
    
     ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f11R(1-kk,j,k)
-      f11R(1-kk,j,k)=f12R(1-kk,j,k) + p(11)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(11)*bc_u_west+dey(11)*bc_v_west+dez(11)*bc_w_west)
-      f12R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(12)*bc_u_west+dey(12)*bc_v_west+dez(12)*bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(1-kk,j,k)=f11sub(1-kk,j,k)
+      f11sub(1-kk,j,k)=f12sub(1-kk,j,k) + p(11)*pref_bouzidi*rho_s(kk,j,k)* &
+       (dex(11)*u_west+dey(11)*v_west+dez(11)*w_west)
+      f12sub(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*pref_bouzidi*rho_s(kk,j,k)* &
+       (dex(12)*u_west+dey(12)*v_west+dez(12)*w_west)
     end forall
     
     ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f13R(1-kk,j,k)
-      f13R(1-kk,j,k)=f14R(1-kk,j,k) + p(13)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(13)*bc_u_west+dey(13)*bc_v_west+dez(13)*bc_w_west)
-      f14R(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*pref_bouzidi*rhoR(kk,j,k)* &
-       (dex(14)*bc_u_west+dey(14)*bc_v_west+dez(14)*bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      buffservice3d(1-kk,j,k)=f13sub(1-kk,j,k)
+      f13sub(1-kk,j,k)=f14sub(1-kk,j,k) + p(13)*pref_bouzidi*rho_s(kk,j,k)* &
+       (dex(13)*u_west+dey(13)*v_west+dez(13)*w_west)
+      f14sub(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*pref_bouzidi*rho_s(kk,j,k)* &
+       (dex(14)*u_west+dey(14)*v_west+dez(14)*w_west)
     end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop1 and pop2 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f01B(1-kk,j,k)
-      f01B(1-kk,j,k)=f02B(1-kk,j,k) + p(1)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(1)*bc_u_west+dey(1)*bc_v_west+dez(1)*bc_w_west)
-      f02B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(2)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(2)*bc_u_west+dey(2)*bc_v_west+dez(2)*bc_w_west)
-    end forall
-    
-    ! swap pop7 and pop8 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f07B(1-kk,j,k)
-      f07B(1-kk,j,k)=f08B(1-kk,j,k) + p(7)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(7)*bc_u_west+dey(7)*bc_v_west+dez(7)*bc_w_west)
-      f08B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(8)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(8)*bc_u_west+dey(8)*bc_v_west+dez(8)*bc_w_west)
-    end forall
-    
-    ! swap pop9 and pop10 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f09B(1-kk,j,k)
-      f09B(1-kk,j,k)=f10B(1-kk,j,k) + p(9)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(9)*bc_u_west+dey(9)*bc_v_west+dez(9)*bc_w_west)
-      f10B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(10)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(10)*bc_u_west+dey(10)*bc_v_west+dez(10)*bc_w_west)
-    end forall
-   
-    ! swap pop11 and pop12 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f11B(1-kk,j,k)
-      f11B(1-kk,j,k)=f12B(1-kk,j,k) + p(11)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(11)*bc_u_west+dey(11)*bc_v_west+dez(11)*bc_w_west)
-      f12B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(12)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(12)*bc_u_west+dey(12)*bc_v_west+dez(12)*bc_w_west)
-    end forall
-    
-    ! swap pop13 and pop14 along x
-    forall(j=1:ny,k=1:nz)
-      buffservice3d(1-kk,j,k)=f13B(1-kk,j,k)
-      f13B(1-kk,j,k)=f14B(1-kk,j,k) + p(13)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(13)*bc_u_west+dey(13)*bc_v_west+dez(13)*bc_w_west)
-      f14B(1-kk,j,k)=buffservice3d(1-kk,j,k) + p(14)*pref_bouzidi*rhoB(kk,j,k)* &
-       (dex(14)*bc_u_west+dey(14)*bc_v_west+dez(14)*bc_w_west)
-    end forall
-    
+
   case (3)
   
     !red fluid
-    forall(j=1:ny,k=1:nz)
-      f00R(1-kk,j,k)=equil_pop00(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f00sub(1-kk,j,k)=equil_pop00(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f01R(1-kk,j,k)=equil_pop01(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f01sub(1-kk,j,k)=equil_pop01(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f02R(1-kk,j,k)=equil_pop02(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f02sub(1-kk,j,k)=equil_pop02(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f03R(1-kk,j,k)=equil_pop03(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f03sub(1-kk,j,k)=equil_pop03(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f04R(1-kk,j,k)=equil_pop04(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f04sub(1-kk,j,k)=equil_pop04(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f05R(1-kk,j,k)=equil_pop05(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f05sub(1-kk,j,k)=equil_pop05(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f06R(1-kk,j,k)=equil_pop06(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f06sub(1-kk,j,k)=equil_pop06(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f07R(1-kk,j,k)=equil_pop07(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f07sub(1-kk,j,k)=equil_pop07(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f08R(1-kk,j,k)=equil_pop08(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f08sub(1-kk,j,k)=equil_pop08(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f09R(1-kk,j,k)=equil_pop09(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f09sub(1-kk,j,k)=equil_pop09(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f10R(1-kk,j,k)=equil_pop10(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f10sub(1-kk,j,k)=equil_pop10(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f11R(1-kk,j,k)=equil_pop11(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f11sub(1-kk,j,k)=equil_pop11(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f12R(1-kk,j,k)=equil_pop12(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f12sub(1-kk,j,k)=equil_pop12(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f13R(1-kk,j,k)=equil_pop13(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f13sub(1-kk,j,k)=equil_pop13(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f14R(1-kk,j,k)=equil_pop14(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f14sub(1-kk,j,k)=equil_pop14(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f15R(1-kk,j,k)=equil_pop15(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f15sub(1-kk,j,k)=equil_pop15(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f16R(1-kk,j,k)=equil_pop16(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f16sub(1-kk,j,k)=equil_pop16(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f17R(1-kk,j,k)=equil_pop17(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f17sub(1-kk,j,k)=equil_pop17(rho_west,u_west,v_west,w_west)
     end forall
     
-    forall(j=1:ny,k=1:nz)
-      f18R(1-kk,j,k)=equil_pop18(bc_rhoR_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(j=1:ny,k=1:nz)
-      f00B(1-kk,j,k)=equil_pop00(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f01B(1-kk,j,k)=equil_pop01(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f02B(1-kk,j,k)=equil_pop02(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f03B(1-kk,j,k)=equil_pop03(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f04B(1-kk,j,k)=equil_pop04(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f05B(1-kk,j,k)=equil_pop05(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f06B(1-kk,j,k)=equil_pop06(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f07B(1-kk,j,k)=equil_pop07(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f08B(1-kk,j,k)=equil_pop08(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f09B(1-kk,j,k)=equil_pop09(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f10B(1-kk,j,k)=equil_pop10(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f11B(1-kk,j,k)=equil_pop11(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f12B(1-kk,j,k)=equil_pop12(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f13B(1-kk,j,k)=equil_pop13(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f14B(1-kk,j,k)=equil_pop14(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f15B(1-kk,j,k)=equil_pop15(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f16B(1-kk,j,k)=equil_pop16(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-    
-    forall(j=1:ny,k=1:nz)
-      f17B(1-kk,j,k)=equil_pop17(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
-    end forall
-  
-    forall(j=1:ny,k=1:nz)
-      f18B(1-kk,j,k)=equil_pop18(bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west)
+    forall(j=sy:ey,k=sz:ez)
+      f18sub(1-kk,j,k)=equil_pop18(rho_west,u_west,v_west,w_west)
     end forall
     
   case default
@@ -18775,12 +9065,12 @@ subroutine driver_bc_densities
   
  end subroutine apply_bounceback_west
  
- subroutine apply_bounceback_north
+ subroutine driver_bounceback_north(sx,ex,sy,ey)
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for applying the bounceback
-!     at the north side alongside with its frame
+!     LBsoft subroutine for driving the bounceback
+!     at the north side along the space defined in input sx,ex,sy,ey
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -18789,6 +9079,46 @@ subroutine driver_bc_densities
 !***********************************************************************
  
   implicit none
+  
+  integer, intent(in) :: sx,ex,sy,ey
+  
+  call apply_bounceback_north(sx,ex,sy,ey,bc_rhoR_north,bc_u_north, &
+   bc_v_north,bc_w_north,rhoR,u,v,w,f00R,f01R,f02R,f03R,f04R,f05R,f06R, &
+   f07R,f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+  
+  if(lsingle_fluid)return
+ 
+  call apply_bounceback_north(sx,ex,sy,ey,bc_rhoB_north,bc_u_north, &
+   bc_v_north,bc_w_north,rhoB,u,v,w,f00B,f01B,f02B,f03B,f04B,f05B,f06B, &
+   f07B,f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+   
+  return
+  
+ end subroutine driver_bounceback_north
+ 
+ subroutine apply_bounceback_north(sx,ex,sy,ey,rho_north,u_north, &
+  v_north,w_north,rho_s,u_s,v_s,w_s,f00sub,f01sub,f02sub,f03sub,f04sub, &
+  f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
+  f14sub,f15sub,f16sub,f17sub,f18sub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback
+!     at the north side along the space defined in input sx,ex,sy,ey
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: sx,ex,sy,ey
+  real(kind=PRC), intent(in) :: rho_north,u_north,v_north,w_north
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: rho_s,u_s,v_s,w_s, &
+   f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub, &
+   f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
   
   integer :: i,j,k
   integer, parameter :: kk = 1
@@ -18804,425 +9134,210 @@ subroutine driver_bc_densities
   case (0)
   
     ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f05R(i,j,nz+kk)
-      f05R(i,j,nz+kk)=f06R(i,j,nz+kk)
-      f06R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f11R(i,j,nz+kk)
-      f11R(i,j,nz+kk)=f12R(i,j,nz+kk)
-      f12R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f13R(i,j,nz+kk)
-      f13R(i,j,nz+kk)=f14R(i,j,nz+kk)
-      f14R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f15R(i,j,nz+kk)
-      f15R(i,j,nz+kk)=f16R(i,j,nz+kk)
-      f16R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,nz+kk)=f05sub(i,j,nz+kk)
+      f05sub(i,j,nz+kk)=f06sub(i,j,nz+kk)
+      f06sub(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
     end forall
   
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f17R(i,j,nz+kk)
-      f17R(i,j,nz+kk)=f18R(i,j,nz+kk)
-      f18R(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f05B(i,j,nz+kk)
-      f05B(i,j,nz+kk)=f06B(i,j,nz+kk)
-      f06B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
-    end forall
-    
     ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f11B(i,j,nz+kk)
-      f11B(i,j,nz+kk)=f12B(i,j,nz+kk)
-      f12B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,nz+kk)=f11sub(i,j,nz+kk)
+      f11sub(i,j,nz+kk)=f12sub(i,j,nz+kk)
+      f12sub(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
     end forall
   
     ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f13B(i,j,nz+kk)
-      f13B(i,j,nz+kk)=f14B(i,j,nz+kk)
-      f14B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,nz+kk)=f13sub(i,j,nz+kk)
+      f13sub(i,j,nz+kk)=f14sub(i,j,nz+kk)
+      f14sub(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
     end forall
-    
+  
     ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f15B(i,j,nz+kk)
-      f15B(i,j,nz+kk)=f16B(i,j,nz+kk)
-      f16B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,nz+kk)=f15sub(i,j,nz+kk)
+      f15sub(i,j,nz+kk)=f16sub(i,j,nz+kk)
+      f16sub(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
     end forall
-    
+  
     ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f17B(i,j,nz+kk)
-      f17B(i,j,nz+kk)=f18B(i,j,nz+kk)
-      f18B(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,nz+kk)=f17sub(i,j,nz+kk)
+      f17sub(i,j,nz+kk)=f18sub(i,j,nz+kk)
+      f18sub(i,j,nz+kk)=buffservice3d(i,j,nz+kk)
     end forall
     
   case (1)
   
     ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f05R(i,j,nz+kk)
-      f05R(i,j,nz+kk)=-f06R(i,j,nz+kk) + TWO*p(5)*bc_rhoR_north* &
-       (ONE+(dez(5)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f06R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(6)*bc_rhoR_north* &
-       (ONE+(dez(6)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,nz+kk)=-f05sub(i,j,nz+kk)
+      f05sub(i,j,nz+kk)=-f06sub(i,j,nz+kk) + TWO*p(5)*rho_north* &
+       (ONE+(dez(5)*w_s(i,j,nz-kk+1))**TWO/cssq4 - w_s(i,j,nz-kk+1)**TWO/cssq2)
+      f06sub(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(6)*rho_north* &
+       (ONE+(dez(6)*w_s(i,j,nz-kk+1))**TWO/cssq4 - w_s(i,j,nz-kk+1)**TWO/cssq2)
     end forall
   
     ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f11R(i,j,nz+kk)
-      f11R(i,j,nz+kk)=-f12R(i,j,nz+kk) + TWO*p(11)*bc_rhoR_north* &
-       (ONE+(dez(11)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f12R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(12)*bc_rhoR_north* &
-       (ONE+(dez(12)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,nz+kk)=-f11sub(i,j,nz+kk)
+      f11sub(i,j,nz+kk)=-f12sub(i,j,nz+kk) + TWO*p(11)*rho_north* &
+       (ONE+(dez(11)*w_s(i,j,nz-kk+1))**TWO/cssq4 - w_s(i,j,nz-kk+1)**TWO/cssq2)
+      f12sub(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(12)*rho_north* &
+       (ONE+(dez(12)*w_s(i,j,nz-kk+1))**TWO/cssq4 - w_s(i,j,nz-kk+1)**TWO/cssq2)
     end forall
   
     ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f13R(i,j,nz+kk)
-      f13R(i,j,nz+kk)=-f14R(i,j,nz+kk) + TWO*p(13)*bc_rhoR_north* &
-       (ONE+(dez(13)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f14R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(14)*bc_rhoR_north* &
-       (ONE+(dez(14)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,nz+kk)=-f13sub(i,j,nz+kk)
+      f13sub(i,j,nz+kk)=-f14sub(i,j,nz+kk) + TWO*p(13)*rho_north* &
+       (ONE+(dez(13)*w_s(i,j,nz-kk+1))**TWO/cssq4 - w_s(i,j,nz-kk+1)**TWO/cssq2)
+      f14sub(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(14)*rho_north* &
+       (ONE+(dez(14)*w_s(i,j,nz-kk+1))**TWO/cssq4 - w_s(i,j,nz-kk+1)**TWO/cssq2)
     end forall
   
     ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f15R(i,j,nz+kk)
-      f15R(i,j,nz+kk)=-f16R(i,j,nz+kk) + TWO*p(15)*bc_rhoR_north* &
-       (ONE+(dez(15)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f16R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(16)*bc_rhoR_north* &
-       (ONE+(dez(16)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,nz+kk)=-f15sub(i,j,nz+kk)
+      f15sub(i,j,nz+kk)=-f16sub(i,j,nz+kk) + TWO*p(15)*rho_north* &
+       (ONE+(dez(15)*w_s(i,j,nz-kk+1))**TWO/cssq4 - w_s(i,j,nz-kk+1)**TWO/cssq2)
+      f16sub(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(16)*rho_north* &
+       (ONE+(dez(16)*w_s(i,j,nz-kk+1))**TWO/cssq4 - w_s(i,j,nz-kk+1)**TWO/cssq2)
     end forall
   
     ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f17R(i,j,nz+kk)
-      f17R(i,j,nz+kk)=-f18R(i,j,nz+kk) + TWO*p(17)*bc_rhoR_north* &
-       (ONE+(dez(17)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f18R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(18)*bc_rhoR_north* &
-       (ONE+(dez(18)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,nz+kk)=-f17sub(i,j,nz+kk)
+      f17sub(i,j,nz+kk)=-f18sub(i,j,nz+kk) + TWO*p(17)*rho_north* &
+       (ONE+(dez(17)*w_s(i,j,nz-kk+1))**TWO/cssq4 - w_s(i,j,nz-kk+1)**TWO/cssq2)
+      f18sub(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(18)*rho_north* &
+       (ONE+(dez(18)*w_s(i,j,nz-kk+1))**TWO/cssq4 - w_s(i,j,nz-kk+1)**TWO/cssq2)
     end forall
   
-    if(lsingle_fluid)return
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f05B(i,j,nz+kk)
-      f05B(i,j,nz+kk)=-f06B(i,j,nz+kk) + TWO*p(5)*bc_rhoB_north* &
-       (ONE+(dez(5)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f06B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(6)*bc_rhoB_north* &
-       (ONE+(dez(6)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f11B(i,j,nz+kk)
-      f11B(i,j,nz+kk)=-f12B(i,j,nz+kk) + TWO*p(11)*bc_rhoB_north* &
-       (ONE+(dez(11)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f12B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(12)*bc_rhoB_north* &
-       (ONE+(dez(12)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f13B(i,j,nz+kk)
-      f13B(i,j,nz+kk)=-f14B(i,j,nz+kk) + TWO*p(13)*bc_rhoB_north* &
-       (ONE+(dez(13)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f14B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(14)*bc_rhoB_north* &
-       (ONE+(dez(14)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f15B(i,j,nz+kk)
-      f15B(i,j,nz+kk)=-f16B(i,j,nz+kk) + TWO*p(15)*bc_rhoB_north* &
-       (ONE+(dez(15)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f16B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(16)*bc_rhoB_north* &
-       (ONE+(dez(16)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=-f17B(i,j,nz+kk)
-      f17B(i,j,nz+kk)=-f18B(i,j,nz+kk) + TWO*p(17)*bc_rhoB_north* &
-       (ONE+(dez(17)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-      f18B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + TWO*p(18)*bc_rhoB_north* &
-       (ONE+(dez(18)*w(i,j,nz-kk+1))**TWO/cssq4 - w(i,j,nz-kk+1)**TWO/cssq2)
-    end forall
-    
   case (2)
   
     ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f05R(i,j,nz+kk)
-      f05R(i,j,nz+kk)=f06R(i,j,nz+kk) + p(5)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(5)*bc_u_north+dey(5)*bc_v_north+dez(5)*bc_w_north)
-      f06R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(6)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(6)*bc_u_north+dey(6)*bc_v_north+dez(6)*bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,nz+kk)=f05sub(i,j,nz+kk)
+      f05sub(i,j,nz+kk)=f06sub(i,j,nz+kk) + p(5)*pref_bouzidi*rho_s(i,j,nz-kk+1)* &
+       (dex(5)*u_north+dey(5)*v_north+dez(5)*w_north)
+      f06sub(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(6)*pref_bouzidi*rho_s(i,j,nz-kk+1)* &
+       (dex(6)*u_north+dey(6)*v_north+dez(6)*w_north)
     end forall
   
     ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f11R(i,j,nz+kk)
-      f11R(i,j,nz+kk)=f12R(i,j,nz+kk) + p(11)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(11)*bc_u_north+dey(11)*bc_v_north+dez(11)*bc_w_north)
-      f12R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(12)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(12)*bc_u_north+dey(12)*bc_v_north+dez(12)*bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,nz+kk)=f11sub(i,j,nz+kk)
+      f11sub(i,j,nz+kk)=f12sub(i,j,nz+kk) + p(11)*pref_bouzidi*rho_s(i,j,nz-kk+1)* &
+       (dex(11)*u_north+dey(11)*v_north+dez(11)*w_north)
+      f12sub(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(12)*pref_bouzidi*rho_s(i,j,nz-kk+1)* &
+       (dex(12)*u_north+dey(12)*v_north+dez(12)*w_north)
     end forall
   
     ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f13R(i,j,nz+kk)
-      f13R(i,j,nz+kk)=f14R(i,j,nz+kk) + p(13)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(13)*bc_u_north+dey(13)*bc_v_north+dez(13)*bc_w_north)
-      f14R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(14)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(14)*bc_u_north+dey(14)*bc_v_north+dez(14)*bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,nz+kk)=f13sub(i,j,nz+kk)
+      f13sub(i,j,nz+kk)=f14sub(i,j,nz+kk) + p(13)*pref_bouzidi*rho_s(i,j,nz-kk+1)* &
+       (dex(13)*u_north+dey(13)*v_north+dez(13)*w_north)
+      f14sub(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(14)*pref_bouzidi*rho_s(i,j,nz-kk+1)* &
+       (dex(14)*u_north+dey(14)*v_north+dez(14)*w_north)
     end forall
   
     ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f15R(i,j,nz+kk)
-      f15R(i,j,nz+kk)=f16R(i,j,nz+kk) + p(15)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(15)*bc_u_north+dey(15)*bc_v_north+dez(15)*bc_w_north)
-      f16R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(16)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(16)*bc_u_north+dey(16)*bc_v_north+dez(16)*bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,nz+kk)=f15sub(i,j,nz+kk)
+      f15sub(i,j,nz+kk)=f16sub(i,j,nz+kk) + p(15)*pref_bouzidi*rho_s(i,j,nz-kk+1)* &
+       (dex(15)*u_north+dey(15)*v_north+dez(15)*w_north)
+      f16sub(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(16)*pref_bouzidi*rho_s(i,j,nz-kk+1)* &
+       (dex(16)*u_north+dey(16)*v_north+dez(16)*w_north)
     end forall
   
     ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f17R(i,j,nz+kk)
-      f17R(i,j,nz+kk)=f18R(i,j,nz+kk) + p(17)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(17)*bc_u_north+dey(17)*bc_v_north+dez(17)*bc_w_north)
-      f18R(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(18)*pref_bouzidi*rhoR(i,j,nz-kk+1)* &
-       (dex(18)*bc_u_north+dey(18)*bc_v_north+dez(18)*bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,nz+kk)=f17sub(i,j,nz+kk)
+      f17sub(i,j,nz+kk)=f18sub(i,j,nz+kk) + p(17)*pref_bouzidi*rho_s(i,j,nz-kk+1)* &
+       (dex(17)*u_north+dey(17)*v_north+dez(17)*w_north)
+      f18sub(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(18)*pref_bouzidi*rho_s(i,j,nz-kk+1)* &
+       (dex(18)*u_north+dey(18)*v_north+dez(18)*w_north)
     end forall
-  
-    if(lsingle_fluid)return
-  
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f05B(i,j,nz+kk)
-      f05B(i,j,nz+kk)=f06B(i,j,nz+kk) + p(5)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(5)*bc_u_north+dey(5)*bc_v_north+dez(5)*bc_w_north)
-      f06B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(6)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(6)*bc_u_north+dey(6)*bc_v_north+dez(6)*bc_w_north)
-    end forall
-  
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f11B(i,j,nz+kk)
-      f11B(i,j,nz+kk)=f12B(i,j,nz+kk) + p(11)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(11)*bc_u_north+dey(11)*bc_v_north+dez(11)*bc_w_north)
-      f12B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(12)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(12)*bc_u_north+dey(12)*bc_v_north+dez(12)*bc_w_north)
-    end forall
-  
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f13B(i,j,nz+kk)
-      f13B(i,j,nz+kk)=f14B(i,j,nz+kk) + p(13)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(13)*bc_u_north+dey(13)*bc_v_north+dez(13)*bc_w_north)
-      f14B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(14)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(14)*bc_u_north+dey(14)*bc_v_north+dez(14)*bc_w_north)
-    end forall
-  
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f15B(i,j,nz+kk)
-      f15B(i,j,nz+kk)=f16B(i,j,nz+kk) + p(15)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(15)*bc_u_north+dey(15)*bc_v_north+dez(15)*bc_w_north)
-      f16B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(16)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(16)*bc_u_north+dey(16)*bc_v_north+dez(16)*bc_w_north)
-    end forall
-  
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,nz+kk)=f17B(i,j,nz+kk)
-      f17B(i,j,nz+kk)=f18B(i,j,nz+kk) + p(17)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(17)*bc_u_north+dey(17)*bc_v_north+dez(17)*bc_w_north)
-      f18B(i,j,nz+kk)=buffservice3d(i,j,nz+kk) + p(18)*pref_bouzidi*rhoB(i,j,nz-kk+1)* &
-       (dex(18)*bc_u_north+dey(18)*bc_v_north+dez(18)*bc_w_north)
-    end forall
-    
   
   case (3)
   
     !red fluid
-    forall(i=1:nx,j=1:ny)
-      f00R(i,j,nz+kk)=equil_pop00(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    
+    forall(i=sx:ex,j=sy:ey)
+      f01sub(i,j,nz+kk)=equil_pop01(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f01R(i,j,nz+kk)=equil_pop01(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f02sub(i,j,nz+kk)=equil_pop02(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f02R(i,j,nz+kk)=equil_pop02(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f03sub(i,j,nz+kk)=equil_pop03(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f03R(i,j,nz+kk)=equil_pop03(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f04sub(i,j,nz+kk)=equil_pop04(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f04R(i,j,nz+kk)=equil_pop04(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f05sub(i,j,nz+kk)=equil_pop05(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f05R(i,j,nz+kk)=equil_pop05(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f06sub(i,j,nz+kk)=equil_pop06(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f06R(i,j,nz+kk)=equil_pop06(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f07sub(i,j,nz+kk)=equil_pop07(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f07R(i,j,nz+kk)=equil_pop07(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f08sub(i,j,nz+kk)=equil_pop08(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f08R(i,j,nz+kk)=equil_pop08(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f09sub(i,j,nz+kk)=equil_pop09(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f09R(i,j,nz+kk)=equil_pop09(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f10sub(i,j,nz+kk)=equil_pop10(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f10R(i,j,nz+kk)=equil_pop10(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f11sub(i,j,nz+kk)=equil_pop11(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f11R(i,j,nz+kk)=equil_pop11(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f12sub(i,j,nz+kk)=equil_pop12(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f12R(i,j,nz+kk)=equil_pop12(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f13sub(i,j,nz+kk)=equil_pop13(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f13R(i,j,nz+kk)=equil_pop13(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f14sub(i,j,nz+kk)=equil_pop14(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f14R(i,j,nz+kk)=equil_pop14(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f15sub(i,j,nz+kk)=equil_pop15(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f15R(i,j,nz+kk)=equil_pop15(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f16sub(i,j,nz+kk)=equil_pop16(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f16R(i,j,nz+kk)=equil_pop16(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f17sub(i,j,nz+kk)=equil_pop17(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f17R(i,j,nz+kk)=equil_pop17(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
+    forall(i=sx:ex,j=sy:ey)
+      f18sub(i,j,nz+kk)=equil_pop18(rho_north,u_north,v_north,w_north)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f18R(i,j,nz+kk)=equil_pop18(bc_rhoR_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1:nx,j=1:ny)
-      f00B(i,j,nz+kk)=equil_pop00(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f01B(i,j,nz+kk)=equil_pop01(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f02B(i,j,nz+kk)=equil_pop02(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f03B(i,j,nz+kk)=equil_pop03(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f04B(i,j,nz+kk)=equil_pop04(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f05B(i,j,nz+kk)=equil_pop05(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f06B(i,j,nz+kk)=equil_pop06(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f07B(i,j,nz+kk)=equil_pop07(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f08B(i,j,nz+kk)=equil_pop08(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f09B(i,j,nz+kk)=equil_pop09(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f10B(i,j,nz+kk)=equil_pop10(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f11B(i,j,nz+kk)=equil_pop11(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f12B(i,j,nz+kk)=equil_pop12(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f13B(i,j,nz+kk)=equil_pop13(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f14B(i,j,nz+kk)=equil_pop14(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f15B(i,j,nz+kk)=equil_pop15(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f16B(i,j,nz+kk)=equil_pop16(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f17B(i,j,nz+kk)=equil_pop17(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-  
-    forall(i=1:nx,j=1:ny)
-      f18B(i,j,nz+kk)=equil_pop18(bc_rhoB_north,bc_u_north,bc_v_north,bc_w_north)
-    end forall
-  
   case default
     call error(13)
   end select
@@ -19238,12 +9353,12 @@ subroutine driver_bc_densities
   
  end subroutine apply_bounceback_north
  
- subroutine apply_bounceback_south
+ subroutine driver_bounceback_south(sx,ex,sy,ey)
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for applying the bounceback 
-!     at the south side alongside with its frame
+!     LBsoft subroutine for driving the bounceback
+!     at the south side along the space defined in input sx,ex,sy,ey
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -19252,6 +9367,46 @@ subroutine driver_bc_densities
 !***********************************************************************
  
   implicit none
+  
+  integer, intent(in) :: sx,ex,sy,ey
+  
+  call apply_bounceback_south(sx,ex,sy,ey,bc_rhoR_south,bc_u_south, &
+   bc_v_south,bc_w_south,rhoR,u,v,w,f00R,f01R,f02R,f03R,f04R,f05R,f06R, &
+   f07R,f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+  
+  if(lsingle_fluid)return
+ 
+  call apply_bounceback_south(sx,ex,sy,ey,bc_rhoB_south,bc_u_south, &
+   bc_v_south,bc_w_south,rhoB,u,v,w,f00B,f01B,f02B,f03B,f04B,f05B,f06B, &
+   f07B,f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+   
+  return
+  
+ end subroutine driver_bounceback_south
+ 
+ subroutine apply_bounceback_south(sx,ex,sy,ey,rho_south,u_south, &
+  v_south,w_south,rho_s,u_s,v_s,w_s,f00sub,f01sub,f02sub,f03sub,f04sub, &
+  f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
+  f14sub,f15sub,f16sub,f17sub,f18sub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback 
+!     at the south side along the space defined in input sx,ex,sy,ey
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: sx,ex,sy,ey
+  real(kind=PRC), intent(in) :: rho_south,u_south,v_south,w_south
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: rho_s,u_s,v_s,w_s, &
+   f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub, &
+   f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
   
   integer :: i,j,k
   integer, parameter :: kk = 1
@@ -19267,424 +9422,213 @@ subroutine driver_bc_densities
   case (0)
   
     ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f05R(i,j,1-kk)
-      f05R(i,j,1-kk)=f06R(i,j,1-kk)
-      f06R(i,j,1-kk)=buffservice3d(i,j,1-kk)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,1-kk)=f05sub(i,j,1-kk)
+      f05sub(i,j,1-kk)=f06sub(i,j,1-kk)
+      f06sub(i,j,1-kk)=buffservice3d(i,j,1-kk)
     end forall
     
     ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f11R(i,j,1-kk)
-      f11R(i,j,1-kk)=f12R(i,j,1-kk)
-      f12R(i,j,1-kk)=buffservice3d(i,j,1-kk)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,1-kk)=f11sub(i,j,1-kk)
+      f11sub(i,j,1-kk)=f12sub(i,j,1-kk)
+      f12sub(i,j,1-kk)=buffservice3d(i,j,1-kk)
     end forall
     
     ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f13R(i,j,1-kk)
-      f13R(i,j,1-kk)=f14R(i,j,1-kk)
-      f14R(i,j,1-kk)=buffservice3d(i,j,1-kk)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,1-kk)=f13sub(i,j,1-kk)
+      f13sub(i,j,1-kk)=f14sub(i,j,1-kk)
+      f14sub(i,j,1-kk)=buffservice3d(i,j,1-kk)
     end forall
     
     ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f15R(i,j,1-kk)
-      f15R(i,j,1-kk)=f16R(i,j,1-kk)
-      f16R(i,j,1-kk)=buffservice3d(i,j,1-kk)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,1-kk)=f15sub(i,j,1-kk)
+      f15sub(i,j,1-kk)=f16sub(i,j,1-kk)
+      f16sub(i,j,1-kk)=buffservice3d(i,j,1-kk)
     end forall
     
     ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f17R(i,j,1-kk)
-      f17R(i,j,1-kk)=f18R(i,j,1-kk)
-      f18R(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f05B(i,j,1-kk)
-      f05B(i,j,1-kk)=f06B(i,j,1-kk)
-      f06B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f11B(i,j,1-kk)
-      f11B(i,j,1-kk)=f12B(i,j,1-kk)
-      f12B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f13B(i,j,1-kk)
-      f13B(i,j,1-kk)=f14B(i,j,1-kk)
-      f14B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f15B(i,j,1-kk)
-      f15B(i,j,1-kk)=f16B(i,j,1-kk)
-      f16B(i,j,1-kk)=buffservice3d(i,j,1-kk)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f17B(i,j,1-kk)
-      f17B(i,j,1-kk)=f18B(i,j,1-kk)
-      f18B(i,j,1-kk)=buffservice3d(i,j,1-kk)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,1-kk)=f17sub(i,j,1-kk)
+      f17sub(i,j,1-kk)=f18sub(i,j,1-kk)
+      f18sub(i,j,1-kk)=buffservice3d(i,j,1-kk)
     end forall
     
   case (1)
   
     ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f05R(i,j,1-kk)
-      f05R(i,j,1-kk)=-f06R(i,j,1-kk) + TWO*p(5)*bc_rhoR_south* &
-       (ONE+(dez(5)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f06R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(6)*bc_rhoR_south* &
-       (ONE+(dez(6)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,1-kk)=-f05sub(i,j,1-kk)
+      f05sub(i,j,1-kk)=-f06sub(i,j,1-kk) + TWO*p(5)*rho_south* &
+       (ONE+(dez(5)*w_s(i,j,kk))**TWO/cssq4 - w_s(i,j,kk)**TWO/cssq2)
+      f06sub(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(6)*rho_south* &
+       (ONE+(dez(6)*w_s(i,j,kk))**TWO/cssq4 - w_s(i,j,kk)**TWO/cssq2)
     end forall
     
     ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f11R(i,j,1-kk)
-      f11R(i,j,1-kk)=-f12R(i,j,1-kk) + TWO*p(11)*bc_rhoR_south* &
-       (ONE+(dez(11)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f12R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(12)*bc_rhoR_south* &
-       (ONE+(dez(12)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,1-kk)=-f11sub(i,j,1-kk)
+      f11sub(i,j,1-kk)=-f12sub(i,j,1-kk) + TWO*p(11)*rho_south* &
+       (ONE+(dez(11)*w_s(i,j,kk))**TWO/cssq4 - w_s(i,j,kk)**TWO/cssq2)
+      f12sub(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(12)*rho_south* &
+       (ONE+(dez(12)*w_s(i,j,kk))**TWO/cssq4 - w_s(i,j,kk)**TWO/cssq2)
     end forall
     
     ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f13R(i,j,1-kk)
-      f13R(i,j,1-kk)=-f14R(i,j,1-kk) + TWO*p(13)*bc_rhoR_south* &
-       (ONE+(dez(13)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f14R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(14)*bc_rhoR_south* &
-       (ONE+(dez(14)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,1-kk)=-f13sub(i,j,1-kk)
+      f13sub(i,j,1-kk)=-f14sub(i,j,1-kk) + TWO*p(13)*rho_south* &
+       (ONE+(dez(13)*w_s(i,j,kk))**TWO/cssq4 - w_s(i,j,kk)**TWO/cssq2)
+      f14sub(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(14)*rho_south* &
+       (ONE+(dez(14)*w_s(i,j,kk))**TWO/cssq4 - w_s(i,j,kk)**TWO/cssq2)
     end forall
     
     ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f15R(i,j,1-kk)
-      f15R(i,j,1-kk)=-f16R(i,j,1-kk) + TWO*p(15)*bc_rhoR_south* &
-       (ONE+(dez(15)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f16R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(16)*bc_rhoR_south* &
-       (ONE+(dez(16)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,1-kk)=-f15sub(i,j,1-kk)
+      f15sub(i,j,1-kk)=-f16sub(i,j,1-kk) + TWO*p(15)*rho_south* &
+       (ONE+(dez(15)*w_s(i,j,kk))**TWO/cssq4 - w_s(i,j,kk)**TWO/cssq2)
+      f16sub(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(16)*rho_south* &
+       (ONE+(dez(16)*w_s(i,j,kk))**TWO/cssq4 - w_s(i,j,kk)**TWO/cssq2)
     end forall
     
     ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f17R(i,j,1-kk)
-      f17R(i,j,1-kk)=-f18R(i,j,1-kk) + TWO*p(17)*bc_rhoR_south* &
-       (ONE+(dez(17)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f18R(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(18)*bc_rhoR_south* &
-       (ONE+(dez(18)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f05B(i,j,1-kk)
-      f05B(i,j,1-kk)=-f06B(i,j,1-kk) + TWO*p(5)*bc_rhoB_south* &
-       (ONE+(dez(5)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f06B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(6)*bc_rhoB_south* &
-       (ONE+(dez(6)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f11B(i,j,1-kk)
-      f11B(i,j,1-kk)=-f12B(i,j,1-kk) + TWO*p(11)*bc_rhoB_south* &
-       (ONE+(dez(11)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f12B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(12)*bc_rhoB_south* &
-       (ONE+(dez(12)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f13B(i,j,1-kk)
-      f13B(i,j,1-kk)=-f14B(i,j,1-kk) + TWO*p(13)*bc_rhoB_south* &
-       (ONE+(dez(13)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f14B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(14)*bc_rhoB_south* &
-       (ONE+(dez(14)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f15B(i,j,1-kk)
-      f15B(i,j,1-kk)=-f16B(i,j,1-kk) + TWO*p(15)*bc_rhoB_south* &
-       (ONE+(dez(15)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f16B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(16)*bc_rhoB_south* &
-       (ONE+(dez(16)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=-f17B(i,j,1-kk)
-      f17B(i,j,1-kk)=-f18B(i,j,1-kk) + TWO*p(17)*bc_rhoB_south* &
-       (ONE+(dez(17)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
-      f18B(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(18)*bc_rhoB_south* &
-       (ONE+(dez(18)*w(i,j,kk))**TWO/cssq4 - w(i,j,kk)**TWO/cssq2)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,1-kk)=-f17sub(i,j,1-kk)
+      f17sub(i,j,1-kk)=-f18sub(i,j,1-kk) + TWO*p(17)*rho_south* &
+       (ONE+(dez(17)*w_s(i,j,kk))**TWO/cssq4 - w_s(i,j,kk)**TWO/cssq2)
+      f18sub(i,j,1-kk)=buffservice3d(i,j,1-kk) + TWO*p(18)*rho_south* &
+       (ONE+(dez(18)*w_s(i,j,kk))**TWO/cssq4 - w_s(i,j,kk)**TWO/cssq2)
     end forall
     
   case (2)
   
     ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f05R(i,j,1-kk)
-      f05R(i,j,1-kk)=f06R(i,j,1-kk) + p(5)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(5)*bc_u_south+dey(5)*bc_v_south+dez(5)*bc_w_south)
-      f06R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(6)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(6)*bc_u_south+dey(6)*bc_v_south+dez(6)*bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,1-kk)=f05sub(i,j,1-kk)
+      f05sub(i,j,1-kk)=f06sub(i,j,1-kk) + p(5)*pref_bouzidi*rho_s(i,j,kk)* &
+       (dex(5)*u_south+dey(5)*v_south+dez(5)*w_south)
+      f06sub(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(6)*pref_bouzidi*rho_s(i,j,kk)* &
+       (dex(6)*u_south+dey(6)*v_south+dez(6)*w_south)
     end forall
     
     ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f11R(i,j,1-kk)
-      f11R(i,j,1-kk)=f12R(i,j,1-kk) + p(11)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(11)*bc_u_south+dey(11)*bc_v_south+dez(11)*bc_w_south)
-      f12R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(12)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(12)*bc_u_south+dey(12)*bc_v_south+dez(12)*bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,1-kk)=f11sub(i,j,1-kk)
+      f11sub(i,j,1-kk)=f12sub(i,j,1-kk) + p(11)*pref_bouzidi*rho_s(i,j,kk)* &
+       (dex(11)*u_south+dey(11)*v_south+dez(11)*w_south)
+      f12sub(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(12)*pref_bouzidi*rho_s(i,j,kk)* &
+       (dex(12)*u_south+dey(12)*v_south+dez(12)*w_south)
     end forall
     
     ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f13R(i,j,1-kk)
-      f13R(i,j,1-kk)=f14R(i,j,1-kk) + p(13)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(13)*bc_u_south+dey(13)*bc_v_south+dez(13)*bc_w_south)
-      f14R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(14)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(14)*bc_u_south+dey(14)*bc_v_south+dez(14)*bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,1-kk)=f13sub(i,j,1-kk)
+      f13sub(i,j,1-kk)=f14sub(i,j,1-kk) + p(13)*pref_bouzidi*rho_s(i,j,kk)* &
+       (dex(13)*u_south+dey(13)*v_south+dez(13)*w_south)
+      f14sub(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(14)*pref_bouzidi*rho_s(i,j,kk)* &
+       (dex(14)*u_south+dey(14)*v_south+dez(14)*w_south)
     end forall
     
     ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f15R(i,j,1-kk)
-      f15R(i,j,1-kk)=f16R(i,j,1-kk) + p(15)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(15)*bc_u_south+dey(15)*bc_v_south+dez(15)*bc_w_south)
-      f16R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(16)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(16)*bc_u_south+dey(16)*bc_v_south+dez(16)*bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,1-kk)=f15sub(i,j,1-kk)
+      f15sub(i,j,1-kk)=f16sub(i,j,1-kk) + p(15)*pref_bouzidi*rho_s(i,j,kk)* &
+       (dex(15)*u_south+dey(15)*v_south+dez(15)*w_south)
+      f16sub(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(16)*pref_bouzidi*rho_s(i,j,kk)* &
+       (dex(16)*u_south+dey(16)*v_south+dez(16)*w_south)
     end forall
     
     ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f17R(i,j,1-kk)
-      f17R(i,j,1-kk)=f18R(i,j,1-kk) + p(17)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(17)*bc_u_south+dey(17)*bc_v_south+dez(17)*bc_w_south)
-      f18R(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(18)*pref_bouzidi*rhoR(i,j,kk)* &
-       (dex(18)*bc_u_south+dey(18)*bc_v_south+dez(18)*bc_w_south)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop5 and pop6 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f05B(i,j,1-kk)
-      f05B(i,j,1-kk)=f06B(i,j,1-kk) + p(5)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(5)*bc_u_south+dey(5)*bc_v_south+dez(5)*bc_w_south)
-      f06B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(6)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(6)*bc_u_south+dey(6)*bc_v_south+dez(6)*bc_w_south)
-    end forall
-    
-    ! swap pop11 and pop12 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f11B(i,j,1-kk)
-      f11B(i,j,1-kk)=f12B(i,j,1-kk) + p(11)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(11)*bc_u_south+dey(11)*bc_v_south+dez(11)*bc_w_south)
-      f12B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(12)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(12)*bc_u_south+dey(12)*bc_v_south+dez(12)*bc_w_south)
-    end forall
-    
-    ! swap pop13 and pop14 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f13B(i,j,1-kk)
-      f13B(i,j,1-kk)=f14B(i,j,1-kk) + p(13)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(13)*bc_u_south+dey(13)*bc_v_south+dez(13)*bc_w_south)
-      f14B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(14)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(14)*bc_u_south+dey(14)*bc_v_south+dez(14)*bc_w_south)
-    end forall
-    
-    ! swap pop15 and pop16 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f15B(i,j,1-kk)
-      f15B(i,j,1-kk)=f16B(i,j,1-kk) + p(15)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(15)*bc_u_south+dey(15)*bc_v_south+dez(15)*bc_w_south)
-      f16B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(16)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(16)*bc_u_south+dey(16)*bc_v_south+dez(16)*bc_w_south)
-    end forall
-    
-    ! swap pop17 and pop18 along z
-    forall(i=1:nx,j=1:ny)
-      buffservice3d(i,j,1-kk)=f17B(i,j,1-kk)
-      f17B(i,j,1-kk)=f18B(i,j,1-kk) + p(17)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(17)*bc_u_south+dey(17)*bc_v_south+dez(17)*bc_w_south)
-      f18B(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(18)*pref_bouzidi*rhoB(i,j,kk)* &
-       (dex(18)*bc_u_south+dey(18)*bc_v_south+dez(18)*bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      buffservice3d(i,j,1-kk)=f17sub(i,j,1-kk)
+      f17sub(i,j,1-kk)=f18sub(i,j,1-kk) + p(17)*pref_bouzidi*rho_s(i,j,kk)* &
+       (dex(17)*u_south+dey(17)*v_south+dez(17)*w_south)
+      f18sub(i,j,1-kk)=buffservice3d(i,j,1-kk) + p(18)*pref_bouzidi*rho_s(i,j,kk)* &
+       (dex(18)*u_south+dey(18)*v_south+dez(18)*w_south)
     end forall
     
   case (3)
     
     !red fluid
-    forall(i=1:nx,j=1:ny)
-      f00R(i,j,1-kk)=equil_pop00(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f00sub(i,j,1-kk)=equil_pop00(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f01R(i,j,1-kk)=equil_pop01(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f01sub(i,j,1-kk)=equil_pop01(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f02R(i,j,1-kk)=equil_pop02(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f02sub(i,j,1-kk)=equil_pop02(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f03R(i,j,1-kk)=equil_pop03(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f03sub(i,j,1-kk)=equil_pop03(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f04R(i,j,1-kk)=equil_pop04(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f04sub(i,j,1-kk)=equil_pop04(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f05R(i,j,1-kk)=equil_pop05(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f05sub(i,j,1-kk)=equil_pop05(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f06R(i,j,1-kk)=equil_pop06(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f06sub(i,j,1-kk)=equil_pop06(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f07R(i,j,1-kk)=equil_pop07(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f07sub(i,j,1-kk)=equil_pop07(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f08R(i,j,1-kk)=equil_pop08(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f08sub(i,j,1-kk)=equil_pop08(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f09R(i,j,1-kk)=equil_pop09(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f09sub(i,j,1-kk)=equil_pop09(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f10R(i,j,1-kk)=equil_pop10(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f10sub(i,j,1-kk)=equil_pop10(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f11R(i,j,1-kk)=equil_pop11(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f11sub(i,j,1-kk)=equil_pop11(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f12R(i,j,1-kk)=equil_pop12(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f12sub(i,j,1-kk)=equil_pop12(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f13R(i,j,1-kk)=equil_pop13(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f13sub(i,j,1-kk)=equil_pop13(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f14R(i,j,1-kk)=equil_pop14(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f14sub(i,j,1-kk)=equil_pop14(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f15R(i,j,1-kk)=equil_pop15(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f15sub(i,j,1-kk)=equil_pop15(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f16R(i,j,1-kk)=equil_pop16(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f16sub(i,j,1-kk)=equil_pop16(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f17R(i,j,1-kk)=equil_pop17(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f17sub(i,j,1-kk)=equil_pop17(rho_south,u_south,v_south,w_south)
     end forall
     
-    forall(i=1:nx,j=1:ny)
-      f18R(i,j,1-kk)=equil_pop18(bc_rhoR_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1:nx,j=1:ny)
-      f00B(i,j,1-kk)=equil_pop00(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f01B(i,j,1-kk)=equil_pop01(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f02B(i,j,1-kk)=equil_pop02(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f03B(i,j,1-kk)=equil_pop03(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f04B(i,j,1-kk)=equil_pop04(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f05B(i,j,1-kk)=equil_pop05(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f06B(i,j,1-kk)=equil_pop06(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f07B(i,j,1-kk)=equil_pop07(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f08B(i,j,1-kk)=equil_pop08(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f09B(i,j,1-kk)=equil_pop09(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f10B(i,j,1-kk)=equil_pop10(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f11B(i,j,1-kk)=equil_pop11(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f12B(i,j,1-kk)=equil_pop12(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f13B(i,j,1-kk)=equil_pop13(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f14B(i,j,1-kk)=equil_pop14(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f15B(i,j,1-kk)=equil_pop15(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f16B(i,j,1-kk)=equil_pop16(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
-    forall(i=1:nx,j=1:ny)
-      f17B(i,j,1-kk)=equil_pop17(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
+    forall(i=sx:ex,j=sy:ey)
+      f18sub(i,j,1-kk)=equil_pop18(rho_south,u_south,v_south,w_south)
     end forall
   
-    forall(i=1:nx,j=1:ny)
-      f18B(i,j,1-kk)=equil_pop18(bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south)
-    end forall
-    
   case default
     call error(13)
   end select
@@ -19700,12 +9644,12 @@ subroutine driver_bc_densities
   
  end subroutine apply_bounceback_south
  
- subroutine apply_bounceback_front
+ subroutine driver_bounceback_front(sx,ex,sz,ez)
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for applying the bounceback
-!     at the front side alongside with its frame
+!     LBsoft subroutine for driving the bounceback
+!     at the front side along the space defined in input sx,ex,sz,ez
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -19714,6 +9658,46 @@ subroutine driver_bc_densities
 !***********************************************************************
  
   implicit none
+  
+  integer, intent(in) :: sx,ex,sz,ez
+  
+  call apply_bounceback_front(sx,ex,sz,ez,bc_rhoR_front,bc_u_front, &
+   bc_v_front,bc_w_front,rhoR,u,v,w,f00R,f01R,f02R,f03R,f04R,f05R,f06R, &
+   f07R,f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+  
+  if(lsingle_fluid)return
+ 
+  call apply_bounceback_front(sx,ex,sz,ez,bc_rhoB_front,bc_u_front, &
+   bc_v_front,bc_w_front,rhoB,u,v,w,f00B,f01B,f02B,f03B,f04B,f05B,f06B, &
+   f07B,f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+   
+  return
+  
+ end subroutine driver_bounceback_front
+ 
+ subroutine apply_bounceback_front(sx,ex,sz,ez,rho_front,u_front, &
+  v_front,w_front,rho_s,u_s,v_s,w_s,f00sub,f01sub,f02sub,f03sub,f04sub, &
+  f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
+  f14sub,f15sub,f16sub,f17sub,f18sub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback
+!     at the front side along the space defined in input sx,ex,sz,ez
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: sx,ex,sz,ez
+  real(kind=PRC), intent(in) :: rho_front,u_front,v_front,w_front
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: rho_s,u_s,v_s,w_s, &
+   f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub, &
+   f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
   
   integer :: i,j,k
   integer, parameter :: kk = 1
@@ -19729,424 +9713,213 @@ subroutine driver_bc_densities
   case (0)
   
     ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f03R(i,1-kk,k)
-      f03R(i,1-kk,k)=f04R(i,1-kk,k)
-      f04R(i,1-kk,k)=buffservice3d(i,1-kk,k)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,1-kk,k)=f03sub(i,1-kk,k)
+      f03sub(i,1-kk,k)=f04sub(i,1-kk,k)
+      f04sub(i,1-kk,k)=buffservice3d(i,1-kk,k)
     end forall
     
     ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f07R(i,1-kk,k)
-      f07R(i,1-kk,k)=f08R(i,1-kk,k)
-      f08R(i,1-kk,k)=buffservice3d(i,1-kk,k)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,1-kk,k)=f07sub(i,1-kk,k)
+      f07sub(i,1-kk,k)=f08sub(i,1-kk,k)
+      f08sub(i,1-kk,k)=buffservice3d(i,1-kk,k)
     end forall
     
     ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f09R(i,1-kk,k)
-      f09R(i,1-kk,k)=f10R(i,1-kk,k)
-      f10R(i,1-kk,k)=buffservice3d(i,1-kk,k)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,1-kk,k)=f09sub(i,1-kk,k)
+      f09sub(i,1-kk,k)=f10sub(i,1-kk,k)
+      f10sub(i,1-kk,k)=buffservice3d(i,1-kk,k)
     end forall
     
     ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f15R(i,1-kk,k)
-      f15R(i,1-kk,k)=f16R(i,1-kk,k)
-      f16R(i,1-kk,k)=buffservice3d(i,1-kk,k)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,1-kk,k)=f15sub(i,1-kk,k)
+      f15sub(i,1-kk,k)=f16sub(i,1-kk,k)
+      f16sub(i,1-kk,k)=buffservice3d(i,1-kk,k)
     end forall
     
     ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f17R(i,1-kk,k)
-      f17R(i,1-kk,k)=f18R(i,1-kk,k)
-      f18R(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f03B(i,1-kk,k)
-      f03B(i,1-kk,k)=f04B(i,1-kk,k)
-      f04B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f07B(i,1-kk,k)
-      f07B(i,1-kk,k)=f08B(i,1-kk,k)
-      f08B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f09B(i,1-kk,k)
-      f09B(i,1-kk,k)=f10B(i,1-kk,k)
-      f10B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f15B(i,1-kk,k)
-      f15B(i,1-kk,k)=f16B(i,1-kk,k)
-      f16B(i,1-kk,k)=buffservice3d(i,1-kk,k)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f17B(i,1-kk,k)
-      f17B(i,1-kk,k)=f18B(i,1-kk,k)
-      f18B(i,1-kk,k)=buffservice3d(i,1-kk,k)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,1-kk,k)=f17sub(i,1-kk,k)
+      f17sub(i,1-kk,k)=f18sub(i,1-kk,k)
+      f18sub(i,1-kk,k)=buffservice3d(i,1-kk,k)
     end forall
     
   case (1)
   
     ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f03R(i,1-kk,k)
-      f03R(i,1-kk,k)=-f04R(i,1-kk,k) + TWO*p(3)*bc_rhoR_front* &
-       (ONE+(dey(3)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f04R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(4)*bc_rhoR_front* &
-       (ONE+(dey(4)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,1-kk,k)=-f03sub(i,1-kk,k)
+      f03sub(i,1-kk,k)=-f04sub(i,1-kk,k) + TWO*p(3)*rho_front* &
+       (ONE+(dey(3)*v_s(i,kk,k))**TWO/cssq4 - v_s(i,kk,k)**TWO/cssq2)
+      f04sub(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(4)*rho_front* &
+       (ONE+(dey(4)*v_s(i,kk,k))**TWO/cssq4 - v_s(i,kk,k)**TWO/cssq2)
     end forall
     
     ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f07R(i,1-kk,k)
-      f07R(i,1-kk,k)=-f08R(i,1-kk,k) + TWO*p(7)*bc_rhoR_front* &
-       (ONE+(dey(7)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f08R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(8)*bc_rhoR_front* &
-       (ONE+(dey(8)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,1-kk,k)=-f07sub(i,1-kk,k)
+      f07sub(i,1-kk,k)=-f08sub(i,1-kk,k) + TWO*p(7)*rho_front* &
+       (ONE+(dey(7)*v_s(i,kk,k))**TWO/cssq4 - v_s(i,kk,k)**TWO/cssq2)
+      f08sub(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(8)*rho_front* &
+       (ONE+(dey(8)*v_s(i,kk,k))**TWO/cssq4 - v_s(i,kk,k)**TWO/cssq2)
     end forall
     
     ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f09R(i,1-kk,k)
-      f09R(i,1-kk,k)=-f10R(i,1-kk,k) + TWO*p(9)*bc_rhoR_front* &
-       (ONE+(dey(9)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f10R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(10)*bc_rhoR_front* &
-       (ONE+(dey(10)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,1-kk,k)=-f09sub(i,1-kk,k)
+      f09sub(i,1-kk,k)=-f10sub(i,1-kk,k) + TWO*p(9)*rho_front* &
+       (ONE+(dey(9)*v_s(i,kk,k))**TWO/cssq4 - v_s(i,kk,k)**TWO/cssq2)
+      f10sub(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(10)*rho_front* &
+       (ONE+(dey(10)*v_s(i,kk,k))**TWO/cssq4 - v_s(i,kk,k)**TWO/cssq2)
     end forall
     
     ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f15R(i,1-kk,k)
-      f15R(i,1-kk,k)=-f16R(i,1-kk,k) + TWO*p(15)*bc_rhoR_front* &
-       (ONE+(dey(15)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f16R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(16)*bc_rhoR_front* &
-       (ONE+(dey(16)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,1-kk,k)=-f15sub(i,1-kk,k)
+      f15sub(i,1-kk,k)=-f16sub(i,1-kk,k) + TWO*p(15)*rho_front* &
+       (ONE+(dey(15)*v_s(i,kk,k))**TWO/cssq4 - v_s(i,kk,k)**TWO/cssq2)
+      f16sub(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(16)*rho_front* &
+       (ONE+(dey(16)*v_s(i,kk,k))**TWO/cssq4 - v_s(i,kk,k)**TWO/cssq2)
     end forall
     
     ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f17R(i,1-kk,k)
-      f17R(i,1-kk,k)=-f18R(i,1-kk,k) + TWO*p(17)*bc_rhoR_front* &
-       (ONE+(dey(17)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f18R(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(18)*bc_rhoR_front* &
-       (ONE+(dey(18)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f03B(i,1-kk,k)
-      f03B(i,1-kk,k)=-f04B(i,1-kk,k) + TWO*p(3)*bc_rhoB_front* &
-       (ONE+(dey(3)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f04B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(4)*bc_rhoB_front* &
-       (ONE+(dey(4)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f07B(i,1-kk,k)
-      f07B(i,1-kk,k)=-f08B(i,1-kk,k) + TWO*p(7)*bc_rhoB_front* &
-       (ONE+(dey(7)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f08B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(8)*bc_rhoB_front* &
-       (ONE+(dey(8)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f09B(i,1-kk,k)
-      f09B(i,1-kk,k)=-f10B(i,1-kk,k) + TWO*p(9)*bc_rhoB_front* &
-       (ONE+(dey(9)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f10B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(10)*bc_rhoB_front* &
-       (ONE+(dey(10)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f15B(i,1-kk,k)
-      f15B(i,1-kk,k)=-f16B(i,1-kk,k) + TWO*p(15)*bc_rhoB_front* &
-       (ONE+(dey(15)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f16B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(16)*bc_rhoB_front* &
-       (ONE+(dey(16)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=-f17B(i,1-kk,k)
-      f17B(i,1-kk,k)=-f18B(i,1-kk,k) + TWO*p(17)*bc_rhoB_front* &
-       (ONE+(dey(17)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
-      f18B(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(18)*bc_rhoB_front* &
-       (ONE+(dey(18)*v(i,kk,k))**TWO/cssq4 - v(i,kk,k)**TWO/cssq2)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,1-kk,k)=-f17sub(i,1-kk,k)
+      f17sub(i,1-kk,k)=-f18sub(i,1-kk,k) + TWO*p(17)*rho_front* &
+       (ONE+(dey(17)*v_s(i,kk,k))**TWO/cssq4 - v_s(i,kk,k)**TWO/cssq2)
+      f18sub(i,1-kk,k)=buffservice3d(i,1-kk,k) + TWO*p(18)*rho_front* &
+       (ONE+(dey(18)*v_s(i,kk,k))**TWO/cssq4 - v_s(i,kk,k)**TWO/cssq2)
     end forall
   
   case (2)
   
     ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f03R(i,1-kk,k)
-      f03R(i,1-kk,k)=f04R(i,1-kk,k) + p(3)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(3)*bc_u_front+dey(3)*bc_v_front+dez(3)*bc_w_front)
-      f04R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(4)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(4)*bc_u_front+dey(4)*bc_v_front+dez(4)*bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,1-kk,k)=f03sub(i,1-kk,k)
+      f03sub(i,1-kk,k)=f04sub(i,1-kk,k) + p(3)*pref_bouzidi*rho_s(i,kk,k)* &
+       (dex(3)*u_front+dey(3)*v_front+dez(3)*w_front)
+      f04sub(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(4)*pref_bouzidi*rho_s(i,kk,k)* &
+       (dex(4)*u_front+dey(4)*v_front+dez(4)*w_front)
     end forall
     
     ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f07R(i,1-kk,k)
-      f07R(i,1-kk,k)=f08R(i,1-kk,k) + p(7)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(7)*bc_u_front+dey(7)*bc_v_front+dez(7)*bc_w_front)
-      f08R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(8)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(8)*bc_u_front+dey(8)*bc_v_front+dez(8)*bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,1-kk,k)=f07sub(i,1-kk,k)
+      f07sub(i,1-kk,k)=f08sub(i,1-kk,k) + p(7)*pref_bouzidi*rho_s(i,kk,k)* &
+       (dex(7)*u_front+dey(7)*v_front+dez(7)*w_front)
+      f08sub(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(8)*pref_bouzidi*rho_s(i,kk,k)* &
+       (dex(8)*u_front+dey(8)*v_front+dez(8)*w_front)
     end forall
     
     ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f09R(i,1-kk,k)
-      f09R(i,1-kk,k)=f10R(i,1-kk,k) + p(9)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(9)*bc_u_front+dey(9)*bc_v_front+dez(9)*bc_w_front)
-      f10R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(10)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(10)*bc_u_front+dey(10)*bc_v_front+dez(10)*bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,1-kk,k)=f09sub(i,1-kk,k)
+      f09sub(i,1-kk,k)=f10sub(i,1-kk,k) + p(9)*pref_bouzidi*rho_s(i,kk,k)* &
+       (dex(9)*u_front+dey(9)*v_front+dez(9)*w_front)
+      f10sub(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(10)*pref_bouzidi*rho_s(i,kk,k)* &
+       (dex(10)*u_front+dey(10)*v_front+dez(10)*w_front)
     end forall
     
     ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f15R(i,1-kk,k)
-      f15R(i,1-kk,k)=f16R(i,1-kk,k) + p(15)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(15)*bc_u_front+dey(15)*bc_v_front+dez(15)*bc_w_front)
-      f16R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(16)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(16)*bc_u_front+dey(16)*bc_v_front+dez(16)*bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,1-kk,k)=f15sub(i,1-kk,k)
+      f15sub(i,1-kk,k)=f16sub(i,1-kk,k) + p(15)*pref_bouzidi*rho_s(i,kk,k)* &
+       (dex(15)*u_front+dey(15)*v_front+dez(15)*w_front)
+      f16sub(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(16)*pref_bouzidi*rho_s(i,kk,k)* &
+       (dex(16)*u_front+dey(16)*v_front+dez(16)*w_front)
     end forall
     
     ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f17R(i,1-kk,k)
-      f17R(i,1-kk,k)=f18R(i,1-kk,k) + p(17)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(17)*bc_u_front+dey(17)*bc_v_front+dez(17)*bc_w_front)
-      f18R(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(18)*pref_bouzidi*rhoR(i,kk,k)* &
-       (dex(18)*bc_u_front+dey(18)*bc_v_front+dez(18)*bc_w_front)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f03B(i,1-kk,k)
-      f03B(i,1-kk,k)=f04B(i,1-kk,k) + p(3)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(3)*bc_u_front+dey(3)*bc_v_front+dez(3)*bc_w_front)
-      f04B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(4)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(4)*bc_u_front+dey(4)*bc_v_front+dez(4)*bc_w_front)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f07B(i,1-kk,k)
-      f07B(i,1-kk,k)=f08B(i,1-kk,k) + p(7)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(7)*bc_u_front+dey(7)*bc_v_front+dez(7)*bc_w_front)
-      f08B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(8)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(8)*bc_u_front+dey(8)*bc_v_front+dez(8)*bc_w_front)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f09B(i,1-kk,k)
-      f09B(i,1-kk,k)=f10B(i,1-kk,k) + p(9)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(9)*bc_u_front+dey(9)*bc_v_front+dez(9)*bc_w_front)
-      f10B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(10)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(10)*bc_u_front+dey(10)*bc_v_front+dez(10)*bc_w_front)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f15B(i,1-kk,k)
-      f15B(i,1-kk,k)=f16B(i,1-kk,k) + p(15)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(15)*bc_u_front+dey(15)*bc_v_front+dez(15)*bc_w_front)
-      f16B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(16)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(16)*bc_u_front+dey(16)*bc_v_front+dez(16)*bc_w_front)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,1-kk,k)=f17B(i,1-kk,k)
-      f17B(i,1-kk,k)=f18B(i,1-kk,k) + p(17)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(17)*bc_u_front+dey(17)*bc_v_front+dez(17)*bc_w_front)
-      f18B(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(18)*pref_bouzidi*rhoB(i,kk,k)* &
-       (dex(18)*bc_u_front+dey(18)*bc_v_front+dez(18)*bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,1-kk,k)=f17sub(i,1-kk,k)
+      f17sub(i,1-kk,k)=f18sub(i,1-kk,k) + p(17)*pref_bouzidi*rho_s(i,kk,k)* &
+       (dex(17)*u_front+dey(17)*v_front+dez(17)*w_front)
+      f18sub(i,1-kk,k)=buffservice3d(i,1-kk,k) + p(18)*pref_bouzidi*rho_s(i,kk,k)* &
+       (dex(18)*u_front+dey(18)*v_front+dez(18)*w_front)
     end forall
   
   case (3)
     
     !red fluid
-    forall(i=1:nx,k=1:nz)
-      f00R(i,1-kk,k)=equil_pop00(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f00sub(i,1-kk,k)=equil_pop00(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f01R(i,1-kk,k)=equil_pop01(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f01sub(i,1-kk,k)=equil_pop01(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f02R(i,1-kk,k)=equil_pop02(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f02sub(i,1-kk,k)=equil_pop02(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f03R(i,1-kk,k)=equil_pop03(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f03sub(i,1-kk,k)=equil_pop03(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f04R(i,1-kk,k)=equil_pop04(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f04sub(i,1-kk,k)=equil_pop04(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f05R(i,1-kk,k)=equil_pop05(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f05sub(i,1-kk,k)=equil_pop05(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f06R(i,1-kk,k)=equil_pop06(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f06sub(i,1-kk,k)=equil_pop06(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f07R(i,1-kk,k)=equil_pop07(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f07sub(i,1-kk,k)=equil_pop07(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f08R(i,1-kk,k)=equil_pop08(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f08sub(i,1-kk,k)=equil_pop08(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f09R(i,1-kk,k)=equil_pop09(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f09sub(i,1-kk,k)=equil_pop09(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f10R(i,1-kk,k)=equil_pop10(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f10sub(i,1-kk,k)=equil_pop10(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f11R(i,1-kk,k)=equil_pop11(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f11sub(i,1-kk,k)=equil_pop11(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f12R(i,1-kk,k)=equil_pop12(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f12sub(i,1-kk,k)=equil_pop12(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f13R(i,1-kk,k)=equil_pop13(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f13sub(i,1-kk,k)=equil_pop13(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f14R(i,1-kk,k)=equil_pop14(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f14sub(i,1-kk,k)=equil_pop14(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f15R(i,1-kk,k)=equil_pop15(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f15sub(i,1-kk,k)=equil_pop15(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f16R(i,1-kk,k)=equil_pop16(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f16sub(i,1-kk,k)=equil_pop16(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f17R(i,1-kk,k)=equil_pop17(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f17sub(i,1-kk,k)=equil_pop17(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f18R(i,1-kk,k)=equil_pop18(bc_rhoR_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1:nx,k=1:nz)
-      f00B(i,1-kk,k)=equil_pop00(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
+    forall(i=sx:ex,k=sz:ez)
+      f18sub(i,1-kk,k)=equil_pop18(rho_front,u_front,v_front,w_front)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f01B(i,1-kk,k)=equil_pop01(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f02B(i,1-kk,k)=equil_pop02(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f03B(i,1-kk,k)=equil_pop03(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f04B(i,1-kk,k)=equil_pop04(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f05B(i,1-kk,k)=equil_pop05(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f06B(i,1-kk,k)=equil_pop06(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f07B(i,1-kk,k)=equil_pop07(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f08B(i,1-kk,k)=equil_pop08(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f09B(i,1-kk,k)=equil_pop09(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f10B(i,1-kk,k)=equil_pop10(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f11B(i,1-kk,k)=equil_pop11(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f12B(i,1-kk,k)=equil_pop12(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f13B(i,1-kk,k)=equil_pop13(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f14B(i,1-kk,k)=equil_pop14(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f15B(i,1-kk,k)=equil_pop15(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f16B(i,1-kk,k)=equil_pop16(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f17B(i,1-kk,k)=equil_pop17(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-  
-    forall(i=1:nx,k=1:nz)
-      f18B(i,1-kk,k)=equil_pop18(bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front)
-    end forall
-     
   case default
     call error(13)
   end select
@@ -20162,7 +9935,41 @@ subroutine driver_bc_densities
   
  end subroutine apply_bounceback_front
  
- subroutine apply_bounceback_rear
+ subroutine driver_bounceback_rear(sx,ex,sz,ez)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the bounceback
+!     at the rear side along the space defined in input sx,ex,sz,ez
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: sx,ex,sz,ez
+  
+  call apply_bounceback_rear(sx,ex,sz,ez,bc_rhoR_rear,bc_u_rear, &
+   bc_v_rear,bc_w_rear,rhoR,u,v,w,f00R,f01R,f02R,f03R,f04R,f05R,f06R, &
+   f07R,f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+  
+  if(lsingle_fluid)return
+ 
+  call apply_bounceback_rear(sx,ex,sz,ez,bc_rhoB_rear,bc_u_rear, &
+   bc_v_rear,bc_w_rear,rhoB,u,v,w,f00B,f01B,f02B,f03B,f04B,f05B,f06B, &
+   f07B,f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+   
+  return
+  
+ end subroutine driver_bounceback_rear
+ 
+ subroutine apply_bounceback_rear(sx,ex,sz,ez,rho_rear,u_rear, &
+  v_rear,w_rear,rho_s,u_s,v_s,w_s,f00sub,f01sub,f02sub,f03sub,f04sub, &
+  f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
+  f14sub,f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -20176,6 +9983,12 @@ subroutine driver_bc_densities
 !***********************************************************************
  
   implicit none
+  
+  integer, intent(in) :: sx,ex,sz,ez
+  real(kind=PRC), intent(in) :: rho_rear,u_rear,v_rear,w_rear
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: rho_s,u_s,v_s,w_s, &
+   f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub, &
+   f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
   
   integer :: i,j,k
   integer, parameter :: kk = 1
@@ -20191,422 +10004,208 @@ subroutine driver_bc_densities
   case (0)
   
     ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f03R(i,ny+kk,k)
-      f03R(i,ny+kk,k)=f04R(i,ny+kk,k)
-      f04R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,ny+kk,k)=f03sub(i,ny+kk,k)
+      f03sub(i,ny+kk,k)=f04sub(i,ny+kk,k)
+      f04sub(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
     end forall
     
     ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f07R(i,ny+kk,k)
-      f07R(i,ny+kk,k)=f08R(i,ny+kk,k)
-      f08R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,ny+kk,k)=f07sub(i,ny+kk,k)
+      f07sub(i,ny+kk,k)=f08sub(i,ny+kk,k)
+      f08sub(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
     end forall
     
     ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f09R(i,ny+kk,k)
-      f09R(i,ny+kk,k)=f10R(i,ny+kk,k)
-      f10R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,ny+kk,k)=f09sub(i,ny+kk,k)
+      f09sub(i,ny+kk,k)=f10sub(i,ny+kk,k)
+      f10sub(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
     end forall
     
     ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f15R(i,ny+kk,k)
-      f15R(i,ny+kk,k)=f16R(i,ny+kk,k)
-      f16R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,ny+kk,k)=f15sub(i,ny+kk,k)
+      f15sub(i,ny+kk,k)=f16sub(i,ny+kk,k)
+      f16sub(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
     end forall
     
     ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f17R(i,ny+kk,k)
-      f17R(i,ny+kk,k)=f18R(i,ny+kk,k)
-      f18R(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f03B(i,ny+kk,k)
-      f03B(i,ny+kk,k)=f04B(i,ny+kk,k)
-      f04B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f07B(i,ny+kk,k)
-      f07B(i,ny+kk,k)=f08B(i,ny+kk,k)
-      f08B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f09B(i,ny+kk,k)
-      f09B(i,ny+kk,k)=f10B(i,ny+kk,k)
-      f10B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f15B(i,ny+kk,k)
-      f15B(i,ny+kk,k)=f16B(i,ny+kk,k)
-      f16B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f17B(i,ny+kk,k)
-      f17B(i,ny+kk,k)=f18B(i,ny+kk,k)
-      f18B(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,ny+kk,k)=f17sub(i,ny+kk,k)
+      f17sub(i,ny+kk,k)=f18sub(i,ny+kk,k)
+      f18sub(i,ny+kk,k)=buffservice3d(i,ny+kk,k)
     end forall
     
   case (1)
   
     ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f03R(i,ny+kk,k)
-      f03R(i,ny+kk,k)=-f04R(i,ny+kk,k) + TWO*p(3)*bc_rhoR_rear* &
-       (ONE+(dey(3)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f04R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(4)*bc_rhoR_rear* &
-       (ONE+(dey(4)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,ny+kk,k)=-f03sub(i,ny+kk,k)
+      f03sub(i,ny+kk,k)=-f04sub(i,ny+kk,k) + TWO*p(3)*rho_rear* &
+       (ONE+(dey(3)*v_s(i,ny-kk+1,k))**TWO/cssq4 - v_s(i,ny-kk+1,k)**TWO/cssq2)
+      f04sub(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(4)*rho_rear* &
+       (ONE+(dey(4)*v_s(i,ny-kk+1,k))**TWO/cssq4 - v_s(i,ny-kk+1,k)**TWO/cssq2)
     end forall
     
     ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f07R(i,ny+kk,k)
-      f07R(i,ny+kk,k)=-f08R(i,ny+kk,k) + TWO*p(7)*bc_rhoR_rear* &
-       (ONE+(dey(7)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f08R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(8)*bc_rhoR_rear* &
-       (ONE+(dey(8)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,ny+kk,k)=-f07sub(i,ny+kk,k)
+      f07sub(i,ny+kk,k)=-f08sub(i,ny+kk,k) + TWO*p(7)*rho_rear* &
+       (ONE+(dey(7)*v_s(i,ny-kk+1,k))**TWO/cssq4 - v_s(i,ny-kk+1,k)**TWO/cssq2)
+      f08sub(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(8)*rho_rear* &
+       (ONE+(dey(8)*v_s(i,ny-kk+1,k))**TWO/cssq4 - v_s(i,ny-kk+1,k)**TWO/cssq2)
     end forall
     
     ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f09R(i,ny+kk,k)
-      f09R(i,ny+kk,k)=-f10R(i,ny+kk,k) + TWO*p(9)*bc_rhoR_rear* &
-       (ONE+(dey(9)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f10R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(10)*bc_rhoR_rear* &
-       (ONE+(dey(10)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,ny+kk,k)=-f09sub(i,ny+kk,k)
+      f09sub(i,ny+kk,k)=-f10sub(i,ny+kk,k) + TWO*p(9)*rho_rear* &
+       (ONE+(dey(9)*v_s(i,ny-kk+1,k))**TWO/cssq4 - v_s(i,ny-kk+1,k)**TWO/cssq2)
+      f10sub(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(10)*rho_rear* &
+       (ONE+(dey(10)*v_s(i,ny-kk+1,k))**TWO/cssq4 - v_s(i,ny-kk+1,k)**TWO/cssq2)
     end forall
     
     ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f15R(i,ny+kk,k)
-      f15R(i,ny+kk,k)=-f16R(i,ny+kk,k) + TWO*p(15)*bc_rhoR_rear* &
-       (ONE+(dey(15)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f16R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(16)*bc_rhoR_rear* &
-       (ONE+(dey(16)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,ny+kk,k)=-f15sub(i,ny+kk,k)
+      f15sub(i,ny+kk,k)=-f16sub(i,ny+kk,k) + TWO*p(15)*rho_rear* &
+       (ONE+(dey(15)*v_s(i,ny-kk+1,k))**TWO/cssq4 - v_s(i,ny-kk+1,k)**TWO/cssq2)
+      f16sub(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(16)*rho_rear* &
+       (ONE+(dey(16)*v_s(i,ny-kk+1,k))**TWO/cssq4 - v_s(i,ny-kk+1,k)**TWO/cssq2)
     end forall
     
     ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f17R(i,ny+kk,k)
-      f17R(i,ny+kk,k)=-f18R(i,ny+kk,k) + TWO*p(17)*bc_rhoR_rear* &
-       (ONE+(dey(17)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f18R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(18)*bc_rhoR_rear* &
-       (ONE+(dey(18)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f03B(i,ny+kk,k)
-      f03B(i,ny+kk,k)=-f04B(i,ny+kk,k) + TWO*p(3)*bc_rhoB_rear* &
-       (ONE+(dey(3)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f04B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(4)*bc_rhoB_rear* &
-       (ONE+(dey(4)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f07B(i,ny+kk,k)
-      f07B(i,ny+kk,k)=-f08B(i,ny+kk,k) + TWO*p(7)*bc_rhoB_rear* &
-       (ONE+(dey(7)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f08B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(8)*bc_rhoB_rear* &
-       (ONE+(dey(8)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f09B(i,ny+kk,k)
-      f09B(i,ny+kk,k)=-f10B(i,ny+kk,k) + TWO*p(9)*bc_rhoB_rear* &
-       (ONE+(dey(9)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f10B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(10)*bc_rhoB_rear* &
-       (ONE+(dey(10)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f15B(i,ny+kk,k)
-      f15B(i,ny+kk,k)=-f16B(i,ny+kk,k) + TWO*p(15)*bc_rhoB_rear* &
-       (ONE+(dey(15)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f16B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(16)*bc_rhoB_rear* &
-       (ONE+(dey(16)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=-f17B(i,ny+kk,k)
-      f17B(i,ny+kk,k)=-f18B(i,ny+kk,k) + TWO*p(17)*bc_rhoB_rear* &
-       (ONE+(dey(17)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
-      f18B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(18)*bc_rhoB_rear* &
-       (ONE+(dey(18)*v(i,ny-kk+1,k))**TWO/cssq4 - v(i,ny-kk+1,k)**TWO/cssq2)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,ny+kk,k)=-f17sub(i,ny+kk,k)
+      f17sub(i,ny+kk,k)=-f18sub(i,ny+kk,k) + TWO*p(17)*rho_rear* &
+       (ONE+(dey(17)*v_s(i,ny-kk+1,k))**TWO/cssq4 - v_s(i,ny-kk+1,k)**TWO/cssq2)
+      f18sub(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + TWO*p(18)*rho_rear* &
+       (ONE+(dey(18)*v_s(i,ny-kk+1,k))**TWO/cssq4 - v_s(i,ny-kk+1,k)**TWO/cssq2)
     end forall
     
   case (2)
   
     ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f03R(i,ny+kk,k)
-      f03R(i,ny+kk,k)=f04R(i,ny+kk,k) + p(3)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(3)*bc_u_rear+dey(3)*bc_v_rear+dez(3)*bc_w_rear)
-      f04R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(4)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(4)*bc_u_rear+dey(4)*bc_v_rear+dez(4)*bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,ny+kk,k)=f03sub(i,ny+kk,k)
+      f03sub(i,ny+kk,k)=f04sub(i,ny+kk,k) + p(3)*pref_bouzidi*rho_s(i,ny-kk+1,k)* &
+       (dex(3)*u_rear+dey(3)*v_rear+dez(3)*w_rear)
+      f04sub(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(4)*pref_bouzidi*rho_s(i,ny-kk+1,k)* &
+       (dex(4)*u_rear+dey(4)*v_rear+dez(4)*w_rear)
     end forall
     
     ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f07R(i,ny+kk,k)
-      f07R(i,ny+kk,k)=f08R(i,ny+kk,k) + p(7)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(7)*bc_u_rear+dey(7)*bc_v_rear+dez(7)*bc_w_rear)
-      f08R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(8)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(8)*bc_u_rear+dey(8)*bc_v_rear+dez(8)*bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,ny+kk,k)=f07sub(i,ny+kk,k)
+      f07sub(i,ny+kk,k)=f08sub(i,ny+kk,k) + p(7)*pref_bouzidi*rho_s(i,ny-kk+1,k)* &
+       (dex(7)*u_rear+dey(7)*v_rear+dez(7)*w_rear)
+      f08sub(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(8)*pref_bouzidi*rho_s(i,ny-kk+1,k)* &
+       (dex(8)*u_rear+dey(8)*v_rear+dez(8)*w_rear)
     end forall
     
     ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f09R(i,ny+kk,k)
-      f09R(i,ny+kk,k)=f10R(i,ny+kk,k) + p(9)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(9)*bc_u_rear+dey(9)*bc_v_rear+dez(9)*bc_w_rear)
-      f10R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(10)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(10)*bc_u_rear+dey(10)*bc_v_rear+dez(10)*bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,ny+kk,k)=f09sub(i,ny+kk,k)
+      f09sub(i,ny+kk,k)=f10sub(i,ny+kk,k) + p(9)*pref_bouzidi*rho_s(i,ny-kk+1,k)* &
+       (dex(9)*u_rear+dey(9)*v_rear+dez(9)*w_rear)
+      f10sub(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(10)*pref_bouzidi*rho_s(i,ny-kk+1,k)* &
+       (dex(10)*u_rear+dey(10)*v_rear+dez(10)*w_rear)
     end forall
     
     ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f15R(i,ny+kk,k)
-      f15R(i,ny+kk,k)=f16R(i,ny+kk,k) + p(15)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(15)*bc_u_rear+dey(15)*bc_v_rear+dez(15)*bc_w_rear)
-      f16R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(16)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(16)*bc_u_rear+dey(16)*bc_v_rear+dez(16)*bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,ny+kk,k)=f15sub(i,ny+kk,k)
+      f15sub(i,ny+kk,k)=f16sub(i,ny+kk,k) + p(15)*pref_bouzidi*rho_s(i,ny-kk+1,k)* &
+       (dex(15)*u_rear+dey(15)*v_rear+dez(15)*w_rear)
+      f16sub(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(16)*pref_bouzidi*rho_s(i,ny-kk+1,k)* &
+       (dex(16)*u_rear+dey(16)*v_rear+dez(16)*w_rear)
     end forall
     
     ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f17R(i,ny+kk,k)
-      f17R(i,ny+kk,k)=f18R(i,ny+kk,k) + p(17)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(17)*bc_u_rear+dey(17)*bc_v_rear+dez(17)*bc_w_rear)
-      f18R(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(18)*pref_bouzidi*rhoR(i,ny-kk+1,k)* &
-       (dex(18)*bc_u_rear+dey(18)*bc_v_rear+dez(18)*bc_w_rear)
-    end forall
-    
-    if(lsingle_fluid)return
-    
-    ! swap pop3 and pop4 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f03B(i,ny+kk,k)
-      f03B(i,ny+kk,k)=f04B(i,ny+kk,k) + p(3)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(3)*bc_u_rear+dey(3)*bc_v_rear+dez(3)*bc_w_rear)
-      f04B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(4)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(4)*bc_u_rear+dey(4)*bc_v_rear+dez(4)*bc_w_rear)
-    end forall
-    
-    ! swap pop7 and pop8 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f07B(i,ny+kk,k)
-      f07B(i,ny+kk,k)=f08B(i,ny+kk,k) + p(7)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(7)*bc_u_rear+dey(7)*bc_v_rear+dez(7)*bc_w_rear)
-      f08B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(8)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(8)*bc_u_rear+dey(8)*bc_v_rear+dez(8)*bc_w_rear)
-    end forall
-    
-    ! swap pop9 and pop10 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f09B(i,ny+kk,k)
-      f09B(i,ny+kk,k)=f10B(i,ny+kk,k) + p(9)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(9)*bc_u_rear+dey(9)*bc_v_rear+dez(9)*bc_w_rear)
-      f10B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(10)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(10)*bc_u_rear+dey(10)*bc_v_rear+dez(10)*bc_w_rear)
-    end forall
-    
-    ! swap pop15 and pop16 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f15B(i,ny+kk,k)
-      f15B(i,ny+kk,k)=f16B(i,ny+kk,k) + p(15)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(15)*bc_u_rear+dey(15)*bc_v_rear+dez(15)*bc_w_rear)
-      f16B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(16)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(16)*bc_u_rear+dey(16)*bc_v_rear+dez(16)*bc_w_rear)
-    end forall
-    
-    ! swap pop17 and pop18 along y
-    forall(i=1:nx,k=1:nz)
-      buffservice3d(i,ny+kk,k)=f17B(i,ny+kk,k)
-      f17B(i,ny+kk,k)=f18B(i,ny+kk,k) + p(17)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(17)*bc_u_rear+dey(17)*bc_v_rear+dez(17)*bc_w_rear)
-      f18B(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(18)*pref_bouzidi*rhoB(i,ny-kk+1,k)* &
-       (dex(18)*bc_u_rear+dey(18)*bc_v_rear+dez(18)*bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      buffservice3d(i,ny+kk,k)=f17sub(i,ny+kk,k)
+      f17sub(i,ny+kk,k)=f18sub(i,ny+kk,k) + p(17)*pref_bouzidi*rho_s(i,ny-kk+1,k)* &
+       (dex(17)*u_rear+dey(17)*v_rear+dez(17)*w_rear)
+      f18sub(i,ny+kk,k)=buffservice3d(i,ny+kk,k) + p(18)*pref_bouzidi*rho_s(i,ny-kk+1,k)* &
+       (dex(18)*u_rear+dey(18)*v_rear+dez(18)*w_rear)
     end forall
     
   case (3)
     
     !red fluid
-    forall(i=1:nx,k=1:nz)
-      f00R(i,ny+kk,k)=equil_pop00(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    
+    forall(i=sx:ex,k=sz:ez)
+      f01sub(i,ny+kk,k)=equil_pop01(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f01R(i,ny+kk,k)=equil_pop01(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f02sub(i,ny+kk,k)=equil_pop02(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f02R(i,ny+kk,k)=equil_pop02(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f03sub(i,ny+kk,k)=equil_pop03(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f03R(i,ny+kk,k)=equil_pop03(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f04sub(i,ny+kk,k)=equil_pop04(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f04R(i,ny+kk,k)=equil_pop04(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f05sub(i,ny+kk,k)=equil_pop05(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f05R(i,ny+kk,k)=equil_pop05(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f06sub(i,ny+kk,k)=equil_pop06(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f06R(i,ny+kk,k)=equil_pop06(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f07sub(i,ny+kk,k)=equil_pop07(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f07R(i,ny+kk,k)=equil_pop07(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f08sub(i,ny+kk,k)=equil_pop08(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f08R(i,ny+kk,k)=equil_pop08(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f09sub(i,ny+kk,k)=equil_pop09(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f09R(i,ny+kk,k)=equil_pop09(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f10sub(i,ny+kk,k)=equil_pop10(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f10R(i,ny+kk,k)=equil_pop10(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f11sub(i,ny+kk,k)=equil_pop11(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f11R(i,ny+kk,k)=equil_pop11(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f12sub(i,ny+kk,k)=equil_pop12(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f12R(i,ny+kk,k)=equil_pop12(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f13sub(i,ny+kk,k)=equil_pop13(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f13R(i,ny+kk,k)=equil_pop13(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f14sub(i,ny+kk,k)=equil_pop14(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f14R(i,ny+kk,k)=equil_pop14(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f15sub(i,ny+kk,k)=equil_pop15(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f15R(i,ny+kk,k)=equil_pop15(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f16sub(i,ny+kk,k)=equil_pop16(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f16R(i,ny+kk,k)=equil_pop16(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f17sub(i,ny+kk,k)=equil_pop17(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
-    forall(i=1:nx,k=1:nz)
-      f17R(i,ny+kk,k)=equil_pop17(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f18R(i,ny+kk,k)=equil_pop18(bc_rhoR_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-  
-    if(lsingle_fluid)return
-    
-    !blue fluid
-    
-    forall(i=1:nx,k=1:nz)
-      f00B(i,ny+kk,k)=equil_pop00(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f01B(i,ny+kk,k)=equil_pop01(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f02B(i,ny+kk,k)=equil_pop02(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f03B(i,ny+kk,k)=equil_pop03(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f04B(i,ny+kk,k)=equil_pop04(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f05B(i,ny+kk,k)=equil_pop05(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f06B(i,ny+kk,k)=equil_pop06(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f07B(i,ny+kk,k)=equil_pop07(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f08B(i,ny+kk,k)=equil_pop08(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f09B(i,ny+kk,k)=equil_pop09(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f10B(i,ny+kk,k)=equil_pop10(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f11B(i,ny+kk,k)=equil_pop11(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f12B(i,ny+kk,k)=equil_pop12(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f13B(i,ny+kk,k)=equil_pop13(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f14B(i,ny+kk,k)=equil_pop14(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f15B(i,ny+kk,k)=equil_pop15(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f16B(i,ny+kk,k)=equil_pop16(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-    
-    forall(i=1:nx,k=1:nz)
-      f17B(i,ny+kk,k)=equil_pop17(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
-    end forall
-  
-    forall(i=1:nx,k=1:nz)
-      f18B(i,ny+kk,k)=equil_pop18(bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear)
+    forall(i=sx:ex,k=sz:ez)
+      f18sub(i,ny+kk,k)=equil_pop18(rho_rear,u_rear,v_rear,w_rear)
     end forall
     
   case default
