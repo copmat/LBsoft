@@ -1,0 +1,22 @@
+ # Number of MPI Processes:           1
+
+********** GLOBAL TIMINGS (full simulation) **********
+
+   ( 43.7%)                    LB                        collision_fluids        0.958E-02        5000   0.958E-02   0.958E-02
+   ( 22.8%)                    LB                          moments_fluids        0.500E-02        5000   0.500E-02   0.500E-02
+   ( 13.7%)                    LB                        streaming_fluids        0.300E-02        5000   0.300E-02   0.300E-02
+   ( 11.2%)                    LB                          driver_bc_pops        0.247E-02        5000   0.247E-02   0.247E-02
+   (  7.3%)                    LB                        compute_force_sc        0.160E-02        5000   0.160E-02   0.160E-02
+   (  0.8%)                    LB                        initialize_force        0.170E-03        5000   0.170E-03   0.170E-03
+   (  0.3%)                    IO                         outprint_driver        0.608E-04        5000   0.608E-04   0.608E-04
+   (  0.3%)                    LB                     driver_bc_densities        0.592E-04        5000   0.592E-04   0.592E-04
+   (  0.0%)                    LB                driver_reflect_densities        0.160E-05        5000   0.160E-05   0.160E-05
+   (  0.0%)                    LB                    apply_bounceback_pop        0.160E-05        5000   0.160E-05   0.160E-05
+   (  0.0%)                    IO                         write_vtk_frame         0.00            5000    0.00        0.00    
+
+(  0.0%) LB    0.00     sec/call, 0 calls,   0.00     calls/step
+
+(  0.0%) IO    0.00     sec/call, 0 calls,   0.00     calls/step
+
+Sum of section timings:       0.000
+
