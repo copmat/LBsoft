@@ -3,7 +3,7 @@ box 2 64 64
 steps 5000
 diagnostic yes
 boundary condition 1 1 0
-print list maxd1 mind1 maxvx maxvy maxvz cpue cpur
+print list maxd1 mind1 maxvx maxvy maxvz cpue cpur cpu
 print every 10
 test yes
 job time 4 d

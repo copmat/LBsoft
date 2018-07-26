@@ -1446,6 +1446,49 @@
   integer :: i,j,k,l
   
 #if LATTICE==319
+  !tolti gli zeri su dex dey dez con pazienza
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    mygradx(i,j,k)= &
+     myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dex(1)+ & !01
+     myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dex(2)+ & !02
+     myarr(i+ex(7),j+ey(7),k+ez(7))*p(7)*dex(7)+ & !07
+     myarr(i+ex(8),j+ey(8),k+ez(8))*p(8)*dex(8)+ & !08
+     myarr(i+ex(9),j+ey(9),k+ez(9))*p(9)*dex(9)+ & !09
+     myarr(i+ex(10),j+ey(10),k+ez(10))*p(10)*dex(10)+ & !10
+     myarr(i+ex(11),j+ey(11),k+ez(11))*p(11)*dex(11)+ & !11
+     myarr(i+ex(12),j+ey(12),k+ez(12))*p(12)*dex(12)+ & !12
+     myarr(i+ex(13),j+ey(13),k+ez(13))*p(13)*dex(13)+ & !13
+     myarr(i+ex(14),j+ey(14),k+ez(14))*p(14)*dex(14)    !14
+  end forall
+  
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    mygrady(i,j,k)= &
+     myarr(i+ex(3),j+ey(3),k+ez(3))*p(3)*dey(3)+ & !03
+     myarr(i+ex(4),j+ey(4),k+ez(4))*p(4)*dey(4)+ & !04
+     myarr(i+ex(7),j+ey(7),k+ez(7))*p(7)*dey(7)+ & !07
+     myarr(i+ex(8),j+ey(8),k+ez(8))*p(8)*dey(8)+ & !08
+     myarr(i+ex(9),j+ey(9),k+ez(9))*p(9)*dey(9)+ & !09
+     myarr(i+ex(10),j+ey(10),k+ez(10))*p(10)*dey(10)+ & !10
+     myarr(i+ex(15),j+ey(15),k+ez(15))*p(15)*dey(15)+ & !15
+     myarr(i+ex(16),j+ey(16),k+ez(16))*p(16)*dey(16)+ & !16
+     myarr(i+ex(17),j+ey(17),k+ez(17))*p(17)*dey(17)+ & !17
+     myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dey(18)    !18
+  end forall
+  
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    mygradz(i,j,k)= &
+     myarr(i+ex(5),j+ey(5),k+ez(5))*p(5)*dez(5)+ & !05
+     myarr(i+ex(6),j+ey(6),k+ez(6))*p(6)*dez(6)+ & !06
+     myarr(i+ex(11),j+ey(11),k+ez(11))*p(11)*dez(11)+ & !11
+     myarr(i+ex(12),j+ey(12),k+ez(12))*p(12)*dez(12)+ & !12
+     myarr(i+ex(13),j+ey(13),k+ez(13))*p(13)*dez(13)+ & !13
+     myarr(i+ex(14),j+ey(14),k+ez(14))*p(14)*dez(14)+ & !14
+     myarr(i+ex(15),j+ey(15),k+ez(15))*p(15)*dez(15)+ & !15
+     myarr(i+ex(16),j+ey(16),k+ez(16))*p(16)*dez(16)+ & !16
+     myarr(i+ex(17),j+ey(17),k+ez(17))*p(17)*dez(17)+ & !17
+     myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dez(18)    !18
+  end forall
+#else
   !occhio gli zeri su dex dey dez andrebbero tolti con pazienza
   forall(i=1:nx,j=1:ny,k=1:nz)
     mygradx(i,j,k)= &
@@ -1512,7 +1555,6 @@
      myarr(i+ex(17),j+ey(17),k+ez(17))*p(17)*dez(17)+ & !17
      myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dez(18)    !18
   end forall
-  
 #endif
   
   return
@@ -3837,12 +3879,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
-  !occhio gli zeri su dex dey dez andrebbero tolti con pazienza su tutti gli equil_pop#
-  
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myu*mydex)
+  equil_pop01=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop01=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop01
@@ -3877,10 +3923,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myu*mydex)
+  equil_pop02=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop02=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop02
@@ -3915,10 +3967,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myv*mydey)
+  equil_pop03=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop03=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop03
@@ -3953,10 +4011,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myv*mydey)
+  equil_pop04=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop04=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop04
@@ -3991,10 +4055,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myw*mydez)
+  equil_pop05=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop05=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop05
@@ -4029,10 +4099,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myw*mydez)
+  equil_pop06=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop06=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop06
@@ -4067,10 +4143,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myu*mydex + myv*mydey)
+  equil_pop07=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop07=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop07
@@ -4105,10 +4187,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myu*mydex + myv*mydey)
+  equil_pop08=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop08=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop08
@@ -4143,10 +4231,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myu*mydex + myv*mydey)
+  equil_pop09=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop09=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop09
@@ -4181,10 +4275,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myu*mydex + myv*mydey)
+  equil_pop10=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop10=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop10
@@ -4219,10 +4319,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myu*mydex + myw*mydez)
+  equil_pop11=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop11=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop11
@@ -4257,10 +4363,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myu*mydex  + myw*mydez)
+  equil_pop12=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop12=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop12
@@ -4295,10 +4407,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myu*mydex + myw*mydez)
+  equil_pop13=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop13=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop13
@@ -4333,10 +4451,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myu*mydex + myw*mydez)
+  equil_pop14=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop14=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop14
@@ -4371,10 +4495,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myv*mydey + myw*mydez)
+  equil_pop15=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop15=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop15
@@ -4409,10 +4539,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myv*mydey + myw*mydez)
+  equil_pop16=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop16=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop16
@@ -4447,10 +4583,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myv*mydey + myw*mydez)
+  equil_pop17=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop17=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop17
@@ -4485,10 +4627,16 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
+#if LATTICE==319
+  uv=(ONE/mycssq)*(myv*mydey + myw*mydez)
+  equil_pop18=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO))
+#else
   uv=(ONE/mycssq)*(myu*mydex + myv*mydey + myw*mydez)
   equil_pop18=myrho*myp*(ONE+uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))
- 
+#endif
+  
   return
   
  end function equil_pop18
