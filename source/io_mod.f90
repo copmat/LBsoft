@@ -17,7 +17,8 @@
  use error_mod
  use profiling_mod,         only : set_value_idiagnostic, &
   set_value_ldiagnostic,idiagnostic,ldiagnostic
- use utility_mod,           only : write_fmtnumb,pi,get_prntime
+ use utility_mod,           only : write_fmtnumb,pi,get_prntime, &
+  linit_seed,ltest_mode
  use fluids_mod,            only : nx,ny,nz,set_initial_dist_type, &
   set_mean_value_dens_fluids,set_stdev_value_dens_fluids,idistselect, &
   meanR,meanB,stdevR,stdevB,set_initial_dim_box,initial_u,initial_v, &
@@ -299,7 +300,6 @@
   integer :: temp_bc_type_north=0
   integer :: temp_bc_type_south=0
   logical :: temp_ibc=.false.
-  logical :: linit_seed=.false.
   logical :: temp_lpair_SC=.false.
   logical :: lvisc=.false.
   logical :: ltau=.false.
@@ -495,6 +495,15 @@
                 call warning(1,dble(iline),redstring)
                 call error(6)
               endif
+            elseif(findstring('test',directive,inumchar,maxlen))then
+              if(findstring('yes',directive,inumchar,maxlen))then
+                ltest_mode=.true.
+              elseif(findstring('no',directive,inumchar,maxlen))then
+                ltest_mode=.false.
+              else
+                call warning(1,dble(iline),redstring)
+                call error(6)
+              endif
             elseif(findstring('steps',directive,inumchar,maxlen))then
               lnstepmax=.true.
               temp_nstepmax=intstr(directive,maxlen,inumchar)
@@ -643,6 +652,7 @@
               elseif(findstring('gauss',directive,inumchar,maxlen))then
                 temp_idistselect=1
               elseif(findstring('unifo',directive,inumchar,maxlen))then
+                temp_idistselect=2
               else
                 call warning(1,dble(iline),redstring)
                 call error(6)
@@ -845,6 +855,27 @@
       mystring=repeat(' ',dimprint)
       mystring='initial random seed'
       write(6,'(2a,i12)')mystring,": ",init_seed
+    endif
+  else
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='no seed mode'
+      mystring12=repeat(' ',dimprint2)
+      mystring12='yes'
+      mystring12=adjustr(mystring12)
+      write(6,'(3a)')mystring,": ",mystring12
+    endif
+  endif
+  
+  call bcast_world(ltest_mode)
+  if(ltest_mode)then
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='test mode'
+      mystring12=repeat(' ',dimprint2)
+      mystring12='yes'
+      mystring12=adjustr(mystring12)
+      write(6,'(3a)')mystring,": ",mystring12
     endif
   endif
   

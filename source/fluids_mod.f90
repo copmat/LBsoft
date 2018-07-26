@@ -20,7 +20,7 @@
                    allocate_array_buffservice,lbuffservice, &
                    allocate_array_lbuffservice, &
                    buffservice3d,allocate_array_buffservice3d, &
-                   rand_seeded
+                   rand_noseeded,linit_seed,gauss_noseeded
  
  implicit none
  
@@ -257,6 +257,7 @@
   
   myzero=1-nbuff
   mynx=nx+nbuff
+  if(mod(nx,2)==0)mynx=mynx+1
   myny=ny+nbuff
   mynz=nz+nbuff
   
@@ -481,29 +482,43 @@
 !     
 !***********************************************************************
   
-  use utility_mod, only: gauss
-  
   implicit none
   
   integer :: i,j,k
   
-  do k=1,nz
-    do j=1,ny
-      do i=1,nx
-        rhoR(i,j,k)=meanR+stdevR*gauss()
+  if(linit_seed)then
+  
+    do k=1,nz
+      do j=1,ny
+        do i=1,nx
+          rhoR(i,j,k)=meanR+stdevR*gauss()
+        enddo
       enddo
     enddo
-  enddo
-  
-  if(lsingle_fluid)return
-  
-  do k=1,nz
-    do j=1,ny
-      do i=1,nx
-        rhoB(i,j,k)=meanB+stdevB*gauss()
+    
+    if(lsingle_fluid)return
+    
+    do k=1,nz
+      do j=1,ny
+        do i=1,nx
+          rhoB(i,j,k)=meanB+stdevB*gauss()
+        enddo
       enddo
     enddo
-  enddo
+  
+  else
+  
+    forall (i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k)=meanR+stdevR*gauss_noseeded(i,j,k,1)
+    end forall
+    
+    if(lsingle_fluid)return
+    
+    forall (i=1:nx,j=1:ny,k=1:nz)
+      rhoB(i,j,k)=meanB+stdevB*gauss_noseeded(i,j,k,100)
+    end forall
+  
+  endif
   
   return
   
@@ -522,29 +537,47 @@
 !     
 !***********************************************************************
   
-  use utility_mod, only: gauss
-  
   implicit none
   
   integer :: i,j,k
   
-  do k=1,nz
-    do j=1,ny
-      do i=1,nx
-        rhoR(i,j,k)=meanR+stdevR*rand_seeded(i,j,k,1)
+  real(kind=PRC) :: dtemp1
+  
+  if(linit_seed)then
+  
+    do k=1,nz
+      do j=1,ny
+        do i=1,nx
+          call random_number(dtemp1)
+          rhoR(i,j,k)=meanR+stdevR*dtemp1
+        enddo
       enddo
     enddo
-  enddo
-  
-  if(lsingle_fluid)return
-  
-  do k=1,nz
-    do j=1,ny
-      do i=1,nx
-        rhoB(i,j,k)=meanB+stdevB*rand_seeded(i,j,k,2)
+    
+    if(lsingle_fluid)return
+    
+    do k=1,nz
+      do j=1,ny
+        do i=1,nx
+          call random_number(dtemp1)
+          rhoB(i,j,k)=meanB+stdevB*dtemp1
+        enddo
       enddo
     enddo
-  enddo
+  
+  else
+  
+    forall (i=1:nx,j=1:ny,k=1:nz)
+      rhoR(i,j,k)=meanR+stdevR*rand_noseeded(i,j,k,1)
+    end forall
+    
+    if(lsingle_fluid)return
+    
+    forall (i=1:nx,j=1:ny,k=1:nz)
+      rhoB(i,j,k)=meanB+stdevB*rand_noseeded(i,j,k,100)
+    end forall
+  
+  endif
   
   return
   

@@ -27,6 +27,8 @@
  integer, public, save :: nbuffservice_x=0
  integer, public, save :: nbuffservice_y=0
  integer, public, save :: nbuffservice_z=0
+ logical, public, save :: linit_seed=.false.
+ logical, public, save :: ltest_mode=.false.
  logical, public, allocatable, save :: lbuffservice(:)
  integer, public, allocatable, save :: ibuffservice(:)
  real(kind=PRC), public, allocatable, save :: buffservice(:)
@@ -47,7 +49,8 @@
  public :: sig
  public :: write_fmtnumb
  public :: get_prntime
- public :: rand_seeded
+ public :: rand_noseeded
+ public :: gauss_noseeded
  
  contains
  
@@ -253,7 +256,7 @@
  
  end subroutine init_random_seed
  
- function rand_seeded(i,j,k,l)
+ pure function rand_noseeded(i,j,k,l)
 
 !***********************************************************************
 !     
@@ -274,7 +277,7 @@
   integer :: isub,jsub,ksub,lsub,msub
   integer ::ii,jj
   real(4) :: s,t,u33,u97,csub,uni
-  real(kind=PRC) :: rand_seeded
+  real(kind=PRC) :: rand_noseeded
   
   real(4), parameter :: c =  362436.0/16777216.0
   real(4), parameter :: cd= 7654321.0/16777216.0
@@ -329,11 +332,11 @@
   if(csub.lt.0.0)csub=csub+cm
   uni=uni-csub
   if(uni.lt.0.0)uni=uni+1.0
-  rand_seeded=real(uni,kind=PRC)
+  rand_noseeded=real(uni,kind=PRC)
 
   return
   
- end function rand_seeded
+ end function rand_noseeded
  
  function gauss()
  
@@ -368,7 +371,42 @@
     if(isnan(cos(gauss)))lredo=.true.
   enddo
   
-  end function gauss
+ end function gauss
+ 
+ pure function gauss_noseeded(i,j,k,l)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for generating random number normally
+!     distributed by the Box-Muller transformation without a seed
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  integer, intent(in) :: i,j,k,l
+  integer :: kk
+  real(kind=PRC) :: gauss_noseeded
+  real(kind=PRC) :: dtemp1,dtemp2
+  logical :: lredo
+  
+  lredo=.true.
+  kk=0
+! the number is extract again if it is nan
+  do while(lredo)
+    lredo=.false.
+    dtemp1=rand_noseeded(i,j,k,l+kk)
+    dtemp2=rand_noseeded(i,j,k,l+1+kk)
+!   Box-Muller transformation
+    gauss_noseeded=sqrt(- TWO *log(dtemp1))*cos(2*pi*dtemp2)
+    if(isnan(cos(gauss_noseeded)))lredo=.true.
+    kk=kk+1
+  enddo
+  
+ end function gauss_noseeded
  
  pure function modulvec(a)
  

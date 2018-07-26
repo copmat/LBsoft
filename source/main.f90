@@ -52,6 +52,7 @@
                        ldiagnostic,start_timing2,end_timing2
   use utility_mod,    only : init_random_seed
   use fluids_mod,     only : allocate_fluids,initialize_fluids
+  use write_output_mod,only: write_test_map
   use integrator_mod, only : initime,endtime,tstep,set_nstep, &
                        update_nstep,nstep,driver_integrator,nstepmax
   use statistic_mod,         only : statistic_driver
@@ -213,6 +214,8 @@
     call printSimulationTime()
     call print_timing_final(idiagnostic,itime_counter,itime_start,1,1,IOOUT)
   endif
+  
+  call write_test_map
   
   if(idrank==0)write(6,'(a)')'Programm exit correctly'
   

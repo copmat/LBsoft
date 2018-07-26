@@ -14,7 +14,7 @@
   
  use version_mod,    only : idrank,mxrank
  use error_mod
- use utility_mod,    only : write_fmtnumb
+ use utility_mod,    only : write_fmtnumb,ltest_mode
  use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w,lsingle_fluid
   
   private
@@ -25,6 +25,7 @@
   
   public :: write_vtk_frame
   public :: set_value_ivtkevery
+  public :: write_test_map
   
  contains
  
@@ -57,7 +58,7 @@
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for writing the hudrodynamic variables
+!     LBsoft subroutine for writing the hydrodynamic variables
 !     in structured VTK legacy binary format in serial
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
@@ -75,8 +76,6 @@
   
   integer, intent(in) :: nstepsub
   
-  
-  
   real(kind=4), allocatable, dimension(:,:,:), save ::x,y,z
   integer :: e_io,nnt
   real(kind=4), allocatable, dimension(:,:,:), save :: service1, &
@@ -90,6 +89,8 @@
   
   
   logical, save :: lfirst=.true.
+  
+  if(.not. lvtkfile)return
   
   if(mxrank/=1)call error(11)
   
@@ -171,5 +172,58 @@
   return
      
  end subroutine write_vtk_frame
+ 
+ subroutine write_test_map()
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the hydrodynamic variables
+!     in ASCII format for diagnostic purposes
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification july 2018
+!     
+!***********************************************************************
+
+  implicit none
+  
+  integer :: i,j,k,l
+  
+  integer, parameter :: iomap=250
+  
+  character(len=256) :: file_loc_proc(0:mxrank-1)
+
+  if(.not. ltest_mode)return
+
+  l=idrank
+  file_loc_proc(l) = 'output'//trim(write_fmtnumb(l))//'.map'
+  open(iomap+l,file=trim(file_loc_proc(l)),status='replace',action='write')
+  write(iomap+l,'(i10)')mxrank
+  if(lsingle_fluid)then
+    write(iomap+l,'(6i10)')nx,ny,nz, PRC, 4
+    do k=1,nz
+      do j=1,ny
+        do i=1,nx
+          write(iomap+l,'(3i8,4f20.10)')i,j,k,rhoR(i,j,k), &
+           u(i,j,k),v(i,j,k),w(i,j,k)
+        enddo
+      enddo
+    enddo
+  else
+    write(iomap+l,'(6i10)')nx,ny,nz, PRC, 5
+    do k=1,nz
+      do j=1,ny
+        do i=1,nx
+          write(iomap+l,'(3i8,5f20.10)')i,j,k,rhoR(i,j,k),rhoB(i,j,k), &
+           u(i,j,k),v(i,j,k),w(i,j,k)
+        enddo
+      enddo
+    enddo
+  endif
+  
+  close(iomap+l)
+  
+ end subroutine write_test_map
  
  end module write_output_mod

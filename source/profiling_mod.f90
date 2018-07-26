@@ -279,7 +279,7 @@ END INTERFACE
 
 
   iotiming = new_io_unit()
-  OPEN(iotiming,FILE='tempo.dat')
+  IF(idrank==0) OPEN(iotiming,FILE='time.dat')
   IF(idrank==0) WRITE(iotiming,*) '# Number of MPI Processes:',mxrank
 
   timing_routine(:) = 0
@@ -385,13 +385,13 @@ IF(newjob) THEN
   newjob=.false.
 ENDIF
 
-OPEN(iotempo_partial,FILE=strtmp)
+!OPEN(iotempo_partial,FILE=strtmp)
 
-DO isec=1, nsection
-   WRITE(iotempo_partial,*)  TRIM(ADJUSTL(section_blk(isec)%name)),section_blk(isec)%timing
-ENDDO
+!DO isec=1, nsection
+!   WRITE(iotempo_partial,*)  TRIM(ADJUSTL(section_blk(isec)%name)),section_blk(isec)%timing
+!ENDDO
 
-CLOSE(iotempo_partial)
+!CLOSE(iotempo_partial)
 
 IF(idrank==0) THEN
   WRITE(ioout_l,'(/a,i0,a)') '***** BLOCK TIMINGS (every ',ifreq_l,' timesteps) *****'
