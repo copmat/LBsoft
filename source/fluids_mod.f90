@@ -8176,28 +8176,28 @@ subroutine driver_bc_densities
   !corner 8
   
   !apply bounceback at north east front 1
-  call apply_bounceback_corner_north_east_front
+  call driver_bounceback_corner_north_east_front
   
   !apply bounceback at north east rear 2
-  call apply_bounceback_corner_north_east_rear
+  call driver_bounceback_corner_north_east_rear
   
   !apply bounceback at north west rear 3
-  call apply_bounceback_corner_north_west_rear
+  call driver_bounceback_corner_north_west_rear
   
   !apply bounceback at north west front 4
-  call apply_bounceback_corner_north_west_front
+  call driver_bounceback_corner_north_west_front
   
   !apply bounceback at south east front 5
-  call apply_bounceback_corner_south_east_front
+  call driver_bounceback_corner_south_east_front
   
   !apply bounceback at south west front 6
-  call apply_bounceback_corner_south_west_front
+  call driver_bounceback_corner_south_west_front
   
   !apply bounceback at south west rear 7
-  call apply_bounceback_corner_south_west_rear
+  call driver_bounceback_corner_south_west_rear
   
   !apply bounceback at south east rear 8
-  call apply_bounceback_corner_south_east_rear
+  call driver_bounceback_corner_south_east_rear
   
 #else
   
@@ -11834,7 +11834,38 @@ subroutine driver_bc_densities
   
  end subroutine apply_bounceback_edge_south_west
  
- subroutine apply_bounceback_corner_north_east_front
+ subroutine driver_bounceback_corner_north_east_front
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the bounceback boundary 
+!     condition at the north east front corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  call apply_bounceback_corner_north_east_front(f00R,f01R,f02R,f03R,f04R,&
+   f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R, &
+   f18R)
+  
+  if(lsingle_fluid)return
+ 
+  call apply_bounceback_corner_north_east_front(f00B,f01B,f02B,f03B,f04B,&
+   f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B, &
+   f18B)
+   
+  return
+  
+ end subroutine driver_bounceback_corner_north_east_front
+ 
+ subroutine apply_bounceback_corner_north_east_front(f00sub,f01sub, &
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -11849,6 +11880,10 @@ subroutine driver_bc_densities
  
   implicit none
   
+  real(kind=PRC), allocatable, dimension(:,:,:) :: &
+   f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub, &
+   f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  
   integer :: i,j,k
   integer, parameter :: kk = 1
   integer, parameter :: kkk = 1
@@ -11860,90 +11895,44 @@ subroutine driver_bc_densities
   
   ! swap pop7 and pop8
 
-  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f07R(nx+kk,1-kkk,nz+kkkk)
-  f07R(nx+kk,1-kkk,nz+kkkk)=f08R(nx+kk,1-kkk,nz+kkkk)
-  f08R(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
+  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f07sub(nx+kk,1-kkk,nz+kkkk)
+  f07sub(nx+kk,1-kkk,nz+kkkk)=f08sub(nx+kk,1-kkk,nz+kkkk)
+  f08sub(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
 
   
   ! swap pop9 and pop10
 
-  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f09R(nx+kk,1-kkk,nz+kkkk)
-  f09R(nx+kk,1-kkk,nz+kkkk)=f10R(nx+kk,1-kkk,nz+kkkk)
-  f10R(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
+  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f09sub(nx+kk,1-kkk,nz+kkkk)
+  f09sub(nx+kk,1-kkk,nz+kkkk)=f10sub(nx+kk,1-kkk,nz+kkkk)
+  f10sub(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
 
   
   ! swap pop11 and pop12
 
-  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f11R(nx+kk,1-kkk,nz+kkkk)
-  f11R(nx+kk,1-kkk,nz+kkkk)=f12R(nx+kk,1-kkk,nz+kkkk)
-  f12R(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
+  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f11sub(nx+kk,1-kkk,nz+kkkk)
+  f11sub(nx+kk,1-kkk,nz+kkkk)=f12sub(nx+kk,1-kkk,nz+kkkk)
+  f12sub(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
 
   
   ! swap pop13 and pop14
 
-  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f13R(nx+kk,1-kkk,nz+kkkk)
-  f13R(nx+kk,1-kkk,nz+kkkk)=f14R(nx+kk,1-kkk,nz+kkkk)
-  f14R(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
+  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f13sub(nx+kk,1-kkk,nz+kkkk)
+  f13sub(nx+kk,1-kkk,nz+kkkk)=f14sub(nx+kk,1-kkk,nz+kkkk)
+  f14sub(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
 
   
   ! swap pop15 and pop16
 
-  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f15R(nx+kk,1-kkk,nz+kkkk)
-  f15R(nx+kk,1-kkk,nz+kkkk)=f16R(nx+kk,1-kkk,nz+kkkk)
-  f16R(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
+  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f15sub(nx+kk,1-kkk,nz+kkkk)
+  f15sub(nx+kk,1-kkk,nz+kkkk)=f16sub(nx+kk,1-kkk,nz+kkkk)
+  f16sub(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
 
   
   ! swap pop17 and pop18
 
-  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f17R(nx+kk,1-kkk,nz+kkkk)
-  f17R(nx+kk,1-kkk,nz+kkkk)=f18R(nx+kk,1-kkk,nz+kkkk)
-  f18R(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
-
-  
-  if(lsingle_fluid)return
-  
-  ! swap pop7 and pop8
-
-  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f07B(nx+kk,1-kkk,nz+kkkk)
-  f07B(nx+kk,1-kkk,nz+kkkk)=f08B(nx+kk,1-kkk,nz+kkkk)
-  f08B(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
-
-  
-  ! swap pop9 and pop10
-
-  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f09B(nx+kk,1-kkk,nz+kkkk)
-  f09B(nx+kk,1-kkk,nz+kkkk)=f10B(nx+kk,1-kkk,nz+kkkk)
-  f10B(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
-
-  
-  ! swap pop11 and pop12
-
-  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f11B(nx+kk,1-kkk,nz+kkkk)
-  f11B(nx+kk,1-kkk,nz+kkkk)=f12B(nx+kk,1-kkk,nz+kkkk)
-  f12B(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
-
-  
-  ! swap pop13 and pop14
-
-  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f13B(nx+kk,1-kkk,nz+kkkk)
-  f13B(nx+kk,1-kkk,nz+kkkk)=f14B(nx+kk,1-kkk,nz+kkkk)
-  f14B(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
-
-  
-  ! swap pop15 and pop16
-
-  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f15B(nx+kk,1-kkk,nz+kkkk)
-  f15B(nx+kk,1-kkk,nz+kkkk)=f16B(nx+kk,1-kkk,nz+kkkk)
-  f16B(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
-
-  
-  ! swap pop17 and pop18
-
-  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f17B(nx+kk,1-kkk,nz+kkkk)
-  f17B(nx+kk,1-kkk,nz+kkkk)=f18B(nx+kk,1-kkk,nz+kkkk)
-  f18B(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
-
-  
+  buffservice3d(nx+kk,1-kkk,nz+kkkk)=f17sub(nx+kk,1-kkk,nz+kkkk)
+  f17sub(nx+kk,1-kkk,nz+kkkk)=f18sub(nx+kk,1-kkk,nz+kkkk)
+  f18sub(nx+kk,1-kkk,nz+kkkk)=buffservice3d(nx+kk,1-kkk,nz+kkkk)
   
 #else
   
@@ -11955,7 +11944,38 @@ subroutine driver_bc_densities
   
  end subroutine apply_bounceback_corner_north_east_front
  
- subroutine apply_bounceback_corner_north_east_rear
+ subroutine driver_bounceback_corner_north_east_rear
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the bounceback boundary 
+!     condition at the north east rear corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  call apply_bounceback_corner_north_east_rear(f00R,f01R,f02R,f03R,f04R,&
+   f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R, &
+   f18R)
+  
+  if(lsingle_fluid)return
+ 
+  call apply_bounceback_corner_north_east_rear(f00B,f01B,f02B,f03B,f04B,&
+   f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B, &
+   f18B)
+   
+  return
+  
+ end subroutine driver_bounceback_corner_north_east_rear
+ 
+ subroutine apply_bounceback_corner_north_east_rear(f00sub,f01sub, &
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -11970,6 +11990,10 @@ subroutine driver_bc_densities
  
   implicit none
   
+  real(kind=PRC), allocatable, dimension(:,:,:) :: &
+   f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub, &
+   f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  
   integer :: i,j,k
   integer, parameter :: kk = 1
   integer, parameter :: kkk = 1
@@ -11979,88 +12003,44 @@ subroutine driver_bc_densities
   
   ! swap pop7 and pop8
 
-  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f07R(nx+kk,ny+kkk,nz+kkkk)
-  f07R(nx+kk,ny+kkk,nz+kkkk)=f08R(nx+kk,ny+kkk,nz+kkkk)
-  f08R(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
+  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f07sub(nx+kk,ny+kkk,nz+kkkk)
+  f07sub(nx+kk,ny+kkk,nz+kkkk)=f08sub(nx+kk,ny+kkk,nz+kkkk)
+  f08sub(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
 
   
   ! swap pop9 and pop10
 
-  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f09R(nx+kk,ny+kkk,nz+kkkk)
-  f09R(nx+kk,ny+kkk,nz+kkkk)=f10R(nx+kk,ny+kkk,nz+kkkk)
-  f10R(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
+  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f09sub(nx+kk,ny+kkk,nz+kkkk)
+  f09sub(nx+kk,ny+kkk,nz+kkkk)=f10sub(nx+kk,ny+kkk,nz+kkkk)
+  f10sub(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
 
   
   ! swap pop11 and pop12
 
-  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f11R(nx+kk,ny+kkk,nz+kkkk)
-  f11R(nx+kk,ny+kkk,nz+kkkk)=f12R(nx+kk,ny+kkk,nz+kkkk)
-  f12R(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
+  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f11sub(nx+kk,ny+kkk,nz+kkkk)
+  f11sub(nx+kk,ny+kkk,nz+kkkk)=f12sub(nx+kk,ny+kkk,nz+kkkk)
+  f12sub(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
 
   
   ! swap pop13 and pop14
 
-  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f13R(nx+kk,ny+kkk,nz+kkkk)
-  f13R(nx+kk,ny+kkk,nz+kkkk)=f14R(nx+kk,ny+kkk,nz+kkkk)
-  f14R(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
+  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f13sub(nx+kk,ny+kkk,nz+kkkk)
+  f13sub(nx+kk,ny+kkk,nz+kkkk)=f14sub(nx+kk,ny+kkk,nz+kkkk)
+  f14sub(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
 
   
   ! swap pop15 and pop16
 
-  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f15R(nx+kk,ny+kkk,nz+kkkk)
-  f15R(nx+kk,ny+kkk,nz+kkkk)=f16R(nx+kk,ny+kkk,nz+kkkk)
-  f16R(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
+  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f15sub(nx+kk,ny+kkk,nz+kkkk)
+  f15sub(nx+kk,ny+kkk,nz+kkkk)=f16sub(nx+kk,ny+kkk,nz+kkkk)
+  f16sub(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
 
   
   ! swap pop17 and pop18
 
-  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f17R(nx+kk,ny+kkk,nz+kkkk)
-  f17R(nx+kk,ny+kkk,nz+kkkk)=f18R(nx+kk,ny+kkk,nz+kkkk)
-  f18R(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
-
-  
-  if(lsingle_fluid)return
-  
-  ! swap pop7 and pop8
-
-  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f07B(nx+kk,ny+kkk,nz+kkkk)
-  f07B(nx+kk,ny+kkk,nz+kkkk)=f08B(nx+kk,ny+kkk,nz+kkkk)
-  f08B(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
-
-  
-  ! swap pop9 and pop10
-
-  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f09B(nx+kk,ny+kkk,nz+kkkk)
-  f09B(nx+kk,ny+kkk,nz+kkkk)=f10B(nx+kk,ny+kkk,nz+kkkk)
-  f10B(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
-
-  
-  ! swap pop11 and pop12
-
-  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f11B(nx+kk,ny+kkk,nz+kkkk)
-  f11B(nx+kk,ny+kkk,nz+kkkk)=f12B(nx+kk,ny+kkk,nz+kkkk)
-  f12B(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
-
-  
-  ! swap pop13 and pop14
-
-  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f13B(nx+kk,ny+kkk,nz+kkkk)
-  f13B(nx+kk,ny+kkk,nz+kkkk)=f14B(nx+kk,ny+kkk,nz+kkkk)
-  f14B(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
-
-  
-  ! swap pop15 and pop16
-
-  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f15B(nx+kk,ny+kkk,nz+kkkk)
-  f15B(nx+kk,ny+kkk,nz+kkkk)=f16B(nx+kk,ny+kkk,nz+kkkk)
-  f16B(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
-
-  
-  ! swap pop17 and pop18
-
-  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f17B(nx+kk,ny+kkk,nz+kkkk)
-  f17B(nx+kk,ny+kkk,nz+kkkk)=f18B(nx+kk,ny+kkk,nz+kkkk)
-  f18B(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
+  buffservice3d(nx+kk,ny+kkk,nz+kkkk)=f17sub(nx+kk,ny+kkk,nz+kkkk)
+  f17sub(nx+kk,ny+kkk,nz+kkkk)=f18sub(nx+kk,ny+kkk,nz+kkkk)
+  f18sub(nx+kk,ny+kkk,nz+kkkk)=buffservice3d(nx+kk,ny+kkk,nz+kkkk)
   
 #else
   
@@ -12072,7 +12052,38 @@ subroutine driver_bc_densities
   
  end subroutine apply_bounceback_corner_north_east_rear
  
- subroutine apply_bounceback_corner_north_west_rear
+ subroutine driver_bounceback_corner_north_west_rear
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the bounceback boundary 
+!     condition at the north west rear corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  call apply_bounceback_corner_north_west_rear(f00R,f01R,f02R,f03R,f04R,&
+   f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R, &
+   f18R)
+  
+  if(lsingle_fluid)return
+ 
+  call apply_bounceback_corner_north_west_rear(f00B,f01B,f02B,f03B,f04B,&
+   f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B, &
+   f18B)
+   
+  return
+  
+ end subroutine driver_bounceback_corner_north_west_rear
+ 
+ subroutine apply_bounceback_corner_north_west_rear(f00sub,f01sub, &
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -12087,6 +12098,10 @@ subroutine driver_bc_densities
  
   implicit none
   
+  real(kind=PRC), allocatable, dimension(:,:,:) :: &
+   f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub, &
+   f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  
   integer :: i,j,k
   integer, parameter :: kk = 1
   integer, parameter :: kkk = 1
@@ -12096,88 +12111,44 @@ subroutine driver_bc_densities
   
   ! swap pop7 and pop8
 
-  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f07R(1-kk,ny+kkk,nz+kkkk)
-  f07R(1-kk,ny+kkk,nz+kkkk)=f08R(1-kk,ny+kkk,nz+kkkk)
-  f08R(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
+  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f07sub(1-kk,ny+kkk,nz+kkkk)
+  f07sub(1-kk,ny+kkk,nz+kkkk)=f08sub(1-kk,ny+kkk,nz+kkkk)
+  f08sub(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
 
   
   ! swap pop9 and pop10
 
-  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f09R(1-kk,ny+kkk,nz+kkkk)
-  f09R(1-kk,ny+kkk,nz+kkkk)=f10R(1-kk,ny+kkk,nz+kkkk)
-  f10R(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
+  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f09sub(1-kk,ny+kkk,nz+kkkk)
+  f09sub(1-kk,ny+kkk,nz+kkkk)=f10sub(1-kk,ny+kkk,nz+kkkk)
+  f10sub(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
 
   
   ! swap pop11 and pop12
 
-  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f11R(1-kk,ny+kkk,nz+kkkk)
-  f11R(1-kk,ny+kkk,nz+kkkk)=f12R(1-kk,ny+kkk,nz+kkkk)
-  f12R(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
+  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f11sub(1-kk,ny+kkk,nz+kkkk)
+  f11sub(1-kk,ny+kkk,nz+kkkk)=f12sub(1-kk,ny+kkk,nz+kkkk)
+  f12sub(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
 
   
   ! swap pop13 and pop14
 
-  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f13R(1-kk,ny+kkk,nz+kkkk)
-  f13R(1-kk,ny+kkk,nz+kkkk)=f14R(1-kk,ny+kkk,nz+kkkk)
-  f14R(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
+  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f13sub(1-kk,ny+kkk,nz+kkkk)
+  f13sub(1-kk,ny+kkk,nz+kkkk)=f14sub(1-kk,ny+kkk,nz+kkkk)
+  f14sub(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
 
   
   ! swap pop15 and pop16
 
-  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f15R(1-kk,ny+kkk,nz+kkkk)
-  f15R(1-kk,ny+kkk,nz+kkkk)=f16R(1-kk,ny+kkk,nz+kkkk)
-  f16R(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
+  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f15sub(1-kk,ny+kkk,nz+kkkk)
+  f15sub(1-kk,ny+kkk,nz+kkkk)=f16sub(1-kk,ny+kkk,nz+kkkk)
+  f16sub(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
 
   
   ! swap pop17 and pop18
 
-  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f17R(1-kk,ny+kkk,nz+kkkk)
-  f17R(1-kk,ny+kkk,nz+kkkk)=f18R(1-kk,ny+kkk,nz+kkkk)
-  f18R(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
-
-  
-  if(lsingle_fluid)return
-  
-  ! swap pop7 and pop8
-
-  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f07B(1-kk,ny+kkk,nz+kkkk)
-  f07B(1-kk,ny+kkk,nz+kkkk)=f08B(1-kk,ny+kkk,nz+kkkk)
-  f08B(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
-
-  
-  ! swap pop9 and pop10
-
-  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f09B(1-kk,ny+kkk,nz+kkkk)
-  f09B(1-kk,ny+kkk,nz+kkkk)=f10B(1-kk,ny+kkk,nz+kkkk)
-  f10B(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
-
-  
-  ! swap pop11 and pop12
-
-  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f11B(1-kk,ny+kkk,nz+kkkk)
-  f11B(1-kk,ny+kkk,nz+kkkk)=f12B(1-kk,ny+kkk,nz+kkkk)
-  f12B(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
-
-  
-  ! swap pop13 and pop14
-
-  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f13B(1-kk,ny+kkk,nz+kkkk)
-  f13B(1-kk,ny+kkk,nz+kkkk)=f14B(1-kk,ny+kkk,nz+kkkk)
-  f14B(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
-
-  
-  ! swap pop15 and pop16
-
-  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f15B(1-kk,ny+kkk,nz+kkkk)
-  f15B(1-kk,ny+kkk,nz+kkkk)=f16B(1-kk,ny+kkk,nz+kkkk)
-  f16B(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
-
-  
-  ! swap pop17 and pop18
-
-  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f17B(1-kk,ny+kkk,nz+kkkk)
-  f17B(1-kk,ny+kkk,nz+kkkk)=f18B(1-kk,ny+kkk,nz+kkkk)
-  f18B(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
+  buffservice3d(1-kk,ny+kkk,nz+kkkk)=f17sub(1-kk,ny+kkk,nz+kkkk)
+  f17sub(1-kk,ny+kkk,nz+kkkk)=f18sub(1-kk,ny+kkk,nz+kkkk)
+  f18sub(1-kk,ny+kkk,nz+kkkk)=buffservice3d(1-kk,ny+kkk,nz+kkkk)
   
 #else
   
@@ -12189,7 +12160,38 @@ subroutine driver_bc_densities
   
  end subroutine apply_bounceback_corner_north_west_rear
  
- subroutine apply_bounceback_corner_north_west_front
+ subroutine driver_bounceback_corner_north_west_front
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the bounceback boundary 
+!     condition at the north west front corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  call apply_bounceback_corner_north_west_front(f00R,f01R,f02R,f03R,f04R,&
+   f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R, &
+   f18R)
+  
+  if(lsingle_fluid)return
+ 
+  call apply_bounceback_corner_north_west_front(f00B,f01B,f02B,f03B,f04B,&
+   f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B, &
+   f18B)
+   
+  return
+  
+ end subroutine driver_bounceback_corner_north_west_front
+ 
+ subroutine apply_bounceback_corner_north_west_front(f00sub,f01sub, &
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -12204,6 +12206,10 @@ subroutine driver_bc_densities
  
   implicit none
   
+  real(kind=PRC), allocatable, dimension(:,:,:) :: &
+   f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub, &
+   f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  
   integer :: i,j,k
   integer, parameter :: kk = 1
   integer, parameter :: kkk = 1
@@ -12213,88 +12219,44 @@ subroutine driver_bc_densities
   
   ! swap pop7 and pop8
 
-  buffservice3d(1-kk,1-kkk,nz+kkkk)=f07R(1-kk,1-kkk,nz+kkkk)
-  f07R(1-kk,1-kkk,nz+kkkk)=f08R(1-kk,1-kkk,nz+kkkk)
-  f08R(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
+  buffservice3d(1-kk,1-kkk,nz+kkkk)=f07sub(1-kk,1-kkk,nz+kkkk)
+  f07sub(1-kk,1-kkk,nz+kkkk)=f08sub(1-kk,1-kkk,nz+kkkk)
+  f08sub(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
 
   
   ! swap pop9 and pop10
 
-  buffservice3d(1-kk,1-kkk,nz+kkkk)=f09R(1-kk,1-kkk,nz+kkkk)
-  f09R(1-kk,1-kkk,nz+kkkk)=f10R(1-kk,1-kkk,nz+kkkk)
-  f10R(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
+  buffservice3d(1-kk,1-kkk,nz+kkkk)=f09sub(1-kk,1-kkk,nz+kkkk)
+  f09sub(1-kk,1-kkk,nz+kkkk)=f10sub(1-kk,1-kkk,nz+kkkk)
+  f10sub(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
 
   
   ! swap pop11 and pop12
 
-  buffservice3d(1-kk,1-kkk,nz+kkkk)=f11R(1-kk,1-kkk,nz+kkkk)
-  f11R(1-kk,1-kkk,nz+kkkk)=f12R(1-kk,1-kkk,nz+kkkk)
-  f12R(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
+  buffservice3d(1-kk,1-kkk,nz+kkkk)=f11sub(1-kk,1-kkk,nz+kkkk)
+  f11sub(1-kk,1-kkk,nz+kkkk)=f12sub(1-kk,1-kkk,nz+kkkk)
+  f12sub(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
 
   
   ! swap pop13 and pop14
 
-  buffservice3d(1-kk,1-kkk,nz+kkkk)=f13R(1-kk,1-kkk,nz+kkkk)
-  f13R(1-kk,1-kkk,nz+kkkk)=f14R(1-kk,1-kkk,nz+kkkk)
-  f14R(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
+  buffservice3d(1-kk,1-kkk,nz+kkkk)=f13sub(1-kk,1-kkk,nz+kkkk)
+  f13sub(1-kk,1-kkk,nz+kkkk)=f14sub(1-kk,1-kkk,nz+kkkk)
+  f14sub(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
 
   
   ! swap pop15 and pop16
 
-  buffservice3d(1-kk,1-kkk,nz+kkkk)=f15R(1-kk,1-kkk,nz+kkkk)
-  f15R(1-kk,1-kkk,nz+kkkk)=f16R(1-kk,1-kkk,nz+kkkk)
-  f16R(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
+  buffservice3d(1-kk,1-kkk,nz+kkkk)=f15sub(1-kk,1-kkk,nz+kkkk)
+  f15sub(1-kk,1-kkk,nz+kkkk)=f16sub(1-kk,1-kkk,nz+kkkk)
+  f16sub(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
 
   
   ! swap pop17 and pop18
 
-  buffservice3d(1-kk,1-kkk,nz+kkkk)=f17R(1-kk,1-kkk,nz+kkkk)
-  f17R(1-kk,1-kkk,nz+kkkk)=f18R(1-kk,1-kkk,nz+kkkk)
-  f18R(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
-
-  
-  if(lsingle_fluid)return
-  
-  ! swap pop7 and pop8
-
-  buffservice3d(1-kk,1-kkk,nz+kkkk)=f07B(1-kk,1-kkk,nz+kkkk)
-  f07B(1-kk,1-kkk,nz+kkkk)=f08B(1-kk,1-kkk,nz+kkkk)
-  f08B(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
-
-  
-  ! swap pop9 and pop10
-
-  buffservice3d(1-kk,1-kkk,nz+kkkk)=f09B(1-kk,1-kkk,nz+kkkk)
-  f09B(1-kk,1-kkk,nz+kkkk)=f10B(1-kk,1-kkk,nz+kkkk)
-  f10B(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
-
-  
-  ! swap pop11 and pop12
-
-  buffservice3d(1-kk,1-kkk,nz+kkkk)=f11B(1-kk,1-kkk,nz+kkkk)
-  f11B(1-kk,1-kkk,nz+kkkk)=f12B(1-kk,1-kkk,nz+kkkk)
-  f12B(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
-
-  
-  ! swap pop13 and pop14
-
-  buffservice3d(1-kk,1-kkk,nz+kkkk)=f13B(1-kk,1-kkk,nz+kkkk)
-  f13B(1-kk,1-kkk,nz+kkkk)=f14B(1-kk,1-kkk,nz+kkkk)
-  f14B(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
-
-  
-  ! swap pop15 and pop16
-
-  buffservice3d(1-kk,1-kkk,nz+kkkk)=f15B(1-kk,1-kkk,nz+kkkk)
-  f15B(1-kk,1-kkk,nz+kkkk)=f16B(1-kk,1-kkk,nz+kkkk)
-  f16B(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
-
-  
-  ! swap pop17 and pop18
-
-  buffservice3d(1-kk,1-kkk,nz+kkkk)=f17B(1-kk,1-kkk,nz+kkkk)
-  f17B(1-kk,1-kkk,nz+kkkk)=f18B(1-kk,1-kkk,nz+kkkk)
-  f18B(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
+  buffservice3d(1-kk,1-kkk,nz+kkkk)=f17sub(1-kk,1-kkk,nz+kkkk)
+  f17sub(1-kk,1-kkk,nz+kkkk)=f18sub(1-kk,1-kkk,nz+kkkk)
+  f18sub(1-kk,1-kkk,nz+kkkk)=buffservice3d(1-kk,1-kkk,nz+kkkk)
   
 #else
   
@@ -12306,7 +12268,38 @@ subroutine driver_bc_densities
   
  end subroutine apply_bounceback_corner_north_west_front
  
- subroutine apply_bounceback_corner_south_east_front
+ subroutine driver_bounceback_corner_south_east_front
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the bounceback boundary 
+!     condition at the south east front corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  call apply_bounceback_corner_south_east_front(f00R,f01R,f02R,f03R,f04R,&
+   f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R, &
+   f18R)
+  
+  if(lsingle_fluid)return
+ 
+  call apply_bounceback_corner_south_east_front(f00B,f01B,f02B,f03B,f04B,&
+   f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B, &
+   f18B)
+   
+  return
+  
+ end subroutine driver_bounceback_corner_south_east_front
+ 
+ subroutine apply_bounceback_corner_south_east_front(f00sub,f01sub, &
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -12321,6 +12314,10 @@ subroutine driver_bc_densities
  
   implicit none
   
+  real(kind=PRC), allocatable, dimension(:,:,:) :: &
+   f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub, &
+   f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  
   integer :: i,j,k
   integer, parameter :: kk = 1
   integer, parameter :: kkk = 1
@@ -12331,88 +12328,44 @@ subroutine driver_bc_densities
   
   ! swap pop7 and pop8
 
-  buffservice3d(nx+kk,1-kkk,1-kkkk)=f07R(nx+kk,1-kkk,1-kkkk)
-  f07R(nx+kk,1-kkk,1-kkkk)=f08R(nx+kk,1-kkk,1-kkkk)
-  f08R(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
+  buffservice3d(nx+kk,1-kkk,1-kkkk)=f07sub(nx+kk,1-kkk,1-kkkk)
+  f07sub(nx+kk,1-kkk,1-kkkk)=f08sub(nx+kk,1-kkk,1-kkkk)
+  f08sub(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
 
   
   ! swap pop9 and pop10
 
-  buffservice3d(nx+kk,1-kkk,1-kkkk)=f09R(nx+kk,1-kkk,1-kkkk)
-  f09R(nx+kk,1-kkk,1-kkkk)=f10R(nx+kk,1-kkk,1-kkkk)
-  f10R(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
+  buffservice3d(nx+kk,1-kkk,1-kkkk)=f09sub(nx+kk,1-kkk,1-kkkk)
+  f09sub(nx+kk,1-kkk,1-kkkk)=f10sub(nx+kk,1-kkk,1-kkkk)
+  f10sub(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
 
   
   ! swap pop11 and pop12
 
-  buffservice3d(nx+kk,1-kkk,1-kkkk)=f11R(nx+kk,1-kkk,1-kkkk)
-  f11R(nx+kk,1-kkk,1-kkkk)=f12R(nx+kk,1-kkk,1-kkkk)
-  f12R(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
+  buffservice3d(nx+kk,1-kkk,1-kkkk)=f11sub(nx+kk,1-kkk,1-kkkk)
+  f11sub(nx+kk,1-kkk,1-kkkk)=f12sub(nx+kk,1-kkk,1-kkkk)
+  f12sub(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
 
   
   ! swap pop13 and pop14
 
-  buffservice3d(nx+kk,1-kkk,1-kkkk)=f13R(nx+kk,1-kkk,1-kkkk)
-  f13R(nx+kk,1-kkk,1-kkkk)=f14R(nx+kk,1-kkk,1-kkkk)
-  f14R(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
+  buffservice3d(nx+kk,1-kkk,1-kkkk)=f13sub(nx+kk,1-kkk,1-kkkk)
+  f13sub(nx+kk,1-kkk,1-kkkk)=f14sub(nx+kk,1-kkk,1-kkkk)
+  f14sub(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
 
   
   ! swap pop15 and pop16
 
-  buffservice3d(nx+kk,1-kkk,1-kkkk)=f15R(nx+kk,1-kkk,1-kkkk)
-  f15R(nx+kk,1-kkk,1-kkkk)=f16R(nx+kk,1-kkk,1-kkkk)
-  f16R(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
+  buffservice3d(nx+kk,1-kkk,1-kkkk)=f15sub(nx+kk,1-kkk,1-kkkk)
+  f15sub(nx+kk,1-kkk,1-kkkk)=f16sub(nx+kk,1-kkk,1-kkkk)
+  f16sub(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
 
   
   ! swap pop17 and pop18
 
-  buffservice3d(nx+kk,1-kkk,1-kkkk)=f17R(nx+kk,1-kkk,1-kkkk)
-  f17R(nx+kk,1-kkk,1-kkkk)=f18R(nx+kk,1-kkk,1-kkkk)
-  f18R(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
-
-  
-  if(lsingle_fluid)return
-  
-  ! swap pop7 and pop8
-
-  buffservice3d(nx+kk,1-kkk,1-kkkk)=f07B(nx+kk,1-kkk,1-kkkk)
-  f07B(nx+kk,1-kkk,1-kkkk)=f08B(nx+kk,1-kkk,1-kkkk)
-  f08B(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
-
-  
-  ! swap pop9 and pop10
-
-  buffservice3d(nx+kk,1-kkk,1-kkkk)=f09B(nx+kk,1-kkk,1-kkkk)
-  f09B(nx+kk,1-kkk,1-kkkk)=f10B(nx+kk,1-kkk,1-kkkk)
-  f10B(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
-
-  
-  ! swap pop11 and pop12
-
-  buffservice3d(nx+kk,1-kkk,1-kkkk)=f11B(nx+kk,1-kkk,1-kkkk)
-  f11B(nx+kk,1-kkk,1-kkkk)=f12B(nx+kk,1-kkk,1-kkkk)
-  f12B(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
-
-  
-  ! swap pop13 and pop14
-
-  buffservice3d(nx+kk,1-kkk,1-kkkk)=f13B(nx+kk,1-kkk,1-kkkk)
-  f13B(nx+kk,1-kkk,1-kkkk)=f14B(nx+kk,1-kkk,1-kkkk)
-  f14B(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
-
-  
-  ! swap pop15 and pop16
-
-  buffservice3d(nx+kk,1-kkk,1-kkkk)=f15B(nx+kk,1-kkk,1-kkkk)
-  f15B(nx+kk,1-kkk,1-kkkk)=f16B(nx+kk,1-kkk,1-kkkk)
-  f16B(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
-
-  
-  ! swap pop17 and pop18
-
-  buffservice3d(nx+kk,1-kkk,1-kkkk)=f17B(nx+kk,1-kkk,1-kkkk)
-  f17B(nx+kk,1-kkk,1-kkkk)=f18B(nx+kk,1-kkk,1-kkkk)
-  f18B(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
+  buffservice3d(nx+kk,1-kkk,1-kkkk)=f17sub(nx+kk,1-kkk,1-kkkk)
+  f17sub(nx+kk,1-kkk,1-kkkk)=f18sub(nx+kk,1-kkk,1-kkkk)
+  f18sub(nx+kk,1-kkk,1-kkkk)=buffservice3d(nx+kk,1-kkk,1-kkkk)
   
 #else
   
@@ -12424,7 +12377,38 @@ subroutine driver_bc_densities
   
  end subroutine apply_bounceback_corner_south_east_front
  
- subroutine apply_bounceback_corner_south_west_front
+ subroutine driver_bounceback_corner_south_west_front
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the bounceback boundary 
+!     condition at the south west front corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  call apply_bounceback_corner_south_west_front(f00R,f01R,f02R,f03R,f04R,&
+   f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R, &
+   f18R)
+  
+  if(lsingle_fluid)return
+ 
+  call apply_bounceback_corner_south_west_front(f00B,f01B,f02B,f03B,f04B,&
+   f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B, &
+   f18B)
+   
+  return
+  
+ end subroutine driver_bounceback_corner_south_west_front
+ 
+ subroutine apply_bounceback_corner_south_west_front(f00sub,f01sub, &
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -12439,6 +12423,10 @@ subroutine driver_bc_densities
  
   implicit none
   
+  real(kind=PRC), allocatable, dimension(:,:,:) :: &
+   f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub, &
+   f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  
   integer :: i,j,k
   integer, parameter :: kk = 1
   integer, parameter :: kkk = 1
@@ -12448,88 +12436,44 @@ subroutine driver_bc_densities
   
   ! swap pop7 and pop8
 
-  buffservice3d(1-kk,1-kkk,1-kkkk)=f07R(1-kk,1-kkk,1-kkkk)
-  f07R(1-kk,1-kkk,1-kkkk)=f08R(1-kk,1-kkk,1-kkkk)
-  f08R(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
+  buffservice3d(1-kk,1-kkk,1-kkkk)=f07sub(1-kk,1-kkk,1-kkkk)
+  f07sub(1-kk,1-kkk,1-kkkk)=f08sub(1-kk,1-kkk,1-kkkk)
+  f08sub(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
 
   
   ! swap pop9 and pop10
 
-  buffservice3d(1-kk,1-kkk,1-kkkk)=f09R(1-kk,1-kkk,1-kkkk)
-  f09R(1-kk,1-kkk,1-kkkk)=f10R(1-kk,1-kkk,1-kkkk)
-  f10R(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
+  buffservice3d(1-kk,1-kkk,1-kkkk)=f09sub(1-kk,1-kkk,1-kkkk)
+  f09sub(1-kk,1-kkk,1-kkkk)=f10sub(1-kk,1-kkk,1-kkkk)
+  f10sub(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
 
   
   ! swap pop11 and pop12
 
-  buffservice3d(1-kk,1-kkk,1-kkkk)=f11R(1-kk,1-kkk,1-kkkk)
-  f11R(1-kk,1-kkk,1-kkkk)=f12R(1-kk,1-kkk,1-kkkk)
-  f12R(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
+  buffservice3d(1-kk,1-kkk,1-kkkk)=f11sub(1-kk,1-kkk,1-kkkk)
+  f11sub(1-kk,1-kkk,1-kkkk)=f12sub(1-kk,1-kkk,1-kkkk)
+  f12sub(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
 
   
   ! swap pop13 and pop14
 
-  buffservice3d(1-kk,1-kkk,1-kkkk)=f13R(1-kk,1-kkk,1-kkkk)
-  f13R(1-kk,1-kkk,1-kkkk)=f14R(1-kk,1-kkk,1-kkkk)
-  f14R(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
+  buffservice3d(1-kk,1-kkk,1-kkkk)=f13sub(1-kk,1-kkk,1-kkkk)
+  f13sub(1-kk,1-kkk,1-kkkk)=f14sub(1-kk,1-kkk,1-kkkk)
+  f14sub(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
 
   
   ! swap pop15 and pop16
 
-  buffservice3d(1-kk,1-kkk,1-kkkk)=f15R(1-kk,1-kkk,1-kkkk)
-  f15R(1-kk,1-kkk,1-kkkk)=f16R(1-kk,1-kkk,1-kkkk)
-  f16R(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
+  buffservice3d(1-kk,1-kkk,1-kkkk)=f15sub(1-kk,1-kkk,1-kkkk)
+  f15sub(1-kk,1-kkk,1-kkkk)=f16sub(1-kk,1-kkk,1-kkkk)
+  f16sub(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
 
   
   ! swap pop17 and pop18
 
-  buffservice3d(1-kk,1-kkk,1-kkkk)=f17R(1-kk,1-kkk,1-kkkk)
-  f17R(1-kk,1-kkk,1-kkkk)=f18R(1-kk,1-kkk,1-kkkk)
-  f18R(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
-
-  
-  if(lsingle_fluid)return
-  
-  ! swap pop7 and pop8
-
-  buffservice3d(1-kk,1-kkk,1-kkkk)=f07B(1-kk,1-kkk,1-kkkk)
-  f07B(1-kk,1-kkk,1-kkkk)=f08B(1-kk,1-kkk,1-kkkk)
-  f08B(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
-
-  
-  ! swap pop9 and pop10
-
-  buffservice3d(1-kk,1-kkk,1-kkkk)=f09B(1-kk,1-kkk,1-kkkk)
-  f09B(1-kk,1-kkk,1-kkkk)=f10B(1-kk,1-kkk,1-kkkk)
-  f10B(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
-
-  
-  ! swap pop11 and pop12
-
-  buffservice3d(1-kk,1-kkk,1-kkkk)=f11B(1-kk,1-kkk,1-kkkk)
-  f11B(1-kk,1-kkk,1-kkkk)=f12B(1-kk,1-kkk,1-kkkk)
-  f12B(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
-
-  
-  ! swap pop13 and pop14
-
-  buffservice3d(1-kk,1-kkk,1-kkkk)=f13B(1-kk,1-kkk,1-kkkk)
-  f13B(1-kk,1-kkk,1-kkkk)=f14B(1-kk,1-kkk,1-kkkk)
-  f14B(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
-
-  
-  ! swap pop15 and pop16
-
-  buffservice3d(1-kk,1-kkk,1-kkkk)=f15B(1-kk,1-kkk,1-kkkk)
-  f15B(1-kk,1-kkk,1-kkkk)=f16B(1-kk,1-kkk,1-kkkk)
-  f16B(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
-
-  
-  ! swap pop17 and pop18
-
-  buffservice3d(1-kk,1-kkk,1-kkkk)=f17B(1-kk,1-kkk,1-kkkk)
-  f17B(1-kk,1-kkk,1-kkkk)=f18B(1-kk,1-kkk,1-kkkk)
-  f18B(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
+  buffservice3d(1-kk,1-kkk,1-kkkk)=f17sub(1-kk,1-kkk,1-kkkk)
+  f17sub(1-kk,1-kkk,1-kkkk)=f18sub(1-kk,1-kkk,1-kkkk)
+  f18sub(1-kk,1-kkk,1-kkkk)=buffservice3d(1-kk,1-kkk,1-kkkk)
   
 #else
   
@@ -12541,7 +12485,38 @@ subroutine driver_bc_densities
   
  end subroutine apply_bounceback_corner_south_west_front
  
- subroutine apply_bounceback_corner_south_west_rear
+ subroutine driver_bounceback_corner_south_west_rear
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the bounceback boundary 
+!     condition at the south west rear corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  call apply_bounceback_corner_south_west_rear(f00R,f01R,f02R,f03R,f04R,&
+   f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R, &
+   f18R)
+  
+  if(lsingle_fluid)return
+ 
+  call apply_bounceback_corner_south_west_rear(f00B,f01B,f02B,f03B,f04B,&
+   f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B, &
+   f18B)
+   
+  return
+  
+ end subroutine driver_bounceback_corner_south_west_rear
+ 
+ subroutine apply_bounceback_corner_south_west_rear(f00sub,f01sub, &
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -12556,6 +12531,10 @@ subroutine driver_bc_densities
  
   implicit none
   
+  real(kind=PRC), allocatable, dimension(:,:,:) :: &
+   f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub, &
+   f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  
   integer :: i,j,k
   integer, parameter :: kk = 1
   integer, parameter :: kkk = 1
@@ -12565,88 +12544,44 @@ subroutine driver_bc_densities
   
   ! swap pop7 and pop8
 
-  buffservice3d(1-kk,ny+kkk,1-kkkk)=f07R(1-kk,ny+kkk,1-kkkk)
-  f07R(1-kk,ny+kkk,1-kkkk)=f08R(1-kk,ny+kkk,1-kkkk)
-  f08R(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
+  buffservice3d(1-kk,ny+kkk,1-kkkk)=f07sub(1-kk,ny+kkk,1-kkkk)
+  f07sub(1-kk,ny+kkk,1-kkkk)=f08sub(1-kk,ny+kkk,1-kkkk)
+  f08sub(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
 
   
   ! swap pop9 and pop10
 
-  buffservice3d(1-kk,ny+kkk,1-kkkk)=f09R(1-kk,ny+kkk,1-kkkk)
-  f09R(1-kk,ny+kkk,1-kkkk)=f10R(1-kk,ny+kkk,1-kkkk)
-  f10R(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
+  buffservice3d(1-kk,ny+kkk,1-kkkk)=f09sub(1-kk,ny+kkk,1-kkkk)
+  f09sub(1-kk,ny+kkk,1-kkkk)=f10sub(1-kk,ny+kkk,1-kkkk)
+  f10sub(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
 
   
   ! swap pop11 and pop12
 
-  buffservice3d(1-kk,ny+kkk,1-kkkk)=f11R(1-kk,ny+kkk,1-kkkk)
-  f11R(1-kk,ny+kkk,1-kkkk)=f12R(1-kk,ny+kkk,1-kkkk)
-  f12R(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
+  buffservice3d(1-kk,ny+kkk,1-kkkk)=f11sub(1-kk,ny+kkk,1-kkkk)
+  f11sub(1-kk,ny+kkk,1-kkkk)=f12sub(1-kk,ny+kkk,1-kkkk)
+  f12sub(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
 
   
   ! swap pop13 and pop14
 
-  buffservice3d(1-kk,ny+kkk,1-kkkk)=f13R(1-kk,ny+kkk,1-kkkk)
-  f13R(1-kk,ny+kkk,1-kkkk)=f14R(1-kk,ny+kkk,1-kkkk)
-  f14R(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
+  buffservice3d(1-kk,ny+kkk,1-kkkk)=f13sub(1-kk,ny+kkk,1-kkkk)
+  f13sub(1-kk,ny+kkk,1-kkkk)=f14sub(1-kk,ny+kkk,1-kkkk)
+  f14sub(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
 
   
   ! swap pop15 and pop16
 
-  buffservice3d(1-kk,ny+kkk,1-kkkk)=f15R(1-kk,ny+kkk,1-kkkk)
-  f15R(1-kk,ny+kkk,1-kkkk)=f16R(1-kk,ny+kkk,1-kkkk)
-  f16R(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
+  buffservice3d(1-kk,ny+kkk,1-kkkk)=f15sub(1-kk,ny+kkk,1-kkkk)
+  f15sub(1-kk,ny+kkk,1-kkkk)=f16sub(1-kk,ny+kkk,1-kkkk)
+  f16sub(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
 
   
   ! swap pop17 and pop18
 
-  buffservice3d(1-kk,ny+kkk,1-kkkk)=f17R(1-kk,ny+kkk,1-kkkk)
-  f17R(1-kk,ny+kkk,1-kkkk)=f18R(1-kk,ny+kkk,1-kkkk)
-  f18R(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
-
-  
-  if(lsingle_fluid)return
-  
-  ! swap pop7 and pop8
-
-  buffservice3d(1-kk,ny+kkk,1-kkkk)=f07B(1-kk,ny+kkk,1-kkkk)
-  f07B(1-kk,ny+kkk,1-kkkk)=f08B(1-kk,ny+kkk,1-kkkk)
-  f08B(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
-
-  
-  ! swap pop9 and pop10
-
-  buffservice3d(1-kk,ny+kkk,1-kkkk)=f09B(1-kk,ny+kkk,1-kkkk)
-  f09B(1-kk,ny+kkk,1-kkkk)=f10B(1-kk,ny+kkk,1-kkkk)
-  f10B(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
-
-  
-  ! swap pop11 and pop12
-
-  buffservice3d(1-kk,ny+kkk,1-kkkk)=f11B(1-kk,ny+kkk,1-kkkk)
-  f11B(1-kk,ny+kkk,1-kkkk)=f12B(1-kk,ny+kkk,1-kkkk)
-  f12B(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
-
-  
-  ! swap pop13 and pop14
-
-  buffservice3d(1-kk,ny+kkk,1-kkkk)=f13B(1-kk,ny+kkk,1-kkkk)
-  f13B(1-kk,ny+kkk,1-kkkk)=f14B(1-kk,ny+kkk,1-kkkk)
-  f14B(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
-
-  
-  ! swap pop15 and pop16
-
-  buffservice3d(1-kk,ny+kkk,1-kkkk)=f15B(1-kk,ny+kkk,1-kkkk)
-  f15B(1-kk,ny+kkk,1-kkkk)=f16B(1-kk,ny+kkk,1-kkkk)
-  f16B(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
-
-  
-  ! swap pop17 and pop18
-
-  buffservice3d(1-kk,ny+kkk,1-kkkk)=f17B(1-kk,ny+kkk,1-kkkk)
-  f17B(1-kk,ny+kkk,1-kkkk)=f18B(1-kk,ny+kkk,1-kkkk)
-  f18B(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
+  buffservice3d(1-kk,ny+kkk,1-kkkk)=f17sub(1-kk,ny+kkk,1-kkkk)
+  f17sub(1-kk,ny+kkk,1-kkkk)=f18sub(1-kk,ny+kkk,1-kkkk)
+  f18sub(1-kk,ny+kkk,1-kkkk)=buffservice3d(1-kk,ny+kkk,1-kkkk)
   
 #else
   
@@ -12658,7 +12593,38 @@ subroutine driver_bc_densities
   
  end subroutine apply_bounceback_corner_south_west_rear
  
- subroutine apply_bounceback_corner_south_east_rear
+ subroutine driver_bounceback_corner_south_east_rear
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the bounceback boundary 
+!     condition at the south east rear corner
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  call apply_bounceback_corner_south_east_rear(f00R,f01R,f02R,f03R,f04R,&
+   f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R, &
+   f18R)
+  
+  if(lsingle_fluid)return
+ 
+  call apply_bounceback_corner_south_east_rear(f00B,f01B,f02B,f03B,f04B,&
+   f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B, &
+   f18B)
+   
+  return
+  
+ end subroutine driver_bounceback_corner_south_east_rear
+ 
+ subroutine apply_bounceback_corner_south_east_rear(f00sub,f01sub, &
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -12673,6 +12639,10 @@ subroutine driver_bc_densities
  
   implicit none
   
+  real(kind=PRC), allocatable, dimension(:,:,:) :: &
+   f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub, &
+   f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  
   integer :: i,j,k
   integer, parameter :: kk = 1
   integer, parameter :: kkk = 1
@@ -12682,88 +12652,44 @@ subroutine driver_bc_densities
   
   ! swap pop7 and pop8
 
-  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f07R(nx+kk,ny+kkk,1-kkkk)
-  f07R(nx+kk,ny+kkk,1-kkkk)=f08R(nx+kk,ny+kkk,1-kkkk)
-  f08R(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
+  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f07sub(nx+kk,ny+kkk,1-kkkk)
+  f07sub(nx+kk,ny+kkk,1-kkkk)=f08sub(nx+kk,ny+kkk,1-kkkk)
+  f08sub(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
 
   
   ! swap pop9 and pop10
 
-  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f09R(nx+kk,ny+kkk,1-kkkk)
-  f09R(nx+kk,ny+kkk,1-kkkk)=f10R(nx+kk,ny+kkk,1-kkkk)
-  f10R(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
+  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f09sub(nx+kk,ny+kkk,1-kkkk)
+  f09sub(nx+kk,ny+kkk,1-kkkk)=f10sub(nx+kk,ny+kkk,1-kkkk)
+  f10sub(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
 
   
   ! swap pop11 and pop12
 
-  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f11R(nx+kk,ny+kkk,1-kkkk)
-  f11R(nx+kk,ny+kkk,1-kkkk)=f12R(nx+kk,ny+kkk,1-kkkk)
-  f12R(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
+  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f11sub(nx+kk,ny+kkk,1-kkkk)
+  f11sub(nx+kk,ny+kkk,1-kkkk)=f12sub(nx+kk,ny+kkk,1-kkkk)
+  f12sub(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
 
   
   ! swap pop13 and pop14
 
-  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f13R(nx+kk,ny+kkk,1-kkkk)
-  f13R(nx+kk,ny+kkk,1-kkkk)=f14R(nx+kk,ny+kkk,1-kkkk)
-  f14R(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
+  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f13sub(nx+kk,ny+kkk,1-kkkk)
+  f13sub(nx+kk,ny+kkk,1-kkkk)=f14sub(nx+kk,ny+kkk,1-kkkk)
+  f14sub(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
 
   
   ! swap pop15 and pop16
 
-  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f15R(nx+kk,ny+kkk,1-kkkk)
-  f15R(nx+kk,ny+kkk,1-kkkk)=f16R(nx+kk,ny+kkk,1-kkkk)
-  f16R(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
+  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f15sub(nx+kk,ny+kkk,1-kkkk)
+  f15sub(nx+kk,ny+kkk,1-kkkk)=f16sub(nx+kk,ny+kkk,1-kkkk)
+  f16sub(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
 
   
   ! swap pop17 and pop18
 
-  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f17R(nx+kk,ny+kkk,1-kkkk)
-  f17R(nx+kk,ny+kkk,1-kkkk)=f18R(nx+kk,ny+kkk,1-kkkk)
-  f18R(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
-
-  
-  if(lsingle_fluid)return
-  
-  ! swap pop7 and pop8
-
-  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f07B(nx+kk,ny+kkk,1-kkkk)
-  f07B(nx+kk,ny+kkk,1-kkkk)=f08B(nx+kk,ny+kkk,1-kkkk)
-  f08B(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
-
-  
-  ! swap pop9 and pop10
-
-  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f09B(nx+kk,ny+kkk,1-kkkk)
-  f09B(nx+kk,ny+kkk,1-kkkk)=f10B(nx+kk,ny+kkk,1-kkkk)
-  f10B(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
-
-  
-  ! swap pop11 and pop12
-
-  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f11B(nx+kk,ny+kkk,1-kkkk)
-  f11B(nx+kk,ny+kkk,1-kkkk)=f12B(nx+kk,ny+kkk,1-kkkk)
-  f12B(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
-
-  
-  ! swap pop13 and pop14
-
-  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f13B(nx+kk,ny+kkk,1-kkkk)
-  f13B(nx+kk,ny+kkk,1-kkkk)=f14B(nx+kk,ny+kkk,1-kkkk)
-  f14B(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
-
-  
-  ! swap pop15 and pop16
-
-  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f15B(nx+kk,ny+kkk,1-kkkk)
-  f15B(nx+kk,ny+kkk,1-kkkk)=f16B(nx+kk,ny+kkk,1-kkkk)
-  f16B(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
-
-  
-  ! swap pop17 and pop18
-
-  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f17B(nx+kk,ny+kkk,1-kkkk)
-  f17B(nx+kk,ny+kkk,1-kkkk)=f18B(nx+kk,ny+kkk,1-kkkk)
-  f18B(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
+  buffservice3d(nx+kk,ny+kkk,1-kkkk)=f17sub(nx+kk,ny+kkk,1-kkkk)
+  f17sub(nx+kk,ny+kkk,1-kkkk)=f18sub(nx+kk,ny+kkk,1-kkkk)
+  f18sub(nx+kk,ny+kkk,1-kkkk)=buffservice3d(nx+kk,ny+kkk,1-kkkk)
   
 #else
   

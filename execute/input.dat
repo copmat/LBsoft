@@ -1,9 +1,9 @@
 [ROOM SYSTEM]
-box 32 32 2
+box 32 32 32
 steps 5000
 print vtk 10
 diagnostic yes
-boundary condition 0 0 1
+boundary condition 0 1 0
 #seed 1264
 print list maxd1 mind1 maxvx maxvy maxvz cpue cpur cpu
 print every 10
