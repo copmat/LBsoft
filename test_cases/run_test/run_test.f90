@@ -7,9 +7,9 @@
   
   integer, parameter :: orig_io=17
   integer, parameter :: actual_io=27
+  integer, parameter :: remove_file_io=37
   character(len=*), parameter :: orig_file='output000000.map.orig' 
-  character(len=*), parameter :: actual_file='output000000.map' 
-  character(len=*), parameter :: remove_file='rm -f output000000.map time.dat' 
+  character(len=*), parameter :: actual_file='output000000.map'
   integer, parameter :: maxlen=120
   
   character(len=maxlen),dimension(ntest) :: labeltest
@@ -54,7 +54,7 @@
     call getcwd(temppath)
     !write(6,*)'sono in: ',trim(temppath)
     write(6,'(2a)')'execute test: ',labeltest(i)
-    call system(trim(lbsoftpath)) 
+    call execute_command_line(trim(lbsoftpath),wait=.true.)
     write(6,'(2a)')'check test  : ',labeltest(i)
     open(unit=orig_io,file=trim(orig_file),status='old',action='read')
     open(unit=actual_io,file=trim(actual_file),status='old',action='read')
@@ -83,12 +83,22 @@
         enddo
         close(orig_io)
         close(actual_io)
-        call system(remove_file)
+        open(unit=remove_file_io,file='rm.sh',status='replace')
+        write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+         'rm -f output000000.map time.dat rm.sh'
+        close(remove_file_io)
+        call execute_command_line('chmod 777 rm.sh',wait=.true.)
+        call execute_command_line('./rm.sh',wait=.true.)
         cycle
  100    ltest(i)=.false.
         close(orig_io)
         close(actual_io)
-        call system(remove_file)
+        open(unit=remove_file_io,file='rm.sh',status='replace')
+        write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+         'rm -f output000000.map time.dat rm.sh'
+        close(remove_file_io)
+        call execute_command_line('chmod 777 rm.sh',wait=.true.)
+        call execute_command_line('./rm.sh',wait=.true.)
         cycle
       elseif(imio1(5)==5)then
         dmio1(:)=0.e0
@@ -107,12 +117,22 @@
         enddo
         close(orig_io)
         close(actual_io)
-        call system(remove_file)
+        open(unit=remove_file_io,file='rm.sh',status='replace')
+        write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+         'rm -f output000000.map time.dat rm.sh'
+        close(remove_file_io)
+        call execute_command_line('chmod 777 rm.sh',wait=.true.)
+        call execute_command_line('./rm.sh',wait=.true.)
         cycle
  110    ltest(i)=.false.
         close(orig_io)
         close(actual_io)
-        call system(remove_file)
+        open(unit=remove_file_io,file='rm.sh',status='replace')
+        write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+         'rm -f output000000.map time.dat rm.sh'
+        close(remove_file_io)
+        call execute_command_line('chmod 777 rm.sh',wait=.true.)
+        call execute_command_line('./rm.sh',wait=.true.)
         cycle
       else
         write(6,*)'error test',imio1(1:6)

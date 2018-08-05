@@ -78,6 +78,8 @@
       case (13)
         write(outp,outf2)'ERROR - the actual OPEN boundary conditions are not', &
          ' implemented. Check the bc_type value selected'
+      case (14)
+        write(outp,outf)'ERROR - wrong LB integrator selected'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select

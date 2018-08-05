@@ -34,7 +34,8 @@
   bc_type_north,bc_rhoR_south,bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south,&
   bc_type_south,bc_rhoR_front,bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front,&
   bc_type_front,bc_rhoR_rear,bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear,&
-  bc_type_rear,set_fluid_wall_sc,wallR_SC,wallB_SC
+  bc_type_rear,set_fluid_wall_sc,wallR_SC,wallB_SC,LBintegrator, &
+  set_LBintegrator_type
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery,lvtkfile
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
  use statistic_mod,         only : reprinttime,compute_statistic, &
@@ -1180,6 +1181,7 @@
   endif
   
   if(lforce_add)then
+    call set_LBintegrator_type(1)
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='extra force term'
@@ -1189,6 +1191,7 @@
       write(6,'(3a)')mystring,": ",mystring12
     endif
   else
+    call set_LBintegrator_type(0)
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='extra force term'
@@ -1197,6 +1200,24 @@
       mystring12=adjustr(mystring12)
       write(6,'(3a)')mystring,": ",mystring12
     endif
+  endif
+  
+  if(LBintegrator<0 .or. LBintegrator>1)call error(14)
+  
+  if(idrank==0)then
+    mystring=repeat(' ',dimprint)
+    mystring='LB integrator'
+    mystring12=repeat(' ',dimprint2)
+    select case(LBintegrator)
+    case(0)
+      mystring12='BGK'
+      mystring12=adjustr(mystring12)
+      write(6,'(3a)')mystring,": ",mystring12
+    case(1)
+      mystring12='EDM'
+      mystring12=adjustr(mystring12)
+      write(6,'(3a)')mystring,": ",mystring12
+    end select
   endif
   
   if(idrank==0)then

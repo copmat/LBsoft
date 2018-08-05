@@ -17,9 +17,8 @@
  use profiling_mod,  only : start_timing2,end_timing2, &
                        ldiagnostic
  use fluids_mod,      only : initialize_fluid_force,compute_fluid_force_sc, &
-                        collision_fluids,driver_bc_densities,driver_bc_pops,&
-                        collision_fluids_unique_omega,lunique_omega, &
-                        compute_omega_bimix,streaming_fluids, &
+                        driver_bc_densities,driver_bc_pops,&
+                        driver_collision_fluids,compute_omega,streaming_fluids, &
                         moments_fluids,driver_reflect_densities, &
                         lpair_SC,driver_apply_bounceback_pop,nx,ny,nz,f07R,f08R
  use write_output_mod, only : write_vtk_frame
@@ -160,13 +159,12 @@
   call write_vtk_frame(nstep)
   if(ldiagnostic)call end_timing2("IO","write_vtk_frame")
   
+  if(ldiagnostic)call start_timing2("LB","compute_omega")
+  call compute_omega
+  if(ldiagnostic)call end_timing2("LB","compute_omega")
+  
   if(ldiagnostic)call start_timing2("LB","collision_fluids")
-  if(lunique_omega)then
-    call collision_fluids_unique_omega
-  else
-    call compute_omega_bimix
-    call collision_fluids
-  endif
+  call driver_collision_fluids
   if(ldiagnostic)call end_timing2("LB","collision_fluids")
   
   if(ldiagnostic)call start_timing2("LB","driver_bc_pops")
