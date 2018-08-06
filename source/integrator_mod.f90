@@ -18,9 +18,10 @@
                        ldiagnostic
  use fluids_mod,      only : initialize_fluid_force,compute_fluid_force_sc, &
                         driver_bc_densities,driver_bc_pops,&
-                        driver_collision_fluids,compute_omega,streaming_fluids, &
+                        driver_collision_fluids,compute_omega, &
                         moments_fluids,driver_reflect_densities, &
-                        lpair_SC,driver_apply_bounceback_pop,nx,ny,nz,f07R,f08R
+                        lpair_SC,driver_apply_bounceback_pop, &
+                        driver_streaming_fluids
  use write_output_mod, only : write_vtk_frame
  
  implicit none
@@ -172,7 +173,7 @@
   if(ldiagnostic)call end_timing2("LB","driver_bc_pops")
   
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
-  call streaming_fluids
+  call driver_streaming_fluids
   if(ldiagnostic)call end_timing2("LB","streaming_fluids")
   
   if(ldiagnostic)call start_timing2("LB","apply_bounceback_pop")

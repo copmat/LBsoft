@@ -211,7 +211,7 @@
  public :: set_value_viscosity
  public :: set_value_tau
  public :: compute_omega
- public :: streaming_fluids
+ public :: driver_streaming_fluids
  public :: moments_fluids
  public :: driver_reflect_densities
  public :: set_lsingle_fluid
@@ -1934,7 +1934,40 @@
   
  end subroutine compute_omega
  
- subroutine streaming_fluids
+ subroutine driver_streaming_fluids
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the streaming step
+!     on the Boltzmann populations
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  
+  call streaming_fluids(f00R,f01R,f02R,f03R,f04R, &
+   f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
+   f14R,f15R,f16R,f17R,f18R)
+   
+  if(lsingle_fluid)return
+  
+  call streaming_fluids(f00B,f01B,f02B,f03B,f04B, &
+   f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B, &
+   f14B,f15B,f16B,f17B,f18B)
+  
+  
+  return
+  
+ end subroutine driver_streaming_fluids
+ 
+ subroutine streaming_fluids(f00sub,f01sub,f02sub,f03sub,f04sub, &
+   f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
+   f14sub,f15sub,f16sub,f17sub,f18sub)
  
 !***********************************************************************
 !     
@@ -1949,337 +1982,174 @@
   
   implicit none
   
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: f00sub,f01sub, &
+   f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+   f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  
   integer :: i,j,k,l,ishift,jshift,kshift
   
-  !red fluid
-  
+
   l=1
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f01R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f01sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f01R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f01sub(i,j,k) = buffservice3d(i,j,k)
   
   l=2
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f02R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f02sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f02R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f02sub(i,j,k) = buffservice3d(i,j,k)
   
   l=3
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f03R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f03sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f03R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f03sub(i,j,k) = buffservice3d(i,j,k)
   
   l=4
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f04R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f04sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f04R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f04sub(i,j,k) = buffservice3d(i,j,k)
   
   l=5
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f05R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f05sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f05R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f05sub(i,j,k) = buffservice3d(i,j,k)
   
   l=6
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f06R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f06sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f06R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f06sub(i,j,k) = buffservice3d(i,j,k)
   
   l=7
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f07R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f07sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f07R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f07sub(i,j,k) = buffservice3d(i,j,k)
   
   l=8
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f08R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f08sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f08R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f08sub(i,j,k) = buffservice3d(i,j,k)
   
   l=9
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f09R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f09sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f09R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f09sub(i,j,k) = buffservice3d(i,j,k)
   
   l=10
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f10R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f10sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f10R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f10sub(i,j,k) = buffservice3d(i,j,k)
   
   l=11
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f11R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f11sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f11R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f11sub(i,j,k) = buffservice3d(i,j,k)
   
   l=12
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f12R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f12sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f12R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f12sub(i,j,k) = buffservice3d(i,j,k)
   
   l=13
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f13R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f13sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f13R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f13sub(i,j,k) = buffservice3d(i,j,k)
   
   l=14
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f14R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f14sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f14R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f14sub(i,j,k) = buffservice3d(i,j,k)
   
   l=15
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f15R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f15sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f15R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f15sub(i,j,k) = buffservice3d(i,j,k)
   
   l=16
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f16R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f16sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f16R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f16sub(i,j,k) = buffservice3d(i,j,k)
   
   l=17
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f17R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f17sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f17R(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f17sub(i,j,k) = buffservice3d(i,j,k)
   
   l=18
   ishift=ex(l)
   jshift=ey(l)
   kshift=ez(l)
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f18R(i,j,k)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f18sub(i,j,k)
   end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f18R(i,j,k) = buffservice3d(i,j,k)
-  
-  if(lsingle_fluid)return
-  
-  !blue fluid
-  
-  l=1
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f01B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f01B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=2
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f02B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f02B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=3
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f03B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f03B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=4
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f04B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f04B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=5
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f05B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f05B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=6
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f06B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f06B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=7
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f07B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f07B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=8
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f08B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f08B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=9
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f09B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f09B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=10
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f10B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f10B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=11
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f11B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f11B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=12
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f12B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f12B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=13
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f13B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f13B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=14
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f14B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f14B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=15
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f15B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f15B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=16
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f16B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f16B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=17
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f17B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f17B(i,j,k) = buffservice3d(i,j,k)
-  
-  l=18
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f18B(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f18B(i,j,k) = buffservice3d(i,j,k)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f18sub(i,j,k) = buffservice3d(i,j,k)
   
   return
   
@@ -2306,19 +2176,22 @@
   
   !compute density and accumulate mass flux
   
+  forall(i=1:nx,j=1:ny,k=1:nz)
+    u(i,j,k)    = ZERO
+    v(i,j,k)    = ZERO
+    w(i,j,k)    = ZERO
+  end forall
+  
   !red fluid
   
   if(lsingle_fluid)then
-  
+    
     l=0
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
     forall(i=1:nx,j=1:ny,k=1:nz)
       rhoR(i,j,k) = f00R(i,j,k)
-      u(i,j,k)    = f00R(i,j,k)*ddx
-      v(i,j,k)    = f00R(i,j,k)*ddy
-      w(i,j,k)    = f00R(i,j,k)*ddz
     end forall
   
     l=1
@@ -2328,8 +2201,6 @@
     forall(i=1:nx,j=1:ny,k=1:nz)
       rhoR(i,j,k) = f01R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f01R(i,j,k)*ddx + u(i,j,k)
-      v(i,j,k)    = f01R(i,j,k)*ddy + v(i,j,k)
-      w(i,j,k)    = f01R(i,j,k)*ddz + w(i,j,k)
     end forall
     
     l=2
@@ -2339,8 +2210,6 @@
     forall(i=1:nx,j=1:ny,k=1:nz)
       rhoR(i,j,k) = f02R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f02R(i,j,k)*ddx + u(i,j,k)
-      v(i,j,k)    = f02R(i,j,k)*ddy + v(i,j,k)
-      w(i,j,k)    = f02R(i,j,k)*ddz + w(i,j,k)
     end forall
   
     l=3
@@ -2349,9 +2218,7 @@
     ddz=dez(l)
     forall(i=1:nx,j=1:ny,k=1:nz)
       rhoR(i,j,k) = f03R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f03R(i,j,k)*ddx + u(i,j,k)
       v(i,j,k)    = f03R(i,j,k)*ddy + v(i,j,k)
-      w(i,j,k)    = f03R(i,j,k)*ddz + w(i,j,k)
     end forall
     
     l=4
@@ -2360,9 +2227,7 @@
     ddz=dez(l)
     forall(i=1:nx,j=1:ny,k=1:nz)
       rhoR(i,j,k) = f04R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f04R(i,j,k)*ddx + u(i,j,k)
       v(i,j,k)    = f04R(i,j,k)*ddy + v(i,j,k)
-      w(i,j,k)    = f04R(i,j,k)*ddz + w(i,j,k)
     end forall
   
     l=5
@@ -2371,8 +2236,6 @@
     ddz=dez(l)
     forall(i=1:nx,j=1:ny,k=1:nz)
       rhoR(i,j,k) = f05R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f05R(i,j,k)*ddx + u(i,j,k)
-      v(i,j,k)    = f05R(i,j,k)*ddy + v(i,j,k)
       w(i,j,k)    = f05R(i,j,k)*ddz + w(i,j,k)
     end forall
     
@@ -2382,8 +2245,6 @@
     ddz=dez(l)
     forall(i=1:nx,j=1:ny,k=1:nz)
       rhoR(i,j,k) = f06R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f06R(i,j,k)*ddx + u(i,j,k)
-      v(i,j,k)    = f06R(i,j,k)*ddy + v(i,j,k)
       w(i,j,k)    = f06R(i,j,k)*ddz + w(i,j,k)
     end forall
   
@@ -2395,7 +2256,6 @@
       rhoR(i,j,k) = f07R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f07R(i,j,k)*ddx + u(i,j,k)
       v(i,j,k)    = f07R(i,j,k)*ddy + v(i,j,k)
-      w(i,j,k)    = f07R(i,j,k)*ddz + w(i,j,k)
     end forall
     
     l=8
@@ -2406,7 +2266,6 @@
       rhoR(i,j,k) = f08R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f08R(i,j,k)*ddx + u(i,j,k)
       v(i,j,k)    = f08R(i,j,k)*ddy + v(i,j,k)
-      w(i,j,k)    = f08R(i,j,k)*ddz + w(i,j,k)
     end forall
     
     l=9
@@ -2417,7 +2276,6 @@
       rhoR(i,j,k) = f09R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f09R(i,j,k)*ddx + u(i,j,k)
       v(i,j,k)    = f09R(i,j,k)*ddy + v(i,j,k)
-      w(i,j,k)    = f09R(i,j,k)*ddz + w(i,j,k)
     end forall
     
     l=10
@@ -2428,7 +2286,6 @@
       rhoR(i,j,k) = f10R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f10R(i,j,k)*ddx + u(i,j,k)
       v(i,j,k)    = f10R(i,j,k)*ddy + v(i,j,k)
-      w(i,j,k)    = f10R(i,j,k)*ddz + w(i,j,k)
     end forall
     
     l=11
@@ -2438,7 +2295,6 @@
     forall(i=1:nx,j=1:ny,k=1:nz)
       rhoR(i,j,k) = f11R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f11R(i,j,k)*ddx + u(i,j,k)
-      v(i,j,k)    = f11R(i,j,k)*ddy + v(i,j,k)
       w(i,j,k)    = f11R(i,j,k)*ddz + w(i,j,k)
     end forall
     
@@ -2449,7 +2305,6 @@
     forall(i=1:nx,j=1:ny,k=1:nz)
       rhoR(i,j,k) = f12R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f12R(i,j,k)*ddx + u(i,j,k)
-      v(i,j,k)    = f12R(i,j,k)*ddy + v(i,j,k)
       w(i,j,k)    = f12R(i,j,k)*ddz + w(i,j,k)
     end forall
     
@@ -2460,7 +2315,6 @@
     forall(i=1:nx,j=1:ny,k=1:nz)
       rhoR(i,j,k) = f13R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f13R(i,j,k)*ddx + u(i,j,k)
-      v(i,j,k)    = f13R(i,j,k)*ddy + v(i,j,k)
       w(i,j,k)    = f13R(i,j,k)*ddz + w(i,j,k)
     end forall
     
@@ -2471,7 +2325,6 @@
     forall(i=1:nx,j=1:ny,k=1:nz)
       rhoR(i,j,k) = f14R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f14R(i,j,k)*ddx + u(i,j,k)
-      v(i,j,k)    = f14R(i,j,k)*ddy + v(i,j,k)
       w(i,j,k)    = f14R(i,j,k)*ddz + w(i,j,k)
     end forall
     
@@ -2481,7 +2334,6 @@
     ddz=dez(l)
     forall(i=1:nx,j=1:ny,k=1:nz)
       rhoR(i,j,k) = f15R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f15R(i,j,k)*ddx + u(i,j,k)
       v(i,j,k)    = f15R(i,j,k)*ddy + v(i,j,k)
       w(i,j,k)    = f15R(i,j,k)*ddz + w(i,j,k)
     end forall
@@ -2492,7 +2344,6 @@
     ddz=dez(l)
     forall(i=1:nx,j=1:ny,k=1:nz)
       rhoR(i,j,k) = f16R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f16R(i,j,k)*ddx + u(i,j,k)
       v(i,j,k)    = f16R(i,j,k)*ddy + v(i,j,k)
       w(i,j,k)    = f16R(i,j,k)*ddz + w(i,j,k)
     end forall
@@ -2503,7 +2354,6 @@
     ddz=dez(l)
     forall(i=1:nx,j=1:ny,k=1:nz)
       rhoR(i,j,k) = f17R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f17R(i,j,k)*ddx + u(i,j,k)
       v(i,j,k)    = f17R(i,j,k)*ddy + v(i,j,k)
       w(i,j,k)    = f17R(i,j,k)*ddz + w(i,j,k)
     end forall
@@ -2514,7 +2364,6 @@
     ddz=dez(l)
     forall(i=1:nx,j=1:ny,k=1:nz)
       rhoR(i,j,k) = f18R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f18R(i,j,k)*ddx + u(i,j,k)
       v(i,j,k)    = f18R(i,j,k)*ddy + v(i,j,k)
       w(i,j,k)    = f18R(i,j,k)*ddz + w(i,j,k)
     end forall
@@ -2534,9 +2383,6 @@
   ddz=dez(l)/tauR
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoR(i,j,k) = f00R(i,j,k)
-    u(i,j,k)    = f00R(i,j,k)*ddx
-    v(i,j,k)    = f00R(i,j,k)*ddy
-    w(i,j,k)    = f00R(i,j,k)*ddz
   end forall
   
   l=1
@@ -2546,8 +2392,6 @@
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoR(i,j,k) = f01R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f01R(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f01R(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f01R(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=2
@@ -2557,8 +2401,6 @@
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoR(i,j,k) = f02R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f02R(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f02R(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f02R(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=3
@@ -2567,9 +2409,7 @@
   ddz=dez(l)/tauR
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoR(i,j,k) = f03R(i,j,k) + rhoR(i,j,k)
-    u(i,j,k)    = f03R(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f03R(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f03R(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=4
@@ -2578,9 +2418,7 @@
   ddz=dez(l)/tauR
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoR(i,j,k) = f04R(i,j,k) + rhoR(i,j,k)
-    u(i,j,k)    = f04R(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f04R(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f04R(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=5
@@ -2589,8 +2427,6 @@
   ddz=dez(l)/tauR
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoR(i,j,k) = f05R(i,j,k) + rhoR(i,j,k)
-    u(i,j,k)    = f05R(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f05R(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f05R(i,j,k)*ddz + w(i,j,k)
   end forall
   
@@ -2600,8 +2436,6 @@
   ddz=dez(l)/tauR
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoR(i,j,k) = f06R(i,j,k) + rhoR(i,j,k)
-    u(i,j,k)    = f06R(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f06R(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f06R(i,j,k)*ddz + w(i,j,k)
   end forall
   
@@ -2613,7 +2447,6 @@
     rhoR(i,j,k) = f07R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f07R(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f07R(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f07R(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=8
@@ -2624,7 +2457,6 @@
     rhoR(i,j,k) = f08R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f08R(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f08R(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f08R(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=9
@@ -2635,7 +2467,6 @@
     rhoR(i,j,k) = f09R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f09R(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f09R(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f09R(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=10
@@ -2646,7 +2477,6 @@
     rhoR(i,j,k) = f10R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f10R(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f10R(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f10R(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=11
@@ -2656,7 +2486,6 @@
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoR(i,j,k) = f11R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f11R(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f11R(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f11R(i,j,k)*ddz + w(i,j,k)
   end forall
   
@@ -2667,7 +2496,6 @@
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoR(i,j,k) = f12R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f12R(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f12R(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f12R(i,j,k)*ddz + w(i,j,k)
   end forall
   
@@ -2678,7 +2506,6 @@
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoR(i,j,k) = f13R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f13R(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f13R(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f13R(i,j,k)*ddz + w(i,j,k)
   end forall
   
@@ -2689,7 +2516,6 @@
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoR(i,j,k) = f14R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f14R(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f14R(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f14R(i,j,k)*ddz + w(i,j,k)
   end forall
   
@@ -2699,7 +2525,6 @@
   ddz=dez(l)/tauR
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoR(i,j,k) = f15R(i,j,k) + rhoR(i,j,k)
-    u(i,j,k)    = f15R(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f15R(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f15R(i,j,k)*ddz + w(i,j,k)
   end forall
@@ -2710,7 +2535,6 @@
   ddz=dez(l)/tauR
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoR(i,j,k) = f16R(i,j,k) + rhoR(i,j,k)
-    u(i,j,k)    = f16R(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f16R(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f16R(i,j,k)*ddz + w(i,j,k)
   end forall
@@ -2721,7 +2545,6 @@
   ddz=dez(l)/tauR
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoR(i,j,k) = f17R(i,j,k) + rhoR(i,j,k)
-    u(i,j,k)    = f17R(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f17R(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f17R(i,j,k)*ddz + w(i,j,k)
   end forall
@@ -2732,7 +2555,6 @@
   ddz=dez(l)/tauR
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoR(i,j,k) = f18R(i,j,k) + rhoR(i,j,k)
-    u(i,j,k)    = f18R(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f18R(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f18R(i,j,k)*ddz + w(i,j,k)
   end forall
@@ -2745,9 +2567,6 @@
   ddz=dez(l)/tauB
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoB(i,j,k) = f00B(i,j,k)
-    u(i,j,k)    = f00B(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f00B(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f00B(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=1
@@ -2757,8 +2576,6 @@
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoB(i,j,k) = f01B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f01B(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f01B(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f01B(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=2
@@ -2768,8 +2585,6 @@
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoB(i,j,k) = f02B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f02B(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f02B(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f02B(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=3
@@ -2778,9 +2593,7 @@
   ddz=dez(l)/tauB
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoB(i,j,k) = f03B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f03B(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f03B(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f03B(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=4
@@ -2789,9 +2602,7 @@
   ddz=dez(l)/tauB
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoB(i,j,k) = f04B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f04B(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f04B(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f04B(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=5
@@ -2800,8 +2611,6 @@
   ddz=dez(l)/tauB
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoB(i,j,k) = f05B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f05B(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f05B(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f05B(i,j,k)*ddz + w(i,j,k)
   end forall
   
@@ -2811,8 +2620,6 @@
   ddz=dez(l)/tauB
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoB(i,j,k) = f06B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f06B(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f06B(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f06B(i,j,k)*ddz + w(i,j,k)
   end forall
   
@@ -2824,7 +2631,6 @@
     rhoB(i,j,k) = f07B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f07B(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f07B(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f07B(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=8
@@ -2835,7 +2641,6 @@
     rhoB(i,j,k) = f08B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f08B(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f08B(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f08B(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=9
@@ -2846,7 +2651,6 @@
     rhoB(i,j,k) = f09B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f09B(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f09B(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f09B(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=10
@@ -2857,7 +2661,6 @@
     rhoB(i,j,k) = f10B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f10B(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f10B(i,j,k)*ddy + v(i,j,k)
-    w(i,j,k)    = f10B(i,j,k)*ddz + w(i,j,k)
   end forall
   
   l=11
@@ -2867,7 +2670,6 @@
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoB(i,j,k) = f11B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f11B(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f11B(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f11B(i,j,k)*ddz + w(i,j,k)
   end forall
   
@@ -2878,7 +2680,6 @@
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoB(i,j,k) = f12B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f12B(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f12B(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f12B(i,j,k)*ddz + w(i,j,k)
   end forall
   
@@ -2889,7 +2690,6 @@
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoB(i,j,k) = f13B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f13B(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f13B(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f13B(i,j,k)*ddz + w(i,j,k)
   end forall
   
@@ -2900,7 +2700,6 @@
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoB(i,j,k) = f14B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f14B(i,j,k)*ddx + u(i,j,k)
-    v(i,j,k)    = f14B(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f14B(i,j,k)*ddz + w(i,j,k)
   end forall
   
@@ -2910,7 +2709,6 @@
   ddz=dez(l)/tauB
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoB(i,j,k) = f15B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f15B(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f15B(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f15B(i,j,k)*ddz + w(i,j,k)
   end forall
@@ -2921,7 +2719,6 @@
   ddz=dez(l)/tauB
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoB(i,j,k) = f16B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f16B(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f16B(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f16B(i,j,k)*ddz + w(i,j,k)
   end forall
@@ -2932,7 +2729,6 @@
   ddz=dez(l)/tauB
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoB(i,j,k) = f17B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f17B(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f17B(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f17B(i,j,k)*ddz + w(i,j,k)
   end forall
@@ -2943,7 +2739,6 @@
   ddz=dez(l)/tauB
   forall(i=1:nx,j=1:ny,k=1:nz)
     rhoB(i,j,k) = f18B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f18B(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f18B(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f18B(i,j,k)*ddz + w(i,j,k)
   end forall
