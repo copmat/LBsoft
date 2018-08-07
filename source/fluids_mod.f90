@@ -11998,16 +11998,16 @@ subroutine driver_bc_densities
   !sides 6
   
   !apply reflection at north 1   !z
-  call apply_reflection_north(rhoR)
+  call apply_reflection_north(1,nx,1,ny,rhoR)
   
   !apply reflection at south 2   !z
   call apply_reflection_south(rhoR)
   
   !apply reflection at east 3    !x
-  call apply_reflection_east(rhoR)
+  call apply_reflection_east(1,ny,1,nz,rhoR)
   
   !apply reflection at west 4    !x
-  call apply_reflection_west(rhoR)
+  call apply_reflection_west(1,ny,1,nz,rhoR)
   
   !apply reflection at front 5   !y
   call apply_reflection_front(rhoR)
@@ -12084,16 +12084,16 @@ subroutine driver_bc_densities
   !sides 6
   
   !apply reflection at north 1   !z
-  call apply_reflection_north(rhoB)
+  call apply_reflection_north(1,nx,1,ny,rhoB)
   
   !apply reflection at south 2   !z
   call apply_reflection_south(rhoB)
   
   !apply reflection at east 3    !x
-  call apply_reflection_east(rhoB)
+  call apply_reflection_east(1,ny,1,nz,rhoB)
   
   !apply reflection at west 4    !x
-  call apply_reflection_west(rhoB)
+  call apply_reflection_west(1,ny,1,nz,rhoB)
   
   !apply reflection at front 5   !y
   call apply_reflection_front(rhoB)
@@ -12196,7 +12196,8 @@ subroutine driver_bc_densities
   
   !apply pbc at north 1 !z
   !red fluid
-  call apply_reflection_north_frame_x(rhoR)
+  !frame x
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,rhoR)
   
   !apply pbc at south 2 !z
   !red fluid
@@ -12255,7 +12256,8 @@ subroutine driver_bc_densities
   
   !apply pbc at north 1 !z
   !blue fluid
-  call apply_reflection_north_frame_x(rhoB)
+  !frame x
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,rhoB)
   
   !apply pbc at south 2 !z
   !blue fluid
@@ -12319,18 +12321,19 @@ subroutine driver_bc_densities
   implicit none
   
   !sides 6
-  
+  !frame y
   !apply pbc at east 3 !x
   !red fluid
-  call apply_reflection_east_frame_y(rhoR)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,rhoR)
   
   !apply pbc at west 4 !x
   !red fluid
-  call apply_reflection_west_frame_y(rhoR)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,rhoR)
   
   !apply pbc at north 1 !z
   !red fluid
-  call apply_reflection_north_frame_y(rhoR)
+  !frame y
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,rhoR)
   
   !apply pbc at south 2 !z
   !red fluid
@@ -12380,15 +12383,16 @@ subroutine driver_bc_densities
   
   !apply pbc at east 3 !x
   !blue fluid
-  call apply_reflection_east_frame_y(rhoB)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,rhoB)
   
   !apply pbc at west 4 !x
   !blue fluid
-  call apply_reflection_west_frame_y(rhoB)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,rhoB)
   
   !apply pbc at north 1 !z
   !blue fluid
-  call apply_reflection_north_frame_y(rhoB)
+  !frame y
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,rhoB)
   
   !apply pbc at south 2 !z
   !blue fluid
@@ -12452,14 +12456,14 @@ subroutine driver_bc_densities
   implicit none
   
   !sides 6
-  
+  !frame z
   !apply pbc at east 3 !x
   !red fluid
-  call apply_reflection_east_frame_z(rhoR)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,rhoR)
   
   !apply pbc at west 4 !x
   !red fluid
-  call apply_reflection_west_frame_z(rhoR)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,rhoR)
   
   !apply pbc at front 5 !y
   !red fluid
@@ -12513,11 +12517,11 @@ subroutine driver_bc_densities
   
   !apply pbc at east 3 !x
   !blue fluid
-  call apply_reflection_east_frame_z(rhoB)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,rhoB)
   
   !apply pbc at west 4 !x
   !blue fluid
-  call apply_reflection_west_frame_z(rhoB)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,rhoB)
   
   !apply pbc at front 5 !y
   !blue fluid
@@ -12588,7 +12592,8 @@ subroutine driver_bc_densities
   
   !apply pbc at north 1 !z
   !red fluid
-  call apply_reflection_north_frame(rhoR)
+  !frame
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,rhoR)
   
   !apply pbc at south 2 !z
   !red fluid
@@ -12600,7 +12605,8 @@ subroutine driver_bc_densities
   
   !apply pbc at north 1 !z
   !blue fluid
-  call apply_reflection_north_frame(rhoB)
+  !frame
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,rhoB)
   
   !apply pbc at south 2 !z
   !blue fluid
@@ -12667,14 +12673,14 @@ subroutine driver_bc_densities
   implicit none
   
   !sides 6
-  
+  !frame complete
   !apply pbc at east 3 !x
   !red fluid
-  call apply_reflection_east_frame(rhoR)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,rhoR)
   
   !apply pbc at west 4 !x
   !red fluid
-  call apply_reflection_west_frame(rhoR)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,rhoR)
   
   if(lsingle_fluid)return
   
@@ -12682,11 +12688,11 @@ subroutine driver_bc_densities
   
   !apply pbc at east 3 !x
   !blue fluid
-  call apply_reflection_east_frame(rhoB)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,rhoB)
   
   !apply pbc at west 4 !x
   !blue fluid
-  call apply_reflection_west_frame(rhoB)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,rhoB)
   
   return
   
@@ -12750,25 +12756,25 @@ subroutine driver_bc_densities
   !sides 6
   
   !apply reflection at north 1   !z
-  call apply_reflection_north(f00R)
-  call apply_reflection_north(f01R)
-  call apply_reflection_north(f02R)
-  call apply_reflection_north(f03R)
-  call apply_reflection_north(f04R)
-  call apply_reflection_north(f05R)
-  call apply_reflection_north(f06R)
-  call apply_reflection_north(f07R)
-  call apply_reflection_north(f08R)
-  call apply_reflection_north(f09R)
-  call apply_reflection_north(f10R)
-  call apply_reflection_north(f11R)
-  call apply_reflection_north(f12R)
-  call apply_reflection_north(f13R)
-  call apply_reflection_north(f14R)
-  call apply_reflection_north(f15R)
-  call apply_reflection_north(f16R)
-  call apply_reflection_north(f17R)
-  call apply_reflection_north(f18R)
+  call apply_reflection_north(1,nx,1,ny,f00R)
+  call apply_reflection_north(1,nx,1,ny,f01R)
+  call apply_reflection_north(1,nx,1,ny,f02R)
+  call apply_reflection_north(1,nx,1,ny,f03R)
+  call apply_reflection_north(1,nx,1,ny,f04R)
+  call apply_reflection_north(1,nx,1,ny,f05R)
+  call apply_reflection_north(1,nx,1,ny,f06R)
+  call apply_reflection_north(1,nx,1,ny,f07R)
+  call apply_reflection_north(1,nx,1,ny,f08R)
+  call apply_reflection_north(1,nx,1,ny,f09R)
+  call apply_reflection_north(1,nx,1,ny,f10R)
+  call apply_reflection_north(1,nx,1,ny,f11R)
+  call apply_reflection_north(1,nx,1,ny,f12R)
+  call apply_reflection_north(1,nx,1,ny,f13R)
+  call apply_reflection_north(1,nx,1,ny,f14R)
+  call apply_reflection_north(1,nx,1,ny,f15R)
+  call apply_reflection_north(1,nx,1,ny,f16R)
+  call apply_reflection_north(1,nx,1,ny,f17R)
+  call apply_reflection_north(1,nx,1,ny,f18R)
   
   !apply reflection at south 2   !z
   call apply_reflection_south(f00R)
@@ -12792,46 +12798,46 @@ subroutine driver_bc_densities
   call apply_reflection_south(f18R)
   
   !apply reflection at east 3    !x
-  call apply_reflection_east(f00R)
-  call apply_reflection_east(f01R)
-  call apply_reflection_east(f02R)
-  call apply_reflection_east(f03R)
-  call apply_reflection_east(f04R)
-  call apply_reflection_east(f05R)
-  call apply_reflection_east(f06R)
-  call apply_reflection_east(f07R)
-  call apply_reflection_east(f08R)
-  call apply_reflection_east(f09R)
-  call apply_reflection_east(f10R)
-  call apply_reflection_east(f11R)
-  call apply_reflection_east(f12R)
-  call apply_reflection_east(f13R)
-  call apply_reflection_east(f14R)
-  call apply_reflection_east(f15R)
-  call apply_reflection_east(f16R)
-  call apply_reflection_east(f17R)
-  call apply_reflection_east(f18R)
+  call apply_reflection_east(1,ny,1,nz,f00R)
+  call apply_reflection_east(1,ny,1,nz,f01R)
+  call apply_reflection_east(1,ny,1,nz,f02R)
+  call apply_reflection_east(1,ny,1,nz,f03R)
+  call apply_reflection_east(1,ny,1,nz,f04R)
+  call apply_reflection_east(1,ny,1,nz,f05R)
+  call apply_reflection_east(1,ny,1,nz,f06R)
+  call apply_reflection_east(1,ny,1,nz,f07R)
+  call apply_reflection_east(1,ny,1,nz,f08R)
+  call apply_reflection_east(1,ny,1,nz,f09R)
+  call apply_reflection_east(1,ny,1,nz,f10R)
+  call apply_reflection_east(1,ny,1,nz,f11R)
+  call apply_reflection_east(1,ny,1,nz,f12R)
+  call apply_reflection_east(1,ny,1,nz,f13R)
+  call apply_reflection_east(1,ny,1,nz,f14R)
+  call apply_reflection_east(1,ny,1,nz,f15R)
+  call apply_reflection_east(1,ny,1,nz,f16R)
+  call apply_reflection_east(1,ny,1,nz,f17R)
+  call apply_reflection_east(1,ny,1,nz,f18R)
   
   !apply reflection at west 4    !x
-  call apply_reflection_west(f00R)
-  call apply_reflection_west(f01R)
-  call apply_reflection_west(f02R)
-  call apply_reflection_west(f03R)
-  call apply_reflection_west(f04R)
-  call apply_reflection_west(f05R)
-  call apply_reflection_west(f06R)
-  call apply_reflection_west(f07R)
-  call apply_reflection_west(f08R)
-  call apply_reflection_west(f09R)
-  call apply_reflection_west(f10R)
-  call apply_reflection_west(f11R)
-  call apply_reflection_west(f12R)
-  call apply_reflection_west(f13R)
-  call apply_reflection_west(f14R)
-  call apply_reflection_west(f15R)
-  call apply_reflection_west(f16R)
-  call apply_reflection_west(f17R)
-  call apply_reflection_west(f18R)
+  call apply_reflection_west(1,ny,1,nz,f00R)
+  call apply_reflection_west(1,ny,1,nz,f01R)
+  call apply_reflection_west(1,ny,1,nz,f02R)
+  call apply_reflection_west(1,ny,1,nz,f03R)
+  call apply_reflection_west(1,ny,1,nz,f04R)
+  call apply_reflection_west(1,ny,1,nz,f05R)
+  call apply_reflection_west(1,ny,1,nz,f06R)
+  call apply_reflection_west(1,ny,1,nz,f07R)
+  call apply_reflection_west(1,ny,1,nz,f08R)
+  call apply_reflection_west(1,ny,1,nz,f09R)
+  call apply_reflection_west(1,ny,1,nz,f10R)
+  call apply_reflection_west(1,ny,1,nz,f11R)
+  call apply_reflection_west(1,ny,1,nz,f12R)
+  call apply_reflection_west(1,ny,1,nz,f13R)
+  call apply_reflection_west(1,ny,1,nz,f14R)
+  call apply_reflection_west(1,ny,1,nz,f15R)
+  call apply_reflection_west(1,ny,1,nz,f16R)
+  call apply_reflection_west(1,ny,1,nz,f17R)
+  call apply_reflection_west(1,ny,1,nz,f18R)
   
   !apply reflection at front 5   !y
   call apply_reflection_front(f00R)
@@ -13304,25 +13310,25 @@ subroutine driver_bc_densities
   !sides 6
   
   !apply reflection at north 1   !z
-  call apply_reflection_north(f00B)
-  call apply_reflection_north(f01B)
-  call apply_reflection_north(f02B)
-  call apply_reflection_north(f03B)
-  call apply_reflection_north(f04B)
-  call apply_reflection_north(f05B)
-  call apply_reflection_north(f06B)
-  call apply_reflection_north(f07B)
-  call apply_reflection_north(f08B)
-  call apply_reflection_north(f09B)
-  call apply_reflection_north(f10B)
-  call apply_reflection_north(f11B)
-  call apply_reflection_north(f12B)
-  call apply_reflection_north(f13B)
-  call apply_reflection_north(f14B)
-  call apply_reflection_north(f15B)
-  call apply_reflection_north(f16B)
-  call apply_reflection_north(f17B)
-  call apply_reflection_north(f18B)
+  call apply_reflection_north(1,nx,1,ny,f00B)
+  call apply_reflection_north(1,nx,1,ny,f01B)
+  call apply_reflection_north(1,nx,1,ny,f02B)
+  call apply_reflection_north(1,nx,1,ny,f03B)
+  call apply_reflection_north(1,nx,1,ny,f04B)
+  call apply_reflection_north(1,nx,1,ny,f05B)
+  call apply_reflection_north(1,nx,1,ny,f06B)
+  call apply_reflection_north(1,nx,1,ny,f07B)
+  call apply_reflection_north(1,nx,1,ny,f08B)
+  call apply_reflection_north(1,nx,1,ny,f09B)
+  call apply_reflection_north(1,nx,1,ny,f10B)
+  call apply_reflection_north(1,nx,1,ny,f11B)
+  call apply_reflection_north(1,nx,1,ny,f12B)
+  call apply_reflection_north(1,nx,1,ny,f13B)
+  call apply_reflection_north(1,nx,1,ny,f14B)
+  call apply_reflection_north(1,nx,1,ny,f15B)
+  call apply_reflection_north(1,nx,1,ny,f16B)
+  call apply_reflection_north(1,nx,1,ny,f17B)
+  call apply_reflection_north(1,nx,1,ny,f18B)
   
   !apply reflection at south 2   !z
   call apply_reflection_south(f00B)
@@ -13346,46 +13352,46 @@ subroutine driver_bc_densities
   call apply_reflection_south(f18B)
   
   !apply reflection at east 3    !x
-  call apply_reflection_east(f00B)
-  call apply_reflection_east(f01B)
-  call apply_reflection_east(f02B)
-  call apply_reflection_east(f03B)
-  call apply_reflection_east(f04B)
-  call apply_reflection_east(f05B)
-  call apply_reflection_east(f06B)
-  call apply_reflection_east(f07B)
-  call apply_reflection_east(f08B)
-  call apply_reflection_east(f09B)
-  call apply_reflection_east(f10B)
-  call apply_reflection_east(f11B)
-  call apply_reflection_east(f12B)
-  call apply_reflection_east(f13B)
-  call apply_reflection_east(f14B)
-  call apply_reflection_east(f15B)
-  call apply_reflection_east(f16B)
-  call apply_reflection_east(f17B)
-  call apply_reflection_east(f18B)
+  call apply_reflection_east(1,ny,1,nz,f00B)
+  call apply_reflection_east(1,ny,1,nz,f01B)
+  call apply_reflection_east(1,ny,1,nz,f02B)
+  call apply_reflection_east(1,ny,1,nz,f03B)
+  call apply_reflection_east(1,ny,1,nz,f04B)
+  call apply_reflection_east(1,ny,1,nz,f05B)
+  call apply_reflection_east(1,ny,1,nz,f06B)
+  call apply_reflection_east(1,ny,1,nz,f07B)
+  call apply_reflection_east(1,ny,1,nz,f08B)
+  call apply_reflection_east(1,ny,1,nz,f09B)
+  call apply_reflection_east(1,ny,1,nz,f10B)
+  call apply_reflection_east(1,ny,1,nz,f11B)
+  call apply_reflection_east(1,ny,1,nz,f12B)
+  call apply_reflection_east(1,ny,1,nz,f13B)
+  call apply_reflection_east(1,ny,1,nz,f14B)
+  call apply_reflection_east(1,ny,1,nz,f15B)
+  call apply_reflection_east(1,ny,1,nz,f16B)
+  call apply_reflection_east(1,ny,1,nz,f17B)
+  call apply_reflection_east(1,ny,1,nz,f18B)
   
   !apply reflection at west 4    !x
-  call apply_reflection_west(f00B)
-  call apply_reflection_west(f01B)
-  call apply_reflection_west(f02B)
-  call apply_reflection_west(f03B)
-  call apply_reflection_west(f04B)
-  call apply_reflection_west(f05B)
-  call apply_reflection_west(f06B)
-  call apply_reflection_west(f07B)
-  call apply_reflection_west(f08B)
-  call apply_reflection_west(f09B)
-  call apply_reflection_west(f10B)
-  call apply_reflection_west(f11B)
-  call apply_reflection_west(f12B)
-  call apply_reflection_west(f13B)
-  call apply_reflection_west(f14B)
-  call apply_reflection_west(f15B)
-  call apply_reflection_west(f16B)
-  call apply_reflection_west(f17B)
-  call apply_reflection_west(f18B)
+  call apply_reflection_west(1,ny,1,nz,f00B)
+  call apply_reflection_west(1,ny,1,nz,f01B)
+  call apply_reflection_west(1,ny,1,nz,f02B)
+  call apply_reflection_west(1,ny,1,nz,f03B)
+  call apply_reflection_west(1,ny,1,nz,f04B)
+  call apply_reflection_west(1,ny,1,nz,f05B)
+  call apply_reflection_west(1,ny,1,nz,f06B)
+  call apply_reflection_west(1,ny,1,nz,f07B)
+  call apply_reflection_west(1,ny,1,nz,f08B)
+  call apply_reflection_west(1,ny,1,nz,f09B)
+  call apply_reflection_west(1,ny,1,nz,f10B)
+  call apply_reflection_west(1,ny,1,nz,f11B)
+  call apply_reflection_west(1,ny,1,nz,f12B)
+  call apply_reflection_west(1,ny,1,nz,f13B)
+  call apply_reflection_west(1,ny,1,nz,f14B)
+  call apply_reflection_west(1,ny,1,nz,f15B)
+  call apply_reflection_west(1,ny,1,nz,f16B)
+  call apply_reflection_west(1,ny,1,nz,f17B)
+  call apply_reflection_west(1,ny,1,nz,f18B)
   
   !apply reflection at front 5   !y
   call apply_reflection_front(f00B)
@@ -13920,25 +13926,26 @@ subroutine driver_bc_densities
   
   !apply pbc at north 1 !z
   !red fluid
-  call apply_reflection_north_frame_x(f00R)
-  call apply_reflection_north_frame_x(f01R)
-  call apply_reflection_north_frame_x(f02R)
-  call apply_reflection_north_frame_x(f03R)
-  call apply_reflection_north_frame_x(f04R)
-  call apply_reflection_north_frame_x(f05R)
-  call apply_reflection_north_frame_x(f06R)
-  call apply_reflection_north_frame_x(f07R)
-  call apply_reflection_north_frame_x(f08R)
-  call apply_reflection_north_frame_x(f09R)
-  call apply_reflection_north_frame_x(f10R)
-  call apply_reflection_north_frame_x(f11R)
-  call apply_reflection_north_frame_x(f12R)
-  call apply_reflection_north_frame_x(f13R)
-  call apply_reflection_north_frame_x(f14R)
-  call apply_reflection_north_frame_x(f15R)
-  call apply_reflection_north_frame_x(f16R)
-  call apply_reflection_north_frame_x(f17R)
-  call apply_reflection_north_frame_x(f18R)
+  !frame x
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f00R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f01R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f02R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f03R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f04R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f05R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f06R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f07R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f08R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f09R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f10R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f11R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f12R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f13R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f14R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f15R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f16R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f17R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f18R)
   
   !apply pbc at south 2 !z
   !red fluid
@@ -14102,25 +14109,26 @@ subroutine driver_bc_densities
   
   !apply pbc at north 1 !z
   !blue fluid
-  call apply_reflection_north_frame_x(f00B)
-  call apply_reflection_north_frame_x(f01B)
-  call apply_reflection_north_frame_x(f02B)
-  call apply_reflection_north_frame_x(f03B)
-  call apply_reflection_north_frame_x(f04B)
-  call apply_reflection_north_frame_x(f05B)
-  call apply_reflection_north_frame_x(f06B)
-  call apply_reflection_north_frame_x(f07B)
-  call apply_reflection_north_frame_x(f08B)
-  call apply_reflection_north_frame_x(f09B)
-  call apply_reflection_north_frame_x(f10B)
-  call apply_reflection_north_frame_x(f11B)
-  call apply_reflection_north_frame_x(f12B)
-  call apply_reflection_north_frame_x(f13B)
-  call apply_reflection_north_frame_x(f14B)
-  call apply_reflection_north_frame_x(f15B)
-  call apply_reflection_north_frame_x(f16B)
-  call apply_reflection_north_frame_x(f17B)
-  call apply_reflection_north_frame_x(f18B)
+  !frame x
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f00B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f01B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f02B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f03B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f04B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f05B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f06B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f07B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f08B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f09B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f10B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f11B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f12B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f13B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f14B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f15B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f16B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f17B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1,ny,f18B)
   
   !apply pbc at south 2 !z
   !blue fluid
@@ -14257,69 +14265,70 @@ subroutine driver_bc_densities
   
   !apply pbc at east 3 !x
   !red fluid
-  call apply_reflection_east_frame_y(f00R)
-  call apply_reflection_east_frame_y(f01R)
-  call apply_reflection_east_frame_y(f02R)
-  call apply_reflection_east_frame_y(f03R)
-  call apply_reflection_east_frame_y(f04R)
-  call apply_reflection_east_frame_y(f05R)
-  call apply_reflection_east_frame_y(f06R)
-  call apply_reflection_east_frame_y(f07R)
-  call apply_reflection_east_frame_y(f08R)
-  call apply_reflection_east_frame_y(f09R)
-  call apply_reflection_east_frame_y(f10R)
-  call apply_reflection_east_frame_y(f11R)
-  call apply_reflection_east_frame_y(f12R)
-  call apply_reflection_east_frame_y(f13R)
-  call apply_reflection_east_frame_y(f14R)
-  call apply_reflection_east_frame_y(f15R)
-  call apply_reflection_east_frame_y(f16R)
-  call apply_reflection_east_frame_y(f17R)
-  call apply_reflection_east_frame_y(f18R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f00R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f01R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f02R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f03R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f04R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f05R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f06R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f07R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f08R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f09R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f10R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f11R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f12R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f13R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f14R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f15R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f16R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f17R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f18R)
   
   !apply pbc at west 4 !x
   !red fluid
-  call apply_reflection_west_frame_y(f00R)
-  call apply_reflection_west_frame_y(f01R)
-  call apply_reflection_west_frame_y(f02R)
-  call apply_reflection_west_frame_y(f03R)
-  call apply_reflection_west_frame_y(f04R)
-  call apply_reflection_west_frame_y(f05R)
-  call apply_reflection_west_frame_y(f06R)
-  call apply_reflection_west_frame_y(f07R)
-  call apply_reflection_west_frame_y(f08R)
-  call apply_reflection_west_frame_y(f09R)
-  call apply_reflection_west_frame_y(f10R)
-  call apply_reflection_west_frame_y(f11R)
-  call apply_reflection_west_frame_y(f12R)
-  call apply_reflection_west_frame_y(f13R)
-  call apply_reflection_west_frame_y(f14R)
-  call apply_reflection_west_frame_y(f15R)
-  call apply_reflection_west_frame_y(f16R)
-  call apply_reflection_west_frame_y(f17R)
-  call apply_reflection_west_frame_y(f18R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f00R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f01R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f02R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f03R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f04R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f05R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f06R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f07R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f08R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f09R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f10R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f11R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f12R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f13R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f14R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f15R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f16R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f17R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f18R)
   
   !apply pbc at north 1 !z
   !red fluid
-  call apply_reflection_north_frame_y(f00R)
-  call apply_reflection_north_frame_y(f01R)
-  call apply_reflection_north_frame_y(f02R)
-  call apply_reflection_north_frame_y(f03R)
-  call apply_reflection_north_frame_y(f04R)
-  call apply_reflection_north_frame_y(f05R)
-  call apply_reflection_north_frame_y(f06R)
-  call apply_reflection_north_frame_y(f07R)
-  call apply_reflection_north_frame_y(f08R)
-  call apply_reflection_north_frame_y(f09R)
-  call apply_reflection_north_frame_y(f10R)
-  call apply_reflection_north_frame_y(f11R)
-  call apply_reflection_north_frame_y(f12R)
-  call apply_reflection_north_frame_y(f13R)
-  call apply_reflection_north_frame_y(f14R)
-  call apply_reflection_north_frame_y(f15R)
-  call apply_reflection_north_frame_y(f16R)
-  call apply_reflection_north_frame_y(f17R)
-  call apply_reflection_north_frame_y(f18R)
+  !frame y
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f00R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f01R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f02R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f03R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f04R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f05R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f06R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f07R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f08R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f09R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f10R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f11R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f12R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f13R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f14R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f15R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f16R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f17R)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f18R)
   
   !apply pbc at south 2 !z
   !red fluid
@@ -14439,69 +14448,70 @@ subroutine driver_bc_densities
   
   !apply pbc at east 3 !x
   !blue fluid
-  call apply_reflection_east_frame_y(f00B)
-  call apply_reflection_east_frame_y(f01B)
-  call apply_reflection_east_frame_y(f02B)
-  call apply_reflection_east_frame_y(f03B)
-  call apply_reflection_east_frame_y(f04B)
-  call apply_reflection_east_frame_y(f05B)
-  call apply_reflection_east_frame_y(f06B)
-  call apply_reflection_east_frame_y(f07B)
-  call apply_reflection_east_frame_y(f08B)
-  call apply_reflection_east_frame_y(f09B)
-  call apply_reflection_east_frame_y(f10B)
-  call apply_reflection_east_frame_y(f11B)
-  call apply_reflection_east_frame_y(f12B)
-  call apply_reflection_east_frame_y(f13B)
-  call apply_reflection_east_frame_y(f14B)
-  call apply_reflection_east_frame_y(f15B)
-  call apply_reflection_east_frame_y(f16B)
-  call apply_reflection_east_frame_y(f17B)
-  call apply_reflection_east_frame_y(f18B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f00B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f01B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f02B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f03B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f04B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f05B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f06B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f07B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f08B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f09B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f10B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f11B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f12B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f13B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f14B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f15B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f16B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f17B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1,nz,f18B)
   
   !apply pbc at west 4 !x
   !blue fluid
-  call apply_reflection_west_frame_y(f00B)
-  call apply_reflection_west_frame_y(f01B)
-  call apply_reflection_west_frame_y(f02B)
-  call apply_reflection_west_frame_y(f03B)
-  call apply_reflection_west_frame_y(f04B)
-  call apply_reflection_west_frame_y(f05B)
-  call apply_reflection_west_frame_y(f06B)
-  call apply_reflection_west_frame_y(f07B)
-  call apply_reflection_west_frame_y(f08B)
-  call apply_reflection_west_frame_y(f09B)
-  call apply_reflection_west_frame_y(f10B)
-  call apply_reflection_west_frame_y(f11B)
-  call apply_reflection_west_frame_y(f12B)
-  call apply_reflection_west_frame_y(f13B)
-  call apply_reflection_west_frame_y(f14B)
-  call apply_reflection_west_frame_y(f15B)
-  call apply_reflection_west_frame_y(f16B)
-  call apply_reflection_west_frame_y(f17B)
-  call apply_reflection_west_frame_y(f18B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f00B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f01B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f02B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f03B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f04B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f05B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f06B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f07B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f08B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f09B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f10B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f11B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f12B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f13B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f14B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f15B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f16B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f17B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1,nz,f18B)
   
   !apply pbc at north 1 !z
   !blue fluid
-  call apply_reflection_north_frame_y(f00B)
-  call apply_reflection_north_frame_y(f01B)
-  call apply_reflection_north_frame_y(f02B)
-  call apply_reflection_north_frame_y(f03B)
-  call apply_reflection_north_frame_y(f04B)
-  call apply_reflection_north_frame_y(f05B)
-  call apply_reflection_north_frame_y(f06B)
-  call apply_reflection_north_frame_y(f07B)
-  call apply_reflection_north_frame_y(f08B)
-  call apply_reflection_north_frame_y(f09B)
-  call apply_reflection_north_frame_y(f10B)
-  call apply_reflection_north_frame_y(f11B)
-  call apply_reflection_north_frame_y(f12B)
-  call apply_reflection_north_frame_y(f13B)
-  call apply_reflection_north_frame_y(f14B)
-  call apply_reflection_north_frame_y(f15B)
-  call apply_reflection_north_frame_y(f16B)
-  call apply_reflection_north_frame_y(f17B)
-  call apply_reflection_north_frame_y(f18B)
+  !frame y
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f00B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f01B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f02B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f03B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f04B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f05B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f06B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f07B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f08B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f09B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f10B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f11B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f12B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f13B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f14B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f15B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f16B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f17B)
+  call apply_reflection_north(1,nx,1-nbuff,ny+nbuff,f18B)
   
   !apply pbc at south 2 !z
   !blue fluid
@@ -14638,47 +14648,47 @@ subroutine driver_bc_densities
   
   !apply pbc at east 3 !x
   !red fluid
-  call apply_reflection_east_frame_z(f00R)
-  call apply_reflection_east_frame_z(f01R)
-  call apply_reflection_east_frame_z(f02R)
-  call apply_reflection_east_frame_z(f03R)
-  call apply_reflection_east_frame_z(f04R)
-  call apply_reflection_east_frame_z(f05R)
-  call apply_reflection_east_frame_z(f06R)
-  call apply_reflection_east_frame_z(f07R)
-  call apply_reflection_east_frame_z(f08R)
-  call apply_reflection_east_frame_z(f09R)
-  call apply_reflection_east_frame_z(f10R)
-  call apply_reflection_east_frame_z(f11R)
-  call apply_reflection_east_frame_z(f12R)
-  call apply_reflection_east_frame_z(f13R)
-  call apply_reflection_east_frame_z(f14R)
-  call apply_reflection_east_frame_z(f15R)
-  call apply_reflection_east_frame_z(f16R)
-  call apply_reflection_east_frame_z(f17R)
-  call apply_reflection_east_frame_z(f18R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f00R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f01R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f02R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f03R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f04R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f05R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f06R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f07R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f08R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f09R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f10R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f11R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f12R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f13R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f14R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f15R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f16R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f17R)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f18R)
   
   !apply pbc at west 4 !x
   !red fluid
-  call apply_reflection_west_frame_z(f00R)
-  call apply_reflection_west_frame_z(f01R)
-  call apply_reflection_west_frame_z(f02R)
-  call apply_reflection_west_frame_z(f03R)
-  call apply_reflection_west_frame_z(f04R)
-  call apply_reflection_west_frame_z(f05R)
-  call apply_reflection_west_frame_z(f06R)
-  call apply_reflection_west_frame_z(f07R)
-  call apply_reflection_west_frame_z(f08R)
-  call apply_reflection_west_frame_z(f09R)
-  call apply_reflection_west_frame_z(f10R)
-  call apply_reflection_west_frame_z(f11R)
-  call apply_reflection_west_frame_z(f12R)
-  call apply_reflection_west_frame_z(f13R)
-  call apply_reflection_west_frame_z(f14R)
-  call apply_reflection_west_frame_z(f15R)
-  call apply_reflection_west_frame_z(f16R)
-  call apply_reflection_west_frame_z(f17R)
-  call apply_reflection_west_frame_z(f18R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f00R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f01R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f02R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f03R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f04R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f05R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f06R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f07R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f08R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f09R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f10R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f11R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f12R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f13R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f14R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f15R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f16R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f17R)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f18R)
   
   !apply pbc at front 5 !y
   !red fluid
@@ -14821,47 +14831,47 @@ subroutine driver_bc_densities
   
   !apply pbc at east 3 !x
   !blue fluid
-  call apply_reflection_east_frame_z(f00B)
-  call apply_reflection_east_frame_z(f01B)
-  call apply_reflection_east_frame_z(f02B)
-  call apply_reflection_east_frame_z(f03B)
-  call apply_reflection_east_frame_z(f04B)
-  call apply_reflection_east_frame_z(f05B)
-  call apply_reflection_east_frame_z(f06B)
-  call apply_reflection_east_frame_z(f07B)
-  call apply_reflection_east_frame_z(f08B)
-  call apply_reflection_east_frame_z(f09B)
-  call apply_reflection_east_frame_z(f10B)
-  call apply_reflection_east_frame_z(f11B)
-  call apply_reflection_east_frame_z(f12B)
-  call apply_reflection_east_frame_z(f13B)
-  call apply_reflection_east_frame_z(f14B)
-  call apply_reflection_east_frame_z(f15B)
-  call apply_reflection_east_frame_z(f16B)
-  call apply_reflection_east_frame_z(f17B)
-  call apply_reflection_east_frame_z(f18B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f00B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f01B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f02B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f03B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f04B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f05B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f06B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f07B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f08B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f09B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f10B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f11B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f12B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f13B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f14B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f15B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f16B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f17B)
+  call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f18B)
   
   !apply pbc at west 4 !x
   !blue fluid
-  call apply_reflection_west_frame_z(f00B)
-  call apply_reflection_west_frame_z(f01B)
-  call apply_reflection_west_frame_z(f02B)
-  call apply_reflection_west_frame_z(f03B)
-  call apply_reflection_west_frame_z(f04B)
-  call apply_reflection_west_frame_z(f05B)
-  call apply_reflection_west_frame_z(f06B)
-  call apply_reflection_west_frame_z(f07B)
-  call apply_reflection_west_frame_z(f08B)
-  call apply_reflection_west_frame_z(f09B)
-  call apply_reflection_west_frame_z(f10B)
-  call apply_reflection_west_frame_z(f11B)
-  call apply_reflection_west_frame_z(f12B)
-  call apply_reflection_west_frame_z(f13B)
-  call apply_reflection_west_frame_z(f14B)
-  call apply_reflection_west_frame_z(f15B)
-  call apply_reflection_west_frame_z(f16B)
-  call apply_reflection_west_frame_z(f17B)
-  call apply_reflection_west_frame_z(f18B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f00B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f01B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f02B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f03B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f04B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f05B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f06B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f07B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f08B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f09B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f10B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f11B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f12B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f13B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f14B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f15B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f16B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f17B)
+  call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f18B)
   
   !apply pbc at front 5 !y
   !blue fluid
@@ -15020,25 +15030,26 @@ subroutine driver_bc_densities
   
   !apply pbc at north 1 !z
   !red fluid
-  call apply_reflection_north_frame(f00R)
-  call apply_reflection_north_frame(f01R)
-  call apply_reflection_north_frame(f02R)
-  call apply_reflection_north_frame(f03R)
-  call apply_reflection_north_frame(f04R)
-  call apply_reflection_north_frame(f05R)
-  call apply_reflection_north_frame(f06R)
-  call apply_reflection_north_frame(f07R)
-  call apply_reflection_north_frame(f08R)
-  call apply_reflection_north_frame(f09R)
-  call apply_reflection_north_frame(f10R)
-  call apply_reflection_north_frame(f11R)
-  call apply_reflection_north_frame(f12R)
-  call apply_reflection_north_frame(f13R)
-  call apply_reflection_north_frame(f14R)
-  call apply_reflection_north_frame(f15R)
-  call apply_reflection_north_frame(f16R)
-  call apply_reflection_north_frame(f17R)
-  call apply_reflection_north_frame(f18R)
+  !frame
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f00R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f01R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f02R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f03R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f04R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f05R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f06R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f07R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f08R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f09R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f10R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f11R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f12R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f13R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f14R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f15R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f16R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f17R)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f18R)
   
   !apply pbc at south 2 !z
   !red fluid
@@ -15068,25 +15079,26 @@ subroutine driver_bc_densities
   
   !apply pbc at north 1 !z
   !blue fluid
-  call apply_reflection_north_frame(f00B)
-  call apply_reflection_north_frame(f01B)
-  call apply_reflection_north_frame(f02B)
-  call apply_reflection_north_frame(f03B)
-  call apply_reflection_north_frame(f04B)
-  call apply_reflection_north_frame(f05B)
-  call apply_reflection_north_frame(f06B)
-  call apply_reflection_north_frame(f07B)
-  call apply_reflection_north_frame(f08B)
-  call apply_reflection_north_frame(f09B)
-  call apply_reflection_north_frame(f10B)
-  call apply_reflection_north_frame(f11B)
-  call apply_reflection_north_frame(f12B)
-  call apply_reflection_north_frame(f13B)
-  call apply_reflection_north_frame(f14B)
-  call apply_reflection_north_frame(f15B)
-  call apply_reflection_north_frame(f16B)
-  call apply_reflection_north_frame(f17B)
-  call apply_reflection_north_frame(f18B)
+  !frame
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f00B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f01B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f02B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f03B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f04B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f05B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f06B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f07B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f08B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f09B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f10B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f11B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f12B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f13B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f14B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f15B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f16B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f17B)
+  call apply_reflection_north(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f18B)
   
   !apply pbc at south 2 !z
   !blue fluid
@@ -15246,47 +15258,47 @@ subroutine driver_bc_densities
   
   !apply pbc at east 3 !x
   !red fluid
-  call apply_reflection_east_frame(f00R)
-  call apply_reflection_east_frame(f01R)
-  call apply_reflection_east_frame(f02R)
-  call apply_reflection_east_frame(f03R)
-  call apply_reflection_east_frame(f04R)
-  call apply_reflection_east_frame(f05R)
-  call apply_reflection_east_frame(f06R)
-  call apply_reflection_east_frame(f07R)
-  call apply_reflection_east_frame(f08R)
-  call apply_reflection_east_frame(f09R)
-  call apply_reflection_east_frame(f10R)
-  call apply_reflection_east_frame(f11R)
-  call apply_reflection_east_frame(f12R)
-  call apply_reflection_east_frame(f13R)
-  call apply_reflection_east_frame(f14R)
-  call apply_reflection_east_frame(f15R)
-  call apply_reflection_east_frame(f16R)
-  call apply_reflection_east_frame(f17R)
-  call apply_reflection_east_frame(f18R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f00R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f01R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f02R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f03R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f04R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f05R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f06R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f07R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f08R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f09R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f10R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f11R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f12R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f13R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f14R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f15R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f16R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f17R)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f18R)
   
   !apply pbc at west 4 !x
   !red fluid
-  call apply_reflection_west_frame(f00R)
-  call apply_reflection_west_frame(f01R)
-  call apply_reflection_west_frame(f02R)
-  call apply_reflection_west_frame(f03R)
-  call apply_reflection_west_frame(f04R)
-  call apply_reflection_west_frame(f05R)
-  call apply_reflection_west_frame(f06R)
-  call apply_reflection_west_frame(f07R)
-  call apply_reflection_west_frame(f08R)
-  call apply_reflection_west_frame(f09R)
-  call apply_reflection_west_frame(f10R)
-  call apply_reflection_west_frame(f11R)
-  call apply_reflection_west_frame(f12R)
-  call apply_reflection_west_frame(f13R)
-  call apply_reflection_west_frame(f14R)
-  call apply_reflection_west_frame(f15R)
-  call apply_reflection_west_frame(f16R)
-  call apply_reflection_west_frame(f17R)
-  call apply_reflection_west_frame(f18R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f00R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f01R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f02R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f03R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f04R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f05R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f06R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f07R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f08R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f09R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f10R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f11R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f12R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f13R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f14R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f15R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f16R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f17R)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f18R)
   
   if(lsingle_fluid)return
   
@@ -15294,58 +15306,58 @@ subroutine driver_bc_densities
   
   !apply pbc at east 3 !x
   !blue fluid
-  call apply_reflection_east_frame(f00B)
-  call apply_reflection_east_frame(f01B)
-  call apply_reflection_east_frame(f02B)
-  call apply_reflection_east_frame(f03B)
-  call apply_reflection_east_frame(f04B)
-  call apply_reflection_east_frame(f05B)
-  call apply_reflection_east_frame(f06B)
-  call apply_reflection_east_frame(f07B)
-  call apply_reflection_east_frame(f08B)
-  call apply_reflection_east_frame(f09B)
-  call apply_reflection_east_frame(f10B)
-  call apply_reflection_east_frame(f11B)
-  call apply_reflection_east_frame(f12B)
-  call apply_reflection_east_frame(f13B)
-  call apply_reflection_east_frame(f14B)
-  call apply_reflection_east_frame(f15B)
-  call apply_reflection_east_frame(f16B)
-  call apply_reflection_east_frame(f17B)
-  call apply_reflection_east_frame(f18B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f00B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f01B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f02B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f03B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f04B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f05B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f06B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f07B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f08B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f09B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f10B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f11B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f12B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f13B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f14B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f15B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f16B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f17B)
+  call apply_reflection_east(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f18B)
   
   !apply pbc at west 4 !x
   !blue fluid
-  call apply_reflection_west_frame(f00B)
-  call apply_reflection_west_frame(f01B)
-  call apply_reflection_west_frame(f02B)
-  call apply_reflection_west_frame(f03B)
-  call apply_reflection_west_frame(f04B)
-  call apply_reflection_west_frame(f05B)
-  call apply_reflection_west_frame(f06B)
-  call apply_reflection_west_frame(f07B)
-  call apply_reflection_west_frame(f08B)
-  call apply_reflection_west_frame(f09B)
-  call apply_reflection_west_frame(f10B)
-  call apply_reflection_west_frame(f11B)
-  call apply_reflection_west_frame(f12B)
-  call apply_reflection_west_frame(f13B)
-  call apply_reflection_west_frame(f14B)
-  call apply_reflection_west_frame(f15B)
-  call apply_reflection_west_frame(f16B)
-  call apply_reflection_west_frame(f17B)
-  call apply_reflection_west_frame(f18B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f00B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f01B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f02B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f03B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f04B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f05B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f06B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f07B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f08B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f09B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f10B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f11B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f12B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f13B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f14B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f15B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f16B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f17B)
+  call apply_reflection_west(1-nbuff,ny+nbuff,1-nbuff,nz+nbuff,f18B)
   
   return
   
  end subroutine apply_reflection_pops_along_x
  
- subroutine apply_reflection_east_frame(dtemp)
+ subroutine apply_reflection_east(sy,ey,sz,ez,dtemp)
  
 !***********************************************************************
 !     
 !     LBsoft subroutine for applying the reflection
-!     at the east side alongside with its frame
+!     at the east side along the space defined in input sy,ey,sz,ez
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -15355,24 +15367,25 @@ subroutine driver_bc_densities
  
   implicit none
   
+  integer, intent(in) :: sy,ey,sz,ez
   real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
   
   integer :: i,j,k,kk
   
-  forall(kk=1:nbuff,j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+  forall(kk=1:nbuff,j=sy:ey,k=sz:ez)
     dtemp(nx+kk,j,k)=dtemp(nx-kk+1,j,k)
   end forall
   
   return
   
- end subroutine apply_reflection_east_frame
+ end subroutine apply_reflection_east
  
- subroutine apply_reflection_east_frame_y(dtemp)
+ subroutine apply_reflection_west(sy,ey,sz,ez,dtemp)
  
 !***********************************************************************
 !     
 !     LBsoft subroutine for applying the reflection
-!     at the east side alongside with its frame only along y
+!     at the west side along the space defined in input sy,ey,sz,ez
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -15382,78 +15395,25 @@ subroutine driver_bc_densities
  
   implicit none
   
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-  
-  forall(kk=1:nbuff,j=1-nbuff:ny+nbuff,k=1:nz)
-    dtemp(nx+kk,j,k)=dtemp(nx-kk+1,j,k)
-  end forall
-  
-  return
-  
- end subroutine apply_reflection_east_frame_y
- 
- subroutine apply_reflection_east_frame_z(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection
-!     at the east side alongside with its frame only along z
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-  
-  forall(kk=1:nbuff,j=1:ny,k=1-nbuff:nz+nbuff)
-    dtemp(nx+kk,j,k)=dtemp(nx-kk+1,j,k)
-  end forall
-  
-  return
-  
- end subroutine apply_reflection_east_frame_z
- 
- subroutine apply_reflection_west_frame(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection
-!     at the west side alongside with its frame
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
+  integer, intent(in) :: sy,ey,sz,ez
   real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
   
   integer :: i,j,k,kk
 
-  forall(kk=1:nbuff,j=1-nbuff:ny+nbuff,k=1-nbuff:nz+nbuff)
+  forall(kk=1:nbuff,j=sy:ey,k=sz:ez)
     dtemp(1-kk,j,k)=dtemp(kk,j,k)
   end forall
   
   return
   
- end subroutine apply_reflection_west_frame
+ end subroutine apply_reflection_west
  
- subroutine apply_reflection_west_frame_y(dtemp)
+ subroutine apply_reflection_north(sx,ex,sy,ey,dtemp)
  
 !***********************************************************************
 !     
 !     LBsoft subroutine for applying the reflection
-!     at the west side alongside with its frame only along y
+!     at the north side along the space defined in input sx,ex,sy,ey
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -15462,126 +15422,18 @@ subroutine driver_bc_densities
 !***********************************************************************
  
   implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-
-  forall(kk=1:nbuff,j=1-nbuff:ny+nbuff,k=1:nz)
-    dtemp(1-kk,j,k)=dtemp(kk,j,k)
-  end forall
-  
-  return
-  
- end subroutine apply_reflection_west_frame_y
- 
- subroutine apply_reflection_west_frame_z(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection
-!     at the west side alongside with its frame only along z
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-
-  forall(kk=1:nbuff,j=1:ny,k=1-nbuff:nz+nbuff)
-    dtemp(1-kk,j,k)=dtemp(kk,j,k)
-  end forall
-  
-  return
-  
- end subroutine apply_reflection_west_frame_z
- 
- subroutine apply_reflection_north_frame(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection
-!     at the north side alongside with its frame
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
+  integer, intent(in) :: sx,ex,sy,ey
   real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
   
   integer :: i,j,k,kk
   
-  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff,kk=1:nbuff)
+  forall(i=sx:ex,j=sy:ey,kk=1:nbuff)
     dtemp(i,j,nz+kk)= dtemp(i,j,nz-kk+1)
   end forall
   
   return
   
- end subroutine apply_reflection_north_frame
- 
- subroutine apply_reflection_north_frame_x(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection
-!     at the north side alongside with its frame only along x
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-  
-  forall(i=1-nbuff:nx+nbuff,j=1:ny,kk=1:nbuff)
-    dtemp(i,j,nz+kk)= dtemp(i,j,nz-kk+1)
-  end forall
-  
-  return
-  
- end subroutine apply_reflection_north_frame_x
- 
- subroutine apply_reflection_north_frame_y(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection
-!     at the north side alongside with its frame only along y
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-  
-  forall(i=1:nx,j=1-nbuff:ny+nbuff,kk=1:nbuff)
-    dtemp(i,j,nz+kk)= dtemp(i,j,nz-kk+1)
-  end forall
-  
-  return
-  
- end subroutine apply_reflection_north_frame_y
+ end subroutine apply_reflection_north
  
  subroutine apply_reflection_south_frame(dtemp)
  
@@ -15825,87 +15677,6 @@ subroutine driver_bc_densities
   return
   
  end subroutine apply_reflection_rear_frame_z
- 
- subroutine apply_reflection_east(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection
-!     at the east side
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-  
-  forall(kk=1:nbuff,j=1:ny,k=1:nz)
-    dtemp(nx+kk,j,k)=dtemp(nx-kk+1,j,k)
-  end forall
-  
-  return
-  
- end subroutine apply_reflection_east
- 
- subroutine apply_reflection_west(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection
-!     at the west side
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-
-  forall(kk=1:nbuff,j=1:ny,k=1:nz)
-    dtemp(1-kk,j,k)=dtemp(kk,j,k)
-  end forall
-  
-  return
-  
- end subroutine apply_reflection_west
- 
- subroutine apply_reflection_north(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection
-!     at the north side
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-  
-  forall(i=1:nx,j=1:ny,kk=1:nbuff)
-    dtemp(i,j,nz+kk)= dtemp(i,j,nz-kk+1)
-  end forall
-  
-  return
-  
- end subroutine apply_reflection_north
  
  subroutine apply_reflection_south(dtemp)
  
