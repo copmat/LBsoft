@@ -2,20 +2,143 @@
 # makefile
 #
 
-CC=gcc
-FC=gfortran
+BINROOT = ../execute
+#CC=gcc
+#FC=gfortran
 #CFLAGS= -O0 -g -c
 #FFLAGS= -O0 -g -fbacktrace -ffpe-trap=zero -fcheck=all -cpp -I $(CURDIR) -c
 #LDFLAGS= -O0 -g -fbacktrace -ffpe-trap=zero -fcheck=all -cpp -I $(CURDIR) -o
 #FFLAGSVTK=-O0 -g -fcheck=all -cpp -DPRC=4 -DIPRC=4 -c
-CFLAGS= -O2 -c
-FFLAGS= -O2 -cpp -I $(CURDIR) -c
-LDFLAGS= -O2 -cpp -I $(CURDIR) -o
-FFLAGSVTK= -O2 -cpp -DPRC=4 -DIPRC=4 -c
-EX=../execute/main.x
+#CFLAGS= -O2 -c
+#FFLAGS= -O2 -cpp -I $(CURDIR) -c
+#LDFLAGS= -O2 -cpp -I $(CURDIR) -o
+#FFLAGSVTK= -O2 -cpp -DPRC=4 -DIPRC=4 -c
+FC=undefined
+CC=undefined
+FFLAGS=undefined
+LDFLAGS=undefined
+TYPE=undefined
+EX=main.x
+EXE = $(BINROOT)/$(EX)
 SHELL=/bin/sh
 
-all: main
+OBJ_MOD = IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
+	Lib_VTK_IO.o get_mem.o serial_version_mod.o parallel_version_mod.o \
+	profiling_mod.o parse_mod.o error_mod.o utility_mod.o \
+    fluids_mod.o write_output_mod.o integrator_mod.o statistic_mod.o \
+    io_mod.o
+    
+OBJ_SRC = main.o
+
+all:
+	@echo "Error - you should specify a target machine!"
+	@echo "Possible choices are:              "
+	@echo "                                   "
+	@echo "gfortran                           "
+	@echo "gfortran-mpi                       "
+	@echo "intel                              "
+	@echo "intel-mpi                          "
+	@echo "                                   "
+	@echo "Possible choices for debugging are:"
+	@echo "                                   "
+	@echo "gfortran-debugger                  "
+	@echo "gfortran-mpidebugger               "
+	@echo "                                   "
+	@echo "Please examine Makefile for further details "
+
+help:
+	@echo "help: List of possible target machine"
+	@echo "Possible choices are:              "
+	@echo "                                   "
+	@echo "gfortran                           "
+	@echo "gfortran-mpi                       "
+	@echo "intel                              "
+	@echo "intel-mpi                          "
+	@echo "                                   "
+	@echo "Possible choices for debugging are:"
+	@echo "                                   "
+	@echo "gfortran-debugger                  "
+	@echo "gfortran-mpidebugger               "
+	@echo "                                   "
+	@echo "Please examine Makefile for further details "
+	
+gfortran:
+	$(MAKE) CC=gcc \
+	FC=gfortran \
+	CFLAGS="-O2 -cpp -I $(CURDIR) -c" \
+	FFLAGS="-O2 -cpp -I $(CURDIR) -c" \
+	LDFLAGS="-O2 -cpp -I $(CURDIR) -o" \
+	TYPE="seq" \
+	EX=$(EX) BINROOT=$(BINROOT) seq
+	
+gfortran-mpi:
+	$(MAKE) CC=mpicc \
+	FC=mpif90 \
+	CFLAGS="-O2 -cpp -I $(CURDIR) -c" \
+	FFLAGS="-O2 -cpp -I $(CURDIR) -c" \
+	LDFLAGS="-O2 -cpp -I $(CURDIR) -o" \
+	TYPE=mpi \
+	EX=$(EX) BINROOT=$(BINROOT) mpi
+	
+intel:
+	$(MAKE) CC=icc \
+	FC=ifort \
+	CFLAGS="-O2 -cpp -I $(CURDIR) -c" \
+	FFLAGS="-O2 -cpp -I $(CURDIR) -c" \
+	LDFLAGS="-O2 -cpp -I $(CURDIR) -o" \
+	TYPE="seq" \
+	EX=$(EX) BINROOT=$(BINROOT) seq
+	
+intel-mpi:
+	$(MAKE) CC=mpiicc \
+	FC=mpiifort \
+	CFLAGS="-O2 -cpp -I $(CURDIR) -c" \
+	FFLAGS="-O2 -cpp -I $(CURDIR) -c" \
+	LDFLAGS="-O2 -cpp -I $(CURDIR) -o" \
+	TYPE=mpi \
+	EX=$(EX) BINROOT=$(BINROOT) mpi
+
+gfortran-debugger:
+	$(MAKE) CC=gcc \
+	FC=gfortran \
+	CFLAGS="-O0 -g -cpp -I $(CURDIR) -c" \
+	FFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-trap=zero -cpp -I $(CURDIR) -c" \
+	LDFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-trap=zero -cpp -I $(CURDIR) -o" \
+	TYPE=seq \
+	EX=$(EX) BINROOT=$(BINROOT) seq
+
+gfortran-mpidebugger:
+	$(MAKE) CC=mpicc \
+	FC=mpif90 \
+	CFLAGS="-O0 -g -cpp -I $(CURDIR) -c" \
+	FFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-trap=zero -cpp -I $(CURDIR) -c" \
+	LDFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-trap=zero -cpp -I $(CURDIR) -o" \
+	TYPE=mpi \
+	EX=$(EX) BINROOT=$(BINROOT) mpi
+	
+seq:IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
+	Lib_VTK_IO.o get_mem.o serial_version_mod.o \
+	profiling_mod.o parse_mod.o error_mod.o utility_mod.o \
+	fluids_mod.o write_output_mod.o integrator_mod.o statistic_mod.o \
+	io_mod.o main.o
+	$(FC) $(LDFLAGS) $(EX) IR_Precision.o \
+	Lib_Pack_Data.o Lib_Base64.o Lib_VTK_IO.o get_mem.o \
+	serial_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
+	utility_mod.o fluids_mod.o write_output_mod.o integrator_mod.o \
+	statistic_mod.o io_mod.o main.o
+	mv $(EX) $(EXE)
+	
+mpi:IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
+	Lib_VTK_IO.o get_mem.o parallel_version_mod.o \
+	profiling_mod.o parse_mod.o error_mod.o utility_mod.o \
+	fluids_mod.o write_output_mod.o integrator_mod.o statistic_mod.o \
+	io_mod.o main.o
+	$(FC) $(LDFLAGS) $(EX) IR_Precision.o \
+	Lib_Pack_Data.o Lib_Base64.o Lib_VTK_IO.o get_mem.o \
+	parallel_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
+	utility_mod.o fluids_mod.o write_output_mod.o integrator_mod.o \
+	statistic_mod.o io_mod.o main.o
+	mv $(EX) $(EXE)
 
 main:IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
 	Lib_VTK_IO.o get_mem.o serial_version_mod.o \
@@ -78,5 +201,5 @@ main.o:main.f90
 	$(FC) $(FFLAGS) main.f90
 	
 clean:
-	rm -rf *.mod *.o $(EX)
+	rm -rf *.mod *.o $(EXE)
 
