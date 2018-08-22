@@ -20,35 +20,6 @@
  integer, public, save :: idrank=0
  integer, public, save :: mxrank=1
  
- interface bcast_world
-   module procedure bcast_world_i
-   module procedure bcast_world_l
-   module procedure bcast_world_f
-   module procedure bcast_world_d
-   module procedure bcast_world_iarr
-   module procedure bcast_world_larr
-   module procedure bcast_world_farr
-   module procedure bcast_world_darr
- end interface bcast_world
- 
- interface sum_world
-   module procedure sum_world_iarr
-   module procedure sum_world_farr
-   module procedure sum_world_darr
- end interface sum_world
- 
- interface min_world
-   module procedure min_world_iarr
-   module procedure min_world_farr
-   module procedure min_world_darr
- end interface min_world
- 
- interface max_world
-   module procedure max_world_iarr
-   module procedure max_world_farr
-   module procedure max_world_darr
- end interface max_world
- 
  public :: print_version
  public :: get_rank_world
  public :: get_size_world
@@ -57,10 +28,18 @@
  public :: finalize_world
  public :: abort_world
  public :: time_world
- public :: bcast_world
- public :: sum_world
- public :: min_world
- public :: max_world
+ public :: bcast_world_i
+ public :: bcast_world_l
+ public :: bcast_world_f
+ public :: bcast_world_iarr
+ public :: bcast_world_larr
+ public :: bcast_world_farr
+ public :: sum_world_iarr
+ public :: sum_world_farr
+ public :: min_world_iarr
+ public :: min_world_farr
+ public :: max_world_iarr
+ public :: max_world_farr
  public :: and_world_larr
  public :: or_world_larr
  
@@ -281,7 +260,7 @@
  
 !***********************************************************************
 !     
-!     LBsoft subroutine to broadcast an single precision number to all 
+!     LBsoft subroutine to broadcast a float number to all 
 !     other nodes
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
@@ -293,33 +272,11 @@
   
   implicit none
   
-  real(4), intent(inout) :: buffer
+  real(kind=PRC), intent(inout) :: buffer
   
   return
   
  end subroutine bcast_world_f
- 
- subroutine bcast_world_d(buffer)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine to broadcast an double precision number to all 
-!     other nodes
-!     originally written in JETSPIN by M. Lauricella et al.
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification March 2015
-!     
-!***********************************************************************
-  
-  implicit none
-  
-  real(8), intent(inout) :: buffer
-  
-  return
-  
- end subroutine bcast_world_d
  
  subroutine bcast_world_iarr(buffer,narr)
  
@@ -371,7 +328,7 @@
  
 !***********************************************************************
 !     
-!     LBsoft subroutine to broadcast an single precision array to all 
+!     LBsoft subroutine to broadcast a float array to all 
 !     other nodes
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
@@ -383,35 +340,12 @@
   
   implicit none
   
-  real(4), intent(inout), dimension(narr) :: buffer
+  real(kind=PRC), intent(inout), dimension(narr) :: buffer
   integer, intent(in) :: narr
   
   return
   
  end subroutine bcast_world_farr
- 
- subroutine bcast_world_darr(buffer,narr)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine to broadcast an double precision array to all 
-!     other nodes
-!     originally written in JETSPIN by M. Lauricella et al.
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification March 2015
-!     
-!***********************************************************************
-  
-  implicit none
-  
-  real(8), intent(inout), dimension(narr) :: buffer
-  integer, intent(in) :: narr
-  
-  return
-  
- end subroutine bcast_world_darr
  
  subroutine sum_world_iarr(argument,narr,buffersub)
  
@@ -444,7 +378,7 @@
  
 !***********************************************************************
 !     
-!     LBsoft global summation subroutine for a single precision array
+!     LBsoft global summation subroutine for a float array
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
@@ -455,9 +389,9 @@
   
   implicit none
   
-  real(4), intent(inout), dimension(narr) :: argument
+  real(kind=PRC), intent(inout), dimension(narr) :: argument
   integer, intent(in) :: narr
-  real(4), intent(inout), dimension(narr), optional :: buffersub
+  real(kind=PRC), intent(inout), dimension(narr), optional :: buffersub
   
   integer ier
   
@@ -466,33 +400,6 @@
   return
   
  end subroutine sum_world_farr
- 
- subroutine sum_world_darr(argument,narr,buffersub)
- 
-!***********************************************************************
-!     
-!     LBsoft global summation subroutine for a double precision array
-!     originally written in JETSPIN by M. Lauricella et al.
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification March 2015
-!     
-!***********************************************************************
-  
-  implicit none
-  
-  real(8), intent(inout), dimension(narr) :: argument
-  integer, intent(in) :: narr
-  real(8), intent(inout), dimension(narr), optional :: buffersub
-  
-  integer ier
-  
-  if(present(buffersub))buffersub(1:narr)=argument(1:narr)
-  
-  return
-  
- end subroutine sum_world_darr
  
  subroutine min_world_iarr(argument,narr,buffersub)
  
@@ -525,7 +432,7 @@
  
 !***********************************************************************
 !     
-!     LBsoft global minimum subroutine for a single precision array
+!     LBsoft global minimum subroutine for a float array
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
@@ -536,9 +443,9 @@
   
   implicit none
   
-  real(4), intent(inout), dimension(narr) :: argument
+  real(kind=PRC), intent(inout), dimension(narr) :: argument
   integer, intent(in) :: narr
-  real(4), intent(inout), dimension(narr), optional :: buffersub
+  real(kind=PRC), intent(inout), dimension(narr), optional :: buffersub
   
   integer ier
   
@@ -547,33 +454,6 @@
   return
   
  end subroutine min_world_farr
- 
- subroutine min_world_darr(argument,narr,buffersub)
- 
-!***********************************************************************
-!     
-!     LBsoft global minimum subroutine for a double precision array
-!     originally written in JETSPIN by M. Lauricella et al.
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification March 2015
-!     
-!***********************************************************************
-  
-  implicit none
-  
-  real(8), intent(inout), dimension(narr) :: argument
-  integer, intent(in) :: narr
-  real(8), intent(inout), dimension(narr), optional :: buffersub
-  
-  integer ier
-  
-  if(present(buffersub))buffersub(1:narr)=argument(1:narr)
-  
-  return
-  
- end subroutine min_world_darr
  
  subroutine max_world_iarr(argument,narr,buffersub)
  
@@ -606,7 +486,7 @@
  
 !***********************************************************************
 !     
-!     LBsoft global maximum subroutine for a single precision array
+!     LBsoft global maximum subroutine for a float array
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
@@ -617,9 +497,9 @@
   
   implicit none
   
-  real(4), intent(inout), dimension(narr) :: argument
+  real(kind=PRC), intent(inout), dimension(narr) :: argument
   integer, intent(in) :: narr
-  real(4), intent(inout), dimension(narr), optional :: buffersub
+  real(kind=PRC), intent(inout), dimension(narr), optional :: buffersub
   
   integer ier
   
@@ -628,33 +508,6 @@
   return
   
  end subroutine max_world_farr
- 
- subroutine max_world_darr(argument,narr,buffersub)
- 
-!***********************************************************************
-!     
-!     LBsoft global maximum subroutine for a double precision array
-!     originally written in JETSPIN by M. Lauricella et al.
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification March 2015
-!     
-!***********************************************************************
-  
-  implicit none
-  
-  real(8), intent(inout), dimension(narr) :: argument
-  integer, intent(in) :: narr
-  real(8), intent(inout), dimension(narr), optional :: buffersub
-  
-  integer ier
-  
-  if(present(buffersub))buffersub(1:narr)=argument(1:narr)
-  
-  return
-  
- end subroutine max_world_darr
  
  subroutine and_world_larr(argument,narr,buffersub)
  

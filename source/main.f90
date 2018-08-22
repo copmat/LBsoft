@@ -180,7 +180,7 @@
     
 !   check recycle loop
     lrecycle=(lrecycle .and. timjob-ctime>timcls)
-    
+        
   enddo
 !***********************************************************************
 !     end of the time integration

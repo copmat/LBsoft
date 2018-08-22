@@ -83,7 +83,7 @@ gfortran-mpi:
 intel:
 	$(MAKE) CC=icc \
 	FC=ifort \
-	CFLAGS="-O2 -cpp -I $(CURDIR) -c" \
+	CFLAGS="-O2 -I $(CURDIR) -c" \
 	FFLAGS="-O2 -cpp -I $(CURDIR) -c" \
 	LDFLAGS="-O2 -cpp -I $(CURDIR) -o" \
 	TYPE="seq" \
@@ -92,7 +92,7 @@ intel:
 intel-mpi:
 	$(MAKE) CC=mpiicc \
 	FC=mpiifort \
-	CFLAGS="-O2 -cpp -I $(CURDIR) -c" \
+	CFLAGS="-O2 -I $(CURDIR) -c" \
 	FFLAGS="-O2 -cpp -I $(CURDIR) -c" \
 	LDFLAGS="-O2 -cpp -I $(CURDIR) -o" \
 	TYPE=mpi \
@@ -113,6 +113,15 @@ gfortran-mpidebugger:
 	CFLAGS="-O0 -g -cpp -I $(CURDIR) -c" \
 	FFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-trap=zero -cpp -I $(CURDIR) -c" \
 	LDFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-trap=zero -cpp -I $(CURDIR) -o" \
+	TYPE=mpi \
+	EX=$(EX) BINROOT=$(BINROOT) mpi
+	
+intel-mpidebugger:
+	$(MAKE) CC=mpiicc \
+	FC=mpiifort \
+	CFLAGS="-O0 -g -I $(CURDIR) -c" \
+	FFLAGS="-O0 -g -check all -cpp -I $(CURDIR) -c" \
+	LDFLAGS="-O0 -g -check all -cpp -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EX) BINROOT=$(BINROOT) mpi
 	

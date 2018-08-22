@@ -311,6 +311,11 @@
   logical :: lidiagnostic=.false.
   logical :: temp_lnfluid=.false.
   logical :: temp_wall_SC=.false.
+  logical :: lerror1=.false.
+  logical :: lerror2=.false.
+  logical :: lerror4=.false.
+  logical :: lerror5=.false.
+  logical :: lerror6=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -376,18 +381,24 @@
   
 ! note the parameters are read only by the zero node
   if(idrank==0)then
+  
+!   initialize the lredo condition
+    lredo=.true.
     
 !   check if the input file exist
     inquire(file=inputname,exist=lexists)
-    if(.not.lexists)call error(1)
+    if(.not.lexists)then
+      lerror1=.true.
+      lredo=.false.
+    endif
     
 !   open the inout file
     open(unit=inputunit,file=inputname,status='old',action='read', &
     iostat=itest)
-    if(itest/=0)call error(2)
-    
-!   initialize the lredo condition
-    lredo=.true.
+    if(itest/=0)then
+      lerror2=.true.
+      lredo=.false.
+    endif
     
 !   counter the line which are read in the input file
     iline=0
@@ -397,7 +408,7 @@
       call getline(safe,inputunit,maxlen,redstring)
       if(.not.safe)then
         call warning(1,dble(iline),redstring)
-        call error(5)
+        lerror5=.true.
       endif
       iline=iline+1
       call strip(redstring,maxlen)
@@ -417,7 +428,7 @@
             call getline(safe,inputunit,maxlen,redstring)
             if(.not.safe)then
               call warning(1,dble(iline),redstring)
-              call error(5)
+              lerror5=.true.
             endif
             iline=iline+1
             call strip(redstring,maxlen)
@@ -443,7 +454,7 @@
                   timjob=8.64d4*timjob
                 else
                   call warning(1,dble(iline),redstring)
-                  call error(6)
+                  lerror6=.true.
                 endif
               endif
             elseif(findstring('diagnostic',directive,inumchar,maxlen))then
@@ -484,7 +495,7 @@
                 temp_lvtkfile=.true.
               else
                 call warning(1,dble(iline),redstring)
-                call error(6)
+                lerror6=.true.
               endif
             elseif(findstring('bound',directive,inumchar,maxlen))then
               if(findstring('cond',directive,inumchar,maxlen))then
@@ -494,7 +505,7 @@
                 temp_ibcz=intstr(directive,maxlen,inumchar)
               else
                 call warning(1,dble(iline),redstring)
-                call error(6)
+                lerror6=.true.
               endif
             elseif(findstring('test',directive,inumchar,maxlen))then
               if(findstring('yes',directive,inumchar,maxlen))then
@@ -503,7 +514,7 @@
                 ltest_mode=.false.
               else
                 call warning(1,dble(iline),redstring)
-                call error(6)
+                lerror6=.true.
               endif
             elseif(findstring('steps',directive,inumchar,maxlen))then
               lnstepmax=.true.
@@ -525,7 +536,7 @@
               lredo2=.false.
             else
               call warning(1,dble(iline),redstring)
-              call error(6)
+              lerror6=.true.
             endif
           enddo
         elseif(findstring('lb',directive,inumchar,maxlen))then
@@ -534,7 +545,7 @@
             call getline(safe,inputunit,maxlen,redstring)
             if(.not.safe)then
              call warning(1,dble(iline),redstring)
-             call error(5)
+             lerror5=.true.
             endif
             iline=iline+1
             call strip(redstring,maxlen)
@@ -563,7 +574,7 @@
                     dtemp_bc_w_east=dblstr(directive,maxlen,inumchar)
                   else
                     call warning(1,dble(iline),redstring)
-                    call error(6)
+                    lerror6=.true.
                   endif
                 elseif(findstring('west',directive,inumchar,maxlen))then
                   if(findstring('type',directive,inumchar,maxlen))then
@@ -577,7 +588,7 @@
                     dtemp_bc_w_west=dblstr(directive,maxlen,inumchar)
                   else
                     call warning(1,dble(iline),redstring)
-                    call error(6)
+                    lerror6=.true.
                   endif
                 elseif(findstring('front',directive,inumchar,maxlen))then
                   if(findstring('type',directive,inumchar,maxlen))then
@@ -591,7 +602,7 @@
                     dtemp_bc_w_front=dblstr(directive,maxlen,inumchar)
                   else
                     call warning(1,dble(iline),redstring)
-                    call error(6)
+                    lerror6=.true.
                   endif
                 elseif(findstring('rear',directive,inumchar,maxlen))then
                   if(findstring('type',directive,inumchar,maxlen))then
@@ -605,7 +616,7 @@
                     dtemp_bc_w_rear=dblstr(directive,maxlen,inumchar)
                   else
                     call warning(1,dble(iline),redstring)
-                    call error(6)
+                    lerror6=.true.
                   endif
                 elseif(findstring('north',directive,inumchar,maxlen))then
                   if(findstring('type',directive,inumchar,maxlen))then
@@ -619,7 +630,7 @@
                     dtemp_bc_w_north=dblstr(directive,maxlen,inumchar)
                   else
                     call warning(1,dble(iline),redstring)
-                    call error(6)
+                    lerror6=.true.
                   endif
                 elseif(findstring('south',directive,inumchar,maxlen))then
                   if(findstring('type',directive,inumchar,maxlen))then
@@ -633,15 +644,15 @@
                     dtemp_bc_w_south=dblstr(directive,maxlen,inumchar)
                   else
                     call warning(1,dble(iline),redstring)
-                    call error(6)
+                    lerror6=.true.
                   endif
                 else
                   call warning(1,dble(iline),redstring)
-                  call error(6)
+                  lerror6=.true.
                 endif
               else
                 call warning(1,dble(iline),redstring)
-                call error(6)
+                lerror6=.true.
               endif
             elseif(findstring('dens',directive,inumchar,maxlen))then
               if(findstring('mean',directive,inumchar,maxlen))then
@@ -656,7 +667,7 @@
                 temp_idistselect=2
               else
                 call warning(1,dble(iline),redstring)
-                call error(6)
+                lerror6=.true.
               endif
             elseif(findstring('veloc',directive,inumchar,maxlen))then
               if(findstring('mean',directive,inumchar,maxlen))then
@@ -665,7 +676,7 @@
                 dtemp_initial_w=dblstr(directive,maxlen,inumchar)
               else
                 call warning(1,dble(iline),redstring)
-                call error(6)
+                lerror6=.true.
               endif
             elseif(findstring('force',directive,inumchar,maxlen))then
               if(findstring('ext',directive,inumchar,maxlen))then
@@ -682,11 +693,11 @@
                   dtemp_wallB_SC = dblstr(directive,maxlen,inumchar)
                 else
                   call warning(1,dble(iline),redstring)
-                  call error(6)
+                  lerror6=.true.
                 endif
               else
                 call warning(1,dble(iline),redstring)
-                call error(6)
+                lerror6=.true.
               endif
             elseif(findstring('visc',directive,inumchar,maxlen))then
               lvisc=.true.
@@ -703,7 +714,7 @@
               lredo2=.false.
             else
               call warning(1,dble(iline),redstring)
-              call error(6)
+              lerror6=.true.
             endif
           enddo
         endif
@@ -711,13 +722,25 @@
          lredo=.false.
       else
         call warning(1,dble(iline),redstring)
-        call error(4)
+        lerror4=.true.
       endif
     enddo
     
     close(inputunit)
     
   endif
+  
+  call bcast_world_l(lerror1)
+  call bcast_world_l(lerror2)
+  call bcast_world_l(lerror4)
+  call bcast_world_l(lerror5)
+  call bcast_world_l(lerror6)
+  
+  if(lerror1)call error(1)
+  if(lerror2)call error(2)
+  if(lerror4)call error(4)
+  if(lerror5)call error(5)
+  if(lerror6)call error(6)
   
 ! send the read parameters to all the nodes and print them on terminal
   if(idrank==0)then
@@ -729,11 +752,11 @@
   endif
   
   
-  call bcast_world(lbox)
+  call bcast_world_l(lbox)
   if(lbox)then
-    call bcast_world(temp_nx)
-    call bcast_world(temp_ny)
-    call bcast_world(temp_nz)
+    call bcast_world_i(temp_nx)
+    call bcast_world_i(temp_ny)
+    call bcast_world_i(temp_nz)
     call set_initial_dim_box(temp_nx,temp_ny,temp_nz)
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
@@ -744,8 +767,8 @@
     call error(3)
   endif
   
-  call bcast_world(lnstepmax)
-  call bcast_world(temp_nstepmax)
+  call bcast_world_l(lnstepmax)
+  call bcast_world_i(temp_nstepmax)
   if(lnstepmax)then
     call set_nstepmax(temp_nstepmax)
     if(idrank==0)then
@@ -758,10 +781,10 @@
     call error(7)
   endif
   
-  call bcast_world(temp_ibc)
-  call bcast_world(temp_ibcx)
-  call bcast_world(temp_ibcy)
-  call bcast_world(temp_ibcz)
+  call bcast_world_l(temp_ibc)
+  call bcast_world_i(temp_ibcx)
+  call bcast_world_i(temp_ibcy)
+  call bcast_world_i(temp_ibcz)
   if(.not. temp_ibc)call error(10)
   call set_boundary_conditions_type(temp_ibcx,temp_ibcy,temp_ibcz)
   ! check boundary conditions if are supported/implemented
@@ -783,12 +806,12 @@
     write(6,'(2a,3i12)')mystring,": ",temp_ibcx,temp_ibcy,temp_ibcz
   endif
   
-  call bcast_world(nprintlist)
-  call bcast_world(lprintlist)
-  call bcast_world(lprintlisterror)
+  call bcast_world_i(nprintlist)
+  call bcast_world_l(lprintlist)
+  call bcast_world_l(lprintlisterror)
   if(lprintlist)then
     if(idrank/=0)allocate(printlist(nprintlist))
-    call bcast_world(printlist,nprintlist)
+    call bcast_world_iarr(printlist,nprintlist)
     call label_argument(nprintlist,printlist,printarg)
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
@@ -804,8 +827,8 @@
     call warning(6)
     call error(7)
   endif
-  call bcast_world(lprinttime)
-  call bcast_world(printtime)
+  call bcast_world_l(lprinttime)
+  call bcast_world_f(printtime)
   if(lprinttime)then
    if(idrank==0)then
      mystring=repeat(' ',dimprint)
@@ -814,9 +837,9 @@
    endif
   endif
   
-  call bcast_world(temp_lvtkfile)
+  call bcast_world_l(temp_lvtkfile)
   if(temp_lvtkfile)then
-    call bcast_world(temp_ivtkevery)
+    call bcast_world_i(temp_ivtkevery)
     call set_value_ivtkevery(temp_lvtkfile,temp_ivtkevery)
     if(idrank==0)then
      mystring=repeat(' ',dimprint)
@@ -825,7 +848,7 @@
    endif
   endif
   
-  call bcast_world(temp_ldiagnostic)
+  call bcast_world_l(temp_ldiagnostic)
   if(temp_ldiagnostic)then
     call set_value_ldiagnostic(temp_ldiagnostic)
     if(idrank==0)then
@@ -838,9 +861,9 @@
     endif
   endif
   
-  call bcast_world(lidiagnostic)
+  call bcast_world_l(lidiagnostic)
   if(lidiagnostic)then
-    call bcast_world(temp_idiagnostic)
+    call bcast_world_i(temp_idiagnostic)
     call set_value_idiagnostic(temp_idiagnostic)
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
@@ -849,8 +872,8 @@
     endif
   endif
   
-  call bcast_world(init_seed)
-  call bcast_world(linit_seed)
+  call bcast_world_i(init_seed)
+  call bcast_world_l(linit_seed)
   if(linit_seed)then
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
@@ -868,7 +891,7 @@
     endif
   endif
   
-  call bcast_world(ltest_mode)
+  call bcast_world_l(ltest_mode)
   if(ltest_mode)then
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
@@ -880,12 +903,13 @@
     endif
   endif
   
+  call bcast_world_l(ltimjob)
   if(.not. ltimjob)then
     timjob=1.0d6*365.25d0*24.d0*60.d0*60.d0
   else
-    call bcast_world(timjob)
+    call bcast_world_f(timjob)
+    call get_prntime(hms,timjob,prntim)
     if(idrank==0)then
-      call get_prntime(hms,timjob,prntim)
       mystring=repeat(' ',dimprint)
       mystring="user allocated job time ("//hms//") "
       write(6,'(2a,f12.6)')mystring,": ",prntim
@@ -899,9 +923,9 @@
     write(6,'(/,3a,/)')repeat('*',29),"parameters of LB room",repeat('*',29)
   endif
   
-  call bcast_world(temp_lnfluid)
+  call bcast_world_l(temp_lnfluid)
   if(temp_lnfluid)then
-    call bcast_world(temp_nfluid)
+    call bcast_world_i(temp_nfluid)
     if(temp_nfluid/=1 .and. temp_nfluid/=2)then
       call warning(8,real(temp_nfluid,kind=PRC))
       call error(5)
@@ -914,19 +938,19 @@
     endif
   endif
   
-  call bcast_world(temp_bc_type_east)
-  call bcast_world(temp_bc_type_west)
-  call bcast_world(temp_bc_type_front)
-  call bcast_world(temp_bc_type_rear)
-  call bcast_world(temp_bc_type_north)
-  call bcast_world(temp_bc_type_south)
+  call bcast_world_i(temp_bc_type_east)
+  call bcast_world_i(temp_bc_type_west)
+  call bcast_world_i(temp_bc_type_front)
+  call bcast_world_i(temp_bc_type_rear)
+  call bcast_world_i(temp_bc_type_north)
+  call bcast_world_i(temp_bc_type_south)
   
   if(temp_bc_type_east/=0)then
-    call bcast_world(dtemp_bc_rhoR_east)
-    call bcast_world(dtemp_bc_rhoB_east)
-    call bcast_world(dtemp_bc_u_east)
-    call bcast_world(dtemp_bc_v_east)
-    call bcast_world(dtemp_bc_w_east)
+    call bcast_world_f(dtemp_bc_rhoR_east)
+    call bcast_world_f(dtemp_bc_rhoB_east)
+    call bcast_world_f(dtemp_bc_u_east)
+    call bcast_world_f(dtemp_bc_v_east)
+    call bcast_world_f(dtemp_bc_w_east)
     call set_value_bc_east(temp_bc_type_east,dtemp_bc_rhoR_east, &
      dtemp_bc_rhoB_east,dtemp_bc_u_east,dtemp_bc_v_east,dtemp_bc_w_east)
     if(idrank==0)then
@@ -943,11 +967,11 @@
   endif
   
   if(temp_bc_type_west/=0)then
-    call bcast_world(dtemp_bc_rhoR_west)
-    call bcast_world(dtemp_bc_rhoB_west)
-    call bcast_world(dtemp_bc_u_west)
-    call bcast_world(dtemp_bc_v_west)
-    call bcast_world(dtemp_bc_w_west)
+    call bcast_world_f(dtemp_bc_rhoR_west)
+    call bcast_world_f(dtemp_bc_rhoB_west)
+    call bcast_world_f(dtemp_bc_u_west)
+    call bcast_world_f(dtemp_bc_v_west)
+    call bcast_world_f(dtemp_bc_w_west)
     call set_value_bc_west(temp_bc_type_west,dtemp_bc_rhoR_west, &
      dtemp_bc_rhoB_west,dtemp_bc_u_west,dtemp_bc_v_west,dtemp_bc_w_west)
     if(idrank==0)then
@@ -964,11 +988,11 @@
   endif
   
   if(temp_bc_type_front/=0)then
-    call bcast_world(dtemp_bc_rhoR_front)
-    call bcast_world(dtemp_bc_rhoB_front)
-    call bcast_world(dtemp_bc_u_front)
-    call bcast_world(dtemp_bc_v_front)
-    call bcast_world(dtemp_bc_w_front)
+    call bcast_world_f(dtemp_bc_rhoR_front)
+    call bcast_world_f(dtemp_bc_rhoB_front)
+    call bcast_world_f(dtemp_bc_u_front)
+    call bcast_world_f(dtemp_bc_v_front)
+    call bcast_world_f(dtemp_bc_w_front)
     call set_value_bc_front(temp_bc_type_front,dtemp_bc_rhoR_front, &
      dtemp_bc_rhoB_front,dtemp_bc_u_front,dtemp_bc_v_front,dtemp_bc_w_front)
     if(idrank==0)then
@@ -985,11 +1009,11 @@
   endif
   
   if(temp_bc_type_rear/=0)then
-    call bcast_world(dtemp_bc_rhoR_rear)
-    call bcast_world(dtemp_bc_rhoB_rear)
-    call bcast_world(dtemp_bc_u_rear)
-    call bcast_world(dtemp_bc_v_rear)
-    call bcast_world(dtemp_bc_w_rear)
+    call bcast_world_f(dtemp_bc_rhoR_rear)
+    call bcast_world_f(dtemp_bc_rhoB_rear)
+    call bcast_world_f(dtemp_bc_u_rear)
+    call bcast_world_f(dtemp_bc_v_rear)
+    call bcast_world_f(dtemp_bc_w_rear)
     call set_value_bc_rear(temp_bc_type_rear,dtemp_bc_rhoR_rear, &
      dtemp_bc_rhoB_rear,dtemp_bc_u_rear,dtemp_bc_v_rear,dtemp_bc_w_rear)
     if(idrank==0)then
@@ -1006,11 +1030,11 @@
   endif
   
   if(temp_bc_type_north/=0)then
-    call bcast_world(dtemp_bc_rhoR_north)
-    call bcast_world(dtemp_bc_rhoB_north)
-    call bcast_world(dtemp_bc_u_north)
-    call bcast_world(dtemp_bc_v_north)
-    call bcast_world(dtemp_bc_w_north)
+    call bcast_world_f(dtemp_bc_rhoR_north)
+    call bcast_world_f(dtemp_bc_rhoB_north)
+    call bcast_world_f(dtemp_bc_u_north)
+    call bcast_world_f(dtemp_bc_v_north)
+    call bcast_world_f(dtemp_bc_w_north)
     call set_value_bc_north(temp_bc_type_north,dtemp_bc_rhoR_north, &
      dtemp_bc_rhoB_north,dtemp_bc_u_north,dtemp_bc_v_north,dtemp_bc_w_north)
     if(idrank==0)then
@@ -1027,11 +1051,11 @@
   endif
   
   if(temp_bc_type_south/=0)then
-    call bcast_world(dtemp_bc_rhoR_south)
-    call bcast_world(dtemp_bc_rhoB_south)
-    call bcast_world(dtemp_bc_u_south)
-    call bcast_world(dtemp_bc_v_south)
-    call bcast_world(dtemp_bc_w_south)
+    call bcast_world_f(dtemp_bc_rhoR_south)
+    call bcast_world_f(dtemp_bc_rhoB_south)
+    call bcast_world_f(dtemp_bc_u_south)
+    call bcast_world_f(dtemp_bc_v_south)
+    call bcast_world_f(dtemp_bc_w_south)
     call set_value_bc_south(temp_bc_type_south,dtemp_bc_rhoR_south, &
      dtemp_bc_rhoB_south,dtemp_bc_u_south,dtemp_bc_v_south,dtemp_bc_w_south)
     if(idrank==0)then
@@ -1047,19 +1071,19 @@
     endif
   endif
   
-  call bcast_world(lvisc)
-  call bcast_world(ltau)
+  call bcast_world_l(lvisc)
+  call bcast_world_l(ltau)
   if(.not. (lvisc.or.ltau))then
     call warning(4)
     call error(7)
   endif
   if(lvisc)then
-    call bcast_world(dtemp_viscR)
-    call bcast_world(dtemp_viscB)
+    call bcast_world_f(dtemp_viscR)
+    call bcast_world_f(dtemp_viscB)
     call set_value_viscosity(dtemp_viscR,dtemp_viscB,lsingle_fluid)
   else
-    call bcast_world(dtemp_tauR)
-    call bcast_world(dtemp_tauB)
+    call bcast_world_f(dtemp_tauR)
+    call bcast_world_f(dtemp_tauB)
     call set_value_tau(dtemp_tauR,dtemp_tauB,lsingle_fluid)
   endif
   
@@ -1080,7 +1104,7 @@
     endif
   endif
   
-  call bcast_world(temp_idistselect)
+  call bcast_world_i(temp_idistselect)
   if(temp_idistselect>0)then
     call set_initial_dist_type(temp_idistselect)
     if(idrank==0)then
@@ -1103,8 +1127,8 @@
     endif
   endif
   
-  call bcast_world(dtemp_meanR)
-  call bcast_world(dtemp_meanB)
+  call bcast_world_f(dtemp_meanR)
+  call bcast_world_f(dtemp_meanB)
   if(dtemp_meanR>ZERO .or. dtemp_meanB>ZERO)then
     call set_mean_value_dens_fluids(dtemp_meanR,dtemp_meanB)
     if(idrank==0)then
@@ -1114,8 +1138,8 @@
     endif
   endif
   
-  call bcast_world(dtemp_stdevR)
-  call bcast_world(dtemp_stdevB)
+  call bcast_world_f(dtemp_stdevR)
+  call bcast_world_f(dtemp_stdevB)
   if(dtemp_stdevR>ZERO .or. dtemp_stdevB>ZERO)then
     call set_stdev_value_dens_fluids(dtemp_stdevR,dtemp_stdevB)
     if(idrank==0)then
@@ -1125,9 +1149,9 @@
     endif
   endif
   
-  call bcast_world(dtemp_initial_u)
-  call bcast_world(dtemp_initial_v)
-  call bcast_world(dtemp_initial_w)
+  call bcast_world_f(dtemp_initial_u)
+  call bcast_world_f(dtemp_initial_v)
+  call bcast_world_f(dtemp_initial_w)
   if(dtemp_initial_u>ZERO .or. dtemp_initial_v>ZERO .or. &
    dtemp_initial_w>ZERO)then
     call set_mean_value_vel_fluids(dtemp_initial_u,dtemp_initial_v, &
@@ -1139,9 +1163,9 @@
     endif
   endif
   
-  call bcast_world(dtemp_ext_fu)
-  call bcast_world(dtemp_ext_fv)
-  call bcast_world(dtemp_ext_fw)
+  call bcast_world_f(dtemp_ext_fu)
+  call bcast_world_f(dtemp_ext_fv)
+  call bcast_world_f(dtemp_ext_fw)
   if(dtemp_ext_fu/=ZERO .or. dtemp_ext_fv/=ZERO .or. &
    dtemp_ext_fw/=ZERO)then
     call set_value_ext_force_fluids(dtemp_ext_fu,dtemp_ext_fv, &
@@ -1153,8 +1177,8 @@
     endif
   endif
   
-  call bcast_world(temp_lpair_SC)
-  call bcast_world(temp_pair_SC)
+  call bcast_world_l(temp_lpair_SC)
+  call bcast_world_f(temp_pair_SC)
   if(temp_lpair_SC)then
     if(temp_lpair_SC .and. lsingle_fluid)then
       call warning(10)
@@ -1168,10 +1192,10 @@
     endif
   endif
   
-  call bcast_world(temp_wall_SC)
+  call bcast_world_l(temp_wall_SC)
   if(temp_lpair_SC)then
-    call bcast_world(dtemp_wallR_SC)
-    call bcast_world(dtemp_wallB_SC)
+    call bcast_world_f(dtemp_wallR_SC)
+    call bcast_world_f(dtemp_wallB_SC)
     call set_fluid_wall_sc(dtemp_wallR_SC,dtemp_wallB_SC)
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
@@ -1229,6 +1253,8 @@
   eprinttime=nint(endtime/tstep)
   
   reprinttime=nint(REAL(eprinttime,kind=PRC)/REAL(iprinttime,kind=PRC))
+  
+  call get_sync_world
   
   call print_legend_observables(6)
 

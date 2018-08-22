@@ -1,5 +1,6 @@
 
 #define IPRC 4
+#define LPRC 4
 #define PRC 8
 
 #define D3Q19
