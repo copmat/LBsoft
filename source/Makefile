@@ -75,8 +75,8 @@ gfortran-mpi:
 	$(MAKE) CC=mpicc \
 	FC=mpif90 \
 	CFLAGS="-O2 -cpp -I $(CURDIR) -c" \
-	FFLAGS="-O2 -cpp -I $(CURDIR) -c" \
-	LDFLAGS="-O2 -cpp -I $(CURDIR) -o" \
+	FFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -c" \
+	LDFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EX) BINROOT=$(BINROOT) mpi
 	
@@ -93,8 +93,8 @@ intel-mpi:
 	$(MAKE) CC=mpiicc \
 	FC=mpiifort \
 	CFLAGS="-O2 -I $(CURDIR) -c" \
-	FFLAGS="-O2 -cpp -I $(CURDIR) -c" \
-	LDFLAGS="-O2 -cpp -I $(CURDIR) -o" \
+	FFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -c" \
+	LDFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EX) BINROOT=$(BINROOT) mpi
 
@@ -111,8 +111,8 @@ gfortran-mpidebugger:
 	$(MAKE) CC=mpicc \
 	FC=mpif90 \
 	CFLAGS="-O0 -g -cpp -I $(CURDIR) -c" \
-	FFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-trap=zero -cpp -I $(CURDIR) -c" \
-	LDFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-trap=zero -cpp -I $(CURDIR) -o" \
+	FFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-trap=zero -cpp -DMPI -I $(CURDIR) -c" \
+	LDFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-trap=zero -cpp -DMPI -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EX) BINROOT=$(BINROOT) mpi
 	
@@ -120,43 +120,34 @@ intel-mpidebugger:
 	$(MAKE) CC=mpiicc \
 	FC=mpiifort \
 	CFLAGS="-O0 -g -I $(CURDIR) -c" \
-	FFLAGS="-O0 -g -check all -cpp -I $(CURDIR) -c" \
-	LDFLAGS="-O0 -g -check all -cpp -I $(CURDIR) -o" \
+	FFLAGS="-O0 -g -check all -cpp -DMPI -I $(CURDIR) -c" \
+	LDFLAGS="-O0 -g -check all -cpp -DMPI -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EX) BINROOT=$(BINROOT) mpi
 	
 seq:IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
 	Lib_VTK_IO.o get_mem.o serial_version_mod.o \
-	profiling_mod.o parse_mod.o error_mod.o utility_mod.o \
+	profiling_mod.o parse_mod.o error_mod.o aop_mod.o utility_mod.o \
 	fluids_mod.o write_output_mod.o integrator_mod.o statistic_mod.o \
 	io_mod.o main.o
 	$(FC) $(LDFLAGS) $(EX) IR_Precision.o \
 	Lib_Pack_Data.o Lib_Base64.o Lib_VTK_IO.o get_mem.o \
 	serial_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
-	utility_mod.o fluids_mod.o write_output_mod.o integrator_mod.o \
+	aop_mod.o utility_mod.o fluids_mod.o write_output_mod.o integrator_mod.o \
 	statistic_mod.o io_mod.o main.o
 	mv $(EX) $(EXE)
 	
 mpi:IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
 	Lib_VTK_IO.o get_mem.o parallel_version_mod.o \
-	profiling_mod.o parse_mod.o error_mod.o utility_mod.o \
-	fluids_mod.o write_output_mod.o integrator_mod.o statistic_mod.o \
-	io_mod.o main.o
+	profiling_mod.o parse_mod.o error_mod.o aop_mod.o utility_mod.o \
+	comsetup_mod.o fluids_mod.o write_output_mod.o integrator_mod.o \
+	statistic_mod.o io_mod.o main.o
 	$(FC) $(LDFLAGS) $(EX) IR_Precision.o \
 	Lib_Pack_Data.o Lib_Base64.o Lib_VTK_IO.o get_mem.o \
 	parallel_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
-	utility_mod.o fluids_mod.o write_output_mod.o integrator_mod.o \
-	statistic_mod.o io_mod.o main.o
+	aop_mod.o utility_mod.o comsetup_mod.o fluids_mod.o write_output_mod.o \
+	integrator_mod.o statistic_mod.o io_mod.o main.o
 	mv $(EX) $(EXE)
-
-main:IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
-	Lib_VTK_IO.o get_mem.o serial_version_mod.o \
-	profiling_mod.o parse_mod.o error_mod.o utility_mod.o \
-	fluids_mod.o write_output_mod.o integrator_mod.o statistic_mod.o io_mod.o main.o
-	$(FC) $(LDFLAGS) $(EX) IR_Precision.o \
-	Lib_Pack_Data.o Lib_Base64.o Lib_VTK_IO.o get_mem.o \
-	serial_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
-	utility_mod.o fluids_mod.o write_output_mod.o integrator_mod.o statistic_mod.o io_mod.o main.o
 	
 IR_Precision.o:IR_Precision.f90
 	$(FC) $(FFLAGS) IR_Precision.f90
@@ -188,8 +179,14 @@ parse_mod.o:parse_mod.f90
 error_mod.o:error_mod.f90
 	$(FC) $(FFLAGS) error_mod.f90
 	
+aop_mod.o:aop_mod.f90
+	$(FC) $(FFLAGS) aop_mod.f90
+	
 utility_mod.o:utility_mod.f90
 	$(FC) $(FFLAGS) utility_mod.f90
+	
+comsetup_mod.o:comsetup_mod.f90
+	$(FC) $(FFLAGS) comsetup_mod.f90
 	
 fluids_mod.o:fluids_mod.f90
 	$(FC) $(FFLAGS) fluids_mod.f90

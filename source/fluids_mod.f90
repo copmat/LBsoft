@@ -15,13 +15,14 @@
  
  use version_mod,    only : idrank,or_world_larr
  use error_mod
+ use aop_mod
  use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
                    allocate_array_ibuffservice,buffservice, &
                    allocate_array_buffservice,lbuffservice, &
                    allocate_array_lbuffservice, &
                    buffservice3d,allocate_array_buffservice3d, &
                    rand_noseeded,linit_seed,gauss_noseeded
- 
+ use lbempi_mod, only : commspop, commrpop
  implicit none
  
  private
@@ -30,6 +31,15 @@
  integer, save, protected, public :: ny=0
  integer, save, protected, public :: nz=0
  
+#if LATTICE==319
+ integer, parameter, public :: links=18
+#endif
+ 
+ !max
+ INTEGER, save, public :: minx, maxx, miny, maxy, minz, maxz
+ INTEGER, save, public :: ixpbc, iypbc, izpbc
+ TYPE(REALPTR), dimension(0:links):: aoptpR,aoptpB
+!max
  integer, save, protected, public :: LBintegrator=0
  
  integer, save, protected, public :: idistselect=0
@@ -147,7 +157,6 @@
  character(len=6), parameter, public :: latt_name="d3q19 "
  
  integer, parameter, public :: latt_dim=3
- integer, parameter, public :: links=18
  
  integer, parameter, public :: nbuff=2
  
@@ -179,14 +188,14 @@
  
 #endif 
 
- real(kind=PRC), save, public, allocatable, dimension(:,:,:) :: & 
+ real(kind=PRC), save, public, allocatable, target, dimension(:,:,:) :: & 
   f00R,f01R,f02R,f03R,f04R,f05R,f06R,f07R,f08R
- real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: &
+ real(kind=PRC), save, protected, public, allocatable, target, dimension(:,:,:) :: &
   f00B,f01B,f02B,f03B,f04B,f05B,f06B,f07B,f08B
  
- real(kind=PRC), save, public, allocatable, dimension(:,:,:) :: & 
+ real(kind=PRC), save, public, allocatable, target, dimension(:,:,:) :: & 
   f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R
- real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: &
+ real(kind=PRC), save, protected, public, allocatable, target, dimension(:,:,:) :: &
   f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B
  
  public :: set_random_dens_fluids
@@ -259,79 +268,127 @@
   
   istat=0
   
-  allocate(rhoR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(1))
+  allocate(rhoR(minx:maxx,miny:maxy,minz:maxz),stat=istat(1))
   
-  allocate(u(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(3))
-  allocate(v(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(4))
-  allocate(w(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(5))
+  allocate(u(minx:maxx,miny:maxy,minz:maxz),stat=istat(3))
+  allocate(v(minx:maxx,miny:maxy,minz:maxz),stat=istat(4))
+  allocate(w(minx:maxx,miny:maxy,minz:maxz),stat=istat(5))
   
-  allocate(fuR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(6))
-  allocate(fvR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(7))
-  allocate(fwR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(8))
+  allocate(fuR(minx:maxx,miny:maxy,minz:maxz),stat=istat(6))
+  allocate(fvR(minx:maxx,miny:maxy,minz:maxz),stat=istat(7))
+  allocate(fwR(minx:maxx,miny:maxy,minz:maxz),stat=istat(8))
   
   if(lShanChen)then
-    allocate(gradpsixR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(12))
-    allocate(gradpsiyR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(13))
-    allocate(gradpsizR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(14))
-    allocate(psiR(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(19))
+    allocate(gradpsixR(minx:maxx,miny:maxy,minz:maxz),stat=istat(12))
+    allocate(gradpsiyR(minx:maxx,miny:maxy,minz:maxz),stat=istat(13))
+    allocate(gradpsizR(minx:maxx,miny:maxy,minz:maxz),stat=istat(14))
+    allocate(psiR(minx:maxx,miny:maxy,minz:maxz),stat=istat(19))
   endif
   
-  allocate(omega(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(18))
+  allocate(omega(minx:maxx,miny:maxy,minz:maxz),stat=istat(18))
   
-  allocate(f00R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(30))
-  allocate(f01R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(31))
-  allocate(f02R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(32))
-  allocate(f03R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(33))
-  allocate(f04R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(34))
-  allocate(f05R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(35))
-  allocate(f06R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(36))
-  allocate(f07R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(37))
-  allocate(f08R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(38))
-  allocate(f09R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(39))
-  allocate(f10R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(40))
-  allocate(f11R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(41))
-  allocate(f12R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(42))
-  allocate(f13R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(43))
-  allocate(f14R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(44))
-  allocate(f15R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(45))
-  allocate(f16R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(46))
-  allocate(f17R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(47))
-  allocate(f18R(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(48))
+  allocate(f00R(minx:maxx,miny:maxy,minz:maxz),stat=istat(30))
+  allocate(f01R(minx:maxx,miny:maxy,minz:maxz),stat=istat(31))
+  allocate(f02R(minx:maxx,miny:maxy,minz:maxz),stat=istat(32))
+  allocate(f03R(minx:maxx,miny:maxy,minz:maxz),stat=istat(33))
+  allocate(f04R(minx:maxx,miny:maxy,minz:maxz),stat=istat(34))
+  allocate(f05R(minx:maxx,miny:maxy,minz:maxz),stat=istat(35))
+  allocate(f06R(minx:maxx,miny:maxy,minz:maxz),stat=istat(36))
+  allocate(f07R(minx:maxx,miny:maxy,minz:maxz),stat=istat(37))
+  allocate(f08R(minx:maxx,miny:maxy,minz:maxz),stat=istat(38))
+  allocate(f09R(minx:maxx,miny:maxy,minz:maxz),stat=istat(39))
+  allocate(f10R(minx:maxx,miny:maxy,minz:maxz),stat=istat(40))
+  allocate(f11R(minx:maxx,miny:maxy,minz:maxz),stat=istat(41))
+  allocate(f12R(minx:maxx,miny:maxy,minz:maxz),stat=istat(42))
+  allocate(f13R(minx:maxx,miny:maxy,minz:maxz),stat=istat(43))
+  allocate(f14R(minx:maxx,miny:maxy,minz:maxz),stat=istat(44))
+  allocate(f15R(minx:maxx,miny:maxy,minz:maxz),stat=istat(45))
+  allocate(f16R(minx:maxx,miny:maxy,minz:maxz),stat=istat(46))
+  allocate(f17R(minx:maxx,miny:maxy,minz:maxz),stat=istat(47))
+  allocate(f18R(minx:maxx,miny:maxy,minz:maxz),stat=istat(48))
+
+  !max
+  aoptpR(0)%p => f00R
+  aoptpR(1)%p => f01R
+  aoptpR(2)%p => f02R
+  aoptpR(3)%p => f03R
+  aoptpR(4)%p => f04R
+  aoptpR(5)%p => f05R
+  aoptpR(6)%p => f06R
+  aoptpR(7)%p => f07R
+  aoptpR(8)%p => f08R
+  aoptpR(9)%p => f09R
+  aoptpR(10)%p => f10R
+  aoptpR(11)%p => f11R
+  aoptpR(12)%p => f12R
+  aoptpR(13)%p => f13R
+  aoptpR(14)%p => f14R
+  aoptpR(15)%p => f15R
+  aoptpR(16)%p => f16R
+  aoptpR(17)%p => f17R
+  aoptpR(18)%p => f18R
+  
+  !max
   
   if(.not. lsingle_fluid)then
   
-    allocate(rhoB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(2))
+    allocate(rhoB(minx:maxx,miny:maxy,minz:maxz),stat=istat(2))
   
-    allocate(fuB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(9))
-    allocate(fvB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(10))
-    allocate(fwB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(11))
+    allocate(fuB(minx:maxx,miny:maxy,minz:maxz),stat=istat(9))
+    allocate(fvB(minx:maxx,miny:maxy,minz:maxz),stat=istat(10))
+    allocate(fwB(minx:maxx,miny:maxy,minz:maxz),stat=istat(11))
     
     if(lShanChen)then
-      allocate(gradpsixB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(15))
-      allocate(gradpsiyB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(16))
-      allocate(gradpsizB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(17))
-      allocate(psiB(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(20))
+      allocate(gradpsixB(minx:maxx,miny:maxy,minz:maxz),stat=istat(15))
+      allocate(gradpsiyB(minx:maxx,miny:maxy,minz:maxz),stat=istat(16))
+      allocate(gradpsizB(minx:maxx,miny:maxy,minz:maxz),stat=istat(17))
+      allocate(psiB(minx:maxx,miny:maxy,minz:maxz),stat=istat(20))
     endif
     
-    allocate(f00B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(60))
-    allocate(f01B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(61))
-    allocate(f02B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(62))
-    allocate(f03B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(63))
-    allocate(f04B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(64))
-    allocate(f05B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(65))
-    allocate(f06B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(66))
-    allocate(f07B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(67))
-    allocate(f08B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(68))
-    allocate(f09B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(69))
-    allocate(f10B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(60))
-    allocate(f11B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(61))
-    allocate(f12B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(62))
-    allocate(f13B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(63))
-    allocate(f14B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(64))
-    allocate(f15B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(65))
-    allocate(f16B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(66))
-    allocate(f17B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(67))
-    allocate(f18B(myzero:mynx,myzero:myny,myzero:mynz),stat=istat(68))
+    allocate(f00B(minx:maxx,miny:maxy,minz:maxz),stat=istat(60))
+    allocate(f01B(minx:maxx,miny:maxy,minz:maxz),stat=istat(61))
+    allocate(f02B(minx:maxx,miny:maxy,minz:maxz),stat=istat(62))
+    allocate(f03B(minx:maxx,miny:maxy,minz:maxz),stat=istat(63))
+    allocate(f04B(minx:maxx,miny:maxy,minz:maxz),stat=istat(64))
+    allocate(f05B(minx:maxx,miny:maxy,minz:maxz),stat=istat(65))
+    allocate(f06B(minx:maxx,miny:maxy,minz:maxz),stat=istat(66))
+    allocate(f07B(minx:maxx,miny:maxy,minz:maxz),stat=istat(67))
+    allocate(f08B(minx:maxx,miny:maxy,minz:maxz),stat=istat(68))
+    allocate(f09B(minx:maxx,miny:maxy,minz:maxz),stat=istat(69))
+    allocate(f10B(minx:maxx,miny:maxy,minz:maxz),stat=istat(60))
+    allocate(f11B(minx:maxx,miny:maxy,minz:maxz),stat=istat(61))
+    allocate(f12B(minx:maxx,miny:maxy,minz:maxz),stat=istat(62))
+    allocate(f13B(minx:maxx,miny:maxy,minz:maxz),stat=istat(63))
+    allocate(f14B(minx:maxx,miny:maxy,minz:maxz),stat=istat(64))
+    allocate(f15B(minx:maxx,miny:maxy,minz:maxz),stat=istat(65))
+    allocate(f16B(minx:maxx,miny:maxy,minz:maxz),stat=istat(66))
+    allocate(f17B(minx:maxx,miny:maxy,minz:maxz),stat=istat(67))
+    allocate(f18B(minx:maxx,miny:maxy,minz:maxz),stat=istat(68))
+    
+    !max
+    aoptpB(0)%p => f00B
+    aoptpB(1)%p => f01B
+    aoptpB(2)%p => f02B
+    aoptpB(3)%p => f03B
+    aoptpB(4)%p => f04B
+    aoptpB(5)%p => f05B
+    aoptpB(6)%p => f06B
+    aoptpB(7)%p => f07B
+    aoptpB(8)%p => f08B
+    aoptpB(9)%p => f09B
+    aoptpB(10)%p => f10B
+    aoptpB(11)%p => f11B
+    aoptpB(12)%p => f12B
+    aoptpB(13)%p => f13B
+    aoptpB(14)%p => f14B
+    aoptpB(15)%p => f15B
+    aoptpB(16)%p => f16B
+    aoptpB(17)%p => f17B
+    aoptpB(18)%p => f18B
+    
+    !max
+    
+    
   endif
   
   ltest=.false.
@@ -347,7 +404,29 @@
   if(ltest(1))call error(4)
   
   call allocate_array_buffservice3d(myzero,mynx,myzero,myny,myzero,mynz)
-  
+!max  call allocate_array_buffservice3d(minx,maxx,miny,maxy,minz,maxz)
+  !max
+  !modify minx-maxz according to the role
+  !max
+  if(minx.lt.1) then
+     minx=1
+  endif
+  if(miny.lt.1) then
+     miny=1
+  endif
+  if(minz.lt.1) then
+     minz=1
+  endif
+  if(maxx.gt.nx) then
+     maxx=nx
+  endif
+  if(maxy.gt.ny) then
+     maxy=ny
+  endif
+  if(maxz.gt.nz) then
+     maxz=nz
+  endif
+!max  write(0,*)'fluids id=',idrank,'minx=',minx,'maxx=',maxx,'miny=',miny,'maxy=',maxy,'minz=',minz,'maxz=',maxz  
   return
   
  end subroutine allocate_fluids
@@ -453,15 +532,15 @@
   
   if(.not. lforce_add)return
   
-  forall(i=1:nx,j=1:ny,k=1:nz)fuR(i,j,k)=ext_fu
-  forall(i=1:nx,j=1:ny,k=1:nz)fvR(i,j,k)=ext_fv
-  forall(i=1:nx,j=1:ny,k=1:nz)fwR(i,j,k)=ext_fw
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)fuR(i,j,k)=ext_fu
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)fvR(i,j,k)=ext_fv
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)fwR(i,j,k)=ext_fw
   
   if(lsingle_fluid)return
   
-  forall(i=1:nx,j=1:ny,k=1:nz)fuB(i,j,k)=ext_fu
-  forall(i=1:nx,j=1:ny,k=1:nz)fvB(i,j,k)=ext_fv
-  forall(i=1:nx,j=1:ny,k=1:nz)fwB(i,j,k)=ext_fw
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)fuB(i,j,k)=ext_fu
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)fvB(i,j,k)=ext_fv
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)fwB(i,j,k)=ext_fw
   
   return
  
@@ -506,13 +585,13 @@
   
   else
   
-    forall (i=1:nx,j=1:ny,k=1:nz)
+    forall (i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k)=meanR+stdevR*gauss_noseeded(i,j,k,1)
     end forall
     
     if(lsingle_fluid)return
     
-    forall (i=1:nx,j=1:ny,k=1:nz)
+    forall (i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoB(i,j,k)=meanB+stdevB*gauss_noseeded(i,j,k,100)
     end forall
   
@@ -565,13 +644,13 @@
   
   else
   
-    forall (i=1:nx,j=1:ny,k=1:nz)
+    forall (i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k)=meanR+stdevR*rand_noseeded(i,j,k,1)
     end forall
     
     if(lsingle_fluid)return
     
-    forall (i=1:nx,j=1:ny,k=1:nz)
+    forall (i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoB(i,j,k)=meanB+stdevB*rand_noseeded(i,j,k,100)
     end forall
   
@@ -598,9 +677,9 @@
   
   integer :: i,j,k
   
-  forall(i=1:nx,j=1:ny,k=1:nz)rhoR(i,j,k)=meanR
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)rhoR(i,j,k)=meanR
   if(lsingle_fluid)return
-  forall(i=1:nx,j=1:ny,k=1:nz)rhoB(i,j,k)=meanB
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)rhoB(i,j,k)=meanB
   
   return
   
@@ -623,9 +702,9 @@
   
   integer :: i,j,k
   
-  forall(i=1:nx,j=1:ny,k=1:nz)u(i,j,k)=initial_u
-  forall(i=1:nx,j=1:ny,k=1:nz)v(i,j,k)=initial_v
-  forall(i=1:nx,j=1:ny,k=1:nz)w(i,j,k)=initial_w
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)u(i,j,k)=initial_u
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)v(i,j,k)=initial_v
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)w(i,j,k)=initial_w
   
   return
   
@@ -684,97 +763,97 @@
   
   !red fluid
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f00sub(i,j,k)=equil_pop00(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f01sub(i,j,k)=equil_pop01(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f02sub(i,j,k)=equil_pop02(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f03sub(i,j,k)=equil_pop03(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f04sub(i,j,k)=equil_pop04(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f05sub(i,j,k)=equil_pop05(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f06sub(i,j,k)=equil_pop06(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f07sub(i,j,k)=equil_pop07(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f08sub(i,j,k)=equil_pop08(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f09sub(i,j,k)=equil_pop09(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f10sub(i,j,k)=equil_pop10(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f11sub(i,j,k)=equil_pop11(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f12sub(i,j,k)=equil_pop12(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f13sub(i,j,k)=equil_pop13(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f14sub(i,j,k)=equil_pop14(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f15sub(i,j,k)=equil_pop15(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f16sub(i,j,k)=equil_pop16(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f17sub(i,j,k)=equil_pop17(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f18sub(i,j,k)=equil_pop18(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
@@ -1317,7 +1396,7 @@
   
   integer :: i,j,k
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     omega(i,j,k)=unique_omega
   end forall
   
@@ -1374,23 +1453,23 @@
   call compute_grad_on_lattice(rhoB,gradpsixB,gradpsiyB,gradpsizB)
   
   !red fluid
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     fuR(i,j,k) = fuR(i,j,k) - pair_SC*rhoR(i,j,k)*gradpsixB(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     fvR(i,j,k) = fvR(i,j,k) - pair_SC*rhoR(i,j,k)*gradpsiyB(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     fwR(i,j,k) = fwR(i,j,k) - pair_SC*rhoR(i,j,k)*gradpsizB(i,j,k)
   end forall
   !blue fluid
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     fuB(i,j,k) = fuB(i,j,k) - pair_SC*rhoB(i,j,k)*gradpsixR(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     fvB(i,j,k) = fvB(i,j,k) - pair_SC*rhoB(i,j,k)*gradpsiyR(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     fwB(i,j,k) = fwB(i,j,k) - pair_SC*rhoB(i,j,k)*gradpsizR(i,j,k)
   end forall
   
@@ -1416,26 +1495,26 @@
   integer :: i,j,k
   
   !red fluid
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     fuR(i,j,k) = fuR(i,j,k)*t_LB / rhoR(i,j,k) + u(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     fvR(i,j,k) = fvR(i,j,k)*t_LB / rhoR(i,j,k) + v(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     fwR(i,j,k) = fwR(i,j,k)*t_LB / rhoR(i,j,k) + w(i,j,k)
   end forall
   
   if(lsingle_fluid)return
   
   !blue fluid
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     fuB(i,j,k) = fuB(i,j,k)*t_LB / rhoB(i,j,k) + u(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     fvB(i,j,k) = fvB(i,j,k)*t_LB / rhoB(i,j,k) + v(i,j,k)
   end forall
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     fwB(i,j,k) = fwB(i,j,k)*t_LB / rhoB(i,j,k) + w(i,j,k)
   end forall
   
@@ -1466,7 +1545,7 @@
   
 #if LATTICE==319
   !tolti gli zeri su dex dey dez con pazienza
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     mygradx(i,j,k)= &
      myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dex(1)+ & !01
      myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dex(2)+ & !02
@@ -1480,7 +1559,7 @@
      myarr(i+ex(14),j+ey(14),k+ez(14))*p(14)*dex(14)    !14
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     mygrady(i,j,k)= &
      myarr(i+ex(3),j+ey(3),k+ez(3))*p(3)*dey(3)+ & !03
      myarr(i+ex(4),j+ey(4),k+ez(4))*p(4)*dey(4)+ & !04
@@ -1494,7 +1573,7 @@
      myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dey(18)    !18
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     mygradz(i,j,k)= &
      myarr(i+ex(5),j+ey(5),k+ez(5))*p(5)*dez(5)+ & !05
      myarr(i+ex(6),j+ey(6),k+ez(6))*p(6)*dez(6)+ & !06
@@ -1509,7 +1588,7 @@
   end forall
 #else
   !occhio gli zeri su dex dey dez andrebbero tolti con pazienza
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     mygradx(i,j,k)= &
      myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dex(1)+ & !01
      myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dex(2)+ & !02
@@ -1531,7 +1610,7 @@
      myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dex(18)    !18
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     mygrady(i,j,k)= &
      myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dey(1)+ & !01
      myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dey(2)+ & !02
@@ -1553,7 +1632,7 @@
      myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dey(18)    !18
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     mygradz(i,j,k)= &
      myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dez(1)+ & !01
      myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dez(2)+ & !02
@@ -1644,115 +1723,115 @@
   
   integer :: i,j,k
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f00sub(i,j,k)=f00sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop00(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f00sub(i,j,k))
   end forall
     
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f01sub(i,j,k)=f01sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop01(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f01sub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f02sub(i,j,k)=f02sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop02(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f02sub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f03sub(i,j,k)=f03sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop03(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f03sub(i,j,k))
    end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f04sub(i,j,k)=f04sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop04(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f04sub(i,j,k))
   end forall
     
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f05sub(i,j,k)=f05sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop05(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f05sub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f06sub(i,j,k)=f06sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop06(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f06sub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f07sub(i,j,k)=f07sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop07(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f07sub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f08sub(i,j,k)=f08sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop08(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f08sub(i,j,k))
   end forall
     
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f09sub(i,j,k)=f09sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop09(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f09sub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f10sub(i,j,k)=f10sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop10(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f10sub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f11sub(i,j,k)=f11sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop11(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f11sub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f12sub(i,j,k)=f12sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop12(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f12sub(i,j,k))
   end forall
     
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f13sub(i,j,k)=f13sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop13(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f13sub(i,j,k))
   end forall
     
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f14sub(i,j,k)=f14sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop14(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f14sub(i,j,k))
   end forall
     
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f15sub(i,j,k)=f15sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop15(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f15sub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f16sub(i,j,k)=f16sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop16(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f16sub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f17sub(i,j,k)=f17sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop17(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f17sub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f18sub(i,j,k)=f18sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop18(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f18sub(i,j,k))
@@ -1787,115 +1866,115 @@
   
   integer :: i,j,k
     
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f00sub(i,j,k)=(ONE-omegas(i,j,k))*f00sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop00(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop00(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f01sub(i,j,k)=(ONE-omegas(i,j,k))*f01sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop01(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop01(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
     
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f02sub(i,j,k)=(ONE-omegas(i,j,k))*f02sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop02(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop02(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f03sub(i,j,k)=(ONE-omegas(i,j,k))*f03sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop03(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop03(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f04sub(i,j,k)=(ONE-omegas(i,j,k))*f04sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop04(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop04(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f05sub(i,j,k)=(ONE-omegas(i,j,k))*f05sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop05(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop05(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f06sub(i,j,k)=(ONE-omegas(i,j,k))*f06sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop06(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop06(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f07sub(i,j,k)=(ONE-omegas(i,j,k))*f07sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop07(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop07(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f08sub(i,j,k)=(ONE-omegas(i,j,k))*f08sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop08(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop08(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f09sub(i,j,k)=(ONE-omegas(i,j,k))*f09sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop09(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop09(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f10sub(i,j,k)=(ONE-omegas(i,j,k))*f10sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop10(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop10(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
     
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f11sub(i,j,k)=(ONE-omegas(i,j,k))*f11sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop11(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop11(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f12sub(i,j,k)=(ONE-omegas(i,j,k))*f12sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop12(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop12(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f13sub(i,j,k)=(ONE-omegas(i,j,k))*f13sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop13(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop13(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
     
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f14sub(i,j,k)=(ONE-omegas(i,j,k))*f14sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop14(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop14(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
     
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f15sub(i,j,k)=(ONE-omegas(i,j,k))*f15sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop15(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop15(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
     
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f16sub(i,j,k)=(ONE-omegas(i,j,k))*f16sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop16(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop16(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
     
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f17sub(i,j,k)=(ONE-omegas(i,j,k))*f17sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop17(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop17(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
   end forall
     
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     f18sub(i,j,k)=(ONE-omegas(i,j,k))*f18sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop18(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
      equil_pop18(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
@@ -1924,7 +2003,7 @@
   
   if(lunique_omega)return
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     omega(i,j,k)=viscosity_to_omega( &
      ONE/((rhoR(i,j,k)/(rhoB(i,j,k)+rhoR(i,j,k)))*(ONE/viscR) + &
      (rhoB(i,j,k)/(rhoB(i,j,k)+rhoR(i,j,k)))*(ONE/viscB)) )
@@ -1952,13 +2031,13 @@
   
   call streaming_fluids(f00R,f01R,f02R,f03R,f04R, &
    f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
-   f14R,f15R,f16R,f17R,f18R)
+   f14R,f15R,f16R,f17R,f18R,aoptpR)
    
   if(lsingle_fluid)return
   
   call streaming_fluids(f00B,f01B,f02B,f03B,f04B, &
    f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B, &
-   f14B,f15B,f16B,f17B,f18B)
+   f14B,f15B,f16B,f17B,f18B,aoptpB)
   
   
   return
@@ -1967,7 +2046,7 @@
  
  subroutine streaming_fluids(f00sub,f01sub,f02sub,f03sub,f04sub, &
    f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
-   f14sub,f15sub,f16sub,f17sub,f18sub)
+   f14sub,f15sub,f16sub,f17sub,f18sub,aoptp)
  
 !***********************************************************************
 !     
@@ -1985,9 +2064,23 @@
   real(kind=PRC), allocatable, dimension(:,:,:)  :: f00sub,f01sub, &
    f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
    f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+   
+  type(REALPTR), dimension(0:links):: aoptp
   
-  integer :: i,j,k,l,ishift,jshift,kshift
+  integer :: i,j,k,l,ishift,jshift,kshift,itemp,jtemp,ktemp
   
+
+!max   do l=1,links
+!max      write(0,*)'in pop ',l
+!max      do i=1,nx
+!max         do j=1,ny
+!max            do k=1,nz
+!max               write(0,*)i,j,k,aoptp(l)%p(i,j,k)
+!max            enddo
+!max         enddo
+!max      enddo
+!max   enddo
+#if 0
 
   l=1
   ishift=ex(l)
@@ -2151,6 +2244,199 @@
   end forall
   forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f18sub(i,j,k) = buffservice3d(i,j,k)
   
+
+#else
+   !max  
+   call commspop(aoptp)
+   do l=1,links
+      ishift=ex(l)
+      jshift=ey(l)
+      kshift=ez(l)
+#if 0     
+      do i=2,nx-1
+         do j=2,ny-1
+            do k=2,nz-1
+               itemp=i+ishift;
+               jtemp=j+jshift;
+               ktemp=k+kshift;
+               buffservice3d(itemp,jtemp,ktemp) = aoptp(l)%p(i,j,k)
+            enddo
+         enddo
+      enddo
+#else
+      forall(i=minx+1:maxx-1,j=miny+1:maxy-1,k=minz+1:maxz-1)
+         buffservice3d(i+ishift,j+jshift,k+kshift) = aoptp(l)%p(i,j,k)
+      end forall
+#endif     
+      do i=minx,maxx,maxx-minx
+         itemp=i+ishift
+         if(ixpbc.eq.1) then
+            if(itemp.eq.0) then
+               itemp=nx
+            endif
+            if(itemp.eq.(nx+1)) then
+               itemp=1
+            endif
+         endif
+         forall(j=miny+1:maxy-1,k=minz+1:maxz-1) buffservice3d(itemp,j+jshift,k+kshift) = aoptp(l)%p(i,j,k)
+         do j=miny,maxy,maxy-miny
+            jtemp=j+jshift
+            if(iypbc.eq.1) then
+               if(jtemp.eq.0) then
+                  jtemp=ny
+               endif
+               if(jtemp.eq.(ny+1)) then
+                  jtemp=1
+               endif
+            endif
+            forall(k=minz+1:maxz-1) buffservice3d(itemp,jtemp,k+kshift) = aoptp(l)%p(i,j,k)
+         enddo
+         do k=minz,maxz,maxz-minz
+            ktemp=k+kshift;
+            if(izpbc.eq.1) then
+               if(ktemp.eq.0) then
+                  ktemp=nz
+               endif
+               if(ktemp.eq.(nz+1)) then
+                  ktemp=1
+               endif
+            endif
+            forall(j=miny+1:maxy-1) buffservice3d(itemp,j+jshift,ktemp) = aoptp(l)%p(i,j,k)
+         enddo
+      enddo
+      do j=miny,maxy,maxy-miny
+         jtemp=j+jshift
+         if(iypbc.eq.1) then
+            if(jtemp.eq.0) then
+               jtemp=ny
+            endif
+            if(jtemp.eq.(ny+1)) then
+               jtemp=1
+            endif
+         endif
+         forall(i=minx+1:maxx-1,k=minz+1:maxz-1) buffservice3d(i+ishift,jtemp,k+kshift) = aoptp(l)%p(i,j,k)
+         do i=minx,maxx,maxx-minx
+            itemp=i+ishift
+            if(ixpbc.eq.1) then
+               if(itemp.eq.0) then
+                  itemp=nx
+               endif
+               if(itemp.eq.(nx+1)) then
+                  itemp=1
+               endif
+            endif
+            forall(k=minz+1:maxz-1) buffservice3d(itemp,jtemp,k+kshift) = aoptp(l)%p(i,j,k)
+         enddo
+         do k=minz,maxz,maxz-minz
+            ktemp=k+kshift
+            if(izpbc.eq.1) then
+               if(ktemp.eq.0) then
+                  ktemp=nz
+               endif
+               if(ktemp.eq.(nz+1)) then
+                  ktemp=1
+               endif
+            endif
+            forall(i=minx+1:maxx-1) buffservice3d(i+ishift,jtemp,ktemp) = aoptp(l)%p(i,j,k)
+         enddo
+      enddo
+      do k=minz,maxz,maxz-minz
+         ktemp=k+kshift
+         if(izpbc.eq.1) then
+            if(ktemp.eq.0) then
+               ktemp=nz
+            endif
+            if(ktemp.eq.(nz+1)) then
+               ktemp=1
+            endif
+         endif
+         forall(i=minx+1:maxx-1,j=miny+1:maxy-1) buffservice3d(i+ishift,j+jshift,ktemp) = aoptp(l)%p(i,j,k)
+         do i=minx,maxx,maxx-minx
+            itemp=i+ishift
+            if(ixpbc.eq.1) then
+               if(itemp.eq.0) then
+                  itemp=nx
+               endif
+               if(itemp.eq.(nx+1)) then
+                  itemp=1
+               endif
+            endif
+            forall(j=miny+1:maxy-1) buffservice3d(itemp,j+jshift,ktemp) = aoptp(l)%p(i,j,k)
+         enddo
+         do j=miny,maxy,maxy-miny
+            jtemp=j+jshift
+            if(iypbc.eq.1) then
+               if(jtemp.eq.0) then
+                  jtemp=ny
+               endif
+               if(jtemp.eq.(ny+1)) then
+                  jtemp=1
+               endif
+            endif
+            forall(i=minx+1:maxx-1) buffservice3d(i+ishift,jtemp,ktemp) = aoptp(l)%p(i,j,k)
+         enddo
+      enddo
+      do i=minx,maxx,maxx-minx
+         itemp=i+ishift
+         if(ixpbc.eq.1) then
+            if(itemp.eq.0) then
+               itemp=nx
+            endif
+            if(itemp.eq.(nx+1)) then
+               itemp=1
+            endif
+         endif
+         do j=miny,maxy,maxy-miny
+            jtemp=j+jshift
+            if(iypbc.eq.1) then
+               if(jtemp.eq.0) then
+                  jtemp=ny
+               endif
+               if(jtemp.eq.(ny+1)) then
+                  jtemp=1
+               endif
+            endif
+            do k=minz,maxz,maxz-minz
+               ktemp=k+kshift;
+               if(izpbc.eq.1) then
+                  if(ktemp.eq.0) then
+                     ktemp=nz
+                  endif
+                  if(ktemp.eq.(nz+1)) then
+                     ktemp=1
+                  endif
+               endif
+               buffservice3d(itemp,jtemp,ktemp) = aoptp(l)%p(i,j,k)
+            enddo
+         enddo
+      enddo
+#if 0     
+      do i=1,nx
+         do j=1,ny
+            do k=1,nz
+               aoptp(l)%p=buffservice3d(i,j,k)
+            enddo
+         enddo
+      enddo
+#else
+      forall(i=minx:maxx,j=miny:maxy,k=minz:maxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
+#endif
+   enddo
+   call commrpop(aoptp)
+!max   do l=1,links
+!max      write(0,*)'new out pop ',l
+!max      do i=1,nx
+!max         do j=1,ny
+!max           do k=1,nz
+!max               write(0,*)i,j,k,aoptp(l)%p(i,j,k)
+!max            enddo
+!max         enddo
+!max      enddo
+!max   enddo
+
+   !max
+#endif
+
   return
   
  end subroutine streaming_fluids
@@ -2185,20 +2471,23 @@
   !red fluid
   
   if(lsingle_fluid)then
-    
+  
     l=0
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f00R(i,j,k)
+      u(i,j,k)    = f00R(i,j,k)*ddx
+      v(i,j,k)    = f00R(i,j,k)*ddy
+      w(i,j,k)    = f00R(i,j,k)*ddz
     end forall
   
     l=1
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f01R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f01R(i,j,k)*ddx + u(i,j,k)
     end forall
@@ -2207,7 +2496,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f02R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f02R(i,j,k)*ddx + u(i,j,k)
     end forall
@@ -2216,7 +2505,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f03R(i,j,k) + rhoR(i,j,k)
       v(i,j,k)    = f03R(i,j,k)*ddy + v(i,j,k)
     end forall
@@ -2225,7 +2514,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f04R(i,j,k) + rhoR(i,j,k)
       v(i,j,k)    = f04R(i,j,k)*ddy + v(i,j,k)
     end forall
@@ -2234,7 +2523,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f05R(i,j,k) + rhoR(i,j,k)
       w(i,j,k)    = f05R(i,j,k)*ddz + w(i,j,k)
     end forall
@@ -2243,7 +2532,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f06R(i,j,k) + rhoR(i,j,k)
       w(i,j,k)    = f06R(i,j,k)*ddz + w(i,j,k)
     end forall
@@ -2252,7 +2541,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f07R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f07R(i,j,k)*ddx + u(i,j,k)
       v(i,j,k)    = f07R(i,j,k)*ddy + v(i,j,k)
@@ -2262,7 +2551,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f08R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f08R(i,j,k)*ddx + u(i,j,k)
       v(i,j,k)    = f08R(i,j,k)*ddy + v(i,j,k)
@@ -2272,7 +2561,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f09R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f09R(i,j,k)*ddx + u(i,j,k)
       v(i,j,k)    = f09R(i,j,k)*ddy + v(i,j,k)
@@ -2282,7 +2571,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f10R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f10R(i,j,k)*ddx + u(i,j,k)
       v(i,j,k)    = f10R(i,j,k)*ddy + v(i,j,k)
@@ -2292,7 +2581,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f11R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f11R(i,j,k)*ddx + u(i,j,k)
       w(i,j,k)    = f11R(i,j,k)*ddz + w(i,j,k)
@@ -2302,7 +2591,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f12R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f12R(i,j,k)*ddx + u(i,j,k)
       w(i,j,k)    = f12R(i,j,k)*ddz + w(i,j,k)
@@ -2312,7 +2601,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f13R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f13R(i,j,k)*ddx + u(i,j,k)
       w(i,j,k)    = f13R(i,j,k)*ddz + w(i,j,k)
@@ -2322,7 +2611,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f14R(i,j,k) + rhoR(i,j,k)
       u(i,j,k)    = f14R(i,j,k)*ddx + u(i,j,k)
       w(i,j,k)    = f14R(i,j,k)*ddz + w(i,j,k)
@@ -2332,7 +2621,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f15R(i,j,k) + rhoR(i,j,k)
       v(i,j,k)    = f15R(i,j,k)*ddy + v(i,j,k)
       w(i,j,k)    = f15R(i,j,k)*ddz + w(i,j,k)
@@ -2342,7 +2631,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f16R(i,j,k) + rhoR(i,j,k)
       v(i,j,k)    = f16R(i,j,k)*ddy + v(i,j,k)
       w(i,j,k)    = f16R(i,j,k)*ddz + w(i,j,k)
@@ -2352,7 +2641,7 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f17R(i,j,k) + rhoR(i,j,k)
       v(i,j,k)    = f17R(i,j,k)*ddy + v(i,j,k)
       w(i,j,k)    = f17R(i,j,k)*ddz + w(i,j,k)
@@ -2362,14 +2651,14 @@
     ddx=dex(l)
     ddy=dey(l)
     ddz=dez(l)
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       rhoR(i,j,k) = f18R(i,j,k) + rhoR(i,j,k)
       v(i,j,k)    = f18R(i,j,k)*ddy + v(i,j,k)
       w(i,j,k)    = f18R(i,j,k)*ddz + w(i,j,k)
     end forall
     
     !compute speed from mass flux
-    forall(i=1:nx,j=1:ny,k=1:nz)
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
       u(i,j,k) = u(i,j,k)/rhoR(i,j,k)
       v(i,j,k) = v(i,j,k)/rhoR(i,j,k)
       w(i,j,k) = w(i,j,k)/rhoR(i,j,k)
@@ -2381,7 +2670,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f00R(i,j,k)
   end forall
   
@@ -2389,7 +2678,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f01R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f01R(i,j,k)*ddx + u(i,j,k)
   end forall
@@ -2398,7 +2687,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f02R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f02R(i,j,k)*ddx + u(i,j,k)
   end forall
@@ -2407,7 +2696,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f03R(i,j,k) + rhoR(i,j,k)
     v(i,j,k)    = f03R(i,j,k)*ddy + v(i,j,k)
   end forall
@@ -2416,7 +2705,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f04R(i,j,k) + rhoR(i,j,k)
     v(i,j,k)    = f04R(i,j,k)*ddy + v(i,j,k)
   end forall
@@ -2425,7 +2714,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f05R(i,j,k) + rhoR(i,j,k)
     w(i,j,k)    = f05R(i,j,k)*ddz + w(i,j,k)
   end forall
@@ -2434,7 +2723,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f06R(i,j,k) + rhoR(i,j,k)
     w(i,j,k)    = f06R(i,j,k)*ddz + w(i,j,k)
   end forall
@@ -2443,7 +2732,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f07R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f07R(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f07R(i,j,k)*ddy + v(i,j,k)
@@ -2453,7 +2742,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f08R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f08R(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f08R(i,j,k)*ddy + v(i,j,k)
@@ -2463,7 +2752,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f09R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f09R(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f09R(i,j,k)*ddy + v(i,j,k)
@@ -2473,7 +2762,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f10R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f10R(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f10R(i,j,k)*ddy + v(i,j,k)
@@ -2483,7 +2772,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f11R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f11R(i,j,k)*ddx + u(i,j,k)
     w(i,j,k)    = f11R(i,j,k)*ddz + w(i,j,k)
@@ -2493,7 +2782,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f12R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f12R(i,j,k)*ddx + u(i,j,k)
     w(i,j,k)    = f12R(i,j,k)*ddz + w(i,j,k)
@@ -2503,7 +2792,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f13R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f13R(i,j,k)*ddx + u(i,j,k)
     w(i,j,k)    = f13R(i,j,k)*ddz + w(i,j,k)
@@ -2513,7 +2802,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f14R(i,j,k) + rhoR(i,j,k)
     u(i,j,k)    = f14R(i,j,k)*ddx + u(i,j,k)
     w(i,j,k)    = f14R(i,j,k)*ddz + w(i,j,k)
@@ -2523,7 +2812,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f15R(i,j,k) + rhoR(i,j,k)
     v(i,j,k)    = f15R(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f15R(i,j,k)*ddz + w(i,j,k)
@@ -2533,7 +2822,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f16R(i,j,k) + rhoR(i,j,k)
     v(i,j,k)    = f16R(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f16R(i,j,k)*ddz + w(i,j,k)
@@ -2543,7 +2832,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f17R(i,j,k) + rhoR(i,j,k)
     v(i,j,k)    = f17R(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f17R(i,j,k)*ddz + w(i,j,k)
@@ -2553,7 +2842,7 @@
   ddx=dex(l)/tauR
   ddy=dey(l)/tauR
   ddz=dez(l)/tauR
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = f18R(i,j,k) + rhoR(i,j,k)
     v(i,j,k)    = f18R(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f18R(i,j,k)*ddz + w(i,j,k)
@@ -2565,7 +2854,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f00B(i,j,k)
   end forall
   
@@ -2573,7 +2862,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f01B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f01B(i,j,k)*ddx + u(i,j,k)
   end forall
@@ -2582,7 +2871,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f02B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f02B(i,j,k)*ddx + u(i,j,k)
   end forall
@@ -2591,7 +2880,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f03B(i,j,k) + rhoB(i,j,k)
     v(i,j,k)    = f03B(i,j,k)*ddy + v(i,j,k)
   end forall
@@ -2600,7 +2889,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f04B(i,j,k) + rhoB(i,j,k)
     v(i,j,k)    = f04B(i,j,k)*ddy + v(i,j,k)
   end forall
@@ -2609,7 +2898,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f05B(i,j,k) + rhoB(i,j,k)
     w(i,j,k)    = f05B(i,j,k)*ddz + w(i,j,k)
   end forall
@@ -2618,7 +2907,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f06B(i,j,k) + rhoB(i,j,k)
     w(i,j,k)    = f06B(i,j,k)*ddz + w(i,j,k)
   end forall
@@ -2627,7 +2916,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f07B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f07B(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f07B(i,j,k)*ddy + v(i,j,k)
@@ -2637,7 +2926,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f08B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f08B(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f08B(i,j,k)*ddy + v(i,j,k)
@@ -2647,7 +2936,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f09B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f09B(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f09B(i,j,k)*ddy + v(i,j,k)
@@ -2657,7 +2946,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f10B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f10B(i,j,k)*ddx + u(i,j,k)
     v(i,j,k)    = f10B(i,j,k)*ddy + v(i,j,k)
@@ -2667,7 +2956,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f11B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f11B(i,j,k)*ddx + u(i,j,k)
     w(i,j,k)    = f11B(i,j,k)*ddz + w(i,j,k)
@@ -2677,7 +2966,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f12B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f12B(i,j,k)*ddx + u(i,j,k)
     w(i,j,k)    = f12B(i,j,k)*ddz + w(i,j,k)
@@ -2687,7 +2976,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f13B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f13B(i,j,k)*ddx + u(i,j,k)
     w(i,j,k)    = f13B(i,j,k)*ddz + w(i,j,k)
@@ -2697,7 +2986,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f14B(i,j,k) + rhoB(i,j,k)
     u(i,j,k)    = f14B(i,j,k)*ddx + u(i,j,k)
     w(i,j,k)    = f14B(i,j,k)*ddz + w(i,j,k)
@@ -2707,7 +2996,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f15B(i,j,k) + rhoB(i,j,k)
     v(i,j,k)    = f15B(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f15B(i,j,k)*ddz + w(i,j,k)
@@ -2717,7 +3006,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f16B(i,j,k) + rhoB(i,j,k)
     v(i,j,k)    = f16B(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f16B(i,j,k)*ddz + w(i,j,k)
@@ -2727,7 +3016,7 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f17B(i,j,k) + rhoB(i,j,k)
     v(i,j,k)    = f17B(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f17B(i,j,k)*ddz + w(i,j,k)
@@ -2737,14 +3026,14 @@
   ddx=dex(l)/tauB
   ddy=dey(l)/tauB
   ddz=dez(l)/tauB
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoB(i,j,k) = f18B(i,j,k) + rhoB(i,j,k)
     v(i,j,k)    = f18B(i,j,k)*ddy + v(i,j,k)
     w(i,j,k)    = f18B(i,j,k)*ddz + w(i,j,k)
   end forall
   
   !compute speed from mass flux
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     u(i,j,k) = u(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
     v(i,j,k) = v(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
     w(i,j,k) = w(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
@@ -3904,8 +4193,9 @@ subroutine driver_bc_densities
     call apply_pbc_densities_along_xz
   case(6) ! 0 1 1 
     call apply_pbc_densities_along_yz
-  case(7) ! 1 1 1
-    call apply_pbc_densities
+ case(7) ! 1 1 1
+!max    call apply_pbc_densities
+    return
   case default
     call error(12)
   end select
@@ -4957,8 +5247,9 @@ subroutine driver_bc_densities
     call driver_pbc_pops_along_xz
   case(6) ! 0 1 1 
     call driver_pbc_pops_along_yz
-  case(7) ! 1 1 1
-    call driver_pbc_pops
+ case(7) ! 1 1 1
+    return
+!max    call driver_pbc_pops
   case default
     call error(12)
   end select
@@ -6606,7 +6897,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk
   
-  forall(kk=1:nbuff,j=1:ny,k=1:nz)
+  forall(kk=1:nbuff,j=miny:maxy,k=minz:maxz)
     dtemp(nx+kk,j,k)=dtemp(kk,j,k)
   end forall
   
@@ -6633,7 +6924,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk
 
-  forall(kk=1:nbuff,j=1:ny,k=1:nz)
+  forall(kk=1:nbuff,j=miny:maxy,k=minz:maxz)
     dtemp(1-kk,j,k)=dtemp(nx+1-kk,j,k)
   end forall
   
@@ -6660,7 +6951,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk
   
-  forall(i=1:nx,j=1:ny,kk=1:nbuff)
+  forall(i=minx:maxx,j=miny:maxy,kk=1:nbuff)
     dtemp(i,j,nz+kk)= dtemp(i,j,kk)
   end forall
   
@@ -6687,7 +6978,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk
   
-  forall(i=1:nx,j=1:ny,kk=1:nbuff)
+  forall(i=minx:maxx,j=miny:maxy,kk=1:nbuff)
     dtemp(i,j,1-kk)=dtemp(i,j,nz+1-kk)
   end forall
   
@@ -6714,7 +7005,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk
   
-  forall(i=1:nx,kk=1:nbuff,k=1:nz)
+  forall(i=minx:maxx,kk=1:nbuff,k=minz:maxz)
     dtemp(i,1-kk,k)= dtemp(i,ny+1-kk,k)
   end forall
 
@@ -6741,7 +7032,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk
   
-  forall(i=1:nx,kk=1:nbuff,k=1:nz)
+  forall(i=minx:maxx,kk=1:nbuff,k=minz:maxz)
     dtemp(i,ny+kk,k)= dtemp(i,kk,k)
   end forall
 
@@ -6768,7 +7059,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk,kkk
   
-  forall(kkk=1:nbuff,kk=1:nbuff,k=1:nz)
+  forall(kkk=1:nbuff,kk=1:nbuff,k=minz:maxz)
     dtemp(nx+kkk,1-kk,k)=dtemp(kkk,ny+1-kk,k)
   end forall
 
@@ -6795,7 +7086,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk,kkk
   
-  forall(kkk=1:nbuff,kk=1:nbuff,k=1:nz)
+  forall(kkk=1:nbuff,kk=1:nbuff,k=minz:maxz)
     dtemp(1-kkk,1-kk,k)=dtemp(nx+1-kkk,ny+1-kk,k)
   end forall
 
@@ -6822,7 +7113,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk,kkk
   
-  forall(kkk=1:nbuff,j=1:ny,kk=1:nbuff)
+  forall(kkk=1:nbuff,j=miny:maxy,kk=1:nbuff)
     dtemp(nx+kkk,j,nz+kk)=dtemp(kkk,j,kk)
   end forall
 
@@ -6849,7 +7140,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk,kkk
   
-  forall(i=1:nx,kkk=1:nbuff,kk=1:nbuff)
+  forall(i=minx:maxx,kkk=1:nbuff,kk=1:nbuff)
     dtemp(i,1-kkk,nz+kk)=dtemp(i,ny+1-kkk,kk)
   end forall
 
@@ -6876,7 +7167,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk,kkk
   
-  forall(i=1:nx,kkk=1:nbuff,kk=1:nbuff)
+  forall(i=minx:maxx,kkk=1:nbuff,kk=1:nbuff)
     dtemp(i,ny+kkk,nz+kk)= dtemp(i,kkk,kk)
   end forall
 
@@ -6903,7 +7194,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk,kkk
   
-  forall(kkk=1:nbuff,j=1:ny,kk=1:nbuff)
+  forall(kkk=1:nbuff,j=miny:maxy,kk=1:nbuff)
     dtemp(1-kkk,j,nz+kk)= dtemp(nx+1-kkk,j,kk)
   end forall
   
@@ -6930,7 +7221,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk,kkk
   
-  forall(kkk=1:nbuff,kk=1:nbuff,k=1:nz)
+  forall(kkk=1:nbuff,kk=1:nbuff,k=minz:maxz)
     dtemp(nx+kkk,ny+kk,k)= dtemp(kkk,kk,k)
   end forall
   
@@ -6957,7 +7248,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk,kkk
   
-  forall(kkk=1:nbuff,kk=1:nbuff,k=1:nz)
+  forall(kkk=1:nbuff,kk=1:nbuff,k=minz:maxz)
     dtemp(1-kkk,ny+kk,k)=dtemp(nx+1-kkk,kk,k)
   end forall
   
@@ -6984,7 +7275,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk,kkk
   
-  forall(kkk=1:nbuff,j=1:ny,kk=1:nbuff)
+  forall(kkk=1:nbuff,j=miny:maxy,kk=1:nbuff)
     dtemp(nx+kkk,j,1-kk)=dtemp(kkk,j,nz+1-kk)
   end forall
   
@@ -7011,7 +7302,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk,kkk
   
-  forall(i=1:nx,kkk=1:nbuff,kk=1:nbuff)
+  forall(i=minx:maxx,kkk=1:nbuff,kk=1:nbuff)
     dtemp(i,1-kkk,1-kk)=dtemp(i,ny+1-kkk,nz+1-kk)
   end forall
   
@@ -7038,7 +7329,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk,kkk
   
-  forall(i=1:nx,kkk=1:nbuff,kk=1:nbuff)
+  forall(i=minx:maxx,kkk=1:nbuff,kk=1:nbuff)
     dtemp(i,ny+kkk,1-kk)=dtemp(i,kkk,nz+1-kk)
   end forall
   
@@ -7065,7 +7356,7 @@ subroutine driver_bc_densities
   
   integer :: i,j,k,kk,kkk
   
-  forall(kkk=1:nbuff,j=1:ny,kk=1:nbuff)
+  forall(kkk=1:nbuff,j=miny:maxy,kk=1:nbuff)
     dtemp(1-kkk,j,1-kk)=dtemp(nx+1-kkk,j,nz+1-kk)
   end forall
   

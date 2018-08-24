@@ -14,7 +14,7 @@
  
  use version_mod,           only : time_world
  use fluids_mod,            only : nx,ny,nz,rhoR,rhoB,u,v,w, &
-  lsingle_fluid
+  lsingle_fluid, minx, maxx, miny, maxy, minz, maxz
  
  implicit none
  
@@ -95,22 +95,22 @@
   
 ! store all the observables in the statdata array to be printed
   
-  statdata(1)=sum(rhoR(1:nx,1:ny,1:nz))/dnorm
-  statdata(3)=maxval(rhoR(1:nx,1:ny,1:nz))
-  statdata(5)=minval(rhoR(1:nx,1:ny,1:nz))
+  statdata(1)=sum(rhoR(minx:maxx,miny:maxy,minz:maxz))/dnorm
+  statdata(3)=maxval(rhoR(minx:maxx,miny:maxy,minz:maxz))
+  statdata(5)=minval(rhoR(minx:maxx,miny:maxy,minz:maxz))
   
   if(.not. lsingle_fluid)then
-    statdata(2)=sum(rhoB(1:nx,1:ny,1:nz))/dnorm
-    statdata(4)=maxval(rhoB(1:nx,1:ny,1:nz))
-    statdata(6)=minval(rhoB(1:nx,1:ny,1:nz))
+    statdata(2)=sum(rhoB(minx:maxx,miny:maxy,minz:maxz))/dnorm
+    statdata(4)=maxval(rhoB(minx:maxx,miny:maxy,minz:maxz))
+    statdata(6)=minval(rhoB(minx:maxx,miny:maxy,minz:maxz))
   endif
   
-  statdata(7)=maxval(u(1:nx,1:ny,1:nz))
-  statdata(8)=minval(u(1:nx,1:ny,1:nz))
-  statdata(9)=maxval(v(1:nx,1:ny,1:nz))
-  statdata(10)=minval(v(1:nx,1:ny,1:nz))
-  statdata(11)=maxval(w(1:nx,1:ny,1:nz))
-  statdata(12)=minval(w(1:nx,1:ny,1:nz))
+  statdata(7)=maxval(u(minx:maxx,miny:maxy,minz:maxz))
+  statdata(8)=minval(u(minx:maxx,miny:maxy,minz:maxz))
+  statdata(9)=maxval(v(minx:maxx,miny:maxy,minz:maxz))
+  statdata(10)=minval(v(minx:maxx,miny:maxy,minz:maxz))
+  statdata(11)=maxval(w(minx:maxx,miny:maxy,minz:maxz))
+  statdata(12)=minval(w(minx:maxx,miny:maxy,minz:maxz))
 ! estimate the remaining CPU time
   statdata(13)=meancputime*(reprinttime-icount)
   statdata(14)=elapsedcputime

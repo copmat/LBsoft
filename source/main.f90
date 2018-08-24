@@ -51,16 +51,19 @@
                        print_timing_final,itime_counter,idiagnostic, &
                        ldiagnostic,start_timing2,end_timing2
   use utility_mod,    only : init_random_seed
-  use fluids_mod,     only : allocate_fluids,initialize_fluids
+  use fluids_mod,     only : allocate_fluids,initialize_fluids, &
+                       nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
+                       miny,maxy,minz,maxz
   use write_output_mod,only: write_test_map
   use integrator_mod, only : initime,endtime,tstep,set_nstep, &
                        update_nstep,nstep,driver_integrator,nstepmax
   use statistic_mod,         only : statistic_driver
   use io_mod
-  
+  use lbempi_mod  
   
   implicit none
   
+  integer :: IVAL=1
   
   real(kind=PRC) :: mytime=0.d0
   real(kind=PRC) :: itime,ctime,ftime
@@ -79,9 +82,8 @@
 ! determine processor identities
   call get_rank_world()
   call get_size_world()
-  
-  !call alloc_domain()
-  
+!  call alloc_domain()
+
 ! start clock
   call time_world(itime)
   
@@ -90,7 +92,10 @@
   
 ! read the input file
   call read_input(600,'input.dat')
-  
+
+  call setupcom(nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
+   miny,maxy,minz,maxz)  
+
 ! set the seed
   call init_random_seed(init_seed)
   
@@ -136,7 +141,8 @@
   
 ! initialize lrecycle 
   lrecycle=.true.
-  
+!max  write(0,*)'Going to sleep...',idrank
+!max  call sleep(30)  
 !***********************************************************************
 !     start the time integration
 !***********************************************************************
@@ -180,7 +186,7 @@
     
 !   check recycle loop
     lrecycle=(lrecycle .and. timjob-ctime>timcls)
-        
+    
   enddo
 !***********************************************************************
 !     end of the time integration
