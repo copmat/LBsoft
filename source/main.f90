@@ -43,23 +43,23 @@
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
-  use version_mod,    only : init_world,get_rank_world,get_size_world,&
-                       time_world,time_world,finalize_world,idrank
-  use profiling_mod,  only : get_memory,timer_init,itime_start, &
-                       startPreprocessingTime,print_timing_partial, &
-                       reset_timing_partial,printSimulationTime, &
-                       print_timing_final,itime_counter,idiagnostic, &
-                       ldiagnostic,start_timing2,end_timing2
-  use utility_mod,    only : init_random_seed
-  use fluids_mod,     only : allocate_fluids,initialize_fluids, &
-                       nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
-                       miny,maxy,minz,maxz
+  use version_mod,     only : init_world,get_rank_world,get_size_world,&
+                        time_world,time_world,finalize_world,idrank
+  use profiling_mod,   only : get_memory,timer_init,itime_start, &
+                        startPreprocessingTime,print_timing_partial, &
+                        reset_timing_partial,printSimulationTime, &
+                        print_timing_final,itime_counter,idiagnostic, &
+                        ldiagnostic,start_timing2,end_timing2
+  use utility_mod,     only : init_random_seed
+  use lbempi_mod,      only : setupcom
+  use fluids_mod,      only : allocate_fluids,initialize_fluids, &
+                        nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
+                        miny,maxy,minz,maxz,nbuff
   use write_output_mod,only: write_test_map
-  use integrator_mod, only : initime,endtime,tstep,set_nstep, &
-                       update_nstep,nstep,driver_integrator,nstepmax
-  use statistic_mod,         only : statistic_driver
+  use integrator_mod,  only : initime,endtime,tstep,set_nstep, &
+                        update_nstep,nstep,driver_integrator,nstepmax
+  use statistic_mod,   only : statistic_driver
   use io_mod
-  use lbempi_mod  
   
   implicit none
   
@@ -93,9 +93,10 @@
 ! read the input file
   call read_input(600,'input.dat')
 
-  call setupcom(nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
+! setup domain decomposition
+  call setupcom(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
    miny,maxy,minz,maxz)  
-
+  
 ! set the seed
   call init_random_seed(init_seed)
   

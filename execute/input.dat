@@ -3,7 +3,7 @@ box 32 32 32
 steps 5000
 #print vtk 1000
 diagnostic yes
-boundary condition 1 1 1
+boundary condition 0 1 1
 #seed 1264
 print list maxvx maxvy maxvz cpue cpur cpu
 print every 10

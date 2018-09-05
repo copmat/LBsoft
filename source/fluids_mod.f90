@@ -22,7 +22,10 @@
                    allocate_array_lbuffservice, &
                    buffservice3d,allocate_array_buffservice3d, &
                    rand_noseeded,linit_seed,gauss_noseeded
+#ifdef MPI
  use lbempi_mod, only : commspop, commrpop
+#endif
+ 
  implicit none
  
  private
@@ -255,12 +258,14 @@
   
   integer, parameter :: nistatmax=100
   integer, dimension(nistatmax) :: istat
-  integer :: myzero,mynx,myny,mynz
+  integer :: ix,iy,iz,mynx,myny,mynz
   
   integer :: i,j,k
   logical, dimension(1) :: ltest=.false.
   
-  myzero=1-nbuff
+  ix=minx-nbuff
+  iy=miny-nbuff
+  iz=minz-nbuff
   mynx=nx+nbuff
   if(mod(nx,2)==0)mynx=mynx+1
   myny=ny+nbuff
@@ -268,46 +273,45 @@
   
   istat=0
   
-  allocate(rhoR(minx:maxx,miny:maxy,minz:maxz),stat=istat(1))
+  allocate(rhoR(ix:mynx,iy:myny,iz:mynz),stat=istat(1))
   
-  allocate(u(minx:maxx,miny:maxy,minz:maxz),stat=istat(3))
-  allocate(v(minx:maxx,miny:maxy,minz:maxz),stat=istat(4))
-  allocate(w(minx:maxx,miny:maxy,minz:maxz),stat=istat(5))
+  allocate(u(ix:mynx,iy:myny,iz:mynz),stat=istat(3))
+  allocate(v(ix:mynx,iy:myny,iz:mynz),stat=istat(4))
+  allocate(w(ix:mynx,iy:myny,iz:mynz),stat=istat(5))
   
-  allocate(fuR(minx:maxx,miny:maxy,minz:maxz),stat=istat(6))
-  allocate(fvR(minx:maxx,miny:maxy,minz:maxz),stat=istat(7))
-  allocate(fwR(minx:maxx,miny:maxy,minz:maxz),stat=istat(8))
+  allocate(fuR(ix:mynx,iy:myny,iz:mynz),stat=istat(6))
+  allocate(fvR(ix:mynx,iy:myny,iz:mynz),stat=istat(7))
+  allocate(fwR(ix:mynx,iy:myny,iz:mynz),stat=istat(8))
   
   if(lShanChen)then
-    allocate(gradpsixR(minx:maxx,miny:maxy,minz:maxz),stat=istat(12))
-    allocate(gradpsiyR(minx:maxx,miny:maxy,minz:maxz),stat=istat(13))
-    allocate(gradpsizR(minx:maxx,miny:maxy,minz:maxz),stat=istat(14))
-    allocate(psiR(minx:maxx,miny:maxy,minz:maxz),stat=istat(19))
+    allocate(gradpsixR(ix:mynx,iy:myny,iz:mynz),stat=istat(12))
+    allocate(gradpsiyR(ix:mynx,iy:myny,iz:mynz),stat=istat(13))
+    allocate(gradpsizR(ix:mynx,iy:myny,iz:mynz),stat=istat(14))
+    allocate(psiR(ix:mynx,iy:myny,iz:mynz),stat=istat(19))
   endif
   
-  allocate(omega(minx:maxx,miny:maxy,minz:maxz),stat=istat(18))
+  allocate(omega(ix:mynx,iy:myny,iz:mynz),stat=istat(18))
   
-  allocate(f00R(minx:maxx,miny:maxy,minz:maxz),stat=istat(30))
-  allocate(f01R(minx:maxx,miny:maxy,minz:maxz),stat=istat(31))
-  allocate(f02R(minx:maxx,miny:maxy,minz:maxz),stat=istat(32))
-  allocate(f03R(minx:maxx,miny:maxy,minz:maxz),stat=istat(33))
-  allocate(f04R(minx:maxx,miny:maxy,minz:maxz),stat=istat(34))
-  allocate(f05R(minx:maxx,miny:maxy,minz:maxz),stat=istat(35))
-  allocate(f06R(minx:maxx,miny:maxy,minz:maxz),stat=istat(36))
-  allocate(f07R(minx:maxx,miny:maxy,minz:maxz),stat=istat(37))
-  allocate(f08R(minx:maxx,miny:maxy,minz:maxz),stat=istat(38))
-  allocate(f09R(minx:maxx,miny:maxy,minz:maxz),stat=istat(39))
-  allocate(f10R(minx:maxx,miny:maxy,minz:maxz),stat=istat(40))
-  allocate(f11R(minx:maxx,miny:maxy,minz:maxz),stat=istat(41))
-  allocate(f12R(minx:maxx,miny:maxy,minz:maxz),stat=istat(42))
-  allocate(f13R(minx:maxx,miny:maxy,minz:maxz),stat=istat(43))
-  allocate(f14R(minx:maxx,miny:maxy,minz:maxz),stat=istat(44))
-  allocate(f15R(minx:maxx,miny:maxy,minz:maxz),stat=istat(45))
-  allocate(f16R(minx:maxx,miny:maxy,minz:maxz),stat=istat(46))
-  allocate(f17R(minx:maxx,miny:maxy,minz:maxz),stat=istat(47))
-  allocate(f18R(minx:maxx,miny:maxy,minz:maxz),stat=istat(48))
-
-  !max
+  allocate(f00R(ix:mynx,iy:myny,iz:mynz),stat=istat(30))
+  allocate(f01R(ix:mynx,iy:myny,iz:mynz),stat=istat(31))
+  allocate(f02R(ix:mynx,iy:myny,iz:mynz),stat=istat(32))
+  allocate(f03R(ix:mynx,iy:myny,iz:mynz),stat=istat(33))
+  allocate(f04R(ix:mynx,iy:myny,iz:mynz),stat=istat(34))
+  allocate(f05R(ix:mynx,iy:myny,iz:mynz),stat=istat(35))
+  allocate(f06R(ix:mynx,iy:myny,iz:mynz),stat=istat(36))
+  allocate(f07R(ix:mynx,iy:myny,iz:mynz),stat=istat(37))
+  allocate(f08R(ix:mynx,iy:myny,iz:mynz),stat=istat(38))
+  allocate(f09R(ix:mynx,iy:myny,iz:mynz),stat=istat(39))
+  allocate(f10R(ix:mynx,iy:myny,iz:mynz),stat=istat(40))
+  allocate(f11R(ix:mynx,iy:myny,iz:mynz),stat=istat(41))
+  allocate(f12R(ix:mynx,iy:myny,iz:mynz),stat=istat(42))
+  allocate(f13R(ix:mynx,iy:myny,iz:mynz),stat=istat(43))
+  allocate(f14R(ix:mynx,iy:myny,iz:mynz),stat=istat(44))
+  allocate(f15R(ix:mynx,iy:myny,iz:mynz),stat=istat(45))
+  allocate(f16R(ix:mynx,iy:myny,iz:mynz),stat=istat(46))
+  allocate(f17R(ix:mynx,iy:myny,iz:mynz),stat=istat(47))
+  allocate(f18R(ix:mynx,iy:myny,iz:mynz),stat=istat(48))
+  
   aoptpR(0)%p => f00R
   aoptpR(1)%p => f01R
   aoptpR(2)%p => f02R
@@ -328,44 +332,41 @@
   aoptpR(17)%p => f17R
   aoptpR(18)%p => f18R
   
-  !max
-  
   if(.not. lsingle_fluid)then
   
-    allocate(rhoB(minx:maxx,miny:maxy,minz:maxz),stat=istat(2))
+    allocate(rhoB(ix:mynx,iy:myny,iz:mynz),stat=istat(2))
   
-    allocate(fuB(minx:maxx,miny:maxy,minz:maxz),stat=istat(9))
-    allocate(fvB(minx:maxx,miny:maxy,minz:maxz),stat=istat(10))
-    allocate(fwB(minx:maxx,miny:maxy,minz:maxz),stat=istat(11))
+    allocate(fuB(ix:mynx,iy:myny,iz:mynz),stat=istat(9))
+    allocate(fvB(ix:mynx,iy:myny,iz:mynz),stat=istat(10))
+    allocate(fwB(ix:mynx,iy:myny,iz:mynz),stat=istat(11))
     
     if(lShanChen)then
-      allocate(gradpsixB(minx:maxx,miny:maxy,minz:maxz),stat=istat(15))
-      allocate(gradpsiyB(minx:maxx,miny:maxy,minz:maxz),stat=istat(16))
-      allocate(gradpsizB(minx:maxx,miny:maxy,minz:maxz),stat=istat(17))
-      allocate(psiB(minx:maxx,miny:maxy,minz:maxz),stat=istat(20))
+      allocate(gradpsixB(ix:mynx,iy:myny,iz:mynz),stat=istat(15))
+      allocate(gradpsiyB(ix:mynx,iy:myny,iz:mynz),stat=istat(16))
+      allocate(gradpsizB(ix:mynx,iy:myny,iz:mynz),stat=istat(17))
+      allocate(psiB(ix:mynx,iy:myny,iz:mynz),stat=istat(20))
     endif
     
-    allocate(f00B(minx:maxx,miny:maxy,minz:maxz),stat=istat(60))
-    allocate(f01B(minx:maxx,miny:maxy,minz:maxz),stat=istat(61))
-    allocate(f02B(minx:maxx,miny:maxy,minz:maxz),stat=istat(62))
-    allocate(f03B(minx:maxx,miny:maxy,minz:maxz),stat=istat(63))
-    allocate(f04B(minx:maxx,miny:maxy,minz:maxz),stat=istat(64))
-    allocate(f05B(minx:maxx,miny:maxy,minz:maxz),stat=istat(65))
-    allocate(f06B(minx:maxx,miny:maxy,minz:maxz),stat=istat(66))
-    allocate(f07B(minx:maxx,miny:maxy,minz:maxz),stat=istat(67))
-    allocate(f08B(minx:maxx,miny:maxy,minz:maxz),stat=istat(68))
-    allocate(f09B(minx:maxx,miny:maxy,minz:maxz),stat=istat(69))
-    allocate(f10B(minx:maxx,miny:maxy,minz:maxz),stat=istat(60))
-    allocate(f11B(minx:maxx,miny:maxy,minz:maxz),stat=istat(61))
-    allocate(f12B(minx:maxx,miny:maxy,minz:maxz),stat=istat(62))
-    allocate(f13B(minx:maxx,miny:maxy,minz:maxz),stat=istat(63))
-    allocate(f14B(minx:maxx,miny:maxy,minz:maxz),stat=istat(64))
-    allocate(f15B(minx:maxx,miny:maxy,minz:maxz),stat=istat(65))
-    allocate(f16B(minx:maxx,miny:maxy,minz:maxz),stat=istat(66))
-    allocate(f17B(minx:maxx,miny:maxy,minz:maxz),stat=istat(67))
-    allocate(f18B(minx:maxx,miny:maxy,minz:maxz),stat=istat(68))
+    allocate(f00B(ix:mynx,iy:myny,iz:mynz),stat=istat(60))
+    allocate(f01B(ix:mynx,iy:myny,iz:mynz),stat=istat(61))
+    allocate(f02B(ix:mynx,iy:myny,iz:mynz),stat=istat(62))
+    allocate(f03B(ix:mynx,iy:myny,iz:mynz),stat=istat(63))
+    allocate(f04B(ix:mynx,iy:myny,iz:mynz),stat=istat(64))
+    allocate(f05B(ix:mynx,iy:myny,iz:mynz),stat=istat(65))
+    allocate(f06B(ix:mynx,iy:myny,iz:mynz),stat=istat(66))
+    allocate(f07B(ix:mynx,iy:myny,iz:mynz),stat=istat(67))
+    allocate(f08B(ix:mynx,iy:myny,iz:mynz),stat=istat(68))
+    allocate(f09B(ix:mynx,iy:myny,iz:mynz),stat=istat(69))
+    allocate(f10B(ix:mynx,iy:myny,iz:mynz),stat=istat(60))
+    allocate(f11B(ix:mynx,iy:myny,iz:mynz),stat=istat(61))
+    allocate(f12B(ix:mynx,iy:myny,iz:mynz),stat=istat(62))
+    allocate(f13B(ix:mynx,iy:myny,iz:mynz),stat=istat(63))
+    allocate(f14B(ix:mynx,iy:myny,iz:mynz),stat=istat(64))
+    allocate(f15B(ix:mynx,iy:myny,iz:mynz),stat=istat(65))
+    allocate(f16B(ix:mynx,iy:myny,iz:mynz),stat=istat(66))
+    allocate(f17B(ix:mynx,iy:myny,iz:mynz),stat=istat(67))
+    allocate(f18B(ix:mynx,iy:myny,iz:mynz),stat=istat(68))
     
-    !max
     aoptpB(0)%p => f00B
     aoptpB(1)%p => f01B
     aoptpB(2)%p => f02B
@@ -386,9 +387,6 @@
     aoptpB(17)%p => f17B
     aoptpB(18)%p => f18B
     
-    !max
-    
-    
   endif
   
   ltest=.false.
@@ -403,30 +401,28 @@
   call or_world_larr(ltest,1)
   if(ltest(1))call error(4)
   
-  call allocate_array_buffservice3d(myzero,mynx,myzero,myny,myzero,mynz)
-!max  call allocate_array_buffservice3d(minx,maxx,miny,maxy,minz,maxz)
-  !max
-  !modify minx-maxz according to the role
-  !max
+  call allocate_array_buffservice3d(ix,mynx,iy,myny,iz,mynz)
+  
+! check and modify minx-maxz according to the role
   if(minx.lt.1) then
-     minx=1
+    minx=1
   endif
   if(miny.lt.1) then
-     miny=1
+    miny=1
   endif
   if(minz.lt.1) then
-     minz=1
+    minz=1
   endif
   if(maxx.gt.nx) then
-     maxx=nx
+    maxx=nx
   endif
   if(maxy.gt.ny) then
-     maxy=ny
+    maxy=ny
   endif
   if(maxz.gt.nz) then
-     maxz=nz
+    maxz=nz
   endif
-!max  write(0,*)'fluids id=',idrank,'minx=',minx,'maxx=',maxx,'miny=',miny,'maxy=',maxy,'minz=',minz,'maxz=',maxz  
+ 
   return
   
  end subroutine allocate_fluids
@@ -2069,7 +2065,7 @@
   
   integer :: i,j,k,l,ishift,jshift,kshift,itemp,jtemp,ktemp
   
-
+#ifdef MPI
 !max   do l=1,links
 !max      write(0,*)'in pop ',l
 !max      do i=1,nx
@@ -2080,172 +2076,7 @@
 !max         enddo
 !max      enddo
 !max   enddo
-#if 0
 
-  l=1
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f01sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f01sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=2
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f02sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f02sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=3
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f03sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f03sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=4
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f04sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f04sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=5
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f05sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f05sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=6
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f06sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f06sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=7
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f07sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f07sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=8
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f08sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f08sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=9
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f09sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f09sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=10
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f10sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f10sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=11
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f11sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f11sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=12
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f12sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f12sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=13
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f13sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f13sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=14
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f14sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f14sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=15
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f15sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f15sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=16
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f16sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f16sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=17
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f17sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f17sub(i,j,k) = buffservice3d(i,j,k)
-  
-  l=18
-  ishift=ex(l)
-  jshift=ey(l)
-  kshift=ez(l)
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
-    buffservice3d(i+ishift,j+jshift,k+kshift) = f18sub(i,j,k)
-  end forall
-  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f18sub(i,j,k) = buffservice3d(i,j,k)
-  
-
-#else
    !max  
    call commspop(aoptp)
    do l=1,links
@@ -2435,6 +2266,171 @@
 !max   enddo
 
    !max
+   
+#else
+  
+  l=1
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f01sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f01sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=2
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f02sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f02sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=3
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f03sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f03sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=4
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f04sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f04sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=5
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f05sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f05sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=6
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f06sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f06sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=7
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f07sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f07sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=8
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f08sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f08sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=9
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f09sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f09sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=10
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f10sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f10sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=11
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f11sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f11sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=12
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f12sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f12sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=13
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f13sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f13sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=14
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f14sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f14sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=15
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f15sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f15sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=16
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f16sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f16sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=17
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f17sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f17sub(i,j,k) = buffservice3d(i,j,k)
+  
+  l=18
+  ishift=ex(l)
+  jshift=ey(l)
+  kshift=ez(l)
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)
+    buffservice3d(i+ishift,j+jshift,k+kshift) = f18sub(i,j,k)
+  end forall
+  forall(i=0:nx+1,j=0:ny+1,k=0:nz+1)f18sub(i,j,k) = buffservice3d(i,j,k)
+  
 #endif
 
   return
@@ -2462,7 +2458,7 @@
   
   !compute density and accumulate mass flux
   
-  forall(i=1:nx,j=1:ny,k=1:nz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     u(i,j,k)    = ZERO
     v(i,j,k)    = ZERO
     w(i,j,k)    = ZERO
@@ -4193,9 +4189,12 @@ subroutine driver_bc_densities
     call apply_pbc_densities_along_xz
   case(6) ! 0 1 1 
     call apply_pbc_densities_along_yz
- case(7) ! 1 1 1
-!max    call apply_pbc_densities
+  case(7) ! 1 1 1
+#ifdef MPI
     return
+#else
+    call apply_pbc_densities
+#endif
   case default
     call error(12)
   end select
@@ -4235,7 +4234,11 @@ subroutine driver_bc_densities
   case(6) ! 0 1 1 
     call apply_pbc_velocities_along_yz
   case(7) ! 1 1 1
+#ifdef MPI
+    return
+#else
     call apply_pbc_velocities
+#endif
   case default
     call error(12)
   end select
@@ -5247,9 +5250,12 @@ subroutine driver_bc_densities
     call driver_pbc_pops_along_xz
   case(6) ! 0 1 1 
     call driver_pbc_pops_along_yz
- case(7) ! 1 1 1
+  case(7) ! 1 1 1
+#ifdef MPI
     return
-!max    call driver_pbc_pops
+#else
+    call driver_pbc_pops
+#endif
   case default
     call error(12)
   end select
@@ -12292,7 +12298,7 @@ subroutine driver_bc_densities
   call apply_reflection_north(1,nx,1,ny,rhoR)
   
   !apply reflection at south 2   !z
-  call apply_reflection_south(rhoR)
+  call apply_reflection_south(1,nx,1,ny,rhoR)
   
   !apply reflection at east 3    !x
   call apply_reflection_east(1,ny,1,nz,rhoR)
@@ -12301,10 +12307,10 @@ subroutine driver_bc_densities
   call apply_reflection_west(1,ny,1,nz,rhoR)
   
   !apply reflection at front 5   !y
-  call apply_reflection_front(rhoR)
+  call apply_reflection_front(1,nx,1,nz,rhoR)
   
   !apply reflection at rear 6   !y
-  call apply_reflection_rear(rhoR)
+  call apply_reflection_rear(1,nx,1,nz,rhoR)
   
   !edges 12
   
@@ -12378,7 +12384,7 @@ subroutine driver_bc_densities
   call apply_reflection_north(1,nx,1,ny,rhoB)
   
   !apply reflection at south 2   !z
-  call apply_reflection_south(rhoB)
+  call apply_reflection_south(1,nx,1,ny,rhoB)
   
   !apply reflection at east 3    !x
   call apply_reflection_east(1,ny,1,nz,rhoB)
@@ -12387,10 +12393,10 @@ subroutine driver_bc_densities
   call apply_reflection_west(1,ny,1,nz,rhoB)
   
   !apply reflection at front 5   !y
-  call apply_reflection_front(rhoB)
+  call apply_reflection_front(1,nx,1,nz,rhoB)
   
   !apply reflection at rear 6   !y
-  call apply_reflection_rear(rhoB)
+  call apply_reflection_rear(1,nx,1,nz,rhoB)
   
   !edges 12
   
@@ -12479,11 +12485,13 @@ subroutine driver_bc_densities
   
   !apply pbc at front 5 !y
   !red fluid
-  call apply_reflection_front_frame_x(rhoR)
+  !frame x
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,rhoR)
   
   !apply pbc at rear 6 !y
   !red fluid
-  call apply_reflection_rear_frame_x(rhoR)
+  !frame x
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,rhoR)
   
   !apply pbc at north 1 !z
   !red fluid
@@ -12492,7 +12500,8 @@ subroutine driver_bc_densities
   
   !apply pbc at south 2 !z
   !red fluid
-  call apply_reflection_south_frame_x(rhoR)
+  !frame_x
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,rhoR)
   
   !edges 12
   
@@ -12539,11 +12548,13 @@ subroutine driver_bc_densities
   
   !apply pbc at front 5 !y
   !blue fluid
-  call apply_reflection_front_frame_x(rhoB)
+  !frame x
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,rhoB)
   
   !apply pbc at rear 6 !y
   !blue fluid
-  call apply_reflection_rear_frame_x(rhoB)
+  !frame x
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,rhoB)
   
   !apply pbc at north 1 !z
   !blue fluid
@@ -12552,7 +12563,8 @@ subroutine driver_bc_densities
   
   !apply pbc at south 2 !z
   !blue fluid
-  call apply_reflection_south_frame_x(rhoB)
+  !frame_x
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,rhoB)
   
   !edges 12
   
@@ -12628,7 +12640,8 @@ subroutine driver_bc_densities
   
   !apply pbc at south 2 !z
   !red fluid
-  call apply_reflection_south_frame_y(rhoR)
+  !frame_y
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,rhoR)
   
   !edges 12
   
@@ -12687,7 +12700,8 @@ subroutine driver_bc_densities
   
   !apply pbc at south 2 !z
   !blue fluid
-  call apply_reflection_south_frame_y(rhoB)
+  !frame_y
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,rhoB)
   
   !edges 12
   
@@ -12758,11 +12772,13 @@ subroutine driver_bc_densities
   
   !apply pbc at front 5 !y
   !red fluid
-  call apply_reflection_front_frame_z(rhoR)
+  !frame z
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,rhoR)
   
   !apply pbc at rear 6 !y
   !red fluid
-  call apply_reflection_rear_frame_z(rhoR)
+  !frame z
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,rhoR)
   
   !edges 12
   
@@ -12816,11 +12832,13 @@ subroutine driver_bc_densities
   
   !apply pbc at front 5 !y
   !blue fluid
-  call apply_reflection_front_frame_z(rhoB)
+  !frame z
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,rhoB)
   
   !apply pbc at rear 6 !y
   !blue fluid
-  call apply_reflection_rear_frame_z(rhoB)
+  !frame z
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,rhoB)
   
   !edges 12
   
@@ -12888,7 +12906,8 @@ subroutine driver_bc_densities
   
   !apply pbc at south 2 !z
   !red fluid
-  call apply_reflection_south_frame(rhoR)
+  !frame
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,rhoR)
   
   if(lsingle_fluid)return
   
@@ -12901,7 +12920,8 @@ subroutine driver_bc_densities
   
   !apply pbc at south 2 !z
   !blue fluid
-  call apply_reflection_south_frame(rhoB)
+  !frame
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,rhoB)
   
   return
   
@@ -12926,11 +12946,13 @@ subroutine driver_bc_densities
   
   !apply pbc at front 5 !y
   !red fluid
-  call apply_reflection_front_frame(rhoR)
+  !frame
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,rhoR)
   
   !apply pbc at rear 6 !y
   !red fluid
-  call apply_reflection_rear_frame(rhoR)
+  !frame
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,rhoR)
   
   if(lsingle_fluid)return
   
@@ -12938,11 +12960,13 @@ subroutine driver_bc_densities
   
   !apply pbc at front 5 !y
   !blue fluid
-  call apply_reflection_front_frame(rhoB)
+  !frame
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,rhoB)
   
   !apply pbc at rear 6 !y
   !blue fluid
-  call apply_reflection_rear_frame(rhoB)
+  !frame
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,rhoB)
   
   return
   
@@ -13068,25 +13092,25 @@ subroutine driver_bc_densities
   call apply_reflection_north(1,nx,1,ny,f18R)
   
   !apply reflection at south 2   !z
-  call apply_reflection_south(f00R)
-  call apply_reflection_south(f01R)
-  call apply_reflection_south(f02R)
-  call apply_reflection_south(f03R)
-  call apply_reflection_south(f04R)
-  call apply_reflection_south(f05R)
-  call apply_reflection_south(f06R)
-  call apply_reflection_south(f07R)
-  call apply_reflection_south(f08R)
-  call apply_reflection_south(f09R)
-  call apply_reflection_south(f10R)
-  call apply_reflection_south(f11R)
-  call apply_reflection_south(f12R)
-  call apply_reflection_south(f13R)
-  call apply_reflection_south(f14R)
-  call apply_reflection_south(f15R)
-  call apply_reflection_south(f16R)
-  call apply_reflection_south(f17R)
-  call apply_reflection_south(f18R)
+  call apply_reflection_south(1,nx,1,ny,f00R)
+  call apply_reflection_south(1,nx,1,ny,f01R)
+  call apply_reflection_south(1,nx,1,ny,f02R)
+  call apply_reflection_south(1,nx,1,ny,f03R)
+  call apply_reflection_south(1,nx,1,ny,f04R)
+  call apply_reflection_south(1,nx,1,ny,f05R)
+  call apply_reflection_south(1,nx,1,ny,f06R)
+  call apply_reflection_south(1,nx,1,ny,f07R)
+  call apply_reflection_south(1,nx,1,ny,f08R)
+  call apply_reflection_south(1,nx,1,ny,f09R)
+  call apply_reflection_south(1,nx,1,ny,f10R)
+  call apply_reflection_south(1,nx,1,ny,f11R)
+  call apply_reflection_south(1,nx,1,ny,f12R)
+  call apply_reflection_south(1,nx,1,ny,f13R)
+  call apply_reflection_south(1,nx,1,ny,f14R)
+  call apply_reflection_south(1,nx,1,ny,f15R)
+  call apply_reflection_south(1,nx,1,ny,f16R)
+  call apply_reflection_south(1,nx,1,ny,f17R)
+  call apply_reflection_south(1,nx,1,ny,f18R)
   
   !apply reflection at east 3    !x
   call apply_reflection_east(1,ny,1,nz,f00R)
@@ -13131,46 +13155,46 @@ subroutine driver_bc_densities
   call apply_reflection_west(1,ny,1,nz,f18R)
   
   !apply reflection at front 5   !y
-  call apply_reflection_front(f00R)
-  call apply_reflection_front(f01R)
-  call apply_reflection_front(f02R)
-  call apply_reflection_front(f03R)
-  call apply_reflection_front(f04R)
-  call apply_reflection_front(f05R)
-  call apply_reflection_front(f06R)
-  call apply_reflection_front(f07R)
-  call apply_reflection_front(f08R)
-  call apply_reflection_front(f09R)
-  call apply_reflection_front(f10R)
-  call apply_reflection_front(f11R)
-  call apply_reflection_front(f12R)
-  call apply_reflection_front(f13R)
-  call apply_reflection_front(f14R)
-  call apply_reflection_front(f15R)
-  call apply_reflection_front(f16R)
-  call apply_reflection_front(f17R)
-  call apply_reflection_front(f18R)
+  call apply_reflection_front(1,nx,1,nz,f00R)
+  call apply_reflection_front(1,nx,1,nz,f01R)
+  call apply_reflection_front(1,nx,1,nz,f02R)
+  call apply_reflection_front(1,nx,1,nz,f03R)
+  call apply_reflection_front(1,nx,1,nz,f04R)
+  call apply_reflection_front(1,nx,1,nz,f05R)
+  call apply_reflection_front(1,nx,1,nz,f06R)
+  call apply_reflection_front(1,nx,1,nz,f07R)
+  call apply_reflection_front(1,nx,1,nz,f08R)
+  call apply_reflection_front(1,nx,1,nz,f09R)
+  call apply_reflection_front(1,nx,1,nz,f10R)
+  call apply_reflection_front(1,nx,1,nz,f11R)
+  call apply_reflection_front(1,nx,1,nz,f12R)
+  call apply_reflection_front(1,nx,1,nz,f13R)
+  call apply_reflection_front(1,nx,1,nz,f14R)
+  call apply_reflection_front(1,nx,1,nz,f15R)
+  call apply_reflection_front(1,nx,1,nz,f16R)
+  call apply_reflection_front(1,nx,1,nz,f17R)
+  call apply_reflection_front(1,nx,1,nz,f18R)
   
   !apply reflection at rear 6   !y
-  call apply_reflection_rear(f00R)
-  call apply_reflection_rear(f01R)
-  call apply_reflection_rear(f02R)
-  call apply_reflection_rear(f03R)
-  call apply_reflection_rear(f04R)
-  call apply_reflection_rear(f05R)
-  call apply_reflection_rear(f06R)
-  call apply_reflection_rear(f07R)
-  call apply_reflection_rear(f08R)
-  call apply_reflection_rear(f09R)
-  call apply_reflection_rear(f10R)
-  call apply_reflection_rear(f11R)
-  call apply_reflection_rear(f12R)
-  call apply_reflection_rear(f13R)
-  call apply_reflection_rear(f14R)
-  call apply_reflection_rear(f15R)
-  call apply_reflection_rear(f16R)
-  call apply_reflection_rear(f17R)
-  call apply_reflection_rear(f18R)
+  call apply_reflection_rear(1,nx,1,nz,f00R)
+  call apply_reflection_rear(1,nx,1,nz,f01R)
+  call apply_reflection_rear(1,nx,1,nz,f02R)
+  call apply_reflection_rear(1,nx,1,nz,f03R)
+  call apply_reflection_rear(1,nx,1,nz,f04R)
+  call apply_reflection_rear(1,nx,1,nz,f05R)
+  call apply_reflection_rear(1,nx,1,nz,f06R)
+  call apply_reflection_rear(1,nx,1,nz,f07R)
+  call apply_reflection_rear(1,nx,1,nz,f08R)
+  call apply_reflection_rear(1,nx,1,nz,f09R)
+  call apply_reflection_rear(1,nx,1,nz,f10R)
+  call apply_reflection_rear(1,nx,1,nz,f11R)
+  call apply_reflection_rear(1,nx,1,nz,f12R)
+  call apply_reflection_rear(1,nx,1,nz,f13R)
+  call apply_reflection_rear(1,nx,1,nz,f14R)
+  call apply_reflection_rear(1,nx,1,nz,f15R)
+  call apply_reflection_rear(1,nx,1,nz,f16R)
+  call apply_reflection_rear(1,nx,1,nz,f17R)
+  call apply_reflection_rear(1,nx,1,nz,f18R)
   
   !edges 12
   
@@ -13622,25 +13646,25 @@ subroutine driver_bc_densities
   call apply_reflection_north(1,nx,1,ny,f18B)
   
   !apply reflection at south 2   !z
-  call apply_reflection_south(f00B)
-  call apply_reflection_south(f01B)
-  call apply_reflection_south(f02B)
-  call apply_reflection_south(f03B)
-  call apply_reflection_south(f04B)
-  call apply_reflection_south(f05B)
-  call apply_reflection_south(f06B)
-  call apply_reflection_south(f07B)
-  call apply_reflection_south(f08B)
-  call apply_reflection_south(f09B)
-  call apply_reflection_south(f10B)
-  call apply_reflection_south(f11B)
-  call apply_reflection_south(f12B)
-  call apply_reflection_south(f13B)
-  call apply_reflection_south(f14B)
-  call apply_reflection_south(f15B)
-  call apply_reflection_south(f16B)
-  call apply_reflection_south(f17B)
-  call apply_reflection_south(f18B)
+  call apply_reflection_south(1,nx,1,ny,f00B)
+  call apply_reflection_south(1,nx,1,ny,f01B)
+  call apply_reflection_south(1,nx,1,ny,f02B)
+  call apply_reflection_south(1,nx,1,ny,f03B)
+  call apply_reflection_south(1,nx,1,ny,f04B)
+  call apply_reflection_south(1,nx,1,ny,f05B)
+  call apply_reflection_south(1,nx,1,ny,f06B)
+  call apply_reflection_south(1,nx,1,ny,f07B)
+  call apply_reflection_south(1,nx,1,ny,f08B)
+  call apply_reflection_south(1,nx,1,ny,f09B)
+  call apply_reflection_south(1,nx,1,ny,f10B)
+  call apply_reflection_south(1,nx,1,ny,f11B)
+  call apply_reflection_south(1,nx,1,ny,f12B)
+  call apply_reflection_south(1,nx,1,ny,f13B)
+  call apply_reflection_south(1,nx,1,ny,f14B)
+  call apply_reflection_south(1,nx,1,ny,f15B)
+  call apply_reflection_south(1,nx,1,ny,f16B)
+  call apply_reflection_south(1,nx,1,ny,f17B)
+  call apply_reflection_south(1,nx,1,ny,f18B)
   
   !apply reflection at east 3    !x
   call apply_reflection_east(1,ny,1,nz,f00B)
@@ -13685,46 +13709,46 @@ subroutine driver_bc_densities
   call apply_reflection_west(1,ny,1,nz,f18B)
   
   !apply reflection at front 5   !y
-  call apply_reflection_front(f00B)
-  call apply_reflection_front(f01B)
-  call apply_reflection_front(f02B)
-  call apply_reflection_front(f03B)
-  call apply_reflection_front(f04B)
-  call apply_reflection_front(f05B)
-  call apply_reflection_front(f06B)
-  call apply_reflection_front(f07B)
-  call apply_reflection_front(f08B)
-  call apply_reflection_front(f09B)
-  call apply_reflection_front(f10B)
-  call apply_reflection_front(f11B)
-  call apply_reflection_front(f12B)
-  call apply_reflection_front(f13B)
-  call apply_reflection_front(f14B)
-  call apply_reflection_front(f15B)
-  call apply_reflection_front(f16B)
-  call apply_reflection_front(f17B)
-  call apply_reflection_front(f18B)
+  call apply_reflection_front(1,nx,1,nz,f00B)
+  call apply_reflection_front(1,nx,1,nz,f01B)
+  call apply_reflection_front(1,nx,1,nz,f02B)
+  call apply_reflection_front(1,nx,1,nz,f03B)
+  call apply_reflection_front(1,nx,1,nz,f04B)
+  call apply_reflection_front(1,nx,1,nz,f05B)
+  call apply_reflection_front(1,nx,1,nz,f06B)
+  call apply_reflection_front(1,nx,1,nz,f07B)
+  call apply_reflection_front(1,nx,1,nz,f08B)
+  call apply_reflection_front(1,nx,1,nz,f09B)
+  call apply_reflection_front(1,nx,1,nz,f10B)
+  call apply_reflection_front(1,nx,1,nz,f11B)
+  call apply_reflection_front(1,nx,1,nz,f12B)
+  call apply_reflection_front(1,nx,1,nz,f13B)
+  call apply_reflection_front(1,nx,1,nz,f14B)
+  call apply_reflection_front(1,nx,1,nz,f15B)
+  call apply_reflection_front(1,nx,1,nz,f16B)
+  call apply_reflection_front(1,nx,1,nz,f17B)
+  call apply_reflection_front(1,nx,1,nz,f18B)
   
   !apply reflection at rear 6   !y
-  call apply_reflection_rear(f00B)
-  call apply_reflection_rear(f01B)
-  call apply_reflection_rear(f02B)
-  call apply_reflection_rear(f03B)
-  call apply_reflection_rear(f04B)
-  call apply_reflection_rear(f05B)
-  call apply_reflection_rear(f06B)
-  call apply_reflection_rear(f07B)
-  call apply_reflection_rear(f08B)
-  call apply_reflection_rear(f09B)
-  call apply_reflection_rear(f10B)
-  call apply_reflection_rear(f11B)
-  call apply_reflection_rear(f12B)
-  call apply_reflection_rear(f13B)
-  call apply_reflection_rear(f14B)
-  call apply_reflection_rear(f15B)
-  call apply_reflection_rear(f16B)
-  call apply_reflection_rear(f17B)
-  call apply_reflection_rear(f18B)
+  call apply_reflection_rear(1,nx,1,nz,f00B)
+  call apply_reflection_rear(1,nx,1,nz,f01B)
+  call apply_reflection_rear(1,nx,1,nz,f02B)
+  call apply_reflection_rear(1,nx,1,nz,f03B)
+  call apply_reflection_rear(1,nx,1,nz,f04B)
+  call apply_reflection_rear(1,nx,1,nz,f05B)
+  call apply_reflection_rear(1,nx,1,nz,f06B)
+  call apply_reflection_rear(1,nx,1,nz,f07B)
+  call apply_reflection_rear(1,nx,1,nz,f08B)
+  call apply_reflection_rear(1,nx,1,nz,f09B)
+  call apply_reflection_rear(1,nx,1,nz,f10B)
+  call apply_reflection_rear(1,nx,1,nz,f11B)
+  call apply_reflection_rear(1,nx,1,nz,f12B)
+  call apply_reflection_rear(1,nx,1,nz,f13B)
+  call apply_reflection_rear(1,nx,1,nz,f14B)
+  call apply_reflection_rear(1,nx,1,nz,f15B)
+  call apply_reflection_rear(1,nx,1,nz,f16B)
+  call apply_reflection_rear(1,nx,1,nz,f17B)
+  call apply_reflection_rear(1,nx,1,nz,f18B)
   
   !edges 12
   
@@ -14173,47 +14197,49 @@ subroutine driver_bc_densities
   
   !apply pbc at front 5 !y
   !red fluid
-  call apply_reflection_front_frame_x(f00R)
-  call apply_reflection_front_frame_x(f01R)
-  call apply_reflection_front_frame_x(f02R)
-  call apply_reflection_front_frame_x(f03R)
-  call apply_reflection_front_frame_x(f04R)
-  call apply_reflection_front_frame_x(f05R)
-  call apply_reflection_front_frame_x(f06R)
-  call apply_reflection_front_frame_x(f07R)
-  call apply_reflection_front_frame_x(f08R)
-  call apply_reflection_front_frame_x(f09R)
-  call apply_reflection_front_frame_x(f10R)
-  call apply_reflection_front_frame_x(f11R)
-  call apply_reflection_front_frame_x(f12R)
-  call apply_reflection_front_frame_x(f13R)
-  call apply_reflection_front_frame_x(f14R)
-  call apply_reflection_front_frame_x(f15R)
-  call apply_reflection_front_frame_x(f16R)
-  call apply_reflection_front_frame_x(f17R)
-  call apply_reflection_front_frame_x(f18R)
+  !frame x
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f00R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f01R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f02R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f03R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f04R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f05R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f06R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f07R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f08R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f09R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f10R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f11R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f12R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f13R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f14R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f15R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f16R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f17R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f18R)
   
   !apply pbc at rear 6 !y
   !red fluid
-  call apply_reflection_rear_frame_x(f00R)
-  call apply_reflection_rear_frame_x(f01R)
-  call apply_reflection_rear_frame_x(f02R)
-  call apply_reflection_rear_frame_x(f03R)
-  call apply_reflection_rear_frame_x(f04R)
-  call apply_reflection_rear_frame_x(f05R)
-  call apply_reflection_rear_frame_x(f06R)
-  call apply_reflection_rear_frame_x(f07R)
-  call apply_reflection_rear_frame_x(f08R)
-  call apply_reflection_rear_frame_x(f09R)
-  call apply_reflection_rear_frame_x(f10R)
-  call apply_reflection_rear_frame_x(f11R)
-  call apply_reflection_rear_frame_x(f12R)
-  call apply_reflection_rear_frame_x(f13R)
-  call apply_reflection_rear_frame_x(f14R)
-  call apply_reflection_rear_frame_x(f15R)
-  call apply_reflection_rear_frame_x(f16R)
-  call apply_reflection_rear_frame_x(f17R)
-  call apply_reflection_rear_frame_x(f18R)
+  !frame x
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f00R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f01R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f02R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f03R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f04R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f05R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f06R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f07R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f08R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f09R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f10R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f11R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f12R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f13R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f14R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f15R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f16R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f17R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f18R)
   
   !apply pbc at north 1 !z
   !red fluid
@@ -14240,25 +14266,26 @@ subroutine driver_bc_densities
   
   !apply pbc at south 2 !z
   !red fluid
-  call apply_reflection_south_frame_x(f00R)
-  call apply_reflection_south_frame_x(f01R)
-  call apply_reflection_south_frame_x(f02R)
-  call apply_reflection_south_frame_x(f03R)
-  call apply_reflection_south_frame_x(f04R)
-  call apply_reflection_south_frame_x(f05R)
-  call apply_reflection_south_frame_x(f06R)
-  call apply_reflection_south_frame_x(f07R)
-  call apply_reflection_south_frame_x(f08R)
-  call apply_reflection_south_frame_x(f09R)
-  call apply_reflection_south_frame_x(f10R)
-  call apply_reflection_south_frame_x(f11R)
-  call apply_reflection_south_frame_x(f12R)
-  call apply_reflection_south_frame_x(f13R)
-  call apply_reflection_south_frame_x(f14R)
-  call apply_reflection_south_frame_x(f15R)
-  call apply_reflection_south_frame_x(f16R)
-  call apply_reflection_south_frame_x(f17R)
-  call apply_reflection_south_frame_x(f18R)
+  !frame x
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f00R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f01R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f02R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f03R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f04R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f05R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f06R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f07R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f08R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f09R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f10R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f11R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f12R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f13R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f14R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f15R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f16R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f17R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f18R)
   
   !edges 4 (12)
   
@@ -14356,47 +14383,49 @@ subroutine driver_bc_densities
   
   !apply pbc at front 5 !y
   !blue fluid
-  call apply_reflection_front_frame_x(f00B)
-  call apply_reflection_front_frame_x(f01B)
-  call apply_reflection_front_frame_x(f02B)
-  call apply_reflection_front_frame_x(f03B)
-  call apply_reflection_front_frame_x(f04B)
-  call apply_reflection_front_frame_x(f05B)
-  call apply_reflection_front_frame_x(f06B)
-  call apply_reflection_front_frame_x(f07B)
-  call apply_reflection_front_frame_x(f08B)
-  call apply_reflection_front_frame_x(f09B)
-  call apply_reflection_front_frame_x(f10B)
-  call apply_reflection_front_frame_x(f11B)
-  call apply_reflection_front_frame_x(f12B)
-  call apply_reflection_front_frame_x(f13B)
-  call apply_reflection_front_frame_x(f14B)
-  call apply_reflection_front_frame_x(f15B)
-  call apply_reflection_front_frame_x(f16B)
-  call apply_reflection_front_frame_x(f17B)
-  call apply_reflection_front_frame_x(f18B)
+  !frame x
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f00B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f01B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f02B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f03B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f04B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f05B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f06B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f07B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f08B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f09B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f10B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f11B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f12B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f13B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f14B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f15B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f16B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f17B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1,nz,f18B)
   
   !apply pbc at rear 6 !y
   !blue fluid
-  call apply_reflection_rear_frame_x(f00B)
-  call apply_reflection_rear_frame_x(f01B)
-  call apply_reflection_rear_frame_x(f02B)
-  call apply_reflection_rear_frame_x(f03B)
-  call apply_reflection_rear_frame_x(f04B)
-  call apply_reflection_rear_frame_x(f05B)
-  call apply_reflection_rear_frame_x(f06B)
-  call apply_reflection_rear_frame_x(f07B)
-  call apply_reflection_rear_frame_x(f08B)
-  call apply_reflection_rear_frame_x(f09B)
-  call apply_reflection_rear_frame_x(f10B)
-  call apply_reflection_rear_frame_x(f11B)
-  call apply_reflection_rear_frame_x(f12B)
-  call apply_reflection_rear_frame_x(f13B)
-  call apply_reflection_rear_frame_x(f14B)
-  call apply_reflection_rear_frame_x(f15B)
-  call apply_reflection_rear_frame_x(f16B)
-  call apply_reflection_rear_frame_x(f17B)
-  call apply_reflection_rear_frame_x(f18B)
+  !frame x
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f00B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f01B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f02B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f03B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f04B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f05B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f06B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f07B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f08B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f09B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f10B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f11B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f12B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f13B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f14B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f15B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f16B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f17B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1,nz,f18B)
   
   !apply pbc at north 1 !z
   !blue fluid
@@ -14423,25 +14452,26 @@ subroutine driver_bc_densities
   
   !apply pbc at south 2 !z
   !blue fluid
-  call apply_reflection_south_frame_x(f00B)
-  call apply_reflection_south_frame_x(f01B)
-  call apply_reflection_south_frame_x(f02B)
-  call apply_reflection_south_frame_x(f03B)
-  call apply_reflection_south_frame_x(f04B)
-  call apply_reflection_south_frame_x(f05B)
-  call apply_reflection_south_frame_x(f06B)
-  call apply_reflection_south_frame_x(f07B)
-  call apply_reflection_south_frame_x(f08B)
-  call apply_reflection_south_frame_x(f09B)
-  call apply_reflection_south_frame_x(f10B)
-  call apply_reflection_south_frame_x(f11B)
-  call apply_reflection_south_frame_x(f12B)
-  call apply_reflection_south_frame_x(f13B)
-  call apply_reflection_south_frame_x(f14B)
-  call apply_reflection_south_frame_x(f15B)
-  call apply_reflection_south_frame_x(f16B)
-  call apply_reflection_south_frame_x(f17B)
-  call apply_reflection_south_frame_x(f18B)
+  !frame x
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f00B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f01B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f02B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f03B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f04B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f05B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f06B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f07B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f08B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f09B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f10B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f11B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f12B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f13B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f14B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f15B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f16B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f17B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1,ny,f18B)
   
   !edges 4 (12)
   
@@ -14623,25 +14653,26 @@ subroutine driver_bc_densities
   
   !apply pbc at south 2 !z
   !red fluid
-  call apply_reflection_south_frame_y(f00R)
-  call apply_reflection_south_frame_y(f01R)
-  call apply_reflection_south_frame_y(f02R)
-  call apply_reflection_south_frame_y(f03R)
-  call apply_reflection_south_frame_y(f04R)
-  call apply_reflection_south_frame_y(f05R)
-  call apply_reflection_south_frame_y(f06R)
-  call apply_reflection_south_frame_y(f07R)
-  call apply_reflection_south_frame_y(f08R)
-  call apply_reflection_south_frame_y(f09R)
-  call apply_reflection_south_frame_y(f10R)
-  call apply_reflection_south_frame_y(f11R)
-  call apply_reflection_south_frame_y(f12R)
-  call apply_reflection_south_frame_y(f13R)
-  call apply_reflection_south_frame_y(f14R)
-  call apply_reflection_south_frame_y(f15R)
-  call apply_reflection_south_frame_y(f16R)
-  call apply_reflection_south_frame_y(f17R)
-  call apply_reflection_south_frame_y(f18R)
+  !frame y
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f00R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f01R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f02R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f03R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f04R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f05R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f06R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f07R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f08R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f09R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f10R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f11R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f12R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f13R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f14R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f15R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f16R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f17R)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f18R)
   
   !edges 4 (12)
   
@@ -14806,25 +14837,26 @@ subroutine driver_bc_densities
   
   !apply pbc at south 2 !z
   !blue fluid
-  call apply_reflection_south_frame_y(f00B)
-  call apply_reflection_south_frame_y(f01B)
-  call apply_reflection_south_frame_y(f02B)
-  call apply_reflection_south_frame_y(f03B)
-  call apply_reflection_south_frame_y(f04B)
-  call apply_reflection_south_frame_y(f05B)
-  call apply_reflection_south_frame_y(f06B)
-  call apply_reflection_south_frame_y(f07B)
-  call apply_reflection_south_frame_y(f08B)
-  call apply_reflection_south_frame_y(f09B)
-  call apply_reflection_south_frame_y(f10B)
-  call apply_reflection_south_frame_y(f11B)
-  call apply_reflection_south_frame_y(f12B)
-  call apply_reflection_south_frame_y(f13B)
-  call apply_reflection_south_frame_y(f14B)
-  call apply_reflection_south_frame_y(f15B)
-  call apply_reflection_south_frame_y(f16B)
-  call apply_reflection_south_frame_y(f17B)
-  call apply_reflection_south_frame_y(f18B)
+  !frame y
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f00B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f01B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f02B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f03B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f04B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f05B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f06B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f07B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f08B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f09B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f10B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f11B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f12B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f13B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f14B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f15B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f16B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f17B)
+  call apply_reflection_south(1,nx,1-nbuff,ny+nbuff,f18B)
   
   !edges 4 (12)
   
@@ -14939,6 +14971,7 @@ subroutine driver_bc_densities
   
   !apply pbc at east 3 !x
   !red fluid
+  !frame z
   call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f00R)
   call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f01R)
   call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f02R)
@@ -14961,6 +14994,7 @@ subroutine driver_bc_densities
   
   !apply pbc at west 4 !x
   !red fluid
+  !frame z
   call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f00R)
   call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f01R)
   call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f02R)
@@ -14983,47 +15017,49 @@ subroutine driver_bc_densities
   
   !apply pbc at front 5 !y
   !red fluid
-  call apply_reflection_front_frame_z(f00R)
-  call apply_reflection_front_frame_z(f01R)
-  call apply_reflection_front_frame_z(f02R)
-  call apply_reflection_front_frame_z(f03R)
-  call apply_reflection_front_frame_z(f04R)
-  call apply_reflection_front_frame_z(f05R)
-  call apply_reflection_front_frame_z(f06R)
-  call apply_reflection_front_frame_z(f07R)
-  call apply_reflection_front_frame_z(f08R)
-  call apply_reflection_front_frame_z(f09R)
-  call apply_reflection_front_frame_z(f10R)
-  call apply_reflection_front_frame_z(f11R)
-  call apply_reflection_front_frame_z(f12R)
-  call apply_reflection_front_frame_z(f13R)
-  call apply_reflection_front_frame_z(f14R)
-  call apply_reflection_front_frame_z(f15R)
-  call apply_reflection_front_frame_z(f16R)
-  call apply_reflection_front_frame_z(f17R)
-  call apply_reflection_front_frame_z(f18R)
+  !frame z
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f00R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f01R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f02R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f03R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f04R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f05R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f06R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f07R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f08R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f09R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f10R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f11R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f12R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f13R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f14R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f15R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f16R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f17R)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f18R)
   
   !apply pbc at rear 6 !y
   !red fluid
-  call apply_reflection_rear_frame_z(f00R)
-  call apply_reflection_rear_frame_z(f01R)
-  call apply_reflection_rear_frame_z(f02R)
-  call apply_reflection_rear_frame_z(f03R)
-  call apply_reflection_rear_frame_z(f04R)
-  call apply_reflection_rear_frame_z(f05R)
-  call apply_reflection_rear_frame_z(f06R)
-  call apply_reflection_rear_frame_z(f07R)
-  call apply_reflection_rear_frame_z(f08R)
-  call apply_reflection_rear_frame_z(f09R)
-  call apply_reflection_rear_frame_z(f10R)
-  call apply_reflection_rear_frame_z(f11R)
-  call apply_reflection_rear_frame_z(f12R)
-  call apply_reflection_rear_frame_z(f13R)
-  call apply_reflection_rear_frame_z(f14R)
-  call apply_reflection_rear_frame_z(f15R)
-  call apply_reflection_rear_frame_z(f16R)
-  call apply_reflection_rear_frame_z(f17R)
-  call apply_reflection_rear_frame_z(f18R)
+  !frame z
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f00R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f01R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f02R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f03R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f04R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f05R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f06R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f07R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f08R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f09R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f10R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f11R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f12R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f13R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f14R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f15R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f16R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f17R)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f18R)
   
   !edges 4 (12)
   
@@ -15122,6 +15158,7 @@ subroutine driver_bc_densities
   
   !apply pbc at east 3 !x
   !blue fluid
+  !frame z
   call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f00B)
   call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f01B)
   call apply_reflection_east(1,ny,1-nbuff,nz+nbuff,f02B)
@@ -15144,6 +15181,7 @@ subroutine driver_bc_densities
   
   !apply pbc at west 4 !x
   !blue fluid
+  !frame z
   call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f00B)
   call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f01B)
   call apply_reflection_west(1,ny,1-nbuff,nz+nbuff,f02B)
@@ -15166,47 +15204,49 @@ subroutine driver_bc_densities
   
   !apply pbc at front 5 !y
   !blue fluid
-  call apply_reflection_front_frame_z(f00B)
-  call apply_reflection_front_frame_z(f01B)
-  call apply_reflection_front_frame_z(f02B)
-  call apply_reflection_front_frame_z(f03B)
-  call apply_reflection_front_frame_z(f04B)
-  call apply_reflection_front_frame_z(f05B)
-  call apply_reflection_front_frame_z(f06B)
-  call apply_reflection_front_frame_z(f07B)
-  call apply_reflection_front_frame_z(f08B)
-  call apply_reflection_front_frame_z(f09B)
-  call apply_reflection_front_frame_z(f10B)
-  call apply_reflection_front_frame_z(f11B)
-  call apply_reflection_front_frame_z(f12B)
-  call apply_reflection_front_frame_z(f13B)
-  call apply_reflection_front_frame_z(f14B)
-  call apply_reflection_front_frame_z(f15B)
-  call apply_reflection_front_frame_z(f16B)
-  call apply_reflection_front_frame_z(f17B)
-  call apply_reflection_front_frame_z(f18B)
+  !frame z
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f00B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f01B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f02B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f03B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f04B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f05B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f06B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f07B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f08B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f09B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f10B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f11B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f12B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f13B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f14B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f15B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f16B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f17B)
+  call apply_reflection_front(1,nx,1-nbuff,nz+nbuff,f18B)
   
   !apply pbc at rear 6 !y
   !blue fluid
-  call apply_reflection_rear_frame_z(f00B)
-  call apply_reflection_rear_frame_z(f01B)
-  call apply_reflection_rear_frame_z(f02B)
-  call apply_reflection_rear_frame_z(f03B)
-  call apply_reflection_rear_frame_z(f04B)
-  call apply_reflection_rear_frame_z(f05B)
-  call apply_reflection_rear_frame_z(f06B)
-  call apply_reflection_rear_frame_z(f07B)
-  call apply_reflection_rear_frame_z(f08B)
-  call apply_reflection_rear_frame_z(f09B)
-  call apply_reflection_rear_frame_z(f10B)
-  call apply_reflection_rear_frame_z(f11B)
-  call apply_reflection_rear_frame_z(f12B)
-  call apply_reflection_rear_frame_z(f13B)
-  call apply_reflection_rear_frame_z(f14B)
-  call apply_reflection_rear_frame_z(f15B)
-  call apply_reflection_rear_frame_z(f16B)
-  call apply_reflection_rear_frame_z(f17B)
-  call apply_reflection_rear_frame_z(f18B)
+  !frame z
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f00B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f01B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f02B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f03B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f04B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f05B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f06B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f07B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f08B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f09B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f10B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f11B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f12B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f13B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f14B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f15B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f16B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f17B)
+  call apply_reflection_rear(1,nx,1-nbuff,nz+nbuff,f18B)
   
   !edges 4 (12)
   
@@ -15344,25 +15384,26 @@ subroutine driver_bc_densities
   
   !apply pbc at south 2 !z
   !red fluid
-  call apply_reflection_south_frame(f00R)
-  call apply_reflection_south_frame(f01R)
-  call apply_reflection_south_frame(f02R)
-  call apply_reflection_south_frame(f03R)
-  call apply_reflection_south_frame(f04R)
-  call apply_reflection_south_frame(f05R)
-  call apply_reflection_south_frame(f06R)
-  call apply_reflection_south_frame(f07R)
-  call apply_reflection_south_frame(f08R)
-  call apply_reflection_south_frame(f09R)
-  call apply_reflection_south_frame(f10R)
-  call apply_reflection_south_frame(f11R)
-  call apply_reflection_south_frame(f12R)
-  call apply_reflection_south_frame(f13R)
-  call apply_reflection_south_frame(f14R)
-  call apply_reflection_south_frame(f15R)
-  call apply_reflection_south_frame(f16R)
-  call apply_reflection_south_frame(f17R)
-  call apply_reflection_south_frame(f18R)
+  !frame
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f00R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f01R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f02R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f03R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f04R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f05R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f06R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f07R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f08R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f09R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f10R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f11R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f12R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f13R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f14R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f15R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f16R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f17R)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f18R)
   
   if(lsingle_fluid)return
   
@@ -15393,25 +15434,26 @@ subroutine driver_bc_densities
   
   !apply pbc at south 2 !z
   !blue fluid
-  call apply_reflection_south_frame(f00B)
-  call apply_reflection_south_frame(f01B)
-  call apply_reflection_south_frame(f02B)
-  call apply_reflection_south_frame(f03B)
-  call apply_reflection_south_frame(f04B)
-  call apply_reflection_south_frame(f05B)
-  call apply_reflection_south_frame(f06B)
-  call apply_reflection_south_frame(f07B)
-  call apply_reflection_south_frame(f08B)
-  call apply_reflection_south_frame(f09B)
-  call apply_reflection_south_frame(f10B)
-  call apply_reflection_south_frame(f11B)
-  call apply_reflection_south_frame(f12B)
-  call apply_reflection_south_frame(f13B)
-  call apply_reflection_south_frame(f14B)
-  call apply_reflection_south_frame(f15B)
-  call apply_reflection_south_frame(f16B)
-  call apply_reflection_south_frame(f17B)
-  call apply_reflection_south_frame(f18B)
+  !frame
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f00B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f01B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f02B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f03B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f04B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f05B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f06B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f07B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f08B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f09B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f10B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f11B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f12B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f13B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f14B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f15B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f16B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f17B)
+  call apply_reflection_south(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,f18B)
   
   return
   
@@ -15436,47 +15478,49 @@ subroutine driver_bc_densities
   
   !apply pbc at front 5 !y
   !red fluid
-  call apply_reflection_front_frame(f00R)
-  call apply_reflection_front_frame(f01R)
-  call apply_reflection_front_frame(f02R)
-  call apply_reflection_front_frame(f03R)
-  call apply_reflection_front_frame(f04R)
-  call apply_reflection_front_frame(f05R)
-  call apply_reflection_front_frame(f06R)
-  call apply_reflection_front_frame(f07R)
-  call apply_reflection_front_frame(f08R)
-  call apply_reflection_front_frame(f09R)
-  call apply_reflection_front_frame(f10R)
-  call apply_reflection_front_frame(f11R)
-  call apply_reflection_front_frame(f12R)
-  call apply_reflection_front_frame(f13R)
-  call apply_reflection_front_frame(f14R)
-  call apply_reflection_front_frame(f15R)
-  call apply_reflection_front_frame(f16R)
-  call apply_reflection_front_frame(f17R)
-  call apply_reflection_front_frame(f18R)
+  !frame
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f00R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f01R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f02R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f03R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f04R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f05R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f06R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f07R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f08R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f09R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f10R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f11R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f12R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f13R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f14R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f15R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f16R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f17R)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f18R)
   
   !apply pbc at rear 6 !y
   !red fluid
-  call apply_reflection_rear_frame(f00R)
-  call apply_reflection_rear_frame(f01R)
-  call apply_reflection_rear_frame(f02R)
-  call apply_reflection_rear_frame(f03R)
-  call apply_reflection_rear_frame(f04R)
-  call apply_reflection_rear_frame(f05R)
-  call apply_reflection_rear_frame(f06R)
-  call apply_reflection_rear_frame(f07R)
-  call apply_reflection_rear_frame(f08R)
-  call apply_reflection_rear_frame(f09R)
-  call apply_reflection_rear_frame(f10R)
-  call apply_reflection_rear_frame(f11R)
-  call apply_reflection_rear_frame(f12R)
-  call apply_reflection_rear_frame(f13R)
-  call apply_reflection_rear_frame(f14R)
-  call apply_reflection_rear_frame(f15R)
-  call apply_reflection_rear_frame(f16R)
-  call apply_reflection_rear_frame(f17R)
-  call apply_reflection_rear_frame(f18R)
+  !frame
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f00R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f01R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f02R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f03R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f04R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f05R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f06R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f07R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f08R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f09R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f10R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f11R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f12R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f13R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f14R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f15R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f16R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f17R)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f18R)
   
   if(lsingle_fluid)return
   
@@ -15484,47 +15528,49 @@ subroutine driver_bc_densities
   
   !apply pbc at front 5 !y
   !blue fluid
-  call apply_reflection_front_frame(f00B)
-  call apply_reflection_front_frame(f01B)
-  call apply_reflection_front_frame(f02B)
-  call apply_reflection_front_frame(f03B)
-  call apply_reflection_front_frame(f04B)
-  call apply_reflection_front_frame(f05B)
-  call apply_reflection_front_frame(f06B)
-  call apply_reflection_front_frame(f07B)
-  call apply_reflection_front_frame(f08B)
-  call apply_reflection_front_frame(f09B)
-  call apply_reflection_front_frame(f10B)
-  call apply_reflection_front_frame(f11B)
-  call apply_reflection_front_frame(f12B)
-  call apply_reflection_front_frame(f13B)
-  call apply_reflection_front_frame(f14B)
-  call apply_reflection_front_frame(f15B)
-  call apply_reflection_front_frame(f16B)
-  call apply_reflection_front_frame(f17B)
-  call apply_reflection_front_frame(f18B)
+  !frame
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f00B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f01B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f02B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f03B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f04B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f05B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f06B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f07B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f08B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f09B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f10B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f11B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f12B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f13B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f14B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f15B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f16B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f17B)
+  call apply_reflection_front(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f18B)
   
   !apply pbc at rear 6 !y
   !blue fluid
-  call apply_reflection_rear_frame(f00B)
-  call apply_reflection_rear_frame(f01B)
-  call apply_reflection_rear_frame(f02B)
-  call apply_reflection_rear_frame(f03B)
-  call apply_reflection_rear_frame(f04B)
-  call apply_reflection_rear_frame(f05B)
-  call apply_reflection_rear_frame(f06B)
-  call apply_reflection_rear_frame(f07B)
-  call apply_reflection_rear_frame(f08B)
-  call apply_reflection_rear_frame(f09B)
-  call apply_reflection_rear_frame(f10B)
-  call apply_reflection_rear_frame(f11B)
-  call apply_reflection_rear_frame(f12B)
-  call apply_reflection_rear_frame(f13B)
-  call apply_reflection_rear_frame(f14B)
-  call apply_reflection_rear_frame(f15B)
-  call apply_reflection_rear_frame(f16B)
-  call apply_reflection_rear_frame(f17B)
-  call apply_reflection_rear_frame(f18B)
+  !frame
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f00B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f01B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f02B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f03B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f04B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f05B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f06B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f07B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f08B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f09B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f10B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f11B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f12B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f13B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f14B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f15B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f16B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f17B)
+  call apply_reflection_rear(1-nbuff,nx+nbuff,1-nbuff,nz+nbuff,f18B)
   
   return
   
@@ -15713,6 +15759,7 @@ subroutine driver_bc_densities
 !***********************************************************************
  
   implicit none
+  
   integer, intent(in) :: sx,ex,sy,ey
   real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
   
@@ -15726,12 +15773,12 @@ subroutine driver_bc_densities
   
  end subroutine apply_reflection_north
  
- subroutine apply_reflection_south_frame(dtemp)
+ subroutine apply_reflection_south(sx,ex,sy,ey,dtemp)
  
 !***********************************************************************
 !     
 !     LBsoft subroutine for applying the reflection 
-!     at the south side alongside with its frame
+!     at the south side along the space defined in input sx,ex,sy,ey
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -15741,254 +15788,12 @@ subroutine driver_bc_densities
  
   implicit none
   
+  integer, intent(in) :: sx,ex,sy,ey
   real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
   
   integer :: i,j,k,kk
   
-  forall(i=1-nbuff:nx+nbuff,j=1-nbuff:ny+nbuff,kk=1:nbuff)
-    dtemp(i,j,1-kk)=dtemp(i,j,kk)
-  end forall
-  
-  return
-  
- end subroutine apply_reflection_south_frame
- 
- subroutine apply_reflection_south_frame_x(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection 
-!     at the south side alongside with its frame only along x
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-  
-  forall(i=1-nbuff:nx+nbuff,j=1:ny,kk=1:nbuff)
-    dtemp(i,j,1-kk)=dtemp(i,j,kk)
-  end forall
-  
-  return
-  
- end subroutine apply_reflection_south_frame_x
- 
- subroutine apply_reflection_south_frame_y(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection 
-!     at the south side alongside with its frame only along y
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-  
-  forall(i=1:nx,j=1-nbuff:ny+nbuff,kk=1:nbuff)
-    dtemp(i,j,1-kk)=dtemp(i,j,kk)
-  end forall
-  
-  return
-  
- end subroutine apply_reflection_south_frame_y
- 
- subroutine apply_reflection_front_frame(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection
-!     at the front side alongside with its frame
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-  
-  forall(i=1-nbuff:nx+nbuff,kk=1:nbuff,k=1-nbuff:nz+nbuff)
-    dtemp(i,1-kk,k)= dtemp(i,kk,k)
-  end forall
-
-  return
-  
- end subroutine apply_reflection_front_frame
- 
- subroutine apply_reflection_front_frame_x(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection
-!     at the front side alongside with its frame only along x
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-  
-  forall(i=1-nbuff:nx+nbuff,kk=1:nbuff,k=1:nz)
-    dtemp(i,1-kk,k)= dtemp(i,kk,k)
-  end forall
-
-  return
-  
- end subroutine apply_reflection_front_frame_x
- 
- subroutine apply_reflection_front_frame_z(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection
-!     at the front side alongside with its frame only along z
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-  
-  forall(i=1:nx,kk=1:nbuff,k=1-nbuff:nz+nbuff)
-    dtemp(i,1-kk,k)= dtemp(i,kk,k)
-  end forall
-
-  return
-  
- end subroutine apply_reflection_front_frame_z
- 
- subroutine apply_reflection_rear_frame(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection 
-!     at the rear side alongside with its frame
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-  
-  forall(i=1-nbuff:nx+nbuff,kk=1:nbuff,k=1-nbuff:nz+nbuff)
-    dtemp(i,ny+kk,k)= dtemp(i,ny-kk+1,k)
-  end forall
-
-  return
-  
- end subroutine apply_reflection_rear_frame
- 
- subroutine apply_reflection_rear_frame_x(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection 
-!     at the rear side alongside with its frame only along x
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-  
-  forall(i=1-nbuff:nx+nbuff,kk=1:nbuff,k=1:nz)
-    dtemp(i,ny+kk,k)= dtemp(i,ny-kk+1,k)
-  end forall
-
-  return
-  
- end subroutine apply_reflection_rear_frame_x
- 
- subroutine apply_reflection_rear_frame_z(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection 
-!     at the rear side alongside with its frame only along z
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-  
-  forall(i=1:nx,kk=1:nbuff,k=1-nbuff:nz+nbuff)
-    dtemp(i,ny+kk,k)= dtemp(i,ny-kk+1,k)
-  end forall
-
-  return
-  
- end subroutine apply_reflection_rear_frame_z
- 
- subroutine apply_reflection_south(dtemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection 
-!     at the south side
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
-  
-  integer :: i,j,k,kk
-  
-  forall(i=1:nx,j=1:ny,kk=1:nbuff)
+  forall(i=sx:ex,j=sy:ey,kk=1:nbuff)
     dtemp(i,j,1-kk)=dtemp(i,j,kk)
   end forall
   
@@ -15996,12 +15801,12 @@ subroutine driver_bc_densities
   
  end subroutine apply_reflection_south
  
- subroutine apply_reflection_front(dtemp)
+ subroutine apply_reflection_front(sx,ex,sz,ez,dtemp)
  
 !***********************************************************************
 !     
 !     LBsoft subroutine for applying the reflection
-!     at the front side
+!     at the front side along the space defined in input sx,ex,sz,ez
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -16011,11 +15816,12 @@ subroutine driver_bc_densities
  
   implicit none
   
+  integer, intent(in) :: sx,ex,sz,ez
   real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
   
   integer :: i,j,k,kk
   
-  forall(i=1:nx,kk=1:nbuff,k=1:nz)
+  forall(i=sx:ex,kk=1:nbuff,k=sz:ez)
     dtemp(i,1-kk,k)= dtemp(i,kk,k)
   end forall
 
@@ -16023,12 +15829,12 @@ subroutine driver_bc_densities
   
  end subroutine apply_reflection_front
  
- subroutine apply_reflection_rear(dtemp)
+ subroutine apply_reflection_rear(sx,ex,sz,ez,dtemp)
  
 !***********************************************************************
 !     
 !     LBsoft subroutine for applying the reflection 
-!     at the rear side
+!     at the rear side along the space defined in input sx,ex,sz,ez
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -16038,11 +15844,12 @@ subroutine driver_bc_densities
  
   implicit none
   
+  integer, intent(in) :: sx,ex,sz,ez
   real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
   
   integer :: i,j,k,kk
   
-  forall(i=1:nx,kk=1:nbuff,k=1:nz)
+  forall(i=sx:ex,kk=1:nbuff,k=sz:ez)
     dtemp(i,ny+kk,k)= dtemp(i,ny-kk+1,k)
   end forall
 

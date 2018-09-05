@@ -8,39 +8,6 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #include <default_macro.h>
-#if defined(CUDA) && defined(USEPINME)
-! Interface to cudaMallocHost and cudaFree
-MODULE cuda_alloc
-
-  USE iso_c_binding
-
-  IMPLICIT NONE
-  ! Define the C pointer as type (C_PTR)
-  TYPE(C_PTR) :: cptr_locu, cptr_locv, cptr_locw, cptr_locrho
-  TYPE(C_PTR) :: cptr_locju, cptr_locjv, cptr_locjw
-  TYPE(C_PTR) :: cptr_locfu, cptr_locfv, cptr_locfw
-
-  INTERFACE
-
-     ! cudaMallocHost
-     INTEGER (C_INT) FUNCTION cudaMallocHost(buffer, size)  bind(C,name="cudaMallocHost")
-       USE iso_c_binding
-       IMPLICIT NONE
-       TYPE (C_PTR)  :: buffer
-       INTEGER (C_INT), value :: size
-     END FUNCTION cudaMallocHost
-
-     ! cudaFreeHost
-     INTEGER (C_INT) FUNCTION cudaFreeHost(buffer)  bind(C,name="cudaFreeHost")
-       USE iso_c_binding
-       IMPLICIT NONE
-       TYPE (C_PTR), value :: buffer
-     END FUNCTION cudaFreeHost
-  END INTERFACE
-
-END MODULE cuda_alloc
-
-#endif
 
 MODULE lbempi_mod
   use version_mod, only : idrank, mxrank
@@ -116,19 +83,23 @@ MODULE lbempi_mod
     INTEGER, PARAMETER :: mddirnpop=27
     INTEGER :: mddir(0:mddirnpop-npop-1)
 #endif
-
+  
+  public :: setupcom
+  
 CONTAINS
 #define LARGEINT 1073741824
-SUBROUTINE setupcom(nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
+
+#ifdef MPI
+SUBROUTINE setupcom(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
    miny,maxy,minz,maxz)
   
  
   
-  INTEGER, intent(in) :: nx,ny,nz,ibctype
+  INTEGER, intent(in) :: nx,ny,nz,nbuff,ibctype
   INTEGER, intent(inout) :: ixpbc,iypbc,izpbc,minx,maxx,miny,maxy, &
    minz,maxz
   
-  INTEGER :: nbuff=2
+  
   INTEGER :: i
   INTEGER :: ownernlb,ownernub
 
@@ -150,21 +121,62 @@ SUBROUTINE setupcom(nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
   do i=ownernlb,ownernub
      ownern(i)=-1
   enddo
-  call cartdeco(nx,ny,nz,.true.,ownern,ownernlb,minx,maxx,miny,maxy, &
+  call cartdeco(nx,ny,nz,nbuff,.true.,ownern,ownernlb,minx,maxx,miny,maxy, &
    minz,maxz)
 !max  write(0,*)'countnpp(',myid,')=',countnpp(myid)
-  call findneigh(nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx,miny,maxy, &
+  call findneigh(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx,miny,maxy, &
    minz,maxz)
 
   DEALLOCATE(ownern)
 END SUBROUTINE setupcom
+#else
+  subroutine setupcom(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
+   miny,maxy,minz,maxz)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for the initial setup of the domain 
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification September 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: nx,ny,nz,nbuff,ibctype
+  integer, intent(inout) :: ixpbc,iypbc,izpbc,minx,maxx,miny,maxy, &
+   minz,maxz
+  
+  integer :: i
+  integer :: ownernlb,ownernub
 
-  SUBROUTINE cartdeco(nx,ny,nz,first, ownern, ownernlb,minx,maxx,miny,maxy, &
+  domdec=7
+  myid=idrank
+  numprocs=mxrank
+
+  nxy2=(nx+2*nbuff)*(ny+2*nbuff)
+  nx2=nx+(2*nbuff)
+  
+  minx=1
+  maxx=nx
+  miny=1
+  maxy=ny
+  minz=1
+  maxz=nz
+  
+  return
+  
+ end subroutine setupcom
+#endif
+
+  SUBROUTINE cartdeco(nx,ny,nz,nbuff,first, ownern, ownernlb,minx,maxx,miny,maxy, &
    minz,maxz)
 
     IMPLICIT NONE
     
-    integer, intent(in) :: nx,ny,nz
+    integer, intent(in) :: nx,ny,nz,nbuff
     LOGICAL,INTENT(in) :: first
     ! INTEGER(kind=IPRC) :: tempown(0:*)
     ! INTEGER :: order(0:*)
@@ -179,7 +191,7 @@ END SUBROUTINE setupcom
     INTEGER :: slice=0, slicez=0, slicey=0, slicex=0
     INTEGER :: m, iandex
 
-    INTEGER :: nbuff=2
+   
     IF(first) THEN
        
 #if defined(FNMD)
@@ -525,29 +537,17 @@ END SUBROUTINE setupcom
      out = INT(k,kind=IPRC)*nxy2 + INT(j,kind=IPRC)*nx2 + INT(i,kind=IPRC)
   END FUNCTION i4back
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  SUBROUTINE findneigh(nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
+  SUBROUTINE findneigh(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
    miny,maxy,minz,maxz)
 
-#if defined(CUDA) && defined(USEPINME)
-    ! USE iso_c_binding
-    ! USE cuda_alloc
     IMPLICIT NONE
-    
-    
-    
-    ! Define the floating point kind to be  single_precision
-    INTEGER, PARAMETER :: fp_kind = KIND(0.0)
-    INTEGER :: res
-    ! The allocation is performed by C function call.
-#else
-    IMPLICIT NONE
-#endif
+
     INTEGER :: request(0:maxneigh-1)
 #if defined(MPI)
     INTEGER :: status(MPI_STATUS_SIZE,0:maxneigh-1)
 #endif
     
-    INTEGER, intent(in) :: nx,ny,nz,ibctype
+    INTEGER, intent(in) :: nx,ny,nz,nbuff,ibctype
     INTEGER, intent(inout) :: ixpbc,iypbc,izpbc,minx,maxx,miny,maxy, &
    minz,maxz
     
@@ -575,7 +575,7 @@ END SUBROUTINE setupcom
     !          0           1           1           6
     !          1           1           1           7
 
-    INTEGER :: nbuff=2
+    
 
     ! ibctype 0 corresponds to a lattice with no PBC
     ixpbc=0

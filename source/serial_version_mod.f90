@@ -20,6 +20,10 @@
  integer, public, save :: idrank=0
  integer, public, save :: mxrank=1
  
+ integer, public, save :: domdec=0
+ 
+ integer, save :: myid,numprocs,nxy2,nx2
+ 
  public :: print_version
  public :: get_rank_world
  public :: get_size_world
