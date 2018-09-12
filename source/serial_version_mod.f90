@@ -20,7 +20,7 @@
  integer, public, save :: idrank=0
  integer, public, save :: mxrank=1
  
-! integer, public, save :: domdec=0
+ integer, public, save :: domdec=0
  
  integer, save :: myid,numprocs,nxy2,nx2
  

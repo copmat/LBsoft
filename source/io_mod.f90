@@ -13,7 +13,6 @@
 !***********************************************************************
  
  use version_mod
- use lbempi_mod, only : domdec,nprocz, nprocy, nprocx
  use parse_module
  use error_mod
  use profiling_mod,         only : set_value_idiagnostic, &
@@ -458,11 +457,6 @@
                   lerror6=.true.
                 endif
               endif
-            elseif(findstring('decomposit',directive,inumchar,maxlen))then
-              domdec=intstr(directive,maxlen,inumchar)
-              nprocx=intstr(directive,maxlen,inumchar)
-              nprocy=intstr(directive,maxlen,inumchar)
-              nprocz=intstr(directive,maxlen,inumchar)
             elseif(findstring('diagnostic',directive,inumchar,maxlen))then
               if(findstring('yes',directive,inumchar,maxlen))then
                 temp_ldiagnostic=.true.
@@ -771,19 +765,6 @@
     endif
   else
     call error(3)
-  endif
-  
-  call bcast_world_i(domdec)
-  call bcast_world_i(nprocx)
-  call bcast_world_i(nprocy)
-  call bcast_world_i(nprocz)
-  if(idrank==0)then
-    mystring=repeat(' ',dimprint)
-    mystring='decomposition type'
-    write(6,'(2a,i12)')mystring,": ",domdec
-    mystring=repeat(' ',dimprint)
-    mystring='decomposition scheme'
-    write(6,'(2a,3i12)')mystring,": ",nprocx,nprocy,nprocz
   endif
   
   call bcast_world_l(lnstepmax)
