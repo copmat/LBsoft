@@ -51,7 +51,8 @@ MODULE lbempi_mod
   integer rc, ierr
   integer,PUBLIC :: lnofsite, itpppsize
 
-  INTEGER :: domdec, syncsend
+  INTEGER, public :: domdec
+  INTEGER ::  syncsend
   INTEGER,SAVE :: requestm(0:maxneigh-1), requestp(0:maxneigh-1), &
        requestw(0:maxneigh-1), requesti(0:maxneigh-1), requesto(0:maxneigh-1), &
        requesth(0:maxneigh-1), requesth_wall(0:maxneigh-1), requests(0:maxneigh-1)
@@ -62,7 +63,7 @@ MODULE lbempi_mod
   INTEGER :: i_pe2send_fluid(0:maxneigh-1), n_pop2send_fluid(0:maxneigh-1)
   INTEGER :: i_pe2recv_fluid(0:maxneigh-1), n_pop2recv_fluid(0:maxneigh-1)
 
-  INTEGER :: nprocz, nprocy, nprocx
+  INTEGER, public :: nprocz, nprocy, nprocx
   INTEGER :: nxy2, nx2
 
   integer, POINTER :: countnpp(:)
@@ -103,7 +104,7 @@ SUBROUTINE setupcom(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
   INTEGER :: i
   INTEGER :: ownernlb,ownernub
 
-  domdec=7
+  domdec=7   !OCCHIO
   myid=idrank
   numprocs=mxrank
   syncsend=1
@@ -152,7 +153,7 @@ END SUBROUTINE setupcom
   integer :: i
   integer :: ownernlb,ownernub
 
-  domdec=7
+  
   myid=idrank
   numprocs=mxrank
 

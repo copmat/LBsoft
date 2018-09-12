@@ -15,7 +15,8 @@
  use version_mod,    only : idrank,mxrank
  use error_mod
  use utility_mod,    only : write_fmtnumb,ltest_mode
- use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w,lsingle_fluid
+ use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w,lsingle_fluid, &
+  minx, maxx, miny, maxy, minz, maxz
   
   private
   
@@ -192,19 +193,25 @@
   
   integer, parameter :: iomap=250
   
-  character(len=256) :: file_loc_proc(0:mxrank-1)
+  character(len=256) :: file_loc_proc
 
   if(.not. ltest_mode)return
+  
+  if(idrank==0)then 
+    open(iomap-1,file='global.map',status='replace',action='write')
+    write(iomap-1,'(i10)')mxrank,nx,ny,nz
+    close(iomap-1)
+  endif
 
   l=idrank
-  file_loc_proc(l) = 'output'//trim(write_fmtnumb(l))//'.map'
-  open(iomap+l,file=trim(file_loc_proc(l)),status='replace',action='write')
+  file_loc_proc = 'output'//trim(write_fmtnumb(l))//'.map'
+  open(iomap+l,file=trim(file_loc_proc),status='replace',action='write')
   write(iomap+l,'(i10)')mxrank
   if(lsingle_fluid)then
     write(iomap+l,'(6i10)')nx,ny,nz, PRC, 4
-    do k=1,nz
-      do j=1,ny
-        do i=1,nx
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
           write(iomap+l,'(3i8,4f20.10)')i,j,k,rhoR(i,j,k), &
            u(i,j,k),v(i,j,k),w(i,j,k)
         enddo
@@ -212,9 +219,9 @@
     enddo
   else
     write(iomap+l,'(6i10)')nx,ny,nz, PRC, 5
-    do k=1,nz
-      do j=1,ny
-        do i=1,nx
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
           write(iomap+l,'(3i8,5f20.10)')i,j,k,rhoR(i,j,k),rhoB(i,j,k), &
            u(i,j,k),v(i,j,k),w(i,j,k)
         enddo
