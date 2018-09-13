@@ -19,6 +19,8 @@
   set_value_ldiagnostic,idiagnostic,ldiagnostic
  use utility_mod,           only : write_fmtnumb,pi,get_prntime, &
   linit_seed,ltest_mode
+ use lbempi_mod,            only : set_domdec,set_domain,domdec, &
+  nprocx,nprocy,nprocz
  use fluids_mod,            only : nx,ny,nz,set_initial_dist_type, &
   set_mean_value_dens_fluids,set_stdev_value_dens_fluids,idistselect, &
   meanR,meanB,stdevR,stdevB,set_initial_dim_box,initial_u,initial_v, &
@@ -300,8 +302,14 @@
   integer :: temp_bc_type_rear=0
   integer :: temp_bc_type_north=0
   integer :: temp_bc_type_south=0
+  integer :: temp_domdec=7
+  integer :: temp_nprocx=1
+  integer :: temp_nprocy=1
+  integer :: temp_nprocz=1
   logical :: temp_ibc=.false.
   logical :: temp_lpair_SC=.false.
+  logical :: temp_ldomdec=.false.
+  logical :: temp_lnprocn=.false.
   logical :: lvisc=.false.
   logical :: ltau=.false.
   logical :: lnstepmax=.false.
@@ -463,6 +471,16 @@
               elseif(findstring('every',directive,inumchar,maxlen))then
                 temp_idiagnostic=intstr(directive,maxlen,inumchar)
                 lidiagnostic=.true.
+              endif
+            elseif(findstring('decompos',directive,inumchar,maxlen))then
+              if(findstring('type',directive,inumchar,maxlen))then
+                temp_ldomdec=.true.
+                temp_domdec=intstr(directive,maxlen,inumchar)
+              elseif(findstring('dimen',directive,inumchar,maxlen))then
+                temp_lnprocn=.true.
+                temp_nprocx=intstr(directive,maxlen,inumchar)
+                temp_nprocy=intstr(directive,maxlen,inumchar)   
+                temp_nprocz=intstr(directive,maxlen,inumchar)   
               endif
             elseif(findstring('print',directive,inumchar,maxlen))then
               if(findstring('list',directive,inumchar,maxlen))then
@@ -765,6 +783,30 @@
     endif
   else
     call error(3)
+  endif
+  
+  call bcast_world_l(temp_ldomdec)
+  if(temp_ldomdec)then
+    call bcast_world_i(temp_domdec)
+    call set_domdec(temp_domdec)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='decomposition type'
+      write(6,'(2a,i12)')mystring,": ",domdec
+    endif
+  endif
+  
+  call bcast_world_l(temp_lnprocn)
+  if(temp_lnprocn)then
+    call bcast_world_i(temp_nprocx)
+    call bcast_world_i(temp_nprocy)
+    call bcast_world_i(temp_nprocz)
+    call set_domain(temp_nprocx,temp_nprocy,temp_nprocz)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='decomposition dimensions'
+      write(6,'(2a,3i12)')mystring,": ",nprocx,nprocy,nprocz
+    endif
   endif
   
   call bcast_world_l(lnstepmax)
