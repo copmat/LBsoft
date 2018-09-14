@@ -22,13 +22,7 @@ EX=main.x
 EXE = $(BINROOT)/$(EX)
 SHELL=/bin/sh
 
-OBJ_MOD = IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
-	Lib_VTK_IO.o get_mem.o serial_version_mod.o parallel_version_mod.o \
-	profiling_mod.o parse_mod.o error_mod.o utility_mod.o \
-    fluids_mod.o write_output_mod.o integrator_mod.o statistic_mod.o \
-    io_mod.o
-    
-OBJ_SRC = main.o
+
 
 all:
 	@echo "Error - you should specify a target machine!"
@@ -102,8 +96,8 @@ gfortran-debugger:
 	$(MAKE) CC=gcc \
 	FC=gfortran \
 	CFLAGS="-O0 -g -cpp -I $(CURDIR) -c" \
-	FFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-trap=zero -cpp -I $(CURDIR) -c" \
-	LDFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-trap=zero -cpp -I $(CURDIR) -o" \
+	FFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-summary=all -cpp -I $(CURDIR) -c" \
+	LDFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-summary=all -cpp -I $(CURDIR) -o" \
 	TYPE=seq \
 	EX=$(EX) BINROOT=$(BINROOT) seq
 
@@ -111,8 +105,8 @@ gfortran-mpidebugger:
 	$(MAKE) CC=mpicc \
 	FC=mpif90 \
 	CFLAGS="-O0 -g -cpp -I $(CURDIR) -c" \
-	FFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-trap=zero -cpp -DMPI -I $(CURDIR) -c" \
-	LDFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-trap=zero -cpp -DMPI -I $(CURDIR) -o" \
+	FFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-summary=all -cpp -DMPI -I $(CURDIR) -c" \
+	LDFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-summary=all -cpp -DMPI -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EX) BINROOT=$(BINROOT) mpi
 	

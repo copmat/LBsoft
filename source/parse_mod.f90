@@ -199,7 +199,7 @@
       
       if(n(j)==word(laststring))then
         
-        dblstr=ten*dblstr+one*dble(j)
+        dblstr=ten*dblstr+one*real(j,kind=PRC)
         flag=.true.
         start=.true.
             
@@ -217,7 +217,7 @@
     endif
 
     if(flag .and. ksn=='-') sn=- ONE
-    if(ldot)one=one/ TEN
+    if(ldot)one= real(one,kind=PRC)/ real(TEN,kind=PRC)
     ksn=word(laststring)
     if(ksn=="D")ksn="d"
     if(ksn=="E")ksn="e"

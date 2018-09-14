@@ -13,7 +13,7 @@
 !     
 !***********************************************************************
  
- use version_mod,    only : idrank,or_world_larr
+ use version_mod,    only : idrank,mxrank,or_world_larr
  use error_mod
  use aop_mod
  use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
@@ -21,7 +21,7 @@
                    allocate_array_buffservice,lbuffservice, &
                    allocate_array_lbuffservice, &
                    buffservice3d,allocate_array_buffservice3d, &
-                   rand_noseeded,linit_seed,gauss_noseeded
+                   rand_noseeded,linit_seed,gauss_noseeded,write_fmtnumb
 #ifdef MPI
  use lbempi_mod, only : commspop, commrpop
 #endif
@@ -402,27 +402,9 @@
   call or_world_larr(ltest,1)
   if(ltest(1))call error(4)
   
-  call allocate_array_buffservice3d(ix,mynx,iy,myny,iz,mynz)
+  call allocate_array_buffservice3d(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,1-nbuff,nz+nbuff)
   
-! check and modify minx-maxz according to the role
-  if(minx.lt.1) then
-    minx=1
-  endif
-  if(miny.lt.1) then
-    miny=1
-  endif
-  if(minz.lt.1) then
-    minz=1
-  endif
-  if(maxx.gt.nx) then
-    maxx=nx
-  endif
-  if(maxy.gt.ny) then
-    maxy=ny
-  endif
-  if(maxz.gt.nz) then
-    maxz=nz
-  endif
+
   
   wminx=minx
   wminy=miny
@@ -478,9 +460,22 @@
      endif
      maxz=nz
    endif
-  !   write(0,*)'fluids id=',idrank,'minx=',minx,'maxx=',maxx,'miny=',miny,'maxy=',maxy,'minz=',minz,'maxz=',maxz
-  !   write(0,*)'ixpbc=',ixpbc,'iypbc=',iypbc,'izpbc=',izpbc
- 
+   
+   !write(6,*)minx,maxx,miny,maxy,minz,maxz
+   !write(6,*)wminx,wmaxx,wminy,wmaxy,wminz,wmaxz
+   
+   if(idrank==0)write(6,*)'ixpbc=',ixpbc,'iypbc=',iypbc,'izpbc=',izpbc
+   
+   write(6,*)'fluids id=',idrank,'minx=',minx,'maxx=',maxx, &
+    'miny=',miny,'maxy=',maxy,'minz=',minz,'maxz=',maxz
+   write(6,*)'fluids id=',idrank,'wminx=',wminx,'wmaxx=',wmaxx, &
+    'wminy=',wminy,'wmaxy=',wmaxy,'wminz=',wminz,'wmaxz=',wmaxz
+   
+   
+   
+     
+   ! check and modify minx-maxz according to the role
+     
   return
   
  end subroutine allocate_fluids
@@ -2123,8 +2118,12 @@
   
   integer :: i,j,k,l,ishift,jshift,kshift,itemp,jtemp,ktemp
   
+  integer, save :: iter=0
+  
+  iter=iter+1
+  
 #ifdef MPI
-call commspop(aoptp)
+   call commspop(aoptp)
    do l=1,links
       ishift=ex(l)
       jshift=ey(l)
@@ -2332,7 +2331,7 @@ call commspop(aoptp)
       forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
    enddo
    call commrpop(aoptp)
-   call bounceback(aoptp)
+   
 
    
 #else
@@ -2504,302 +2503,6 @@ call commspop(aoptp)
   return
   
  end subroutine streaming_fluids
- 
- subroutine bounceback(aoptp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the bounceback 
-!     to fluid populations if necessary
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Bernschi
-!     last modification September 2018
-!     
-!***********************************************************************
- 
-  implicit none 
-  
-  type(REALPTR), dimension(0:links):: aoptp
- 
-  integer :: i,j,k,l, ishift, jshift, kshift
-  integer :: itemp, jtemp, ktemp
-
-  do l=1,links
-    ishift=ex(l)
-    jshift=ey(l)
-    kshift=ez(l)
-    if(ixpbc.ne.1.AND.ishift.ne.0) then
-      do i=wminx,wmaxx,wmaxx-wminx
-        if(i.lt.1.or.i.gt.(nx)) then
-          if(mod(l,2).eq.1) then
-            forall(j=miny:maxy,k=minz:maxz) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
-            forall(j=miny:maxy,k=minz:maxz) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
-            forall(j=miny:maxy,k=minz:maxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
-          endif
-          if(iypbc.ne.1.AND.jshift.ne.0) then
-            do j=wminy,wmaxy,maxy-miny
-              if(j.lt.1.or.j.gt.(ny)) then
-                if(mod(l,2).eq.1) then
-                  forall(k=minz:maxz) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
-                  forall(k=minz:maxz) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
-                  forall(k=minz:maxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
-                endif
-              endif
-            enddo
-          endif
-          if(izpbc.ne.1.AND.kshift.ne.0) then
-            do k=wminz,wmaxz,wmaxz-wminz
-              if(k.lt.1.or.k.gt.(nz)) then
-                if(mod(l,2).eq.1) then
-                  forall(j=miny:maxy) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
-                  forall(j=miny:maxy) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
-                  forall(j=miny:maxy) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
-                endif
-              endif
-            enddo
-          endif
-        endif
-      enddo
-    endif
-    if(iypbc.ne.1.AND.jshift.ne.0) then
-      do j=wminy,wmaxy,wmaxy-wminy
-        if(j.lt.1.or.j.gt.(ny)) then
-          if(mod(l,2).eq.1) then
-            forall(i=minx:maxx,k=minz:maxz) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
-            forall(i=minx:maxx,k=minz:maxz) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
-            forall(i=minx:maxx,k=minz:maxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
-          endif
-          if(izpbc.ne.1.AND.kshift.ne.0) then
-            do k=wminz,wmaxz,wmaxz-wminz
-              if(k.lt.1.or.k.gt.(nz)) then
-                if(mod(l,2).eq.1) then
-                  forall(i=minx:maxx) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
-                  forall(i=minx:maxx) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k) 
-                  forall(i=minx:maxx) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
-                endif
-              endif
-            enddo
-          endif
-        endif
-      enddo
-    endif
-    if(izpbc.ne.1.AND.kshift.ne.0) then
-      do k=wminz,wmaxz,wmaxz-wminz
-        if(k.lt.1.or.k.gt.(nz)) then
-          if(mod(l,2).eq.1) then
-            forall(i=minx:maxx,j=miny:maxy) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
-            forall(i=minx:maxx,j=miny:maxy) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
-            forall(i=minx:maxx,j=miny:maxy) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
-          endif
-        endif
-      enddo
-    endif
- enddo
- 
- return
-  
- end subroutine bounceback
- 
- subroutine initbb(aoptp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for applying the reflection 
-!     to fluid populations if necessary
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Bernschi
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none 
-  
-  type(REALPTR), dimension(0:links):: aoptp
-   
-  integer :: i,j,k,l, is, js, ks
-  integer :: it, jt, kt
-  
-  do l=1,links
-    do i=wminx,wmaxx,wmaxx-wminx
-      it=i
-      is=i
-      if(it.lt.1.or.it.gt.(nx)) then
-        if(it.eq.0) then
-          is=1
-          if(ixpbc.eq.1) then
-            it=1
-          endif
-        endif
-        if(it.eq.(nx+1)) then
-          is=nx
-          if(ixpbc.eq.1) then
-            it=nx
-          endif
-        endif
-      endif
-      forall(j=wminy+1:wmaxy-1,k=wminz+1:wmaxz-1) aoptp(l)%p(it,j,k) = aoptp(l)%p(is,j,k)
-      do j=wminy,wmaxy,wmaxy-wminy
-        jt=j
-        js=j
-        if(jt.lt.1.or.jt.gt.(ny)) then
-          if(jt.eq.0) then
-            js=1
-            if(iypbc.eq.1) then
-              jt=1
-            endif
-          endif
-          if(jt.eq.(ny+1)) then
-            js=ny
-            if(iypbc.eq.1) then
-              jt=ny
-            endif
-          endif
-        endif
-        forall(k=wminz+1:wmaxz-1) aoptp(l)%p(it,jt,k) = aoptp(l)%p(is,js,k)
-      enddo
-      do k=wminz,wmaxz,wmaxz-wminz
-        kt=k
-        ks=k
-        if(kt.lt.1.or.kt.gt.(nz)) then
-          if(kt.eq.0) then
-            ks=1
-            if(izpbc.eq.1) then
-              kt=1
-            endif
-          endif
-          if(kt.eq.(nz+1)) then
-            ks=nz
-            if(izpbc.eq.1) then
-              kt=nz
-            endif
-          endif
-        endif
-        forall(j=wminy+1:wmaxy-1) aoptp(l)%p(it,j,kt) = aoptp(l)%p(is,j,ks)
-      enddo
-    enddo
-     
-    do j=wminy,wmaxy,wmaxy-wminy
-      jt=j
-      js=j
-      if(jt.lt.1.or.jt.gt.(ny)) then
-        if(jt.eq.0) then
-          js=1
-          if(iypbc.eq.1) then
-            jt=1
-          endif
-        endif
-        if(jt.eq.(ny+1)) then
-          js=ny
-          if(iypbc.eq.1) then
-            jt=ny
-          endif
-        endif
-      endif
-      forall(i=wminx+1:wmaxx-1,k=wminz+1:wmaxz-1) aoptp(l)%p(i,jt,k) = aoptp(l)%p(i,js,k)
-      do i=wminx,wmaxx,wmaxx-wminx
-        it=i
-        is=i
-        if(it.lt.1.or.it.gt.(nx)) then
-          if(it.eq.0) then
-            is=1
-            if(ixpbc.eq.1) then
-              it=1
-            endif
-          endif
-          if(it.eq.(nx+1)) then
-            is=nx
-            if(ixpbc.eq.1) then
-              it=nx
-            endif
-          endif
-        endif
-        forall(k=wminz+1:wmaxz-1) aoptp(l)%p(it,jt,k) = aoptp(l)%p(is,js,k)
-      enddo
-      do k=wminz,wmaxz,wmaxz-wminz
-        kt=k
-        ks=k
-        if(kt.lt.1.or.kt.gt.(nz)) then
-          if(kt.eq.0) then
-            ks=1
-            if(izpbc.eq.1) then
-              kt=1
-            endif
-          endif
-          if(kt.eq.(nz+1)) then
-            ks=nz
-            if(izpbc.eq.1) then
-              kt=nz
-            endif
-          endif
-        endif
-        forall(i=wminx+1:wmaxx-1) aoptp(l)%p(i,jt,kt) = aoptp(l)%p(i,js,ks)
-      enddo
-    enddo
-     
-    do k=wminz,wmaxz,wmaxz-wminz
-      kt=k
-      ks=k
-      if(kt.lt.1.or.kt.gt.(nz)) then
-        if(kt.eq.0) then
-          ks=1
-          if(izpbc.eq.1) then
-            kt=1
-          endif
-        endif
-        if(kt.eq.(nz+1)) then
-          ks=nz
-          if(izpbc.eq.1) then
-            kt=nz
-          endif
-        endif
-      endif
-      forall(i=wminx+1:wmaxx-1,j=wminy+1:wmaxy-1) aoptp(l)%p(i,j,kt) = aoptp(l)%p(i,j,ks)
-      do i=wminx,wmaxx,wmaxx-wminx
-        it=i
-        is=i
-        if(it.lt.1.or.it.gt.(nx)) then
-          if(it.eq.0) then
-            is=1
-            if(ixpbc.eq.1) then
-              it=1
-            endif
-          endif
-          if(it.eq.(nx+1)) then
-            is=nx
-            if(ixpbc.eq.1) then
-              it=nx
-            endif
-          endif
-        endif
-        forall(j=wminy+1:wmaxy-1) aoptp(l)%p(it,j,kt) = aoptp(l)%p(is,j,ks)
-      enddo
-      do j=wminy,wmaxy,wmaxy-wminy
-        jt=j
-        js=j
-        if(jt.lt.1.or.jt.gt.(ny)) then
-          if(jt.eq.0) then
-            js=1
-            if(iypbc.eq.1) then
-              jt=1
-            endif
-          endif
-          if(jt.eq.(ny+1)) then
-            js=ny
-            if(iypbc.eq.1) then
-              jt=ny
-            endif
-          endif
-        endif
-        forall(i=wminx+1:wmaxx-1) aoptp(l)%p(i,jt,kt) = aoptp(l)%p(i,js,ks)
-      enddo
-    enddo
-  enddo
-  
-  return
-  
- end subroutine initbb
  
  subroutine moments_fluids
  
@@ -7983,7 +7686,11 @@ subroutine driver_bc_densities
   
 #ifdef MPI
    
-   return
+   call bounceback_pop(aoptpR)
+   
+   if(lsingle_fluid)return
+   
+   call bounceback_pop(aoptpB)
    
 #else
   
@@ -8013,6 +7720,102 @@ subroutine driver_bc_densities
 #endif
   
  end subroutine driver_apply_bounceback_pop
+ 
+ subroutine bounceback_pop(aoptp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback 
+!     to fluid populations if necessary
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Bernschi
+!     last modification September 2018
+!     
+!***********************************************************************
+ 
+  implicit none 
+  
+  type(REALPTR), dimension(0:links):: aoptp
+ 
+  integer :: i,j,k,l, ishift, jshift, kshift
+  integer :: itemp, jtemp, ktemp
+
+  do l=1,links
+    ishift=ex(l)
+    jshift=ey(l)
+    kshift=ez(l)
+    if(ixpbc.ne.1.AND.ishift.ne.0) then
+      do i=wminx,wmaxx,wmaxx-wminx
+        if(i.lt.1.or.i.gt.(nx)) then
+          if(mod(l,2).eq.1) then
+            forall(j=miny:maxy,k=minz:maxz) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
+            forall(j=miny:maxy,k=minz:maxz) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
+            forall(j=miny:maxy,k=minz:maxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
+          endif
+          if(iypbc.ne.1.AND.jshift.ne.0) then
+            do j=wminy,wmaxy,maxy-miny
+              if(j.lt.1.or.j.gt.(ny)) then
+                if(mod(l,2).eq.1) then
+                  forall(k=minz:maxz) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
+                  forall(k=minz:maxz) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
+                  forall(k=minz:maxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
+                endif
+              endif
+            enddo
+          endif
+          if(izpbc.ne.1.AND.kshift.ne.0) then
+            do k=wminz,wmaxz,wmaxz-wminz
+              if(k.lt.1.or.k.gt.(nz)) then
+                if(mod(l,2).eq.1) then
+                  forall(j=miny:maxy) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
+                  forall(j=miny:maxy) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
+                  forall(j=miny:maxy) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
+                endif
+              endif
+            enddo
+          endif
+        endif
+      enddo
+    endif
+    if(iypbc.ne.1.AND.jshift.ne.0) then
+      do j=wminy,wmaxy,wmaxy-wminy
+        if(j.lt.1.or.j.gt.(ny)) then
+          if(mod(l,2).eq.1) then
+            forall(i=minx:maxx,k=minz:maxz) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
+            forall(i=minx:maxx,k=minz:maxz) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
+            forall(i=minx:maxx,k=minz:maxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
+          endif
+          if(izpbc.ne.1.AND.kshift.ne.0) then
+            do k=wminz,wmaxz,wmaxz-wminz
+              if(k.lt.1.or.k.gt.(nz)) then
+                if(mod(l,2).eq.1) then
+                  forall(i=minx:maxx) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
+                  forall(i=minx:maxx) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k) 
+                  forall(i=minx:maxx) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
+                endif
+              endif
+            enddo
+          endif
+        endif
+      enddo
+    endif
+    if(izpbc.ne.1.AND.kshift.ne.0) then
+      do k=wminz,wmaxz,wmaxz-wminz
+        if(k.lt.1.or.k.gt.(nz)) then
+          if(mod(l,2).eq.1) then
+            forall(i=minx:maxx,j=miny:maxy) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
+            forall(i=minx:maxx,j=miny:maxy) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
+            forall(i=minx:maxx,j=miny:maxy) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
+          endif
+        endif
+      enddo
+    endif
+ enddo
+ 
+ return
+  
+ end subroutine bounceback_pop
  
  subroutine apply_bounceback_pops_all 
  
@@ -13423,7 +13226,11 @@ subroutine driver_bc_densities
   
 #ifdef MPI
    
-   return
+   call initbb(aoptpR)
+   
+   if(lsingle_fluid)return
+   
+   call initbb(aoptpB)
    
 #else
   
@@ -13453,6 +13260,206 @@ subroutine driver_bc_densities
 #endif
   
  end subroutine driver_reflect_pops
+ 
+ subroutine initbb(aoptp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the reflection 
+!     to fluid populations if necessary
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Bernschi
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none 
+  
+  type(REALPTR), dimension(0:links):: aoptp
+   
+  integer :: i,j,k,l, is, js, ks
+  integer :: it, jt, kt
+  
+  do l=1,links
+    do i=wminx,wmaxx,wmaxx-wminx
+      it=i
+      is=i
+      if(it.lt.1.or.it.gt.(nx)) then
+        if(it.eq.0) then
+          is=1
+          if(ixpbc.eq.1) then
+            it=1
+          endif
+        endif
+        if(it.eq.(nx+1)) then
+          is=nx
+          if(ixpbc.eq.1) then
+            it=nx
+          endif
+        endif
+      endif
+      forall(j=wminy+1:wmaxy-1,k=wminz+1:wmaxz-1) aoptp(l)%p(it,j,k) = aoptp(l)%p(is,j,k)
+      do j=wminy,wmaxy,wmaxy-wminy
+        jt=j
+        js=j
+        if(jt.lt.1.or.jt.gt.(ny)) then
+          if(jt.eq.0) then
+            js=1
+            if(iypbc.eq.1) then
+              jt=1
+            endif
+          endif
+          if(jt.eq.(ny+1)) then
+            js=ny
+            if(iypbc.eq.1) then
+              jt=ny
+            endif
+          endif
+        endif
+        forall(k=wminz+1:wmaxz-1) aoptp(l)%p(it,jt,k) = aoptp(l)%p(is,js,k)
+      enddo
+      do k=wminz,wmaxz,wmaxz-wminz
+        kt=k
+        ks=k
+        if(kt.lt.1.or.kt.gt.(nz)) then
+          if(kt.eq.0) then
+            ks=1
+            if(izpbc.eq.1) then
+              kt=1
+            endif
+          endif
+          if(kt.eq.(nz+1)) then
+            ks=nz
+            if(izpbc.eq.1) then
+              kt=nz
+            endif
+          endif
+        endif
+        forall(j=wminy+1:wmaxy-1) aoptp(l)%p(it,j,kt) = aoptp(l)%p(is,j,ks)
+      enddo
+    enddo
+     
+    do j=wminy,wmaxy,wmaxy-wminy
+      jt=j
+      js=j
+      if(jt.lt.1.or.jt.gt.(ny)) then
+        if(jt.eq.0) then
+          js=1
+          if(iypbc.eq.1) then
+            jt=1
+          endif
+        endif
+        if(jt.eq.(ny+1)) then
+          js=ny
+          if(iypbc.eq.1) then
+            jt=ny
+          endif
+        endif
+      endif
+      forall(i=wminx+1:wmaxx-1,k=wminz+1:wmaxz-1) aoptp(l)%p(i,jt,k) = aoptp(l)%p(i,js,k)
+      do i=wminx,wmaxx,wmaxx-wminx
+        it=i
+        is=i
+        if(it.lt.1.or.it.gt.(nx)) then
+          if(it.eq.0) then
+            is=1
+            if(ixpbc.eq.1) then
+              it=1
+            endif
+          endif
+          if(it.eq.(nx+1)) then
+            is=nx
+            if(ixpbc.eq.1) then
+              it=nx
+            endif
+          endif
+        endif
+        forall(k=wminz+1:wmaxz-1) aoptp(l)%p(it,jt,k) = aoptp(l)%p(is,js,k)
+      enddo
+      do k=wminz,wmaxz,wmaxz-wminz
+        kt=k
+        ks=k
+        if(kt.lt.1.or.kt.gt.(nz)) then
+          if(kt.eq.0) then
+            ks=1
+            if(izpbc.eq.1) then
+              kt=1
+            endif
+          endif
+          if(kt.eq.(nz+1)) then
+            ks=nz
+            if(izpbc.eq.1) then
+              kt=nz
+            endif
+          endif
+        endif
+        forall(i=wminx+1:wmaxx-1) aoptp(l)%p(i,jt,kt) = aoptp(l)%p(i,js,ks)
+      enddo
+    enddo
+     
+    do k=wminz,wmaxz,wmaxz-wminz
+      kt=k
+      ks=k
+      if(kt.lt.1.or.kt.gt.(nz)) then
+        if(kt.eq.0) then
+          ks=1
+          if(izpbc.eq.1) then
+            kt=1
+          endif
+        endif
+        if(kt.eq.(nz+1)) then
+          ks=nz
+          if(izpbc.eq.1) then
+            kt=nz
+          endif
+        endif
+      endif
+      forall(i=wminx+1:wmaxx-1,j=wminy+1:wmaxy-1) aoptp(l)%p(i,j,kt) = aoptp(l)%p(i,j,ks)
+      do i=wminx,wmaxx,wmaxx-wminx
+        it=i
+        is=i
+        if(it.lt.1.or.it.gt.(nx)) then
+          if(it.eq.0) then
+            is=1
+            if(ixpbc.eq.1) then
+              it=1
+            endif
+          endif
+          if(it.eq.(nx+1)) then
+            is=nx
+            if(ixpbc.eq.1) then
+              it=nx
+            endif
+          endif
+        endif
+        forall(j=wminy+1:wmaxy-1) aoptp(l)%p(it,j,kt) = aoptp(l)%p(is,j,ks)
+      enddo
+      do j=wminy,wmaxy,wmaxy-wminy
+        jt=j
+        js=j
+        if(jt.lt.1.or.jt.gt.(ny)) then
+          if(jt.eq.0) then
+            js=1
+            if(iypbc.eq.1) then
+              jt=1
+            endif
+          endif
+          if(jt.eq.(ny+1)) then
+            js=ny
+            if(iypbc.eq.1) then
+              jt=ny
+            endif
+          endif
+        endif
+        forall(i=wminx+1:wmaxx-1) aoptp(l)%p(i,jt,kt) = aoptp(l)%p(i,js,ks)
+      enddo
+    enddo
+  enddo
+  
+  return
+  
+ end subroutine initbb
  
  subroutine apply_reflection_pops_all
  
@@ -17123,5 +17130,57 @@ subroutine driver_bc_densities
  end subroutine apply_reflection_corner_south_east_rear
  
 !******************END PART TO MANAGE THE REFLECTION********************
+
+
+ subroutine write_test_map_pop(aoptp)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the population
+!     in ASCII format for diagnostic purposes
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification july 2018
+!     
+!***********************************************************************
+
+  implicit none
+  
+  type(REALPTR), dimension(0:links):: aoptp
+  
+  integer :: i,j,k,l
+  
+  integer, parameter :: iomap=250
+  
+  character(len=256) :: file_loc_proc
+
+  
+  if(idrank==0)then 
+    open(iomap-1,file='global.map',status='replace',action='write')
+    write(iomap-1,'(4i10)')mxrank,nx,ny,nz
+    close(iomap-1)
+  endif
+
+  
+  file_loc_proc = 'output'//trim(write_fmtnumb(idrank))//'.map'
+  open(iomap,file=trim(file_loc_proc),status='replace',action='write')
+  write(iomap,'(i10)')mxrank
+    write(iomap,'(8i10)')minx,maxx,miny,maxy,minz,maxz, PRC, 4
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          write(iomap,'(3i8)')i,j,k
+          do l=0,links
+            write(iomap,'(f20.10)')aoptp(l)%p(i,j,k) 
+          enddo
+        enddo
+      enddo
+    enddo
+
+  
+  close(iomap)
+  
+ end subroutine write_test_map_pop
  
  end module fluids_mod
