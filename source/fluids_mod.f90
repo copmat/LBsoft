@@ -13,18 +13,20 @@
 !     
 !***********************************************************************
  
- use version_mod,    only : idrank,mxrank,or_world_larr
+ use version_mod,    only : idrank,mxrank,or_world_larr,finalize_world,get_sync_world
  use error_mod
  use aop_mod
  use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
                    allocate_array_ibuffservice,buffservice, &
                    allocate_array_buffservice,lbuffservice, &
                    allocate_array_lbuffservice, &
-                   buffservice3d,allocate_array_buffservice3d, &
+                   buffservice3d, &
                    rand_noseeded,linit_seed,gauss_noseeded,write_fmtnumb
-#ifdef MPI
- use lbempi_mod, only : commspop, commrpop
-#endif
+
+ use lbempi_mod,  only : commspop, commrpop, i4find, i4back, &
+                   ownern,deallocate_ownern,commexch_dens, &
+                   commwait_dens,comm_init_isfluid
+
  
  implicit none
  
@@ -42,8 +44,9 @@
  integer, save, public :: minx, maxx, miny, maxy, minz, maxz
  integer, save, public :: wminx, wmaxx, wminy, wmaxy, wminz, wmaxz
  integer, save, public :: ixpbc, iypbc, izpbc
+ integer, save, public :: ix,iy,iz,mynx,myny,mynz
  type(REALPTR), dimension(0:links):: aoptpR,aoptpB
-!max
+ !max
  integer, save, protected, public :: LBintegrator=0
  
  integer, save, protected, public :: idistselect=0
@@ -56,6 +59,14 @@
  integer, save, protected, public :: bc_type_rear=0
  integer, save, protected, public :: bc_type_north=0
  integer, save, protected, public :: bc_type_south=0
+ 
+ integer, save :: nvar_managebc=0
+ type(REALPTR_S), allocatable, dimension(:,:) :: rhoR_managebc
+ type(REALPTR_S), allocatable, dimension(:,:) :: rhoB_managebc
+ 
+ integer, save :: npop_managebc=0
+ type(REALPTR_S), allocatable, dimension(:,:) :: popR_managebc
+ type(REALPTR_S), allocatable, dimension(:,:) :: popB_managebc
  
  logical, save, protected, public :: lalloc_hvars=.false.
  logical, save, protected, public :: lalloc_pops=.false.
@@ -134,9 +145,9 @@
  real(kind=PRC), save, protected, public :: wallR_SC = ONE
  real(kind=PRC), save, protected, public :: wallB_SC = ONE
  
- integer, save, protected, public, allocatable, dimension(:,:,:) :: isfluid
- real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: rhoR
- real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: rhoB
+ integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: isfluid
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:),target :: rhoR
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:),target :: rhoB
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: u
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: v
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: w
@@ -192,6 +203,28 @@
  
 #endif 
 
+ integer, parameter, public :: linksd3q27=26
+ 
+ !lattice vectors
+ integer, dimension(0:linksd3q27), parameter, public :: &
+  exd3q27 = (/ 0, 1,-1, 0, 0, 0, 0, 1,-1,-1, 1, 1,-1,-1, 1, 0, 0, 0, 0, 1,-1,-1, 1, 1,-1, 1,-1/)
+   !      0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,17,18
+ integer, dimension(0:linksd3q27), parameter, public :: &
+  eyd3q27 = (/ 0, 0, 0, 1,-1, 0, 0, 1,-1, 1,-1, 0, 0, 0, 0, 1,-1,-1, 1, 1,-1, 1,-1,-1, 1, 1,-1/)
+ integer, dimension(0:linksd3q27), parameter, public :: &
+  ezd3q27 = (/ 0, 0, 0, 0, 0, 1,-1, 0, 0, 0, 0, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1,-1, 1/)
+ 
+ real(kind=PRC), parameter :: p0d3q27 = ( TWO / THREE )**THREE
+ real(kind=PRC), parameter :: p1d3q27 = (( TWO / THREE )**TWO ) * ( ONE/ SIX )
+ real(kind=PRC), parameter :: p2d3q27 = (( ONE / SIX )**TWO) * ( TWO/ THREE)
+ real(kind=PRC), parameter :: p3d3q27 = ( ONE / SIX )**THREE
+ real(kind=PRC), dimension(0:linksd3q27), parameter, public :: &
+  pd3q27 = (/p0d3q27,p1d3q27,p1d3q27,p1d3q27,p1d3q27,p1d3q27,p1d3q27, &
+  p2d3q27,p2d3q27,p2d3q27,p2d3q27,p2d3q27,p2d3q27,p2d3q27,p2d3q27, &
+  p2d3q27,p2d3q27,p2d3q27,p2d3q27,p3d3q27,p3d3q27,p3d3q27,p3d3q27, &
+  p3d3q27,p3d3q27,p3d3q27,p3d3q27/)
+ 
+
  real(kind=PRC), save, public, allocatable, target, dimension(:,:,:) :: & 
   f00R,f01R,f02R,f03R,f04R,f05R,f06R,f07R,f08R
  real(kind=PRC), save, protected, public, allocatable, target, dimension(:,:,:) :: &
@@ -239,245 +272,259 @@
  public :: set_value_bc_south
  public :: set_fluid_wall_sc
  public :: set_LBintegrator_type
+ public :: initialize_isfluid
  
  contains
  
- subroutine allocate_fluids
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for allocating arrays which 
-!     describe the fluids
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
-  
-  implicit none
-  
-  integer, parameter :: nistatmax=100
-  integer, dimension(nistatmax) :: istat
-  integer :: ix,iy,iz,mynx,myny,mynz
-  
-  integer :: i,j,k
-  logical, dimension(1) :: ltest=.false.
-  
-  ix=minx-nbuff
-  iy=miny-nbuff
-  iz=minz-nbuff
-  mynx=maxx+nbuff
-  if(mod(nx,2)==0)mynx=mynx+1
-  myny=maxy+nbuff
-  mynz=maxz+nbuff
-  
-  istat=0
-  
-  allocate(rhoR(ix:mynx,iy:myny,iz:mynz),stat=istat(1))
-  
-  allocate(u(ix:mynx,iy:myny,iz:mynz),stat=istat(3))
-  allocate(v(ix:mynx,iy:myny,iz:mynz),stat=istat(4))
-  allocate(w(ix:mynx,iy:myny,iz:mynz),stat=istat(5))
-  
-  allocate(fuR(ix:mynx,iy:myny,iz:mynz),stat=istat(6))
-  allocate(fvR(ix:mynx,iy:myny,iz:mynz),stat=istat(7))
-  allocate(fwR(ix:mynx,iy:myny,iz:mynz),stat=istat(8))
-  
-  if(lShanChen)then
-    allocate(gradpsixR(ix:mynx,iy:myny,iz:mynz),stat=istat(12))
-    allocate(gradpsiyR(ix:mynx,iy:myny,iz:mynz),stat=istat(13))
-    allocate(gradpsizR(ix:mynx,iy:myny,iz:mynz),stat=istat(14))
-    allocate(psiR(ix:mynx,iy:myny,iz:mynz),stat=istat(19))
-  endif
-  
-  allocate(omega(ix:mynx,iy:myny,iz:mynz),stat=istat(18))
-  
-  allocate(f00R(ix:mynx,iy:myny,iz:mynz),stat=istat(30))
-  allocate(f01R(ix:mynx,iy:myny,iz:mynz),stat=istat(31))
-  allocate(f02R(ix:mynx,iy:myny,iz:mynz),stat=istat(32))
-  allocate(f03R(ix:mynx,iy:myny,iz:mynz),stat=istat(33))
-  allocate(f04R(ix:mynx,iy:myny,iz:mynz),stat=istat(34))
-  allocate(f05R(ix:mynx,iy:myny,iz:mynz),stat=istat(35))
-  allocate(f06R(ix:mynx,iy:myny,iz:mynz),stat=istat(36))
-  allocate(f07R(ix:mynx,iy:myny,iz:mynz),stat=istat(37))
-  allocate(f08R(ix:mynx,iy:myny,iz:mynz),stat=istat(38))
-  allocate(f09R(ix:mynx,iy:myny,iz:mynz),stat=istat(39))
-  allocate(f10R(ix:mynx,iy:myny,iz:mynz),stat=istat(40))
-  allocate(f11R(ix:mynx,iy:myny,iz:mynz),stat=istat(41))
-  allocate(f12R(ix:mynx,iy:myny,iz:mynz),stat=istat(42))
-  allocate(f13R(ix:mynx,iy:myny,iz:mynz),stat=istat(43))
-  allocate(f14R(ix:mynx,iy:myny,iz:mynz),stat=istat(44))
-  allocate(f15R(ix:mynx,iy:myny,iz:mynz),stat=istat(45))
-  allocate(f16R(ix:mynx,iy:myny,iz:mynz),stat=istat(46))
-  allocate(f17R(ix:mynx,iy:myny,iz:mynz),stat=istat(47))
-  allocate(f18R(ix:mynx,iy:myny,iz:mynz),stat=istat(48))
-  
-  aoptpR(0)%p => f00R
-  aoptpR(1)%p => f01R
-  aoptpR(2)%p => f02R
-  aoptpR(3)%p => f03R
-  aoptpR(4)%p => f04R
-  aoptpR(5)%p => f05R
-  aoptpR(6)%p => f06R
-  aoptpR(7)%p => f07R
-  aoptpR(8)%p => f08R
-  aoptpR(9)%p => f09R
-  aoptpR(10)%p => f10R
-  aoptpR(11)%p => f11R
-  aoptpR(12)%p => f12R
-  aoptpR(13)%p => f13R
-  aoptpR(14)%p => f14R
-  aoptpR(15)%p => f15R
-  aoptpR(16)%p => f16R
-  aoptpR(17)%p => f17R
-  aoptpR(18)%p => f18R
-  
-  if(.not. lsingle_fluid)then
-  
-    allocate(rhoB(ix:mynx,iy:myny,iz:mynz),stat=istat(2))
-  
-    allocate(fuB(ix:mynx,iy:myny,iz:mynz),stat=istat(9))
-    allocate(fvB(ix:mynx,iy:myny,iz:mynz),stat=istat(10))
-    allocate(fwB(ix:mynx,iy:myny,iz:mynz),stat=istat(11))
-    
-    if(lShanChen)then
-      allocate(gradpsixB(ix:mynx,iy:myny,iz:mynz),stat=istat(15))
-      allocate(gradpsiyB(ix:mynx,iy:myny,iz:mynz),stat=istat(16))
-      allocate(gradpsizB(ix:mynx,iy:myny,iz:mynz),stat=istat(17))
-      allocate(psiB(ix:mynx,iy:myny,iz:mynz),stat=istat(20))
-    endif
-    
-    allocate(f00B(ix:mynx,iy:myny,iz:mynz),stat=istat(60))
-    allocate(f01B(ix:mynx,iy:myny,iz:mynz),stat=istat(61))
-    allocate(f02B(ix:mynx,iy:myny,iz:mynz),stat=istat(62))
-    allocate(f03B(ix:mynx,iy:myny,iz:mynz),stat=istat(63))
-    allocate(f04B(ix:mynx,iy:myny,iz:mynz),stat=istat(64))
-    allocate(f05B(ix:mynx,iy:myny,iz:mynz),stat=istat(65))
-    allocate(f06B(ix:mynx,iy:myny,iz:mynz),stat=istat(66))
-    allocate(f07B(ix:mynx,iy:myny,iz:mynz),stat=istat(67))
-    allocate(f08B(ix:mynx,iy:myny,iz:mynz),stat=istat(68))
-    allocate(f09B(ix:mynx,iy:myny,iz:mynz),stat=istat(69))
-    allocate(f10B(ix:mynx,iy:myny,iz:mynz),stat=istat(60))
-    allocate(f11B(ix:mynx,iy:myny,iz:mynz),stat=istat(61))
-    allocate(f12B(ix:mynx,iy:myny,iz:mynz),stat=istat(62))
-    allocate(f13B(ix:mynx,iy:myny,iz:mynz),stat=istat(63))
-    allocate(f14B(ix:mynx,iy:myny,iz:mynz),stat=istat(64))
-    allocate(f15B(ix:mynx,iy:myny,iz:mynz),stat=istat(65))
-    allocate(f16B(ix:mynx,iy:myny,iz:mynz),stat=istat(66))
-    allocate(f17B(ix:mynx,iy:myny,iz:mynz),stat=istat(67))
-    allocate(f18B(ix:mynx,iy:myny,iz:mynz),stat=istat(68))
-    
-    aoptpB(0)%p => f00B
-    aoptpB(1)%p => f01B
-    aoptpB(2)%p => f02B
-    aoptpB(3)%p => f03B
-    aoptpB(4)%p => f04B
-    aoptpB(5)%p => f05B
-    aoptpB(6)%p => f06B
-    aoptpB(7)%p => f07B
-    aoptpB(8)%p => f08B
-    aoptpB(9)%p => f09B
-    aoptpB(10)%p => f10B
-    aoptpB(11)%p => f11B
-    aoptpB(12)%p => f12B
-    aoptpB(13)%p => f13B
-    aoptpB(14)%p => f14B
-    aoptpB(15)%p => f15B
-    aoptpB(16)%p => f16B
-    aoptpB(17)%p => f17B
-    aoptpB(18)%p => f18B
-    
-  endif
-  
-  ltest=.false.
-  if(any(istat.ne.0))then
-    do i=1,nistatmax
-      if(istat(i).ne.0)exit
-    enddo
-    call warning(2,dble(i))
-    ltest=.true.
-  endif
-  
-  call or_world_larr(ltest,1)
-  if(ltest(1))call error(4)
-  
-  call allocate_array_buffservice3d(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,1-nbuff,nz+nbuff)
-  
+   subroutine allocate_fluids
 
-  
-  wminx=minx
-  wminy=miny
-  wminz=minz
-  wmaxx=maxx
-  wmaxy=maxy
-  wmaxz=maxz
-  if(minx.lt.1) then
-    if(ixpbc.eq.1) then
-      wminx=1
-    else
-      wminx=0
-    endif
-    minx=1
-  endif
-  if(miny.lt.1) then
-    if(iypbc.eq.1) then
-      wminy=1
-    else
-      wminy=0
-    endif
-    miny=1
-  endif
-  if(minz.lt.1) then
-    if(izpbc.eq.1) then
-      wminz=1
-    else
-      wminz=0
-    endif
-    minz=1
-   endif
-   if(maxx.gt.nx) then
-     if(ixpbc.eq.1) then
-       wmaxx=nx
-     else
-       wmaxx=nx+1
-     endif
-     maxx=nx
-   endif
-   if(maxy.gt.ny) then
-     if(iypbc.eq.1) then
-       wmaxy=ny
-     else
-       wmaxy=ny+1
-     endif
-     maxy=ny
-   endif
-   if(maxz.gt.nz) then
-     if(izpbc.eq.1) then
-       wmaxz=nz
-     else
-       wmaxz=nz+1
-     endif
-     maxz=nz
-   endif
-   
-   !write(6,*)minx,maxx,miny,maxy,minz,maxz
-   !write(6,*)wminx,wmaxx,wminy,wmaxy,wminz,wmaxz
-   
-   if(idrank==0)write(6,*)'ixpbc=',ixpbc,'iypbc=',iypbc,'izpbc=',izpbc
-   
-   write(6,*)'fluids id=',idrank,'minx=',minx,'maxx=',maxx, &
-    'miny=',miny,'maxy=',maxy,'minz=',minz,'maxz=',maxz
-   write(6,*)'fluids id=',idrank,'wminx=',wminx,'wmaxx=',wmaxx, &
-    'wminy=',wminy,'wmaxy=',wmaxy,'wminz=',wminz,'wmaxz=',wmaxz
-   
-   
-   
+     !***********************************************************************
+     !     
+     !     LBsoft subroutine for allocating arrays which 
+     !     describe the fluids
+     !     
+     !     licensed under Open Software License v. 3.0 (OSL-3.0)
+     !     author: M. Lauricella
+     !     last modification July 2018
+     !     
+     !***********************************************************************
+
+     implicit none
+
+     integer, parameter :: nistatmax=100
+     integer, dimension(nistatmax) :: istat
+!max     integer :: ix,iy,iz,mynx,myny,mynz
+
+     integer :: i,j,k
+     logical, dimension(1) :: ltest=.false.
      
-   ! check and modify minx-maxz according to the role
+     logical, parameter :: lverbose=.true.
+
+     ix=minx-nbuff
+     iy=miny-nbuff
+     iz=minz-nbuff
+     mynx=maxx+nbuff
+     if(mod(nx,2)==0)mynx=mynx+1
+     myny=maxy+nbuff
+     mynz=maxz+nbuff
+
+     istat=0
      
-  return
-  
+     allocate(isfluid(ix:mynx,iy:myny,iz:mynz),stat=istat(1))
+     
+     allocate(rhoR(ix:mynx,iy:myny,iz:mynz),stat=istat(2))
+
+     allocate(u(ix:mynx,iy:myny,iz:mynz),stat=istat(3))
+     allocate(v(ix:mynx,iy:myny,iz:mynz),stat=istat(4))
+     allocate(w(ix:mynx,iy:myny,iz:mynz),stat=istat(5))
+
+     allocate(fuR(ix:mynx,iy:myny,iz:mynz),stat=istat(6))
+     allocate(fvR(ix:mynx,iy:myny,iz:mynz),stat=istat(7))
+     allocate(fwR(ix:mynx,iy:myny,iz:mynz),stat=istat(8))
+
+     if(lShanChen)then
+        allocate(gradpsixR(ix:mynx,iy:myny,iz:mynz),stat=istat(12))
+        allocate(gradpsiyR(ix:mynx,iy:myny,iz:mynz),stat=istat(13))
+        allocate(gradpsizR(ix:mynx,iy:myny,iz:mynz),stat=istat(14))
+        allocate(psiR(ix:mynx,iy:myny,iz:mynz),stat=istat(19))
+     endif
+
+     allocate(omega(ix:mynx,iy:myny,iz:mynz),stat=istat(18))
+
+     allocate(f00R(ix:mynx,iy:myny,iz:mynz),stat=istat(30))
+     allocate(f01R(ix:mynx,iy:myny,iz:mynz),stat=istat(31))
+     allocate(f02R(ix:mynx,iy:myny,iz:mynz),stat=istat(32))
+     allocate(f03R(ix:mynx,iy:myny,iz:mynz),stat=istat(33))
+     allocate(f04R(ix:mynx,iy:myny,iz:mynz),stat=istat(34))
+     allocate(f05R(ix:mynx,iy:myny,iz:mynz),stat=istat(35))
+     allocate(f06R(ix:mynx,iy:myny,iz:mynz),stat=istat(36))
+     allocate(f07R(ix:mynx,iy:myny,iz:mynz),stat=istat(37))
+     allocate(f08R(ix:mynx,iy:myny,iz:mynz),stat=istat(38))
+     allocate(f09R(ix:mynx,iy:myny,iz:mynz),stat=istat(39))
+     allocate(f10R(ix:mynx,iy:myny,iz:mynz),stat=istat(40))
+     allocate(f11R(ix:mynx,iy:myny,iz:mynz),stat=istat(41))
+     allocate(f12R(ix:mynx,iy:myny,iz:mynz),stat=istat(42))
+     allocate(f13R(ix:mynx,iy:myny,iz:mynz),stat=istat(43))
+     allocate(f14R(ix:mynx,iy:myny,iz:mynz),stat=istat(44))
+     allocate(f15R(ix:mynx,iy:myny,iz:mynz),stat=istat(45))
+     allocate(f16R(ix:mynx,iy:myny,iz:mynz),stat=istat(46))
+     allocate(f17R(ix:mynx,iy:myny,iz:mynz),stat=istat(47))
+     allocate(f18R(ix:mynx,iy:myny,iz:mynz),stat=istat(48))
+
+     aoptpR(0)%p => f00R
+     aoptpR(1)%p => f01R
+     aoptpR(2)%p => f02R
+     aoptpR(3)%p => f03R
+     aoptpR(4)%p => f04R
+     aoptpR(5)%p => f05R
+     aoptpR(6)%p => f06R
+     aoptpR(7)%p => f07R
+     aoptpR(8)%p => f08R
+     aoptpR(9)%p => f09R
+     aoptpR(10)%p => f10R
+     aoptpR(11)%p => f11R
+     aoptpR(12)%p => f12R
+     aoptpR(13)%p => f13R
+     aoptpR(14)%p => f14R
+     aoptpR(15)%p => f15R
+     aoptpR(16)%p => f16R
+     aoptpR(17)%p => f17R
+     aoptpR(18)%p => f18R
+
+     if(.not. lsingle_fluid)then
+
+        allocate(rhoB(ix:mynx,iy:myny,iz:mynz),stat=istat(2))
+
+        allocate(fuB(ix:mynx,iy:myny,iz:mynz),stat=istat(9))
+        allocate(fvB(ix:mynx,iy:myny,iz:mynz),stat=istat(10))
+        allocate(fwB(ix:mynx,iy:myny,iz:mynz),stat=istat(11))
+
+        if(lShanChen)then
+           allocate(gradpsixB(ix:mynx,iy:myny,iz:mynz),stat=istat(15))
+           allocate(gradpsiyB(ix:mynx,iy:myny,iz:mynz),stat=istat(16))
+           allocate(gradpsizB(ix:mynx,iy:myny,iz:mynz),stat=istat(17))
+           allocate(psiB(ix:mynx,iy:myny,iz:mynz),stat=istat(20))
+        endif
+
+        allocate(f00B(ix:mynx,iy:myny,iz:mynz),stat=istat(60))
+        allocate(f01B(ix:mynx,iy:myny,iz:mynz),stat=istat(61))
+        allocate(f02B(ix:mynx,iy:myny,iz:mynz),stat=istat(62))
+        allocate(f03B(ix:mynx,iy:myny,iz:mynz),stat=istat(63))
+        allocate(f04B(ix:mynx,iy:myny,iz:mynz),stat=istat(64))
+        allocate(f05B(ix:mynx,iy:myny,iz:mynz),stat=istat(65))
+        allocate(f06B(ix:mynx,iy:myny,iz:mynz),stat=istat(66))
+        allocate(f07B(ix:mynx,iy:myny,iz:mynz),stat=istat(67))
+        allocate(f08B(ix:mynx,iy:myny,iz:mynz),stat=istat(68))
+        allocate(f09B(ix:mynx,iy:myny,iz:mynz),stat=istat(69))
+        allocate(f10B(ix:mynx,iy:myny,iz:mynz),stat=istat(60))
+        allocate(f11B(ix:mynx,iy:myny,iz:mynz),stat=istat(61))
+        allocate(f12B(ix:mynx,iy:myny,iz:mynz),stat=istat(62))
+        allocate(f13B(ix:mynx,iy:myny,iz:mynz),stat=istat(63))
+        allocate(f14B(ix:mynx,iy:myny,iz:mynz),stat=istat(64))
+        allocate(f15B(ix:mynx,iy:myny,iz:mynz),stat=istat(65))
+        allocate(f16B(ix:mynx,iy:myny,iz:mynz),stat=istat(66))
+        allocate(f17B(ix:mynx,iy:myny,iz:mynz),stat=istat(67))
+        allocate(f18B(ix:mynx,iy:myny,iz:mynz),stat=istat(68))
+
+        aoptpB(0)%p => f00B
+        aoptpB(1)%p => f01B
+        aoptpB(2)%p => f02B
+        aoptpB(3)%p => f03B
+        aoptpB(4)%p => f04B
+        aoptpB(5)%p => f05B
+        aoptpB(6)%p => f06B
+        aoptpB(7)%p => f07B
+        aoptpB(8)%p => f08B
+        aoptpB(9)%p => f09B
+        aoptpB(10)%p => f10B
+        aoptpB(11)%p => f11B
+        aoptpB(12)%p => f12B
+        aoptpB(13)%p => f13B
+        aoptpB(14)%p => f14B
+        aoptpB(15)%p => f15B
+        aoptpB(16)%p => f16B
+        aoptpB(17)%p => f17B
+        aoptpB(18)%p => f18B
+
+     endif
+
+     ltest=.false.
+     if(any(istat.ne.0))then
+        do i=1,nistatmax
+           if(istat(i).ne.0)exit
+        enddo
+        call warning(2,dble(i))
+        ltest=.true.
+     endif
+
+     call or_world_larr(ltest,1)
+     if(ltest(1))call error(4)
+     
+     wminx=minx
+     wminy=miny
+     wminz=minz
+     wmaxx=maxx
+     wmaxy=maxy
+     wmaxz=maxz
+
+     if(minx.le.1) then
+        if(ixpbc.eq.1) then
+           wminx=1
+        else
+           wminx=0
+        endif
+        minx=1
+     endif
+     if(miny.le.1) then
+        if(iypbc.eq.1) then
+           wminy=1
+        else
+           wminy=0
+        endif
+        miny=1
+     endif
+     if(minz.le.1) then
+        if(izpbc.eq.1) then
+           wminz=1
+        else
+           wminz=0
+        endif
+        minz=1
+     endif
+     if(maxx.ge.nx) then
+        if(ixpbc.eq.1) then
+           wmaxx=nx
+        else
+           wmaxx=nx+1
+        endif
+        maxx=nx
+     endif
+     if(maxy.ge.ny) then
+        if(iypbc.eq.1) then
+           wmaxy=ny
+        else
+           wmaxy=ny+1
+        endif
+        maxy=ny
+     endif
+     if(maxz.ge.nz) then
+        if(izpbc.eq.1) then
+           wmaxz=nz
+        else
+           wmaxz=nz+1
+        endif
+        maxz=nz
+     endif
+      
+   if(lverbose)then
+     if(idrank==0)write(6,*)'ixpbc=',ixpbc,'iypbc=',iypbc,'izpbc=',izpbc
+     call flush(6)
+     call get_sync_world
+     do i=0,mxrank-1
+       if(i==idrank)then
+         write(6,*)'fluids id=',idrank,'minx=',minx,'maxx=',maxx, &
+          'miny=',miny,'maxy=',maxy,'minz=',minz,'maxz=',maxz
+         write(6,*)'fluids id=',idrank,'wminx=',wminx,'wmaxx=',wmaxx, &
+          'wminy=',wminy,'wmaxy=',wmaxy,'wminz=',wminz,'wmaxz=',wmaxz
+       endif
+       call flush(6)
+       call get_sync_world
+     enddo
+   endif
+     
+     
+     
+     !allocate pointers for managing bc density within the same process
+     call initialiaze_manage_bc_hvar_selfcomm
+     
+#ifdef BCPOINTER
+     call initialiaze_manage_bc_pop_selfcomm
+#endif
+     
+     
+     
+     return
+
  end subroutine allocate_fluids
  
  subroutine set_boundary_conditions_type(itemp1,itemp2,itemp3)
@@ -517,6 +564,47 @@
   
  end subroutine set_boundary_conditions_type
  
+ subroutine initialize_isfluid
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for initialize the isfluid
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  integer :: i,j,k
+ 
+  isfluid(:,:,:)=0
+! set isfluid as you like (in future to be given as input file)
+! all fluid
+  
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)isfluid(i,j,k)=1
+  
+  
+  
+  call comm_init_isfluid(isfluid)
+  call initialiaze_manage_bc_isfluid_selfcomm
+  
+!  itesto=repeat(' ',32)
+!  itesto=write_fmtnumb(idrank)//'own.dat'
+!  open(unit=1022+idrank,file=trim(itesto),status='replace')
+!  do k=minz-nbuff,maxz+nbuff
+!    do j=miny-nbuff,maxy+nbuff
+!      do i=minx-nbuff,maxx+nbuff
+!        write(1022+idrank,*)i,j,k,ownern(i4back(i,j,k))
+!      enddo
+!    enddo
+!  enddo
+  
+  return
+  
+ end subroutine initialize_isfluid
+ 
  subroutine initialize_fluids
  
 !***********************************************************************
@@ -532,13 +620,19 @@
  
   implicit none
   
-  integer :: i,j,k
+  integer :: i,j,k,l,imio3(3)
+  logical :: ltestout
+  character(len=32) :: itesto
+  
+! initialize isfluid
   
   select case(idistselect)
   case(1)
     call set_random_dens_fluids
   case(2)
     call set_uniform_dens_fluids
+  case(3)
+    call set_fake_dens_fluids
   case default
     call set_initial_dens_fluids
   end select
@@ -547,13 +641,29 @@
   
   call driver_bc_densities
   
+  call driver_reflect_densities
+  
+  if(idistselect==3)then
+    !perform a fake test with the density set as the real(i4) value
+    call test_fake_dens(rhoB,ltestout)
+    if(idrank==0)then
+      if(ltestout)then
+        write(6,*)'TEST: NO'
+      else
+        write(6,*)'TEST: OK'
+      endif
+    endif
+    call finalize_world
+    stop
+  endif
+  
   if(lvorticity)call driver_bc_velocities
   
   call driver_set_initial_pop_fluids
   
-  call driver_bc_pops
+  !call driver_bc_pops
   
-  call driver_reflect_pops
+  !call driver_reflect_pops
   
   if(lunique_omega)call set_unique_omega
   
@@ -709,6 +819,71 @@
   
  end subroutine set_uniform_dens_fluids
  
+ subroutine set_fake_dens_fluids
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the initial density of fluids 
+!     following a fake distribution equal to the id fluid node
+!     ONLY FOR DIAGNOSTIC PURPOSE
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification September 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer :: i,j,k,l,imio3(3)
+  
+  
+  
+  !check if the function i4back follows the natural order and if the
+  !function i4find works correctly
+  l=0
+  do k=1-nbuff,nz+nbuff
+    do j=1-nbuff,ny+nbuff
+      do i=1-nbuff,nx+nbuff
+        l=l+1
+        !write(6,*)i4back(i,j,k),i,j,k,i4find(i4back(i,j,k))
+        imio3=i4find(i4back(i,j,k))
+        if(imio3(1)/=i.or.imio3(2)/=j.or.imio3(3)/=k.or.l/=i4back(i,j,k))then
+          write(6,'(a,i8,a,3i8,a,3i8,a,i8)')'error in order ',l, &
+          ' cord ',i,j,k,' i4find ',i4find(i4back(i,j,k)),' i4back ', &
+          i4back(i,j,k)
+          stop
+        endif
+      enddo
+    enddo
+  enddo
+  
+  !forall (i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  do k=minz,maxz
+    do j=miny,maxy
+      do i=minx,maxx
+        rhoR(i,j,k)=real(i4back(i,j,k),kind=PRC)
+      enddo
+    enddo
+  enddo
+  !end forall
+    
+  if(lsingle_fluid)return
+  
+  !forall (i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  do k=minz,maxz
+    do j=miny,maxy
+      do i=minx,maxx
+        rhoB(i,j,k)=real(i4back(i,j,k),kind=PRC)
+      enddo
+    enddo
+  enddo
+  !end forall
+  
+  return
+  
+ end subroutine set_fake_dens_fluids
+ 
  subroutine set_initial_dens_fluids
  
 !***********************************************************************
@@ -812,97 +987,97 @@
   
   !red fluid
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f00sub(i,j,k)=equil_pop00(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f01sub(i,j,k)=equil_pop01(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f02sub(i,j,k)=equil_pop02(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f03sub(i,j,k)=equil_pop03(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f04sub(i,j,k)=equil_pop04(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f05sub(i,j,k)=equil_pop05(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f06sub(i,j,k)=equil_pop06(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f07sub(i,j,k)=equil_pop07(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f08sub(i,j,k)=equil_pop08(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f09sub(i,j,k)=equil_pop09(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f10sub(i,j,k)=equil_pop10(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f11sub(i,j,k)=equil_pop11(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f12sub(i,j,k)=equil_pop12(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f13sub(i,j,k)=equil_pop13(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f14sub(i,j,k)=equil_pop14(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f15sub(i,j,k)=equil_pop15(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f16sub(i,j,k)=equil_pop16(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f17sub(i,j,k)=equil_pop17(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
     f18sub(i,j,k)=equil_pop18(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
@@ -2077,6 +2252,49 @@
   
   implicit none
   
+  integer :: i,j,k,l,ishift,jshift,kshift
+
+#ifdef BCPOINTER
+    
+  call commspop(aoptpR)
+  
+  do l=1,links
+    ishift=ex(l)
+    jshift=ey(l)
+    kshift=ez(l)
+    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
+      buffservice3d(i+ishift,j+jshift,k+kshift) = aoptpR(l)%p(i,j,k)
+    end forall
+    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
+      aoptpR(l)%p(i,j,k) = buffservice3d(i,j,k)
+    end forall
+  enddo
+  
+  call manage_bc_pop_selfcomm(popR_managebc)
+  
+  call commrpop(aoptpR)
+  
+  if(lsingle_fluid)return
+  
+  call commspop(aoptpB)
+  
+  do l=1,links
+    ishift=ex(l)
+    jshift=ey(l)
+    kshift=ez(l)
+    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
+      buffservice3d(i+ishift,j+jshift,k+kshift) = aoptpB(l)%p(i,j,k)
+    end forall
+    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
+      aoptpB(l)%p(i,j,k) = buffservice3d(i,j,k)
+    end forall
+  enddo
+  
+  call manage_bc_pop_selfcomm(popB_managebc)
+  
+  call commrpop(aoptpB)
+  
+#else
   
   call streaming_fluids(f00R,f01R,f02R,f03R,f04R, &
    f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
@@ -2087,6 +2305,8 @@
   call streaming_fluids(f00B,f01B,f02B,f03B,f04B, &
    f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B, &
    f14B,f15B,f16B,f17B,f18B,aoptpB)
+  
+#endif
   
   
   return
@@ -2121,17 +2341,32 @@
   integer, save :: iter=0
   
   iter=iter+1
-  
-#ifdef MPI
+#if 0
+   if(iter.eq.1) then
+   do l=1,links
+!      write((50+idrank),*)'in pop ',l
+       do i=wminx,wmaxx
+         do j=wminy,wmaxy
+           do k=wminz,wmaxz
+               write((100*idrank)+250+l,*)i,j,k,aoptp(l)%p(i,j,k)
+           enddo
+         enddo
+        enddo
+     enddo
+   endif
+#endif
+   
+#if defined(MPI)
    call commspop(aoptp)
+
    do l=1,links
       ishift=ex(l)
       jshift=ey(l)
       kshift=ez(l)
-      
       forall(i=wminx+1:wmaxx-1,j=wminy+1:wmaxy-1,k=wminz+1:wmaxz-1)
          buffservice3d(i+ishift,j+jshift,k+kshift) = aoptp(l)%p(i,j,k)
       end forall
+
       do i=wminx,wmaxx,wmaxx-wminx
          itemp=i+ishift
          if(itemp.le.1.or.itemp.ge.(nx)) then
@@ -2142,13 +2377,15 @@
                if(itemp.eq.(nx+1)) then
                   itemp=1
                endif
-            else
-               forall(j=wminy+1:wmaxy-1,k=wminz+1:wmaxz-1) buffservice3d(i+ishift,j+jshift,k+kshift) = aoptp(l)%p(i,j,k) 
             endif
          endif
-         if(itemp.GE.wminx.AND.itemp.LE.wmaxx) then
-            forall(j=wminy+1:wmaxy-1,k=wminz+1:wmaxz-1) buffservice3d(itemp,j+jshift,k+kshift) = aoptp(l)%p(i,j,k)
-         endif
+!!         if(itemp.GE.wminx.AND.itemp.LE.wmaxx) then
+!max            if(l.eq.3.AND.idrank.eq.1) then
+!max               write(0,*)'2, wminy+1 ',wminy+1,'wmaxy-1 ',wmaxy-1
+!max            endif   
+         !treatment of the frame along x with pbc if requested
+         forall(j=wminy+1:wmaxy-1,k=wminz+1:wmaxz-1) buffservice3d(itemp,j+jshift,k+kshift) = aoptp(l)%p(i,j,k)
+!!         endif
          do j=wminy,wmaxy,wmaxy-wminy
             jtemp=j+jshift
             if(jtemp.le.1.or.jtemp.ge.(ny)) then
@@ -2159,13 +2396,14 @@
                   if(jtemp.eq.(ny+1)) then
                      jtemp=1
                   endif
-               else
-                  forall(k=wminz+1:wmaxz-1) buffservice3d(i+ishift,j+jshift,k+kshift) = aoptp(l)%p(i,j,k) 
                endif
             endif
-            if(itemp.GE.wminx.AND.itemp.LE.wmaxx.AND.jtemp.GE.wminy.AND.jtemp.LE.wmaxy) then
+!!            if(itemp.GE.wminx.AND.itemp.LE.wmaxx.AND.jtemp.GE.wminy.AND.jtemp.LE.wmaxy) then
+!max               if(l.eq.3.AND.idrank.eq.1) then
+!max                  write(0,*)'4, jtemp ',jtemp
+!max               endif
                forall(k=wminz+1:wmaxz-1) buffservice3d(itemp,jtemp,k+kshift) = aoptp(l)%p(i,j,k)
-            endif
+!!            endif
          enddo
          do k=wminz,wmaxz,wmaxz-wminz
             ktemp=k+kshift;
@@ -2177,13 +2415,14 @@
                   if(ktemp.eq.(nz+1)) then
                      ktemp=1
                   endif
-               else
-                  forall(j=wminy+1:wmaxy-1) buffservice3d(i+ishift,j+jshift,k+kshift) = aoptp(l)%p(i,j,k) 
                endif
             endif
-            if(itemp.GE.wminx.AND.itemp.LE.wmaxx.AND.ktemp.GE.wminz.AND.ktemp.LE.wmaxz) then
+!!            if(itemp.GE.wminx.AND.itemp.LE.wmaxx.AND.ktemp.GE.wminz.AND.ktemp.LE.wmaxz) then
+!max               if(l.eq.3.AND.idrank.eq.1) then
+!max                     write(0,*)'6, wminy+1 ',wminy+1,'wmaxy-1 ',wmaxy-1
+!max               endif
                forall(j=wminy+1:wmaxy-1) buffservice3d(itemp,j+jshift,ktemp) = aoptp(l)%p(i,j,k)
-            endif
+!!            endif
          enddo
       enddo
       do j=wminy,wmaxy,wmaxy-wminy
@@ -2196,13 +2435,14 @@
                if(jtemp.eq.(ny+1)) then
                   jtemp=1
                endif
-            else
-               forall(i=wminx+1:wmaxx-1,k=wminz+1:wmaxz-1) buffservice3d(i+ishift,j+jshift,k+kshift) = aoptp(l)%p(i,j,k) 
             endif
          endif
-         if(jtemp.GE.wminy.AND.jtemp.LE.wmaxy) then
+!!         if(jtemp.GE.wminy.AND.jtemp.LE.wmaxy) then
+!max            if(l.eq.3.AND.idrank.eq.1) then
+!max               write(0,*)'8, jtemp ',jtemp
+!max            endif
             forall(i=wminx+1:wmaxx-1,k=wminz+1:wmaxz-1) buffservice3d(i+ishift,jtemp,k+kshift) = aoptp(l)%p(i,j,k)
-         endif
+!!         endif
          do i=wminx,wmaxx,wmaxx-wminx
             itemp=i+ishift
             if(itemp.le.1.or.itemp.ge.(nx)) then
@@ -2213,13 +2453,14 @@
                   if(itemp.eq.(nx+1)) then
                      itemp=1
                   endif
-               else
-                  forall(k=wminz+1:wmaxz-1) buffservice3d(i+ishift,j+jshift,k+kshift) = aoptp(l)%p(i,j,k) 
                endif
             endif
-            if(itemp.GE.wminx.AND.itemp.LE.wmaxx.AND.jtemp.GE.wminy.AND.jtemp.LE.wmaxy) then
+!!            if(itemp.GE.wminx.AND.itemp.LE.wmaxx.AND.jtemp.GE.wminy.AND.jtemp.LE.wmaxy) then
+!max               if(l.eq.3.AND.idrank.eq.1) then
+!max                  write(0,*)'10, jtemp ',jtemp
+!max               endif
                forall(k=wminz+1:wmaxz-1) buffservice3d(itemp,jtemp,k+kshift) = aoptp(l)%p(i,j,k)
-            endif
+!!            endif
          enddo
          do k=wminz,wmaxz,wmaxz-wminz
             ktemp=k+kshift;
@@ -2231,13 +2472,14 @@
                   if(ktemp.eq.(nz+1)) then
                      ktemp=1
                   endif
-               else
-                  forall(i=wminx+1:wmaxx-1) buffservice3d(i+ishift,j+jshift,k+kshift) = aoptp(l)%p(i,j,k)
                endif
             endif
-            if(jtemp.GE.wminy.AND.jtemp.LE.wmaxy.AND.ktemp.GE.wminz.AND.ktemp.LE.wmaxz) then
+!!            if(jtemp.GE.wminy.AND.jtemp.LE.wmaxy.AND.ktemp.GE.wminz.AND.ktemp.LE.wmaxz) then
+!max               if(l.eq.3.AND.idrank.eq.1) then
+!max                  write(0,*)'12, jtemp ',jtemp
+!max               endif
                forall(i=wminx+1:wmaxx-1) buffservice3d(i+ishift,jtemp,ktemp) = aoptp(l)%p(i,j,k)
-            endif
+!!            endif
          enddo
       enddo
       do k=wminz,wmaxz,wmaxz-wminz
@@ -2250,13 +2492,14 @@
                if(ktemp.eq.(nz+1)) then
                   ktemp=1
                endif
-            else
-               forall(i=wminx+1:wmaxx-1,j=wminy+1:wmaxy-1) buffservice3d(i+ishift,j+jshift,k+kshift) = aoptp(l)%p(i,j,k) 
             endif
          endif
-         if(ktemp.GE.wminz.AND.ktemp.LE.wmaxz) then
+!!         if(ktemp.GE.wminz.AND.ktemp.LE.wmaxz) then
+!max            if(l.eq.3.AND.idrank.eq.1) then
+!max                  write(0,*)'14, wminy+1 ',wminy+1,'wmaxy-1 ',wmaxy-1
+!max            endif
             forall(i=wminx+1:wmaxx-1,j=wminy+1:wmaxy-1) buffservice3d(i+ishift,j+jshift,ktemp) = aoptp(l)%p(i,j,k)
-         endif
+!!         endif
          do i=wminx,wmaxx,wmaxx-wminx
             itemp=i+ishift
             if(itemp.le.1.or.itemp.ge.(nx)) then
@@ -2267,13 +2510,14 @@
                   if(itemp.eq.(nx+1)) then
                      itemp=1
                   endif
-               else
-                  forall(j=wminy+1:wmaxy-1) buffservice3d(i+ishift,j+jshift,k+kshift) = aoptp(l)%p(i,j,k) 
                endif
             endif
-            if(itemp.GE.wminx.AND.itemp.LE.wmaxx.AND.ktemp.GE.wminz.AND.ktemp.LE.wmaxz) then
+!!            if(itemp.GE.wminx.AND.itemp.LE.wmaxx.AND.ktemp.GE.wminz.AND.ktemp.LE.wmaxz) then
+!max               if(l.eq.3.AND.idrank.eq.1) then
+!max                  write(0,*)'16, wminy+1 ',wminy+1,'wmaxy-1 ',wmaxy-1
+!max               endif
                forall(j=wminy+1:wmaxy-1) buffservice3d(itemp,j+jshift,ktemp) = aoptp(l)%p(i,j,k)
-            endif
+!!            endif
          enddo
          do j=wminy,wmaxy,wmaxy-wminy
             jtemp=j+jshift;
@@ -2285,13 +2529,14 @@
                   if(jtemp.eq.(ny+1)) then
                      jtemp=1
                   endif
-               else
-                  forall(i=wminx+1:wmaxx-1) buffservice3d(i+ishift,j+jshift,k+kshift) = aoptp(l)%p(i,j,k) 
                endif
             endif
-            if(jtemp.GE.wminy.AND.jtemp.LE.wmaxy.AND.ktemp.GE.wminz.AND.ktemp.LE.wmaxz) then
+!!            if(jtemp.GE.wminy.AND.jtemp.LE.wmaxy.AND.ktemp.GE.wminz.AND.ktemp.LE.wmaxz) then
+!max               if(l.eq.3.AND.idrank.eq.1) then
+!max                   write(0,*)'18, jtemp ',jtemp
+!max                  endif
                forall(i=wminx+1:wmaxx-1) buffservice3d(i+ishift,jtemp,ktemp) = aoptp(l)%p(i,j,k)
-            endif
+!!            endif
          enddo
       enddo
       do i=wminx,wmaxx,wmaxx-wminx
@@ -2328,13 +2573,13 @@
             enddo
          enddo
       enddo
+    
       forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
    enddo
    call commrpop(aoptp)
-   
-
-   
 #else
+  
+
   
   l=1
   ishift=ex(l)
@@ -2498,8 +2743,27 @@
   end forall
   forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)f18sub(i,j,k) = buffservice3d(i,j,k)
   
+
+  
 #endif
 
+
+  
+#if 0
+  if(iter.eq.1) then
+  do l=1,links
+!     write(50+idrank,*)'out pop ',l
+        do i=wminx,wmaxx
+         do j=wminy,wmaxy
+            do k=wminz,wmaxz
+               write((100*idrank)+270+l,*)i,j,k,aoptp(l)%p(i,j,k)
+           enddo
+         enddo
+        enddo
+     enddo
+  endif
+#endif
+   
   return
   
  end subroutine streaming_fluids
@@ -4241,10 +4505,25 @@ subroutine driver_bc_densities
  
   implicit none
   
+
+#if 1
+
 #ifdef MPI
-   
-   return
-   
+  call commexch_dens(rhoR,rhoB)
+#endif
+
+  call manage_bc_hvar_selfcomm(rhoR_managebc)
+  
+  if(.not. lsingle_fluid)then
+    call manage_bc_hvar_selfcomm(rhoB_managebc)
+  endif
+  
+#ifdef MPI
+  call commwait_dens(rhoR,rhoB)
+#endif
+  
+  return
+  
 #else
   
   select case(ibctype)
@@ -4274,6 +4553,233 @@ subroutine driver_bc_densities
   
  end subroutine driver_bc_densities
  
+ subroutine initialiaze_manage_bc_isfluid_selfcomm
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to manage the buffer of isfluid nodes
+!     within the same process for applying the boundary conditions
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k,l,itemp,jtemp,ktemp,itemp2,jtemp2,ktemp2
+  integer(kind=IPRC) :: i4orig,i4
+  
+  do k=minz-nbuff,maxz+nbuff
+    do j=miny-nbuff,maxy+nbuff
+      do i=minx-nbuff,maxx+nbuff
+        if(i<minx.or.j<miny.or.k<minz.or.i>maxx.or.j>maxy.or.k>maxz)then
+          if(ixpbc.eq.0 .and. iypbc.eq.0 .and. izpbc.eq.0)cycle
+          itemp=i
+          jtemp=j
+          ktemp=k
+          itemp2=i
+          jtemp2=j
+          ktemp2=k
+          !apply periodic conditions if necessary
+          if(ixpbc.eq.1) then
+            if(itemp<1) then
+              itemp=itemp+nx
+            endif
+            if(itemp>nx) then
+              itemp=itemp-nx
+            endif
+          endif
+          if(iypbc.eq.1) then
+            if(jtemp<1) then
+              jtemp=jtemp+ny
+            endif
+           if(jtemp>ny) then
+              jtemp=jtemp-ny
+            endif
+          endif
+          if(izpbc.eq.1) then
+            if(ktemp<1) then
+              ktemp=ktemp+nz
+            endif
+            if(ktemp>nz) then
+              ktemp=ktemp-nz
+            endif
+          endif
+          i4=i4back(itemp,jtemp,ktemp) 
+          i4orig=i4back(itemp2,jtemp2,ktemp2) 
+          if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
+            isfluid(itemp2,jtemp2,ktemp2)=isfluid(itemp,jtemp,ktemp)
+          endif
+        endif
+      enddo
+    enddo
+  enddo
+   
+  return
+   
+ end subroutine initialiaze_manage_bc_isfluid_selfcomm
+ 
+ subroutine initialiaze_manage_bc_hvar_selfcomm
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to create a list of nodes which should be
+!     managed within the same process for applying the boundary 
+!     conditions
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k,l,itemp,jtemp,ktemp,itemp2,jtemp2,ktemp2
+  integer(kind=IPRC) :: i4orig,i4
+  
+  logical, parameter :: lverbose=.false.
+  
+  nvar_managebc=0
+  
+  do k=minz-nbuff,maxz+nbuff
+    do j=miny-nbuff,maxy+nbuff
+      do i=minx-nbuff,maxx+nbuff
+        if(i<minx.or.j<miny.or.k<minz.or.i>maxx.or.j>maxy.or.k>maxz)then
+          if(ixpbc.eq.0 .and. iypbc.eq.0 .and. izpbc.eq.0)cycle
+          itemp=i
+          jtemp=j
+          ktemp=k
+          itemp2=i
+          jtemp2=j
+          ktemp2=k
+          !apply periodic conditions if necessary
+          if(ixpbc.eq.1) then
+            if(itemp<1) then
+              itemp=itemp+nx
+            endif
+            if(itemp>nx) then
+              itemp=itemp-nx
+            endif
+          endif
+          if(iypbc.eq.1) then
+            if(jtemp<1) then
+              jtemp=jtemp+ny
+            endif
+           if(jtemp>ny) then
+              jtemp=jtemp-ny
+            endif
+          endif
+          if(izpbc.eq.1) then
+            if(ktemp<1) then
+              ktemp=ktemp+nz
+            endif
+            if(ktemp>nz) then
+              ktemp=ktemp-nz
+            endif
+          endif
+          i4=i4back(itemp,jtemp,ktemp) 
+          i4orig=i4back(itemp2,jtemp2,ktemp2) 
+          if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
+            nvar_managebc=nvar_managebc+1
+          endif
+        endif
+      enddo
+    enddo
+  enddo
+  if(lverbose)write(6,*)'id=',idrank,'nvar_managebc=',nvar_managebc
+  
+  allocate(rhoR_managebc(2,nvar_managebc))
+  if(.not. lsingle_fluid)allocate(rhoB_managebc(2,nvar_managebc))
+  
+  nvar_managebc=0
+  do k=minz-nbuff,maxz+nbuff
+    do j=miny-nbuff,maxy+nbuff
+      do i=minx-nbuff,maxx+nbuff
+        if(i<minx.or.j<miny.or.k<minz.or.i>maxx.or.j>maxy.or.k>maxz)then
+          if(ixpbc.eq.0 .and. iypbc.eq.0 .and. izpbc.eq.0)cycle
+          itemp=i
+          jtemp=j
+          ktemp=k
+          itemp2=i
+          jtemp2=j
+          ktemp2=k
+          !apply periodic conditions if necessary
+          if(ixpbc.eq.1) then
+            if(itemp<1) then
+              itemp=itemp+nx
+            endif
+            if(itemp>nx) then
+              itemp=itemp-nx
+            endif
+          endif
+          if(iypbc.eq.1) then
+            if(jtemp<1) then
+              jtemp=jtemp+ny
+            endif
+           if(jtemp>ny) then
+              jtemp=jtemp-ny
+            endif
+          endif
+          if(izpbc.eq.1) then
+            if(ktemp<1) then
+              ktemp=ktemp+nz
+            endif
+            if(ktemp>nz) then
+              ktemp=ktemp-nz
+            endif
+          endif
+          i4=i4back(itemp,jtemp,ktemp) 
+          i4orig=i4back(itemp2,jtemp2,ktemp2) 
+          if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
+            nvar_managebc=nvar_managebc+1
+            rhoR_managebc(1,nvar_managebc)%p=>rhoR(itemp2,jtemp2,ktemp2)   !who must recevice is one
+            rhoR_managebc(2,nvar_managebc)%p=>rhoR(itemp,jtemp,ktemp)
+            if(.not. lsingle_fluid)then
+              rhoB_managebc(1,nvar_managebc)%p=>rhoB(itemp2,jtemp2,ktemp2) !who must recevice is one
+              rhoB_managebc(2,nvar_managebc)%p=>rhoB(itemp,jtemp,ktemp)
+            endif
+          endif
+        endif
+      enddo
+    enddo
+  enddo
+   
+  return
+   
+ end subroutine initialiaze_manage_bc_hvar_selfcomm
+ 
+ subroutine manage_bc_hvar_selfcomm(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to manage the buffer fluid nodes
+!     within the same process for applying the boundary conditions
+!     using the node list created in subroutine
+!     initialiaze_manage_bc_hvar_selfcomm
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  type(REALPTR_S), allocatable, dimension(:,:) :: dtemp
+  
+  integer :: i
+  
+  forall(i=1:nvar_managebc)
+    dtemp(1,i)%p=real(dtemp(2,i)%p,kind=PRC)
+  end forall
+   
+  return
+   
+ end subroutine manage_bc_hvar_selfcomm
+  
  subroutine driver_bc_velocities
  
 !***********************************************************************
@@ -5294,6 +5800,183 @@ subroutine driver_bc_densities
   return
   
  end subroutine apply_pbc_velocities_along_yz
+ 
+ subroutine initialiaze_manage_bc_pop_selfcomm
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to create a list of nodes which should be
+!     managed within the same process for applying the boundary 
+!     conditions
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k,l,itemp,jtemp,ktemp,itemp2,jtemp2,ktemp2
+  integer :: ishift,jshift,kshift
+  integer(kind=IPRC) :: i4orig,i4
+  
+  logical, parameter :: lverbose=.false.
+  
+  
+  
+  npop_managebc=0
+  if(ixpbc.eq.0 .and. iypbc.eq.0 .and. izpbc.eq.0)return
+  
+  do l=1,links
+    ishift=ex(l)
+    jshift=ey(l)
+    kshift=ez(l)
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          if(i==1.or.j==1.or.k==1.or.i==nx.or.j==ny.or.k==nz)then
+            itemp=i+ishift
+            jtemp=j+jshift
+            ktemp=k+kshift
+            itemp2=i+ishift
+            jtemp2=j+jshift
+            ktemp2=k+kshift
+            if(itemp<minx.or.jtemp<miny.or.ktemp<minz.or. &
+             itemp>maxx.or.jtemp>maxy.or.ktemp>maxz)then
+              !apply periodic conditions if necessary
+              if(ixpbc.eq.1) then
+                if(itemp<1) then
+                  itemp=itemp+nx
+                endif
+                if(itemp>nx) then
+                  itemp=itemp-nx
+                endif
+              endif
+              if(iypbc.eq.1) then
+                if(jtemp<1) then
+                  jtemp=jtemp+ny
+                endif
+                if(jtemp>ny) then
+                  jtemp=jtemp-ny
+                endif
+              endif
+              if(izpbc.eq.1) then
+                if(ktemp<1) then
+                  ktemp=ktemp+nz
+                endif
+                if(ktemp>nz) then
+                  ktemp=ktemp-nz
+                endif
+              endif
+              i4=i4back(itemp,jtemp,ktemp) 
+              i4orig=i4back(itemp2,jtemp2,ktemp2) 
+              if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
+                npop_managebc=npop_managebc+1
+              endif
+            endif
+          endif
+        enddo
+      enddo
+    enddo
+  enddo
+  if(lverbose)write(6,*)'id=',idrank,'npop_managebc=',npop_managebc
+   
+  allocate(popR_managebc(2,npop_managebc))
+  if(.not. lsingle_fluid)allocate(popB_managebc(2,npop_managebc))
+  
+  npop_managebc=0
+  do l=1,links
+    ishift=ex(l)
+    jshift=ey(l)
+    kshift=ez(l)
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          if(i==1.or.j==1.or.k==1.or.i==nx.or.j==ny.or.k==nz)then
+            itemp=i+ishift
+            jtemp=j+jshift
+            ktemp=k+kshift
+            itemp2=i+ishift
+            jtemp2=j+jshift
+            ktemp2=k+kshift
+            if(itemp<minx.or.jtemp<miny.or.ktemp<minz.or. &
+             itemp>maxx.or.jtemp>maxy.or.ktemp>maxz)then
+              !apply periodic conditions if necessary
+              if(ixpbc.eq.1) then
+                if(itemp<1) then
+                  itemp=itemp+nx
+                endif
+                if(itemp>nx) then
+                  itemp=itemp-nx
+                endif
+              endif
+              if(iypbc.eq.1) then
+                if(jtemp<1) then
+                  jtemp=jtemp+ny
+                endif
+               if(jtemp>ny) then
+                  jtemp=jtemp-ny
+                endif
+              endif
+              if(izpbc.eq.1) then
+                if(ktemp<1) then
+                  ktemp=ktemp+nz
+                endif
+                if(ktemp>nz) then
+                  ktemp=ktemp-nz
+                endif
+              endif
+              i4=i4back(itemp,jtemp,ktemp) 
+              i4orig=i4back(itemp2,jtemp2,ktemp2) 
+              if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
+                npop_managebc=npop_managebc+1
+                popR_managebc(2,npop_managebc)%p=>aoptpR(l)%p(itemp2,jtemp2,ktemp2)
+                popR_managebc(1,npop_managebc)%p=>aoptpR(l)%p(itemp,jtemp,ktemp)   !who must recevice is one
+                if(.not. lsingle_fluid)then
+                  popB_managebc(2,npop_managebc)%p=>aoptpB(l)%p(itemp2,jtemp2,ktemp2)
+                  popB_managebc(1,npop_managebc)%p=>aoptpB(l)%p(itemp,jtemp,ktemp) !who must recevice is one
+                endif
+              endif
+            endif
+          endif
+        enddo
+      enddo
+    enddo
+  enddo
+   
+  return
+   
+ end subroutine initialiaze_manage_bc_pop_selfcomm
+ 
+ subroutine manage_bc_pop_selfcomm(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to manage the population buffer fluid nodes
+!     within the same process for applying the boundary conditions
+!     using the node list created in subroutine
+!     initialiaze_manage_bc_pop_selfcomm
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  type(REALPTR_S), allocatable, dimension(:,:) :: dtemp
+  
+  integer :: i
+  
+  forall(i=1:npop_managebc)
+    dtemp(1,i)%p=real(dtemp(2,i)%p,kind=PRC)
+  end forall
+   
+  return
+   
+ end subroutine manage_bc_pop_selfcomm
  
  subroutine driver_bc_pops
  
@@ -7729,7 +8412,7 @@ subroutine driver_bc_densities
 !     to fluid populations if necessary
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Bernschi
+!     author: M. Bernaschi
 !     last modification September 2018
 !     
 !***********************************************************************
@@ -7740,6 +8423,23 @@ subroutine driver_bc_densities
  
   integer :: i,j,k,l, ishift, jshift, kshift
   integer :: itemp, jtemp, ktemp
+  integer, save :: iter=0
+  
+  iter=iter+1
+#if 0
+   if(iter.eq.2) then
+   do l=1,links
+!      write((50+idrank),*)'in pop ',l
+       do i=wminx,wmaxx
+         do j=wminy,wmaxy
+           do k=wminz,wmaxz
+               write((100*idrank)+50+l,*)i,j,k,aoptp(l)%p(i,j,k)
+           enddo
+         enddo
+        enddo
+     enddo
+   endif  
+#endif
 
   do l=1,links
     ishift=ex(l)
@@ -7753,8 +8453,9 @@ subroutine driver_bc_densities
             forall(j=miny:maxy,k=minz:maxz) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
             forall(j=miny:maxy,k=minz:maxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
           endif
-          if(iypbc.ne.1.AND.jshift.ne.0) then
-            do j=wminy,wmaxy,maxy-miny
+!max          if(iypbc.ne.1.AND.jshift.ne.0) then
+          if(jshift.ne.0) then
+            do j=wminy,wmaxy,wmaxy-wminy
               if(j.lt.1.or.j.gt.(ny)) then
                 if(mod(l,2).eq.1) then
                   forall(k=minz:maxz) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
@@ -7764,15 +8465,16 @@ subroutine driver_bc_densities
               endif
             enddo
           endif
-          if(izpbc.ne.1.AND.kshift.ne.0) then
+!max          if(izpbc.ne.1.AND.kshift.ne.0) then
+          if(kshift.ne.0) then
             do k=wminz,wmaxz,wmaxz-wminz
-              if(k.lt.1.or.k.gt.(nz)) then
+               if(k.lt.1.or.k.gt.(nz)) then
                 if(mod(l,2).eq.1) then
                   forall(j=miny:maxy) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
                   forall(j=miny:maxy) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
                   forall(j=miny:maxy) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
                 endif
-              endif
+               endif
             enddo
           endif
         endif
@@ -7786,7 +8488,8 @@ subroutine driver_bc_densities
             forall(i=minx:maxx,k=minz:maxz) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
             forall(i=minx:maxx,k=minz:maxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
           endif
-          if(izpbc.ne.1.AND.kshift.ne.0) then
+!max          if(izpbc.ne.1.AND.kshift.ne.0) then
+          if(kshift.ne.0) then
             do k=wminz,wmaxz,wmaxz-wminz
               if(k.lt.1.or.k.gt.(nz)) then
                 if(mod(l,2).eq.1) then
@@ -7812,6 +8515,20 @@ subroutine driver_bc_densities
       enddo
     endif
  enddo
+#if 0
+  if(iter.eq.2) then
+  do l=1,links
+!     write(50+idrank,*)'out pop ',l
+        do i=wminx,wmaxx
+         do j=wminy,wmaxy
+            do k=wminz,wmaxz
+               write((100*idrank)+70+l,*)i,j,k,aoptp(l)%p(i,j,k)
+           enddo
+         enddo
+        enddo
+  enddo
+  endif
+#endif
  
  return
   
@@ -12439,8 +13156,61 @@ subroutine driver_bc_densities
  
   implicit none
   
+  integer :: i,j,k,l,ishift,jshift,kshift,ss
+  REAL(kind=PRC) :: dsum1,dsum2
+  REAL(kind=PRC) :: isum
   
-#ifdef MPI
+  
+#if 1
+  
+   
+   if(lsingle_fluid)then
+     do k=minz-1,maxz+1
+       do j=miny-1,maxy+1
+         do i=minx-1,maxx+1
+           if(isfluid(i,j,k)==0)then
+             dsum1=ZERO
+             isum=ZERO
+             ss=0
+             do l=1,linksd3q27
+               ishift=i+exd3q27(l)
+               jshift=j+eyd3q27(l)
+               kshift=k+ezd3q27(l)
+               if(isfluid(ishift,jshift,kshift)==1)then
+                 dsum1=dsum1+pd3q27(l)*rhoR(ishift,jshift,kshift)
+                 isum=isum+pd3q27(l)
+               endif
+             enddo
+             rhoR(i,j,k)=dsum1/isum
+           endif
+         enddo
+       enddo
+     enddo
+   else
+     do k=minz-1,maxz+1
+       do j=miny-1,maxy+1
+         do i=minx-1,maxx+1
+           if(isfluid(i,j,k)==0)then
+             dsum1=ZERO
+             dsum2=ZERO
+             isum=ZERO
+             do l=1,linksd3q27
+               ishift=i+exd3q27(l)
+               jshift=j+eyd3q27(l)
+               kshift=k+ezd3q27(l)
+               if(isfluid(ishift,jshift,kshift)==1)then
+                 dsum1=dsum1+pd3q27(l)*rhoR(ishift,jshift,kshift)
+                 dsum2=dsum2+pd3q27(l)*rhoB(ishift,jshift,kshift)
+                 isum=isum+pd3q27(l)
+               endif
+             enddo
+             rhoR(i,j,k)=dsum1/isum
+             rhoB(i,j,k)=dsum2/isum
+           endif
+         enddo
+       enddo
+     enddo
+   endif
    
    return
    
@@ -13225,9 +13995,9 @@ subroutine driver_bc_densities
   implicit none
   
 #ifdef MPI
-   
+  
    call initbb(aoptpR)
-   
+
    if(lsingle_fluid)return
    
    call initbb(aoptpB)
@@ -13280,63 +14050,84 @@ subroutine driver_bc_densities
    
   integer :: i,j,k,l, is, js, ks
   integer :: it, jt, kt
-  
+#if 0
+   do l=1,links
+!      write((50+idrank),*)'in pop ',l
+       do i=wminx,wmaxx
+         do j=wminy,wmaxy
+           do k=wminz,wmaxz
+               write((100*idrank)+50+l,*)i,j,k,aoptp(l)%p(i,j,k)
+           enddo
+         enddo
+        enddo
+     enddo
+#endif  
   do l=1,links
-    do i=wminx,wmaxx,wmaxx-wminx
+      do i=wminx,wmaxx,wmaxx-wminx
       it=i
       is=i
       if(it.lt.1.or.it.gt.(nx)) then
         if(it.eq.0) then
           is=1
           if(ixpbc.eq.1) then
-            it=1
+             write(0,*)'Should never happen 1'
+!            it=1
           endif
         endif
         if(it.eq.(nx+1)) then
           is=nx
           if(ixpbc.eq.1) then
-            it=nx
+             write(0,*)'Should never happen 2'             
+!            it=nx
           endif
         endif
       endif
-      forall(j=wminy+1:wmaxy-1,k=wminz+1:wmaxz-1) aoptp(l)%p(it,j,k) = aoptp(l)%p(is,j,k)
-      do j=wminy,wmaxy,wmaxy-wminy
+      if(it.ge.ix.AND.it.le.mynx.AND.is.ge.ix.AND.is.le.mynx) then
+         forall(j=miny:maxy,k=minz:maxz) aoptp(l)%p(it,j,k) = aoptp(l)%p(is,j,k)
+      endif
+      do j=miny-1,maxy+1,2+maxy-miny
         jt=j
         js=j
         if(jt.lt.1.or.jt.gt.(ny)) then
           if(jt.eq.0) then
             js=1
             if(iypbc.eq.1) then
-              jt=1
+              jt=ny+1
             endif
           endif
           if(jt.eq.(ny+1)) then
             js=ny
             if(iypbc.eq.1) then
-              jt=ny
+              jt=0
             endif
           endif
         endif
-        forall(k=wminz+1:wmaxz-1) aoptp(l)%p(it,jt,k) = aoptp(l)%p(is,js,k)
+        if(it.ge.ix.AND.it.le.mynx.AND.is.ge.ix.AND.is.le.mynx.AND.&
+           jt.ge.iy.AND.jt.le.myny.AND.js.ge.iy.AND.js.le.myny) then
+           forall(k=minz:maxz) aoptp(l)%p(it,jt,k) = aoptp(l)%p(is,js,k)
+        endif
       enddo
-      do k=wminz,wmaxz,wmaxz-wminz
+      do k=minz-1,maxz+1,2+maxz-minz
         kt=k
         ks=k
         if(kt.lt.1.or.kt.gt.(nz)) then
           if(kt.eq.0) then
             ks=1
             if(izpbc.eq.1) then
-              kt=1
+              kt=nz+1
             endif
           endif
           if(kt.eq.(nz+1)) then
             ks=nz
             if(izpbc.eq.1) then
-              kt=nz
+              kt=0
             endif
           endif
         endif
-        forall(j=wminy+1:wmaxy-1) aoptp(l)%p(it,j,kt) = aoptp(l)%p(is,j,ks)
+        if(it.ge.ix.AND.it.le.mynx.AND.is.ge.ix.AND.is.le.mynx.AND.&
+           kt.ge.iz.AND.kt.le.mynz.AND.ks.ge.iz.AND.ks.le.mynz) then
+           forall(j=miny:maxy) aoptp(l)%p(it,j,kt) = aoptp(l)%p(is,j,ks)
+        endif
       enddo
     enddo
      
@@ -13347,55 +14138,67 @@ subroutine driver_bc_densities
         if(jt.eq.0) then
           js=1
           if(iypbc.eq.1) then
-            jt=1
+             write(0,*)'Should never happen 3'                          
+!            jt=1
           endif
         endif
         if(jt.eq.(ny+1)) then
           js=ny
           if(iypbc.eq.1) then
-            jt=ny
+             write(0,*)'Should never happen 4'                          
+!            jt=ny
           endif
         endif
       endif
-      forall(i=wminx+1:wmaxx-1,k=wminz+1:wmaxz-1) aoptp(l)%p(i,jt,k) = aoptp(l)%p(i,js,k)
-      do i=wminx,wmaxx,wmaxx-wminx
+      if(jt.ge.iy.AND.jt.le.myny.AND.js.ge.iy.AND.js.le.myny) then
+         forall(i=minx:maxx,k=minz:maxz) aoptp(l)%p(i,jt,k) = aoptp(l)%p(i,js,k)
+      endif
+      do i=minx-1,maxx+1,2+maxx-minx
         it=i
         is=i
         if(it.lt.1.or.it.gt.(nx)) then
           if(it.eq.0) then
             is=1
             if(ixpbc.eq.1) then
-              it=1
+              it=nx+1
             endif
           endif
           if(it.eq.(nx+1)) then
             is=nx
             if(ixpbc.eq.1) then
-              it=nx
+              it=0
             endif
           endif
         endif
-        forall(k=wminz+1:wmaxz-1) aoptp(l)%p(it,jt,k) = aoptp(l)%p(is,js,k)
-      enddo
-      do k=wminz,wmaxz,wmaxz-wminz
+        if(it.ge.ix.AND.it.le.mynx.AND.is.ge.ix.AND.is.le.mynx.AND.&
+           jt.ge.iy.AND.jt.le.myny.AND.js.ge.iy.AND.js.le.myny) then
+           forall(k=minz:maxz) aoptp(l)%p(it,jt,k) = aoptp(l)%p(is,js,k)
+        endif
+     enddo
+#if 1
+     do k=minz-1,maxz+1,2+maxz-minz
         kt=k
         ks=k
         if(kt.lt.1.or.kt.gt.(nz)) then
           if(kt.eq.0) then
             ks=1
             if(izpbc.eq.1) then
-              kt=1
+              kt=nz+1
             endif
           endif
           if(kt.eq.(nz+1)) then
             ks=nz
             if(izpbc.eq.1) then
-              kt=nz
+              kt=0
             endif
           endif
         endif
-        forall(i=wminx+1:wmaxx-1) aoptp(l)%p(i,jt,kt) = aoptp(l)%p(i,js,ks)
-      enddo
+        if(kt.ge.iz.AND.kt.le.mynz.AND.ks.ge.iz.AND.ks.le.mynz.AND.&
+           jt.ge.iy.AND.jt.le.myny.AND.js.ge.iy.AND.js.le.mynz) then
+           forall(i=minx:maxx) aoptp(l)%p(i,jt,kt) = aoptp(l)%p(i,js,ks)
+        endif
+     enddo
+#endif     
     enddo
      
     do k=wminz,wmaxz,wmaxz-wminz
@@ -13405,58 +14208,81 @@ subroutine driver_bc_densities
         if(kt.eq.0) then
           ks=1
           if(izpbc.eq.1) then
-            kt=1
+             write(0,*)'Should never happen 5'                          
+!            kt=1
           endif
         endif
         if(kt.eq.(nz+1)) then
           ks=nz
           if(izpbc.eq.1) then
-            kt=nz
+             write(0,*)'Should never happen 6'                          
+!            kt=nz
           endif
         endif
       endif
-      forall(i=wminx+1:wmaxx-1,j=wminy+1:wmaxy-1) aoptp(l)%p(i,j,kt) = aoptp(l)%p(i,j,ks)
-      do i=wminx,wmaxx,wmaxx-wminx
+      if(kt.ge.iz.AND.kt.le.mynz.AND.ks.ge.iz.AND.ks.le.mynz) then
+         forall(i=minx:maxx,j=miny:maxy) aoptp(l)%p(i,j,kt) = aoptp(l)%p(i,j,ks)
+      endif
+#if 1
+      do i=minx-1,maxx+1,2+maxx-minx
         it=i
         is=i
         if(it.lt.1.or.it.gt.(nx)) then
           if(it.eq.0) then
             is=1
             if(ixpbc.eq.1) then
-              it=1
+              it=nx+1
             endif
           endif
           if(it.eq.(nx+1)) then
             is=nx
             if(ixpbc.eq.1) then
-              it=nx
+              it=0
             endif
           endif
         endif
-        forall(j=wminy+1:wmaxy-1) aoptp(l)%p(it,j,kt) = aoptp(l)%p(is,j,ks)
+        if(it.ge.ix.AND.it.le.mynx.AND.is.ge.ix.AND.is.le.mynx.AND.&
+           kt.ge.iz.AND.kt.le.mynz.AND.ks.ge.iz.AND.ks.le.mynz) then
+           forall(j=miny:maxy) aoptp(l)%p(it,j,kt) = aoptp(l)%p(is,j,ks)
+        endif
       enddo
-      do j=wminy,wmaxy,wmaxy-wminy
+      do j=miny-1,maxy+1,2+maxy-miny
         jt=j
         js=j
         if(jt.lt.1.or.jt.gt.(ny)) then
           if(jt.eq.0) then
             js=1
             if(iypbc.eq.1) then
-              jt=1
+              jt=ny+1
             endif
           endif
           if(jt.eq.(ny+1)) then
             js=ny
             if(iypbc.eq.1) then
-              jt=ny
+              jt=0
             endif
           endif
         endif
-        forall(i=wminx+1:wmaxx-1) aoptp(l)%p(i,jt,kt) = aoptp(l)%p(i,js,ks)
+        if(jt.ge.iy.AND.jt.le.myny.AND.js.ge.iy.AND.js.le.myny.AND.&
+             kt.ge.iz.AND.kt.le.mynz.AND.ks.ge.iz.AND.ks.le.mynz) then
+           forall(i=minx:maxx) aoptp(l)%p(i,jt,kt) = aoptp(l)%p(i,js,ks)
+        endif
       enddo
+#endif
     enddo
+ enddo
+#if 0
+   do l=1,links
+!     write(50+idrank,*)'out pop ',l
+        do i=wminx,wmaxx
+         do j=wminy,wmaxy
+            do k=wminz,wmaxz
+               write((100*idrank)+70+l,*)i,j,k,aoptp(l)%p(i,j,k)
+           enddo
+         enddo
+        enddo
   enddo
-  
+#endif
   return
   
  end subroutine initbb
@@ -17182,5 +18008,88 @@ subroutine driver_bc_densities
   close(iomap)
   
  end subroutine write_test_map_pop
+ 
+ subroutine test_fake_dens(dtemp,ltestout)
+ 
+  implicit none
+  
+  logical :: lwritesub
+  real(kind=PRC), intent(inout), allocatable, dimension(:,:,:) :: dtemp
+  logical, intent(out) :: ltestout
+  integer, parameter :: iotest=166
+  character(len=*), parameter :: filetest='fake_test.dat'
+  
+  real(kind=PRC), allocatable, dimension(:,:,:) :: dtemp2
+  integer, dimension(4) :: itempp
+  logical :: ltest(1)
+  integer :: i,j,k,imy(3)
+  logical :: lexist
+  
+  ltest(1)=.false.
+  
+  inquire(file=filetest,exist=lexist)
+  lwritesub=(.not. lexist)
+  
+  if(lwritesub)then
+    if(mxrank/=1)then
+      write(6,*)'error in test_fake_dens'
+      write(6,*)'to write ',filetest,' you should run in serial'
+      write(6,*)'actual mxrank = ',mxrank
+      call finalize_world
+      stop
+    endif
+    open(unit=iotest,file=filetest,status='replace',action='write')
+    write(iotest,'(4i10)')mxrank,nx,ny,nz
+    do k=1-nbuff,nz+nbuff
+      do j=1-nbuff,ny+nbuff
+        do i=1-nbuff,nx+nbuff
+          imy=i4find(nint(dtemp(i,j,k)))
+          write(iotest,'(4i8,g20.10,3i8)')i,j,k,i4back(i,j,k),dtemp(i,j,k),imy(1:3)
+        enddo
+      enddo
+    enddo
+    close(iotest)
+  else
+    open(unit=iotest,file=filetest,status='old',action='read')
+    read(iotest,'(4i10)')itempp(1:4)
+    if(itempp(2)/=nx .or. itempp(3)/=ny .or. itempp(4)/=nz)then
+      write(6,*)'error in test_fake_dens'
+      write(6,*)'nx ny nz = ',nx,itempp(2),ny,itempp(3),nz,itempp(4)
+      call finalize_world
+      stop
+    endif
+    allocate(dtemp2(1-nbuff:nx+nbuff,1-nbuff:ny+nbuff,1-nbuff:nz+nbuff))
+    do k=1-nbuff,nz+nbuff
+      do j=1-nbuff,ny+nbuff
+        do i=1-nbuff,nx+nbuff
+          read(iotest,'(4i8,g20.10,3i8)')itempp(1:4),dtemp2(i,j,k),imy(1:3)
+        enddo
+      enddo
+    enddo
+    close(iotest)
+    do k=minz-1,maxz+1
+      do j=miny-1,maxy+1
+        do i=minx-1,maxx+1
+          if(dtemp(i,j,k)/=dtemp2(i,j,k))then
+            ltest(1)=.true.
+            goto 125
+          endif
+        enddo
+      enddo
+    enddo
+ 125 continue
+    if(ltest(1))then
+      write(6,*)'error test_fake_dens idrank = ',idrank
+      write(6,*)'node = ',i,j,k,dtemp(i,j,k),dtemp2(i,j,k)
+    endif
+    deallocate(dtemp2)
+    call or_world_larr(ltest,1)
+  endif
+  
+  ltestout=ltest(1)
+  
+  return
+  
+ end subroutine test_fake_dens
  
  end module fluids_mod

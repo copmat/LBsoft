@@ -50,11 +50,13 @@
                         reset_timing_partial,printSimulationTime, &
                         print_timing_final,itime_counter,idiagnostic, &
                         ldiagnostic,start_timing2,end_timing2
-  use utility_mod,     only : init_random_seed
-  use lbempi_mod,      only : setupcom
+  use utility_mod,     only : init_random_seed,allocate_array_buffservice3d
+  use lbempi_mod,      only : setupcom,create_findneigh_list_hvar, &
+                        create_findneigh_list_pops,deallocate_ownern
   use fluids_mod,      only : allocate_fluids,initialize_fluids, &
                         nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
-                        miny,maxy,minz,maxz,nbuff
+                        miny,maxy,minz,maxz,nbuff,lsingle_fluid, &
+                        initialize_isfluid,isfluid
   use write_output_mod,only: write_test_map
   use integrator_mod,  only : initime,endtime,tstep,set_nstep, &
                         update_nstep,nstep,driver_integrator,nstepmax
@@ -92,11 +94,11 @@
   
 ! read the input file
   call read_input(600,'input.dat')
-
+  
 ! setup domain decomposition
   call setupcom(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
-   miny,maxy,minz,maxz)  
-  
+   miny,maxy,minz,maxz,lsingle_fluid)  
+   
 ! set the seed
   call init_random_seed(init_seed)
   
@@ -105,9 +107,24 @@
     call timer_init()
     call startPreprocessingTime()  
   endif
-
+   
 ! allocate arrays of the nanofiber quantities
   call allocate_fluids
+   
+  call create_findneigh_list_hvar(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
+   miny,maxy,minz,maxz)  
+   
+! initialize isfluid
+  call initialize_isfluid
+  
+  call create_findneigh_list_pops(nx,ny,nz,nbuff,ibctype,isfluid,ixpbc,iypbc,izpbc,minx,maxx, &
+   miny,maxy,minz,maxz)  
+   
+!at this point you can deallocate ownern in order to release space
+  call deallocate_ownern
+  
+!da rivedere
+  call allocate_array_buffservice3d(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,1-nbuff,nz+nbuff)
   
 ! allocate service arrays for printing modules
   call allocate_print()

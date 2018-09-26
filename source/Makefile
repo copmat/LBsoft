@@ -3,23 +3,15 @@
 #
 
 BINROOT = ../execute
-#CC=gcc
-#FC=gfortran
-#CFLAGS= -O0 -g -c
-#FFLAGS= -O0 -g -fbacktrace -ffpe-trap=zero -fcheck=all -cpp -I $(CURDIR) -c
-#LDFLAGS= -O0 -g -fbacktrace -ffpe-trap=zero -fcheck=all -cpp -I $(CURDIR) -o
-#FFLAGSVTK=-O0 -g -fcheck=all -cpp -DPRC=4 -DIPRC=4 -c
-#CFLAGS= -O2 -c
-#FFLAGS= -O2 -cpp -I $(CURDIR) -c
-#LDFLAGS= -O2 -cpp -I $(CURDIR) -o
-#FFLAGSVTK= -O2 -cpp -DPRC=4 -DIPRC=4 -c
 FC=undefined
 CC=undefined
 FFLAGS=undefined
 LDFLAGS=undefined
 TYPE=undefined
 EX=main.x
+EXP=main_mpi.x
 EXE = $(BINROOT)/$(EX)
+EXEP = $(BINROOT)/$(EXP)
 SHELL=/bin/sh
 
 
@@ -72,7 +64,7 @@ gfortran-mpi:
 	FFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -c" \
 	LDFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -o" \
 	TYPE=mpi \
-	EX=$(EX) BINROOT=$(BINROOT) mpi
+	EX=$(EXP) BINROOT=$(BINROOT) mpi
 	
 intel:
 	$(MAKE) CC=icc \
@@ -90,14 +82,18 @@ intel-mpi:
 	FFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -c" \
 	LDFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -o" \
 	TYPE=mpi \
-	EX=$(EX) BINROOT=$(BINROOT) mpi
+	EX=$(EXP) BINROOT=$(BINROOT) mpi
 
 gfortran-debugger:
 	$(MAKE) CC=gcc \
 	FC=gfortran \
 	CFLAGS="-O0 -g -cpp -I $(CURDIR) -c" \
-	FFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-summary=all -cpp -I $(CURDIR) -c" \
-	LDFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-summary=all -cpp -I $(CURDIR) -o" \
+	FFLAGS="-O0 -g -fcheck=all -fbacktrace \
+	-ffpe-trap=invalid,zero,overflow,underflow,denormal \
+	-cpp -I $(CURDIR) -c" \
+	LDFLAGS="-O0 -g -fcheck=all -fbacktrace \
+	-ffpe-trap=invalid,zero,overflow,underflow,denormal \
+	-cpp -I $(CURDIR) -o" \
 	TYPE=seq \
 	EX=$(EX) BINROOT=$(BINROOT) seq
 
@@ -105,10 +101,14 @@ gfortran-mpidebugger:
 	$(MAKE) CC=mpicc \
 	FC=mpif90 \
 	CFLAGS="-O0 -g -cpp -I $(CURDIR) -c" \
-	FFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-summary=all -cpp -DMPI -I $(CURDIR) -c" \
-	LDFLAGS="-O0 -g -fcheck=all -fbacktrace -ffpe-summary=all -cpp -DMPI -I $(CURDIR) -o" \
+	FFLAGS="-O0 -g -fcheck=all -fbacktrace \
+	-ffpe-trap=invalid,zero,overflow,underflow,denormal \
+	-cpp -DMPI -I $(CURDIR) -c" \
+	LDFLAGS="-O0 -g -fcheck=all -fbacktrace \
+	-ffpe-trap=invalid,zero,overflow,underflow,denormal \
+	-cpp -DMPI -I $(CURDIR) -o" \
 	TYPE=mpi \
-	EX=$(EX) BINROOT=$(BINROOT) mpi
+	EX=$(EXP) BINROOT=$(BINROOT) mpi
 	
 intel-mpidebugger:
 	$(MAKE) CC=mpiicc \
@@ -117,7 +117,7 @@ intel-mpidebugger:
 	FFLAGS="-O0 -g -check all -cpp -DMPI -I $(CURDIR) -c" \
 	LDFLAGS="-O0 -g -check all -cpp -DMPI -I $(CURDIR) -o" \
 	TYPE=mpi \
-	EX=$(EX) BINROOT=$(BINROOT) mpi
+	EX=$(EXP) BINROOT=$(BINROOT) mpi
 	
 seq:IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
 	Lib_VTK_IO.o get_mem.o serial_version_mod.o \
@@ -141,7 +141,7 @@ mpi:IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
 	parallel_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
 	aop_mod.o utility_mod.o comsetup_mod.o fluids_mod.o write_output_mod.o \
 	integrator_mod.o statistic_mod.o io_mod.o main.o
-	mv $(EX) $(EXE)
+	mv $(EXP) $(EXEP)
 	
 IR_Precision.o:IR_Precision.f90
 	$(FC) $(FFLAGS) IR_Precision.f90
@@ -201,5 +201,5 @@ main.o:main.f90
 	$(FC) $(FFLAGS) main.f90
 	
 clean:
-	rm -rf *.mod *.o $(EXE)
+	rm -rf *.mod *.o
 

@@ -32,7 +32,7 @@
 #endif
 
 #if LPRC==4
- integer, parameter :: MY_LOGICAL=MPI_LOGICAL4
+ integer, parameter :: MY_LOGICAL=MPI_LOGICAL
 #endif
 
 #if IPRC==4

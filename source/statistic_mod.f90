@@ -89,7 +89,8 @@
   call compute_elapsed_cpu_time()
   call compute_cpu_time()
   
-  dnorm=real(nx*ny*nz,kind=PRC)
+  !max  dnorm=real(nx*ny*nz,kind=PRC)
+  dnorm=real((maxz+1-minz)*(maxy+1-miny)*(maxx+1-minx),kind=PRC)
   
   forall(i=1:nmaxstatdata)statdata(i)=ZERO
   

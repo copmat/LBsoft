@@ -683,6 +683,8 @@
                 temp_idistselect=1
               elseif(findstring('unifo',directive,inumchar,maxlen))then
                 temp_idistselect=2
+              elseif(findstring('fake',directive,inumchar,maxlen))then
+                temp_idistselect=3
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1163,6 +1165,13 @@
         mystring='initial density distribution'
         mystring12=repeat(' ',dimprint2)
         mystring12='uniform'
+        mystring12=adjustr(mystring12)
+        write(6,'(3a)')mystring,": ",mystring12
+      case(3)
+        mystring=repeat(' ',dimprint)
+        mystring='initial density distribution'
+        mystring12=repeat(' ',dimprint2)
+        mystring12='fake from id fluid node'
         mystring12=adjustr(mystring12)
         write(6,'(3a)')mystring,": ",mystring12
       end select

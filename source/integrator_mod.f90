@@ -168,10 +168,12 @@
   call driver_collision_fluids
   if(ldiagnostic)call end_timing2("LB","collision_fluids")
   
+#ifndef MPI
   if(ldiagnostic)call start_timing2("LB","driver_bc_pops")
   call driver_bc_pops
   if(ldiagnostic)call end_timing2("LB","driver_bc_pops")
-  
+#endif
+
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
   call driver_streaming_fluids
   if(ldiagnostic)call end_timing2("LB","streaming_fluids")
