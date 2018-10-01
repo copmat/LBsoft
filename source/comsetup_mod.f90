@@ -60,7 +60,7 @@ MODULE lbempi_mod
   integer,PUBLIC :: lnofsite, itpppsize
 
   integer, protected, public :: domdec
-  integer :: syncsend
+  integer, parameter :: syncsend=1
   INTEGER,SAVE :: requestm(0:maxneigh-1), requestp(0:maxneigh-1), &
        requestw(0:maxneigh-1), requesti(0:maxneigh-1), requesto(0:maxneigh-1), &
        requesth(0:maxneigh-1), requesth_wall(0:maxneigh-1), requests(0:maxneigh-1), &
@@ -170,7 +170,7 @@ CONTAINS
   
   myid=idrank
   numprocs=mxrank
-  syncsend=1
+  
 
   nxy2=(nx+2*nbuff)*(ny+2*nbuff)
   nx2=nx+(2*nbuff)
@@ -1119,9 +1119,9 @@ end subroutine
     
     ltest(1)=.false.
     
-    do k=minz-nbuff,maxz+nbuff
-       do j=miny-nbuff,maxy+nbuff
-         do i=minx-nbuff,maxx+nbuff
+    do k=1-nbuff,nz+nbuff
+       do j=1-nbuff,ny+nbuff
+         do i=1-nbuff,nx+nbuff
            if(i<minx.or.j<miny.or.k<minz.or.i>maxx.or.j>maxy.or.k>maxz)then
              itemp=i
              jtemp=j
@@ -1486,14 +1486,14 @@ end subroutine
        ishift=ex(l)
        jshift=ey(l)
        kshift=ez(l)
-       do k=lminz,lmaxz
-          do jy=lminy,lmaxy
-             do i=lminx,lmaxx
+       do k=minz,maxz
+          do jy=miny,maxy
+             do i=minx,maxx
                 itemp=i+ishift;
                 jtemp=jy+jshift;
                 ktemp=k+kshift;
                 itemp2=i+ishift;
-                jtemp2=j+jshift;
+                jtemp2=jy+jshift;
                 ktemp2=k+kshift;
                 !apply periodic conditions if necessary
                 if(ixpbc.eq.1) then
@@ -1802,7 +1802,7 @@ end subroutine
                 endif
                 i4=i4back(itemp,jtemp,ktemp)
                 if(i4<1)then
-                  write(6,*)' something bad ',itemp2,jtemp2,ktemp2,itemp,jtemp,ktemp,minx,maxx
+                  write(6,*)idrank,' something bad ',itemp2,jtemp2,ktemp2,itemp,jtemp,ktemp,minx,maxx
                   ltemp(1)=.true.
                 endif
                 !max                if(idrank.eq.0) then
@@ -1810,7 +1810,11 @@ end subroutine
                 !max                endif
                 !max                if(idrank.eq.1) then
                 !max                   write(51,*)'i',itemp,'j',jtemp,'k',ktemp,'owner',ownern(i4)
-                !max                endif   
+                !max                endif  
+                if(ownern(i4)<0 .or.ownern(i4)>(mxrank-1))then
+                  write(6,*)idrank,' something bad ',itemp2,jtemp2,ktemp2,itemp,jtemp,ktemp,i4,ownern(i4)
+                  ltemp(1)=.true.
+                endif
                 IF(ownern(i4).NE.myid) THEN
                    !sender(ownern(i4))=sender(ownern(i4))+1
                    receiver(ownern(i4))=receiver(ownern(i4))+1

@@ -12,16 +12,18 @@
 !     
 !***********************************************************************
 
- use version_mod,     only : idrank
+ use version_mod,     only : idrank,finalize_world
  use error_mod
  use profiling_mod,  only : start_timing2,end_timing2, &
                        ldiagnostic
+ use lbempi_mod,      only : i4back,ownern
  use fluids_mod,      only : initialize_fluid_force,compute_fluid_force_sc, &
                         driver_bc_densities,driver_bc_pops,&
                         driver_collision_fluids,compute_omega, &
-                        moments_fluids,driver_reflect_densities, &
+                        moments_fluids,driver_copy_densities_wall, &
                         lpair_SC,driver_apply_bounceback_pop, &
-                        driver_streaming_fluids
+                        driver_streaming_fluids,aoptpR,test_fake_pops,&
+                        probe_pops_in_node,ex,ey,ez,isfluid
  use write_output_mod, only : write_vtk_frame
  
  implicit none
@@ -129,7 +131,10 @@
   real(kind=PRC) :: new_time
   
   real(kind=PRC)::myrho,myu,myv,myw
- 
+  logical :: ltest
+  integer :: itemp,jtemp,ktemp,l
+  integer(kind=IPRC) :: i4
+  
   new_time = real(nstep,kind=PRC)*tstep
   
   if(ldiagnostic)call start_timing2("LB","moments_fluids")
@@ -141,9 +146,9 @@
     call driver_bc_densities
     if(ldiagnostic)call end_timing2("LB","driver_bc_densities")
     
-    if(ldiagnostic)call start_timing2("LB","driver_reflect_densities")
-    call driver_reflect_densities
-    if(ldiagnostic)call end_timing2("LB","driver_reflect_densities")
+    if(ldiagnostic)call start_timing2("LB","driver_densities_wall")
+    call driver_copy_densities_wall
+    if(ldiagnostic)call end_timing2("LB","driver_densities_wall")
   endif
   
   if(ldiagnostic)call start_timing2("LB","initialize_force")
@@ -168,12 +173,6 @@
   call driver_collision_fluids
   if(ldiagnostic)call end_timing2("LB","collision_fluids")
   
-#ifndef MPI
-  if(ldiagnostic)call start_timing2("LB","driver_bc_pops")
-  call driver_bc_pops
-  if(ldiagnostic)call end_timing2("LB","driver_bc_pops")
-#endif
-
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
   call driver_streaming_fluids
   if(ldiagnostic)call end_timing2("LB","streaming_fluids")
@@ -181,7 +180,6 @@
   if(ldiagnostic)call start_timing2("LB","apply_bounceback_pop")
   call driver_apply_bounceback_pop
   if(ldiagnostic)call end_timing2("LB","apply_bounceback_pop")
-
   
   mytime = new_time
   

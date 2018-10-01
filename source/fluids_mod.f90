@@ -45,7 +45,7 @@
  integer, save, public :: wminx, wmaxx, wminy, wmaxy, wminz, wmaxz
  integer, save, public :: ixpbc, iypbc, izpbc
  integer, save, public :: ix,iy,iz,mynx,myny,mynz
- type(REALPTR), dimension(0:links):: aoptpR,aoptpB
+ type(REALPTR), dimension(0:links), public, protected :: aoptpR,aoptpB
  !max
  integer, save, protected, public :: LBintegrator=0
  
@@ -259,7 +259,7 @@
  public :: compute_omega
  public :: driver_streaming_fluids
  public :: moments_fluids
- public :: driver_reflect_densities
+ public :: driver_copy_densities_wall
  public :: set_lsingle_fluid
  public :: driver_apply_bounceback_pop
  public :: probe_red_moments_in_node
@@ -273,6 +273,8 @@
  public :: set_fluid_wall_sc
  public :: set_LBintegrator_type
  public :: initialize_isfluid
+ public :: test_fake_pops
+ public :: probe_pops_in_node
  
  contains
  
@@ -517,7 +519,7 @@
      !allocate pointers for managing bc density within the same process
      call initialiaze_manage_bc_hvar_selfcomm
      
-#ifdef BCPOINTER
+#ifndef ALLAMAX
      call initialiaze_manage_bc_pop_selfcomm
 #endif
      
@@ -579,13 +581,47 @@
   implicit none
   integer :: i,j,k
  
-  isfluid(:,:,:)=0
+  isfluid(:,:,:)=3
 ! set isfluid as you like (in future to be given as input file)
 ! all fluid
   
   forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)isfluid(i,j,k)=1
   
-  
+  do k=minz-nbuff,maxz+nbuff
+    do j=miny-nbuff,maxy+nbuff
+      do i=minx-nbuff,maxx+nbuff
+        if(i==0 .or. j==0 .or. k==0 .or. i==(nx+1) .or. j==(ny+1) .or. k==(nz+1))then
+          if(ibctype==0)then ! 0 F F F
+            isfluid(i,j,k)=0
+          elseif(ibctype==1)then ! 1 T F F
+            if(j==0 .or. j==(ny+1) .or. k==0 .or. k==(nz+1))then
+              isfluid(i,j,k)=0
+            endif
+          elseif(ibctype==2)then ! 2 F T F
+            if(i==0 .or. i==(nx+1) .or. k==0 .or. k==(nz+1))then
+              isfluid(i,j,k)=0
+            endif
+          elseif(ibctype==3)then ! 3 T T F
+            if(k==0 .or. k==(nz+1))then
+              isfluid(i,j,k)=0
+            endif
+          elseif(ibctype==4)then ! 4 F F T
+            if(i==0 .or. i==(nx+1) .or. j==0 .or. j==(ny+1))then
+              isfluid(i,j,k)=0
+            endif
+          elseif(ibctype==5)then ! 5 T F T
+            if(j==0 .or. j==(ny+1))then
+              isfluid(i,j,k)=0
+            endif
+          elseif(ibctype==6)then ! 6 F T T
+            if(i==0 .or. i==(nx+1))then
+              isfluid(i,j,k)=0
+            endif
+          endif 
+        endif
+      enddo
+    enddo
+  enddo
   
   call comm_init_isfluid(isfluid)
   call initialiaze_manage_bc_isfluid_selfcomm
@@ -641,7 +677,7 @@
   
   call driver_bc_densities
   
-  call driver_reflect_densities
+  call driver_copy_densities_wall
   
   if(idistselect==3)then
     !perform a fake test with the density set as the real(i4) value
@@ -660,10 +696,6 @@
   if(lvorticity)call driver_bc_velocities
   
   call driver_set_initial_pop_fluids
-  
-  !call driver_bc_pops
-  
-  !call driver_reflect_pops
   
   if(lunique_omega)call set_unique_omega
   
@@ -985,99 +1017,98 @@
   
   integer :: i,j,k
   
-  !red fluid
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f00sub(i,j,k)=equil_pop00(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f01sub(i,j,k)=equil_pop01(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f02sub(i,j,k)=equil_pop02(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f03sub(i,j,k)=equil_pop03(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f04sub(i,j,k)=equil_pop04(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f05sub(i,j,k)=equil_pop05(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f06sub(i,j,k)=equil_pop06(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f07sub(i,j,k)=equil_pop07(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f08sub(i,j,k)=equil_pop08(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f09sub(i,j,k)=equil_pop09(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f10sub(i,j,k)=equil_pop10(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f11sub(i,j,k)=equil_pop11(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f12sub(i,j,k)=equil_pop12(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f13sub(i,j,k)=equil_pop13(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f14sub(i,j,k)=equil_pop14(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f15sub(i,j,k)=equil_pop15(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f16sub(i,j,k)=equil_pop16(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f17sub(i,j,k)=equil_pop17(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
   
-  forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz)
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
     f18sub(i,j,k)=equil_pop18(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
@@ -2254,8 +2285,27 @@
   
   integer :: i,j,k,l,ishift,jshift,kshift
 
-#ifdef BCPOINTER
+
+  
+#ifdef ALLAMAX
+  
+#ifndef MPI
+  call driver_bc_pops
+#endif
+  
+  call streaming_fluids(f00R,f01R,f02R,f03R,f04R, &
+   f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
+   f14R,f15R,f16R,f17R,f18R,aoptpR)
+   
+  if(lsingle_fluid)return
+  
+  call streaming_fluids(f00B,f01B,f02B,f03B,f04B, &
+   f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B, &
+   f14B,f15B,f16B,f17B,f18B,aoptpB)
+   
+#else
     
+#ifdef MPI
   call commspop(aoptpR)
   
   do l=1,links
@@ -2296,6 +2346,8 @@
   
 #else
   
+  call driver_bc_pops
+  
   call streaming_fluids(f00R,f01R,f02R,f03R,f04R, &
    f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
    f14R,f15R,f16R,f17R,f18R,aoptpR)
@@ -2305,6 +2357,8 @@
   call streaming_fluids(f00B,f01B,f02B,f03B,f04B, &
    f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B, &
    f14B,f15B,f16B,f17B,f18B,aoptpB)
+
+#endif
   
 #endif
   
@@ -2341,6 +2395,9 @@
   integer, save :: iter=0
   
   iter=iter+1
+   
+#if defined(MPI)
+
 #if 0
    if(iter.eq.1) then
    do l=1,links
@@ -2355,8 +2412,7 @@
      enddo
    endif
 #endif
-   
-#if defined(MPI)
+
    call commspop(aoptp)
 
    do l=1,links
@@ -2383,8 +2439,7 @@
 !max            if(l.eq.3.AND.idrank.eq.1) then
 !max               write(0,*)'2, wminy+1 ',wminy+1,'wmaxy-1 ',wmaxy-1
 !max            endif   
-         !treatment of the frame along x with pbc if requested
-         forall(j=wminy+1:wmaxy-1,k=wminz+1:wmaxz-1) buffservice3d(itemp,j+jshift,k+kshift) = aoptp(l)%p(i,j,k)
+           forall(j=wminy+1:wmaxy-1,k=wminz+1:wmaxz-1) buffservice3d(itemp,j+jshift,k+kshift) = aoptp(l)%p(i,j,k)
 !!         endif
          do j=wminy,wmaxy,wmaxy-wminy
             jtemp=j+jshift
@@ -2577,6 +2632,22 @@
       forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
    enddo
    call commrpop(aoptp)
+   
+#if 0
+  if(iter.eq.1) then
+  do l=1,links
+!     write(50+idrank,*)'out pop ',l
+        do i=wminx,wmaxx
+         do j=wminy,wmaxy
+            do k=wminz,wmaxz
+               write((100*idrank)+270+l,*)i,j,k,aoptp(l)%p(i,j,k)
+           enddo
+         enddo
+        enddo
+     enddo
+  endif
+#endif
+   
 #else
   
 
@@ -3656,6 +3727,39 @@
   
  end subroutine probe_blue_moments_in_node
  
+ subroutine probe_pops_in_node(itemp,jtemp,ktemp,nstepsub,aoptp,rhosub)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for probing the population values
+!     at the point i j k
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification September 2018
+!     
+!***********************************************************************
+  
+  integer, intent(in) :: itemp,jtemp,ktemp,nstepsub
+  type(REALPTR), dimension(0:links):: aoptp
+  real(kind=PRC), allocatable :: rhosub(:,:,:)
+  integer(kind=IPRC) :: i4
+  
+  integer :: l
+  
+  i4=i4back(itemp,jtemp,ktemp)
+  if(ownern(i4)==idrank)then
+    write(6,*)'------------------------------------------------','id =',idrank, &
+     rhosub(itemp,jtemp,ktemp)
+    do l=0,18
+    write(6,*)'l =',l,nstepsub,aoptp(l)%p(itemp,jtemp,ktemp)
+    call flush(6)
+    enddo
+  endif
+  return
+  
+ end subroutine probe_pops_in_node
+ 
 !*************START PART TO DEFINE THE EQUILIBRIUM FUNCTS***************
  
  pure function equil_pop00(myrho,myu,myv,myw)
@@ -4643,12 +4747,13 @@ subroutine driver_bc_densities
   logical, parameter :: lverbose=.false.
   
   nvar_managebc=0
+  if(ixpbc.eq.0 .and. iypbc.eq.0 .and. izpbc.eq.0)return
   
   do k=minz-nbuff,maxz+nbuff
     do j=miny-nbuff,maxy+nbuff
       do i=minx-nbuff,maxx+nbuff
         if(i<minx.or.j<miny.or.k<minz.or.i>maxx.or.j>maxy.or.k>maxz)then
-          if(ixpbc.eq.0 .and. iypbc.eq.0 .and. izpbc.eq.0)cycle
+          
           itemp=i
           jtemp=j
           ktemp=k
@@ -8367,8 +8472,8 @@ subroutine driver_bc_densities
  
   implicit none
   
-#ifdef MPI
-   
+#if 0
+   !ml qui c'è un errore
    call bounceback_pop(aoptpR)
    
    if(lsingle_fluid)return
@@ -8377,32 +8482,48 @@ subroutine driver_bc_densities
    
 #else
   
-  select case(ibctype)
-  case(0) ! 0 0 0 
-    call apply_bounceback_pops_all
-  case(1) ! 1 0 0 
-    call apply_bounceback_pops_along_yz
-  case(2) ! 0 1 0 
-    call apply_bounceback_pops_along_xz
-  case(3) ! 1 1 0 
-    call apply_bounceback_pops_along_z
-  case(4) ! 0 0 1 
-    call apply_bounceback_pops_along_xy
-  case(5) ! 1 0 1 
-    call apply_bounceback_pops_along_y
-  case(6) ! 0 1 1 
-    call apply_bounceback_pops_along_x
-  case(7) ! 1 1 1
-    return 
-  case default
-    call error(12)
-  end select
+  call apply_bounceback_pop(aoptpR)
+  
+  if(lsingle_fluid)return
+  
+  call apply_bounceback_pop(aoptpB)
   
   return
   
 #endif
   
  end subroutine driver_apply_bounceback_pop
+ 
+ subroutine apply_bounceback_pop(aoptp)
+ 
+ !***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback 
+!     to fluid populations if necessary
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Bernaschi
+!     last modification September 2018
+!     
+!***********************************************************************
+ 
+  implicit none 
+  
+  type(REALPTR), dimension(0:links):: aoptp
+  
+  integer :: i,j,k,l
+  
+  do l=1,links,2
+    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,isfluid(i,j,k)==0)
+      buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
+      aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
+      aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
+    end forall
+  enddo
+  
+  return
+  
+ end subroutine
  
  subroutine bounceback_pop(aoptp)
  
@@ -13139,9 +13260,9 @@ subroutine driver_bc_densities
  
 !******************END PART TO MANAGE THE BOUNCEBACK********************
 
-!*****************START PART TO MANAGE THE REFLECTION*******************
+!******************START PART TO MANAGE THE COPY WALL*******************
  
- subroutine driver_reflect_densities
+ subroutine driver_copy_densities_wall
  
 !***********************************************************************
 !     
@@ -13161,7 +13282,6 @@ subroutine driver_bc_densities
   REAL(kind=PRC) :: isum
   
   
-#if 1
   
    
    if(lsingle_fluid)then
@@ -13214,34 +13334,8 @@ subroutine driver_bc_densities
    
    return
    
-#else
   
-  select case(ibctype)
-  case(0) ! 0 0 0
-    call apply_reflection_densities_all
-  case(1) ! 1 0 0 
-    call apply_reflection_densities_along_yz
-  case(2) ! 0 1 0 
-    call apply_reflection_densities_along_xz
-  case(3) ! 1 1 0 
-    call apply_reflection_densities_along_z
-  case(4) ! 0 0 1 
-    call apply_reflection_densities_along_xy
-  case(5) ! 1 0 1 
-    call apply_reflection_densities_along_y
-  case(6) ! 0 1 1 
-    call apply_reflection_densities_along_x
-  case(7) ! 1 1 1
-    return
-  case default
-    call error(12)
-  end select
-  
-  return
-  
-#endif
-  
- end subroutine driver_reflect_densities
+ end subroutine driver_copy_densities_wall
  
  subroutine apply_reflection_densities_all
  
@@ -17955,8 +18049,7 @@ subroutine driver_bc_densities
   
  end subroutine apply_reflection_corner_south_east_rear
  
-!******************END PART TO MANAGE THE REFLECTION********************
-
+!*******************END PART TO MANAGE THE COPY WALL********************
 
  subroutine write_test_map_pop(aoptp)
   
@@ -18032,9 +18125,12 @@ subroutine driver_bc_densities
   
   if(lwritesub)then
     if(mxrank/=1)then
-      write(6,*)'error in test_fake_dens'
-      write(6,*)'to write ',filetest,' you should run in serial'
-      write(6,*)'actual mxrank = ',mxrank
+      if(idrank==0)then
+        write(6,*)'error in test_fake_dens'
+        write(6,*)'to write ',filetest,' you should run in serial'
+        write(6,*)'actual mxrank = ',mxrank
+        call flush(6)
+      endif
       call finalize_world
       stop
     endif
@@ -18091,5 +18187,167 @@ subroutine driver_bc_densities
   return
   
  end subroutine test_fake_dens
+ 
+ subroutine test_fake_pops(aoptp,ltestout)
+ 
+  implicit none
+  
+  logical :: lwritesub
+  type(REALPTR), dimension(0:links):: aoptp
+  logical, intent(out) :: ltestout
+  integer, parameter :: iotest=166
+  character(len=60) :: filetest
+  
+  real(kind=PRC), allocatable, dimension(:,:,:,:) :: dtemp2
+  integer, dimension(4) :: itempp,itempp2
+  logical :: ltest(1)
+  integer :: i,j,k,l,imy(3)
+  logical :: lexist
+  integer, save :: iter=0
+  logical, parameter :: lbinary=.false. 
+  integer(kind=1) :: istemp
+  
+  ltest(1)=.false.
+  
+  iter=iter+1
+  
+  
+  filetest=repeat(' ',60)
+  filetest='fake_test_pop'//write_fmtnumb(iter)//'.dat'
+  
+  inquire(file=trim(filetest),exist=lexist)
+  lwritesub=(.not. lexist)
+  
+  if(lwritesub)then
+    if(mxrank/=1)then
+      if(idrank==0)then
+        write(6,*)'error in test_fake_dens'
+        write(6,*)'to write ',trim(filetest),' you should run in serial'
+        write(6,*)'actual mxrank = ',mxrank
+        call flush(6)
+      endif
+      call finalize_world
+      stop
+    endif
+    if(lbinary)then
+      open(unit=iotest,file=trim(filetest),status='replace',action='write',form='unformatted')
+      write(iotest)mxrank,nx,ny,nz
+      do l=0,links
+        do k=1-nbuff,nz+nbuff
+          do j=1-nbuff,ny+nbuff
+            do i=1-nbuff,nx+nbuff
+              write(iotest)i,j,k,l,real(aoptp(l)%p(i,j,k),kind=PRC), &
+               isfluid(i,j,k),i+ex(l),j+ey(l),k+ez(l)
+            enddo
+          enddo
+        enddo
+      enddo
+    else
+      open(unit=iotest,file=trim(filetest),status='replace',action='write')
+      write(iotest,'(4i10)')mxrank,nx,ny,nz
+      do l=0,links
+        do k=1-nbuff,nz+nbuff
+          do j=1-nbuff,ny+nbuff
+            do i=1-nbuff,nx+nbuff
+              write(iotest,'(4i8,g20.10,4i4)')i,j,k,l,aoptp(l)%p(i,j,k), &
+               isfluid(i,j,k),i+ex(l),j+ey(l),k+ez(l)
+            enddo
+          enddo
+        enddo
+      enddo
+    endif
+    close(iotest)
+  else
+    if(lbinary)then
+      open(unit=iotest,file=trim(filetest),status='old',action='read',form='unformatted')
+      read(iotest)itempp(1:4)
+    else
+      open(unit=iotest,file=trim(filetest),status='old',action='read')
+      read(iotest,'(4i10)')itempp(1:4)
+    endif
+    if(itempp(2)/=nx .or. itempp(3)/=ny .or. itempp(4)/=nz)then
+      write(6,*)'error in test_fake_dens'
+      write(6,*)'nx ny nz = ',nx,itempp(2),ny,itempp(3),nz,itempp(4)
+      call finalize_world
+      stop
+    endif
+    allocate(dtemp2(1-nbuff:nx+nbuff,1-nbuff:ny+nbuff,1-nbuff:nz+nbuff,0:links))
+    if(lbinary)then
+      do l=0,links
+        do k=1-nbuff,nz+nbuff
+          do j=1-nbuff,ny+nbuff
+            do i=1-nbuff,nx+nbuff
+              read(iotest)itempp(1:4),dtemp2(i,j,k,l),istemp,itempp2(1:3)
+            enddo
+          enddo
+        enddo
+      enddo
+    else
+      do l=0,links
+        do k=1-nbuff,nz+nbuff
+          do j=1-nbuff,ny+nbuff
+            do i=1-nbuff,nx+nbuff
+              read(iotest,'(4i8,g20.10,4i4)')itempp(1:4),dtemp2(i,j,k,l),itempp2(1:4)
+            enddo
+          enddo
+        enddo
+      enddo
+    endif
+    close(iotest)
+    if(lbinary)then
+      do l=0,links
+        do k=minz,maxz
+          do j=miny,maxy
+            do i=minx,maxx
+              if(real(aoptp(l)%p(i,j,k),kind=PRC)/=dtemp2(i,j,k,l))then
+                ltest(1)=.true.
+                goto 125
+              endif
+            enddo
+          enddo
+        enddo
+      enddo
+    else
+      do l=0,links
+        do k=minz,maxz
+          do j=miny,maxy
+            do i=minx,maxx
+              if(dabs(real(aoptp(l)%p(i,j,k),kind=PRC)-dtemp2(i,j,k,l))>1.d-9)then
+                ltest(1)=.true.
+                goto 125
+              endif
+            enddo
+          enddo
+        enddo
+      enddo
+    endif
+ 125 continue
+    if(ltest(1))then
+      write(6,*)'error test_fake_dens idrank = ',idrank
+      write(6,*)'node = ',i,j,k,l,aoptp(l)%p(i,j,k),dtemp2(i,j,k,l)
+      call flush(6)
+    endif
+    deallocate(dtemp2)
+    call or_world_larr(ltest,1)
+  endif
+  
+  ltestout=ltest(1)
+  if(idrank==0)then
+    write(6,*)'ITER: ',iter
+    if(lwritesub)then
+      write(6,*)'WRITE FILE: ',trim(filetest)
+    else
+      if(ltestout)then
+        write(6,*)'TEST: NO'
+      else
+        write(6,*)'TEST: OK'
+      endif
+    endif
+    call flush(6)
+  endif
+  call get_sync_world
+  return
+  
+ end subroutine test_fake_pops
  
  end module fluids_mod

@@ -121,10 +121,14 @@
    miny,maxy,minz,maxz)  
    
 !at this point you can deallocate ownern in order to release space
-  call deallocate_ownern
+  !call deallocate_ownern
   
 !da rivedere
+#ifndef ALLAMAX
   call allocate_array_buffservice3d(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,1-nbuff,nz+nbuff)
+#else
+  call allocate_array_buffservice3d(minx-nbuff,maxx+nbuff,miny-nbuff,maxy+nbuff,minz-nbuff,maxz+nbuff)
+#endif
   
 ! allocate service arrays for printing modules
   call allocate_print()

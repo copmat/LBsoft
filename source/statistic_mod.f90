@@ -12,7 +12,8 @@
 !     
 !***********************************************************************
  
- use version_mod,           only : time_world
+ use version_mod,           only : time_world,idrank,mxrank,sum_world_farr, &
+  max_world_farr,min_world_farr,get_sync_world,finalize_world
  use fluids_mod,            only : nx,ny,nz,rhoR,rhoB,u,v,w, &
   lsingle_fluid, minx, maxx, miny, maxy, minz, maxz
  
@@ -83,25 +84,25 @@
   integer, save :: nstepsubold=0
   integer, save :: nmulstepdoneold=0
   
-  real(kind=PRC) :: dnorm,dsum
+  real(kind=PRC) :: dnorm,dsum,dtemp(10)
   
   
   call compute_elapsed_cpu_time()
   call compute_cpu_time()
   
-  !max  dnorm=real(nx*ny*nz,kind=PRC)
-  dnorm=real((maxz+1-minz)*(maxy+1-miny)*(maxx+1-minx),kind=PRC)
+  dnorm=real(nx*ny*nz,kind=PRC)
   
   forall(i=1:nmaxstatdata)statdata(i)=ZERO
   
 ! store all the observables in the statdata array to be printed
   
-  statdata(1)=sum(rhoR(minx:maxx,miny:maxy,minz:maxz))/dnorm
+  statdata(1)=sum(rhoR(minx:maxx,miny:maxy,minz:maxz))
+  
   statdata(3)=maxval(rhoR(minx:maxx,miny:maxy,minz:maxz))
   statdata(5)=minval(rhoR(minx:maxx,miny:maxy,minz:maxz))
   
   if(.not. lsingle_fluid)then
-    statdata(2)=sum(rhoB(minx:maxx,miny:maxy,minz:maxz))/dnorm
+    statdata(2)=sum(rhoB(minx:maxx,miny:maxy,minz:maxz))
     statdata(4)=maxval(rhoB(minx:maxx,miny:maxy,minz:maxz))
     statdata(6)=minval(rhoB(minx:maxx,miny:maxy,minz:maxz))
   endif
@@ -117,6 +118,42 @@
   statdata(14)=elapsedcputime
   statdata(15)=meancputime
   statdata(16)=timesub
+  
+  
+  if(mxrank>1)then
+    dtemp(1)=statdata(1)
+    dtemp(2)=statdata(2)
+    call sum_world_farr(dtemp,2)
+    statdata(1)=dtemp(1)
+    if(.not. lsingle_fluid)statdata(2)=dtemp(2)
+    
+    dtemp(1)=statdata(3)
+    dtemp(2)=statdata(4)
+    dtemp(3)=statdata(7)
+    dtemp(4)=statdata(9)
+    dtemp(5)=statdata(11)
+    call max_world_farr(dtemp,5)
+    statdata(3)=dtemp(1)
+    if(.not. lsingle_fluid)statdata(4)=dtemp(2)
+    statdata(7)=dtemp(3)
+    statdata(9)=dtemp(4)
+    statdata(11)=dtemp(5)
+    
+    dtemp(1)=statdata(5)
+    dtemp(2)=statdata(6)
+    dtemp(3)=statdata(8)
+    dtemp(4)=statdata(10)
+    dtemp(5)=statdata(12)
+    call min_world_farr(dtemp,5)
+    statdata(5)=dtemp(1)
+    if(.not. lsingle_fluid)statdata(6)=dtemp(2)
+    statdata(8)=dtemp(3)
+    statdata(10)=dtemp(4)
+    statdata(12)=dtemp(5)
+  endif
+  
+  statdata(1)=statdata(1)/dnorm
+  if(.not. lsingle_fluid)statdata(2)=statdata(2)/dnorm
   
 ! update the counter
   icount=icount+1

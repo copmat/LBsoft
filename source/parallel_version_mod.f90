@@ -63,8 +63,7 @@
  public :: or_world_larr
  
  integer, allocatable, dimension(:), save :: ibuffer
- real(4), allocatable, dimension(:), save :: fbuffer
- real(8), allocatable, dimension(:), save :: dbuffer
+ real(kind=PRC), allocatable, dimension(:), save :: fbuffer
  logical, allocatable, dimension(:), save :: lbuffer
  integer, save :: nibuffer,nfbuffer,ndbuffer,nlbuffer
  logical, save :: aibuffer=.false.
@@ -113,8 +112,8 @@
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for allocating the buffer array of single
-!     precision type
+!     LBsoft subroutine for allocating the buffer array of float
+!     type
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
@@ -694,7 +693,7 @@
     call allocate_fbuffer(narr)
     
     call MPI_ALLREDUCE(argument,fbuffer,narr,MY_FLOAT, &
-      MPI_SUM,MPI_COMM_WORLD,ier)
+     MPI_SUM,MPI_COMM_WORLD,ier)
     
     argument(1:narr)=fbuffer(1:narr)
     

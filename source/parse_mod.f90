@@ -253,6 +253,17 @@
  end function dblstr
 
  subroutine strip(string,lenstring)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to strip a character string
+!     originally written in JETSPIN by M. Lauricella et al.
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
 
   implicit none
   
