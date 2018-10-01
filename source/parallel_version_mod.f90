@@ -142,40 +142,6 @@
   
  end subroutine allocate_fbuffer
  
- subroutine allocate_dbuffer(narr)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for allocating the buffer array of double
-!     precision type
-!     originally written in JETSPIN by M. Lauricella et al.
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification March 2015
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer, intent(in) :: narr
-  
-  if(adbuffer)then
-    if(narr>ndbuffer)then
-      deallocate(dbuffer)
-      ndbuffer=narr+nincrement
-      allocate(dbuffer(ndbuffer))
-    endif
-  else
-    ndbuffer=narr+nincrement
-    allocate(dbuffer(ndbuffer))
-    adbuffer=.true.
-  endif
-  
-  return
-  
- end subroutine allocate_dbuffer
- 
  subroutine allocate_lbuffer(narr)
  
 !***********************************************************************
