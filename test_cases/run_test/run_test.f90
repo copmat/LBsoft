@@ -36,6 +36,8 @@
   character(len=8) :: mystring8
   logical :: lexist
   
+  real, parameter :: mytol=1.e-4
+  
   
   if(iargc()/=0 .and. iargc()/=6)then
     write(6,*) 'error!'
@@ -216,7 +218,7 @@
           do jj=1,ny1
             do ii=1,nx1
               do l=1,4
-                if(dmio1(l,ii,jj,kk) .ne. dmio2(l,ii,jj,kk))then
+                if(abs(dmio1(l,ii,jj,kk)-dmio2(l,ii,jj,kk))>mytol)then
                   ltest(i)=.false.
                   cycle
                 endif
@@ -305,7 +307,7 @@
           do jj=1,ny1
             do ii=1,nx1
               do l=1,5
-                if(dmio1(l,ii,jj,kk) .ne. dmio2(l,ii,jj,kk))then
+                if(abs(dmio1(l,ii,jj,kk)-dmio2(l,ii,jj,kk))>mytol)then
                   ltest(i)=.false.
                   cycle
                 endif
