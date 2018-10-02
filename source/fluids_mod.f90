@@ -39,6 +39,8 @@
 #if LATTICE==319
  integer, parameter, public :: links=18
 #endif
+
+ integer, parameter, public :: ntypebc=6
  
  !max
  integer, save, public :: minx, maxx, miny, maxy, minz, maxz
@@ -146,6 +148,7 @@
  real(kind=PRC), save, protected, public :: wallB_SC = ONE
  
  integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: isfluid
+ integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: bcfluid
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:),target :: rhoR
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:),target :: rhoB
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: u
@@ -166,6 +169,11 @@
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: gradpsixB
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: gradpsiyB
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: gradpsizB
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: bc_rhoR
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: bc_rhoB
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: bc_u
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: bc_v
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: bc_w
  
 #if LATTICE==319
  
@@ -313,7 +321,7 @@
      istat=0
      
      allocate(isfluid(ix:mynx,iy:myny,iz:mynz),stat=istat(1))
-     
+     allocate(bcfluid(ix:mynx,iy:myny,iz:mynz),stat=istat(99))
      allocate(rhoR(ix:mynx,iy:myny,iz:mynz),stat=istat(2))
 
      allocate(u(ix:mynx,iy:myny,iz:mynz),stat=istat(3))
@@ -372,9 +380,14 @@
      aoptpR(16)%p => f16R
      aoptpR(17)%p => f17R
      aoptpR(18)%p => f18R
+     
+     allocate(bc_rhoR(ix:mynx,iy:myny,iz:mynz),stat=istat(49))
+     allocate(bc_u(ix:mynx,iy:myny,iz:mynz),stat=istat(50))
+     allocate(bc_v(ix:mynx,iy:myny,iz:mynz),stat=istat(51))
+     allocate(bc_w(ix:mynx,iy:myny,iz:mynz),stat=istat(52))
 
      if(.not. lsingle_fluid)then
-
+        
         allocate(rhoB(ix:mynx,iy:myny,iz:mynz),stat=istat(2))
 
         allocate(fuB(ix:mynx,iy:myny,iz:mynz),stat=istat(9))
@@ -427,6 +440,8 @@
         aoptpB(16)%p => f16B
         aoptpB(17)%p => f17B
         aoptpB(18)%p => f18B
+        
+        allocate(bc_rhoB(ix:mynx,iy:myny,iz:mynz),stat=istat(69))
 
      endif
 
@@ -579,9 +594,10 @@
 !***********************************************************************
  
   implicit none
-  integer :: i,j,k
+  integer :: i,j,k,l
  
   isfluid(:,:,:)=3
+  bcfluid(:,:,:)=0
 ! set isfluid as you like (in future to be given as input file)
 ! all fluid
   
@@ -592,30 +608,252 @@
       do i=minx-nbuff,maxx+nbuff
         if(i==0 .or. j==0 .or. k==0 .or. i==(nx+1) .or. j==(ny+1) .or. k==(nz+1))then
           if(ibctype==0)then ! 0 F F F
-            isfluid(i,j,k)=0
+            if(i==(nx+1) .and. j==0 .and. k==(nz+1))then !north east front corner 
+              isfluid(i,j,k)=0
+            elseif(i==(nx+1) .and. j==(ny+1) .and. k==(nz+1))then !north east rear corner
+              isfluid(i,j,k)=0
+            elseif(i==0 .and. j==(ny+1) .and. k==(nz+1))then !north west rear corner
+              isfluid(i,j,k)=0
+            elseif(i==0 .and. j==0 .and. k==(nz+1))then !north west front corner
+              isfluid(i,j,k)=0
+            elseif(i==(nx+1) .and. j==0 .and. k==0)then !south east front corner
+              isfluid(i,j,k)=0
+            elseif(i==0 .and. j==0 .and. k==0)then !south west front corner
+              isfluid(i,j,k)=0
+            elseif(i==0 .and. j==(ny+1) .and. k==0)then !south west rear corner
+              isfluid(i,j,k)=0
+            elseif(i==(nx+1) .and. j==(ny+1) .and. k==0)then !south east rear corner
+              isfluid(i,j,k)=0
+            elseif(i==(nx+1) .and. j==0)then !front east edge
+              isfluid(i,j,k)=0
+            elseif(i==0 .and. j==0)then !front west edge
+              isfluid(i,j,k)=0
+            elseif(i==(nx+1) .and. k==(nz+1))then !north east edge
+              isfluid(i,j,k)=0
+            elseif(j==0 .and. k==(nz+1))then !north front edge
+              isfluid(i,j,k)=0
+            elseif(j==(ny+1) .and. k==(nz+1))then !north rear edge
+              isfluid(i,j,k)=0
+            elseif(i==0 .and. k==(nz+1))then !north west edge
+              isfluid(i,j,k)=0
+            elseif(i==(nx+1) .and. j==(ny+1))then !rear east edge
+              isfluid(i,j,k)=0
+            elseif(i==0 .and. j==(ny+1))then !rear west edge
+              isfluid(i,j,k)=0
+            elseif(i==(nx+1) .and. k==0)then !south east edge
+              isfluid(i,j,k)=0
+            elseif(j==0 .and. k==0)then !south east edge
+              isfluid(i,j,k)=0
+            elseif(j==(ny+1) .and. k==0)then !south rear edge
+              isfluid(i,j,k)=0
+            elseif(i==0 .and. k==0)then !south south west
+              isfluid(i,j,k)=0
+            elseif(i==(nx+1))then !east side
+              if(bc_type_east/=0)then
+                isfluid(i,j,k)=bc_type_east+5
+                bcfluid(i,j,k)=2
+              else
+                isfluid(i,j,k)=0
+              endif
+            elseif(i==0)then !west side
+              if(bc_type_west/=0)then
+                isfluid(i,j,k)=bc_type_west+5
+                bcfluid(i,j,k)=1
+              else
+                isfluid(i,j,k)=0
+              endif
+            elseif(k==(nz+1))then !north side
+              if(bc_type_north/=0)then
+                isfluid(i,j,k)=bc_type_north+5
+                bcfluid(i,j,k)=6
+              else
+                isfluid(i,j,k)=0
+              endif
+            elseif(k==0)then !south side
+              if(bc_type_south/=0)then
+                isfluid(i,j,k)= bc_type_south+5
+                bcfluid(i,j,k)=5
+              else
+                isfluid(i,j,k)=0
+              endif
+            elseif(j==0)then !front side
+              if(bc_type_front/=0)then
+                isfluid(i,j,k)= bc_type_front+5
+                bcfluid(i,j,k)=3
+              else
+                isfluid(i,j,k)=0
+              endif
+            elseif(j==(ny+1))then !rear side
+              if(bc_type_rear/=0)then
+                isfluid(i,j,k)= bc_type_rear+5
+                bcfluid(i,j,k)=4
+              else
+                isfluid(i,j,k)=0
+              endif
+            else
+              isfluid(i,j,k)=0
+            endif
           elseif(ibctype==1)then ! 1 T F F
             if(j==0 .or. j==(ny+1) .or. k==0 .or. k==(nz+1))then
-              isfluid(i,j,k)=0
+              if(k==(nz+1))then !north side
+                if(bc_type_north/=0)then
+                  isfluid(i,j,k)= bc_type_north+5
+                  bcfluid(i,j,k)=6
+                else
+                  isfluid(i,j,k)=0
+                endif
+              elseif(k==0)then !south side
+                if(bc_type_south/=0)then
+                  isfluid(i,j,k)= bc_type_south+5
+                  bcfluid(i,j,k)=5
+                else
+                  isfluid(i,j,k)=0
+                endif
+              elseif(j==0)then !front side
+                if(bc_type_front/=0)then
+                  isfluid(i,j,k)= bc_type_front+5
+                  bcfluid(i,j,k)=3
+                else
+                  isfluid(i,j,k)=0
+                endif
+              elseif(j==(ny+1))then !rear side
+                if(bc_type_rear/=0)then
+                  isfluid(i,j,k)= bc_type_rear+5
+                  bcfluid(i,j,k)=4
+                else
+                  isfluid(i,j,k)=0
+                endif
+              else
+                isfluid(i,j,k)=0
+              endif
             endif
           elseif(ibctype==2)then ! 2 F T F
             if(i==0 .or. i==(nx+1) .or. k==0 .or. k==(nz+1))then
-              isfluid(i,j,k)=0
+              if(i==(nx+1))then !east side
+                if(bc_type_east/=0)then
+                  isfluid(i,j,k)= bc_type_east+5
+                  bcfluid(i,j,k)=2
+                else
+                  isfluid(i,j,k)=0
+                endif
+              elseif(i==0)then !west side
+                if(bc_type_west/=0)then
+                  isfluid(i,j,k)= bc_type_west+5
+                  bcfluid(i,j,k)=1
+                else
+                  isfluid(i,j,k)=0
+                endif
+              elseif(k==(nz+1))then !north side
+                if(bc_type_north/=0)then
+                  isfluid(i,j,k)= bc_type_north+5
+                  bcfluid(i,j,k)=6
+                else
+                  isfluid(i,j,k)=0
+                endif
+              elseif(k==0)then !south side
+                if(bc_type_south/=0)then
+                  isfluid(i,j,k)= bc_type_south+5
+                  bcfluid(i,j,k)=5
+                else
+                  isfluid(i,j,k)=0
+                endif
+              else
+                isfluid(i,j,k)=0
+              endif
             endif
           elseif(ibctype==3)then ! 3 T T F
             if(k==0 .or. k==(nz+1))then
-              isfluid(i,j,k)=0
+              if(k==(nz+1))then !north side
+                if(bc_type_north/=0)then
+                  isfluid(i,j,k)= bc_type_north+5
+                  bcfluid(i,j,k)=6
+                else
+                  isfluid(i,j,k)=0
+                endif
+              elseif(k==0)then !south side
+                if(bc_type_south/=0)then
+                  isfluid(i,j,k)= bc_type_south+5
+                  bcfluid(i,j,k)=5
+                else
+                  isfluid(i,j,k)=0
+                endif
+              else
+                isfluid(i,j,k)=0
+              endif
             endif
           elseif(ibctype==4)then ! 4 F F T
             if(i==0 .or. i==(nx+1) .or. j==0 .or. j==(ny+1))then
-              isfluid(i,j,k)=0
+              if(i==(nx+1))then !east side
+                if(bc_type_east/=0)then
+                  isfluid(i,j,k)= bc_type_east+5
+                  bcfluid(i,j,k)=2
+                else
+                  isfluid(i,j,k)=0
+                endif
+              elseif(i==0)then !west side
+                if(bc_type_west/=0)then
+                  isfluid(i,j,k)= bc_type_west+5
+                  bcfluid(i,j,k)=1
+                else
+                  isfluid(i,j,k)=0
+                endif
+              elseif(j==0)then !front side
+                if(bc_type_front/=0)then
+                  isfluid(i,j,k)= bc_type_front+5
+                  bcfluid(i,j,k)=3
+                else
+                  isfluid(i,j,k)=0
+                endif
+              elseif(j==(ny+1))then !rear side
+                if(bc_type_rear/=0)then
+                  isfluid(i,j,k)= bc_type_rear+5
+                  bcfluid(i,j,k)=4
+                else
+                  isfluid(i,j,k)=0
+                endif
+              else
+                isfluid(i,j,k)=0
+              endif
             endif
           elseif(ibctype==5)then ! 5 T F T
             if(j==0 .or. j==(ny+1))then
-              isfluid(i,j,k)=0
+              if(j==0)then !front side
+                if(bc_type_front/=0)then
+                  isfluid(i,j,k)= bc_type_front+5
+                  bcfluid(i,j,k)=3
+                else
+                  isfluid(i,j,k)=0
+                endif
+              elseif(j==(ny+1))then !rear side
+                if(bc_type_rear/=0)then
+                  isfluid(i,j,k)= bc_type_rear+5
+                  bcfluid(i,j,k)=4
+                else
+                  isfluid(i,j,k)=0
+                endif
+              else
+                isfluid(i,j,k)=0
+              endif
             endif
           elseif(ibctype==6)then ! 6 F T T
             if(i==0 .or. i==(nx+1))then
-              isfluid(i,j,k)=0
+              if(i==(nx+1))then !east side
+                if(bc_type_east/=0)then
+                  isfluid(i,j,k)= bc_type_east+5
+                  bcfluid(i,j,k)=2
+                else
+                  isfluid(i,j,k)=0
+                endif
+              elseif(i==0)then !west side
+                if(bc_type_west/=0)then
+                  isfluid(i,j,k)= bc_type_west+5
+                  bcfluid(i,j,k)=1
+                else
+                  isfluid(i,j,k)=0
+                endif
+              else
+                isfluid(i,j,k)=0
+              endif
             endif
           endif 
         endif
@@ -623,19 +861,21 @@
     enddo
   enddo
   
-  call comm_init_isfluid(isfluid)
-  call initialiaze_manage_bc_isfluid_selfcomm
   
-!  itesto=repeat(' ',32)
-!  itesto=write_fmtnumb(idrank)//'own.dat'
-!  open(unit=1022+idrank,file=trim(itesto),status='replace')
-!  do k=minz-nbuff,maxz+nbuff
-!    do j=miny-nbuff,maxy+nbuff
-!      do i=minx-nbuff,maxx+nbuff
-!        write(1022+idrank,*)i,j,k,ownern(i4back(i,j,k))
-!      enddo
-!    enddo
-!  enddo
+  !communicate isfluid over the processes applying the bc if necessary
+  call comm_init_isfluid(isfluid)
+  
+  !communicate bcfluid over the processes applying the bc if necessary
+  call comm_init_isfluid(bcfluid)
+  
+  !apply the bc if necessary within the same process
+  call initialiaze_manage_bc_isfluid_selfcomm(isfluid)
+  
+  !apply the bc if necessary within the same process
+  call initialiaze_manage_bc_isfluid_selfcomm(bcfluid)
+  
+  !set the bc if necessary with their fixed values given in input
+  call set_bc_fixed_hvar
   
   return
   
@@ -4610,7 +4850,7 @@ subroutine driver_bc_densities
   implicit none
   
 
-#if 1
+#ifdef MPI
 
 #ifdef MPI
   call commexch_dens(rhoR,rhoB)
@@ -4657,7 +4897,7 @@ subroutine driver_bc_densities
   
  end subroutine driver_bc_densities
  
- subroutine initialiaze_manage_bc_isfluid_selfcomm
+ subroutine initialiaze_manage_bc_isfluid_selfcomm(istemp)
  
 !***********************************************************************
 !     
@@ -4671,6 +4911,8 @@ subroutine driver_bc_densities
 !***********************************************************************
  
   implicit none
+  
+  integer(kind=1), dimension(:,:,:), allocatable :: istemp
   
   integer :: i,j,k,l,itemp,jtemp,ktemp,itemp2,jtemp2,ktemp2
   integer(kind=IPRC) :: i4orig,i4
@@ -4714,7 +4956,7 @@ subroutine driver_bc_densities
           i4=i4back(itemp,jtemp,ktemp) 
           i4orig=i4back(itemp2,jtemp2,ktemp2) 
           if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
-            isfluid(itemp2,jtemp2,ktemp2)=isfluid(itemp,jtemp,ktemp)
+            istemp(itemp2,jtemp2,ktemp2)=istemp(itemp,jtemp,ktemp)
           endif
         endif
       enddo
@@ -8471,6 +8713,7 @@ subroutine driver_bc_densities
 !***********************************************************************
  
   implicit none
+  integer ::i,j,k,l
   
 #if 0
    !ml qui c'è un errore
@@ -8481,22 +8724,626 @@ subroutine driver_bc_densities
    call bounceback_pop(aoptpB)
    
 #else
+
+#ifdef MPI
+
+#if 1
+
+
   
-  call apply_bounceback_pop(aoptpR)
+  call set_bc_variable_hvar
+  
+  call apply_bounceback_pop(bc_rhoR,bc_u,bc_v,bc_w,aoptpR)
+  
+
   
   if(lsingle_fluid)return
   
-  call apply_bounceback_pop(aoptpB)
+  call apply_bounceback_pop(bc_rhoB,bc_u,bc_v,bc_w,aoptpB)
+
+  return
+
+#else
+  
+  call apply_bounceback_pop(bc_rhoR,bc_u,bc_v,bc_w,aoptpR)
+  
+  if(lsingle_fluid)return
+  
+  call apply_bounceback_pop(bc_rhoB,bc_u,bc_v,bc_w,aoptpB)
   
   return
   
 #endif
   
+#else
+
+!    open(unit=34,file='mioprima.xyz',status='replace')
+!  do k=0,nz+1
+!    j=0
+!      do i=0,nx+1
+!        if(isfluid(i,j,k)>4)then
+!          write(34,*)isfluid(i,j,k),i,j,k
+!          do l=0,links
+!          write(34,*)l,aoptpR(l)%p(i,j,k)
+!          enddo
+!        endif
+      
+!    enddo
+!  enddo
+!  close(34)
+
+
+  select case(ibctype)
+  case(0) ! 0 0 0 
+    call apply_bounceback_pops_all
+  case(1) ! 1 0 0 
+    call apply_bounceback_pops_along_yz
+  case(2) ! 0 1 0 
+    call apply_bounceback_pops_along_xz
+  case(3) ! 1 1 0 
+    call apply_bounceback_pops_along_z
+  case(4) ! 0 0 1 
+    call apply_bounceback_pops_along_xy
+  case(5) ! 1 0 1 
+    call apply_bounceback_pops_along_y
+  case(6) ! 0 1 1 
+    call apply_bounceback_pops_along_x
+  case(7) ! 1 1 1
+    return 
+  case default
+    call error(12)
+  end select
+  
+!   open(unit=34,file='mio.xyz',status='replace')
+!  do k=0,nz+1
+!    j=0
+!      do i=0,nx+1
+!        if(isfluid(i,j,k)>4)then
+!          write(34,*)isfluid(i,j,k),i,j,k
+!          do l=0,links
+!          write(34,*)l,aoptpR(l)%p(i,j,k)
+!          enddo
+!        endif
+      
+!    enddo
+!  enddo
+!  close(34)
+!  stop
+  
+  return
+
+#endif
+  
+#endif
+  
  end subroutine driver_apply_bounceback_pop
  
- subroutine apply_bounceback_pop(aoptp)
+ subroutine set_bc_hvar
  
- !***********************************************************************
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the bc value of the hydrodynamic 
+!     variable if requested
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification September 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  ! dirichlet condition
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==6)
+    bc_rhoR(i,j,k)=bc_rhoR_east
+    bc_u(i,j,k)=u(i+1,j,k)
+    bc_v(i,j,k)=v(i+1,j,k)
+    bc_w(i,j,k)=w(i+1,j,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==2 .and. isfluid(i,j,k)==6)
+    bc_rhoR(i,j,k)=bc_rhoR_west
+    bc_u(i,j,k)=u(i-1,j,k)
+    bc_v(i,j,k)=v(i-1,j,k)
+    bc_w(i,j,k)=w(i-1,j,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==3 .and. isfluid(i,j,k)==6)
+    bc_rhoR(i,j,k)=bc_rhoR_rear
+    bc_u(i,j,k)=u(i,j+1,k)
+    bc_v(i,j,k)=v(i,j+1,k)
+    bc_w(i,j,k)=w(i,j+1,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==4 .and. isfluid(i,j,k)==6)
+    bc_rhoR(i,j,k)=bc_rhoR_front
+    bc_u(i,j,k)=u(i,j-1,k)
+    bc_v(i,j,k)=v(i,j-1,k)
+    bc_w(i,j,k)=w(i,j-1,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==5 .and. isfluid(i,j,k)==6)
+    bc_rhoR(i,j,k)=bc_rhoR_north
+    bc_u(i,j,k)=u(i,j,k+1)
+    bc_v(i,j,k)=v(i,j,k+1)
+    bc_w(i,j,k)=w(i,j,k+1)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==6)
+    bc_rhoR(i,j,k)=bc_rhoR_south
+    bc_u(i,j,k)=u(i,j,k-1)
+    bc_v(i,j,k)=v(i,j,k-1)
+    bc_w(i,j,k)=w(i,j,k-1)
+  end forall
+  ! neumann condition
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==7)
+    bc_rhoR(i,j,k)=rhoR(i+1,j,k)
+    bc_u(i,j,k)=bc_u_east
+    bc_v(i,j,k)=bc_v_east
+    bc_w(i,j,k)=bc_w_east
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==2 .and. isfluid(i,j,k)==7)
+    bc_rhoR(i,j,k)=rhoR(i-1,j,k)
+    bc_u(i,j,k)=bc_u_west
+    bc_v(i,j,k)=bc_v_west
+    bc_w(i,j,k)=bc_w_west
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==3 .and. isfluid(i,j,k)==7)
+    bc_rhoR(i,j,k)=rhoR(i,j+1,k)
+    bc_u(i,j,k)=bc_u_rear
+    bc_v(i,j,k)=bc_v_rear
+    bc_w(i,j,k)=bc_w_rear
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==4 .and. isfluid(i,j,k)==7)
+    bc_rhoR(i,j,k)=rhoR(i,j-1,k)
+    bc_u(i,j,k)=bc_u_front
+    bc_v(i,j,k)=bc_v_front
+    bc_w(i,j,k)=bc_w_front
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==5 .and. isfluid(i,j,k)==7)
+    bc_rhoR(i,j,k)=rhoR(i,j,k+1)
+    bc_u(i,j,k)=bc_u_north
+    bc_v(i,j,k)=bc_v_north
+    bc_w(i,j,k)=bc_w_north
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==7)
+    bc_rhoR(i,j,k)=rhoR(i,j,k-1)
+    bc_u(i,j,k)=bc_u_south
+    bc_v(i,j,k)=bc_v_south
+    bc_w(i,j,k)=bc_w_south
+  end forall
+  
+  ! robin condition
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==8)
+    bc_rhoR(i,j,k)=bc_rhoR_east
+    bc_u(i,j,k)=bc_u_east
+    bc_v(i,j,k)=bc_v_east
+    bc_w(i,j,k)=bc_w_east
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==2 .and. isfluid(i,j,k)==8)
+    bc_rhoR(i,j,k)=bc_rhoR_west
+    bc_u(i,j,k)=bc_u_west
+    bc_v(i,j,k)=bc_v_west
+    bc_w(i,j,k)=bc_w_west
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==3 .and. isfluid(i,j,k)==8)
+    bc_rhoR(i,j,k)=bc_rhoR_rear
+    bc_u(i,j,k)=bc_u_rear
+    bc_v(i,j,k)=bc_v_rear
+    bc_w(i,j,k)=bc_w_rear
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==4 .and. isfluid(i,j,k)==8)
+    bc_rhoR(i,j,k)=bc_rhoR_front
+    bc_u(i,j,k)=bc_u_front
+    bc_v(i,j,k)=bc_v_front
+    bc_w(i,j,k)=bc_w_front
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==5 .and. isfluid(i,j,k)==8)
+    bc_rhoR(i,j,k)=bc_rhoR_north
+    bc_u(i,j,k)=bc_u_north
+    bc_v(i,j,k)=bc_v_north
+    bc_w(i,j,k)=bc_w_north
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==8)
+    bc_rhoR(i,j,k)=bc_rhoR_south
+    bc_u(i,j,k)=bc_u_south
+    bc_v(i,j,k)=bc_v_south
+    bc_w(i,j,k)=bc_w_south
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! dirichlet condition
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==6)
+    bc_rhoB(i,j,k)=bc_rhoB_east
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==2 .and. isfluid(i,j,k)==6)
+    bc_rhoB(i,j,k)=bc_rhoB_west
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==3 .and. isfluid(i,j,k)==6)
+    bc_rhoB(i,j,k)=bc_rhoB_rear
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==4 .and. isfluid(i,j,k)==6)
+    bc_rhoB(i,j,k)=bc_rhoB_front
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==5 .and. isfluid(i,j,k)==6)
+    bc_rhoB(i,j,k)=bc_rhoB_north
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==6)
+    bc_rhoB(i,j,k)=bc_rhoB_south
+  end forall
+  ! neumann condition
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==7)
+    bc_rhoB(i,j,k)=rhoB(i+1,j,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==2 .and. isfluid(i,j,k)==7)
+    bc_rhoB(i,j,k)=rhoB(i-1,j,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==3 .and. isfluid(i,j,k)==7)
+    bc_rhoB(i,j,k)=rhoB(i,j+1,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==4 .and. isfluid(i,j,k)==7)
+    bc_rhoB(i,j,k)=rhoB(i,j-1,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==5 .and. isfluid(i,j,k)==7)
+    bc_rhoB(i,j,k)=rhoB(i,j,k+1)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==7)
+    bc_rhoB(i,j,k)=rhoB(i,j,k-1)
+  end forall
+  
+  ! robin condition
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==8)
+    bc_rhoB(i,j,k)=bc_rhoB_east
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==2 .and. isfluid(i,j,k)==8)
+    bc_rhoB(i,j,k)=bc_rhoB_west
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==3 .and. isfluid(i,j,k)==8)
+    bc_rhoB(i,j,k)=bc_rhoB_rear
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==4 .and. isfluid(i,j,k)==8)
+    bc_rhoB(i,j,k)=bc_rhoB_front
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==5 .and. isfluid(i,j,k)==8)
+    bc_rhoB(i,j,k)=bc_rhoB_north
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==8)
+    bc_rhoB(i,j,k)=bc_rhoB_south
+  end forall
+  
+  return
+  
+ end subroutine set_bc_hvar
+ 
+ subroutine set_bc_fixed_hvar
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the fixed bc value of the hydrodynamic 
+!     variable if requested (fixed = which were set at the beginning)
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification September 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==6)
+    bc_rhoR(i,j,k)=ZERO
+    bc_u(i,j,k)=ZERO
+    bc_v(i,j,k)=ZERO
+    bc_w(i,j,k)=ZERO
+  end forall
+  if(.not.lsingle_fluid)then
+    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==6)
+      bc_rhoB(i,j,k)=ZERO
+    end forall
+  endif
+  
+  ! dirichlet condition
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==6)
+    bc_rhoR(i,j,k)=bc_rhoR_east
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==2 .and. isfluid(i,j,k)==6)
+    bc_rhoR(i,j,k)=bc_rhoR_west
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==3 .and. isfluid(i,j,k)==6)
+    bc_rhoR(i,j,k)=bc_rhoR_rear
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==4 .and. isfluid(i,j,k)==6)
+    bc_rhoR(i,j,k)=bc_rhoR_front
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==5 .and. isfluid(i,j,k)==6)
+    bc_rhoR(i,j,k)=bc_rhoR_north
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==6)
+    bc_rhoR(i,j,k)=bc_rhoR_south
+  end forall
+  ! neumann condition
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==7)
+    bc_u(i,j,k)=bc_u_east
+    bc_v(i,j,k)=bc_v_east
+    bc_w(i,j,k)=bc_w_east
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==2 .and. isfluid(i,j,k)==7)
+    bc_u(i,j,k)=bc_u_west
+    bc_v(i,j,k)=bc_v_west
+    bc_w(i,j,k)=bc_w_west
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==3 .and. isfluid(i,j,k)==7)
+    bc_u(i,j,k)=bc_u_rear
+    bc_v(i,j,k)=bc_v_rear
+    bc_w(i,j,k)=bc_w_rear
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==4 .and. isfluid(i,j,k)==7)
+    bc_u(i,j,k)=bc_u_front
+    bc_v(i,j,k)=bc_v_front
+    bc_w(i,j,k)=bc_w_front
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==5 .and. isfluid(i,j,k)==7)
+    bc_u(i,j,k)=bc_u_north
+    bc_v(i,j,k)=bc_v_north
+    bc_w(i,j,k)=bc_w_north
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==7)
+    bc_u(i,j,k)=bc_u_south
+    bc_v(i,j,k)=bc_v_south
+    bc_w(i,j,k)=bc_w_south
+  end forall
+  
+  ! robin condition
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==8)
+    bc_rhoR(i,j,k)=bc_rhoR_east
+    bc_u(i,j,k)=bc_u_east
+    bc_v(i,j,k)=bc_v_east
+    bc_w(i,j,k)=bc_w_east
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==2 .and. isfluid(i,j,k)==8)
+    bc_rhoR(i,j,k)=bc_rhoR_west
+    bc_u(i,j,k)=bc_u_west
+    bc_v(i,j,k)=bc_v_west
+    bc_w(i,j,k)=bc_w_west
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==3 .and. isfluid(i,j,k)==8)
+    bc_rhoR(i,j,k)=bc_rhoR_rear
+    bc_u(i,j,k)=bc_u_rear
+    bc_v(i,j,k)=bc_v_rear
+    bc_w(i,j,k)=bc_w_rear
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==4 .and. isfluid(i,j,k)==8)
+    bc_rhoR(i,j,k)=bc_rhoR_front
+    bc_u(i,j,k)=bc_u_front
+    bc_v(i,j,k)=bc_v_front
+    bc_w(i,j,k)=bc_w_front
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==5 .and. isfluid(i,j,k)==8)
+    bc_rhoR(i,j,k)=bc_rhoR_north
+    bc_u(i,j,k)=bc_u_north
+    bc_v(i,j,k)=bc_v_north
+    bc_w(i,j,k)=bc_w_north
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==8)
+    bc_rhoR(i,j,k)=bc_rhoR_south
+    bc_u(i,j,k)=bc_u_south
+    bc_v(i,j,k)=bc_v_south
+    bc_w(i,j,k)=bc_w_south
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! dirichlet condition
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==6)
+    bc_rhoB(i,j,k)=bc_rhoB_east
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==2 .and. isfluid(i,j,k)==6)
+    bc_rhoB(i,j,k)=bc_rhoB_west
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==3 .and. isfluid(i,j,k)==6)
+    bc_rhoB(i,j,k)=bc_rhoB_rear
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==4 .and. isfluid(i,j,k)==6)
+    bc_rhoB(i,j,k)=bc_rhoB_front
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==5 .and. isfluid(i,j,k)==6)
+    bc_rhoB(i,j,k)=bc_rhoB_north
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==6)
+    bc_rhoB(i,j,k)=bc_rhoB_south
+  end forall
+  
+  ! robin condition
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==8)
+    bc_rhoB(i,j,k)=bc_rhoB_east
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==2 .and. isfluid(i,j,k)==8)
+    bc_rhoB(i,j,k)=bc_rhoB_west
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==3 .and. isfluid(i,j,k)==8)
+    bc_rhoB(i,j,k)=bc_rhoB_rear
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==4 .and. isfluid(i,j,k)==8)
+    bc_rhoB(i,j,k)=bc_rhoB_front
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==5 .and. isfluid(i,j,k)==8)
+    bc_rhoB(i,j,k)=bc_rhoB_north
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==8)
+    bc_rhoB(i,j,k)=bc_rhoB_south
+  end forall
+  
+  return
+  
+ end subroutine set_bc_fixed_hvar
+ 
+ subroutine set_bc_variable_hvar
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the variable bc value of the        
+!     hydrodynamic variable if requested (variable = can be change      
+!     along the run)
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification September 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  ! dirichlet condition
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==6)
+    bc_u(i,j,k)=u(i+1,j,k)
+    bc_v(i,j,k)=v(i+1,j,k)
+    bc_w(i,j,k)=w(i+1,j,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==2 .and. isfluid(i,j,k)==6)
+    bc_u(i,j,k)=u(i-1,j,k)
+    bc_v(i,j,k)=v(i-1,j,k)
+    bc_w(i,j,k)=w(i-1,j,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==3 .and. isfluid(i,j,k)==6)
+    bc_u(i,j,k)=u(i,j+1,k)
+    bc_v(i,j,k)=v(i,j+1,k)
+    bc_w(i,j,k)=w(i,j+1,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==4 .and. isfluid(i,j,k)==6)
+    bc_u(i,j,k)=u(i,j-1,k)
+    bc_v(i,j,k)=v(i,j-1,k)
+    bc_w(i,j,k)=w(i,j-1,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==5 .and. isfluid(i,j,k)==6)
+    bc_u(i,j,k)=u(i,j,k+1)
+    bc_v(i,j,k)=v(i,j,k+1)
+    bc_w(i,j,k)=w(i,j,k+1)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==6)
+    bc_u(i,j,k)=u(i,j,k-1)
+    bc_v(i,j,k)=v(i,j,k-1)
+    bc_w(i,j,k)=w(i,j,k-1)
+  end forall
+  ! neumann condition
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==7)
+    bc_rhoR(i,j,k)=rhoR(i+1,j,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==2 .and. isfluid(i,j,k)==7)
+    bc_rhoR(i,j,k)=rhoR(i-1,j,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==3 .and. isfluid(i,j,k)==7)
+    bc_rhoR(i,j,k)=rhoR(i,j+1,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==4 .and. isfluid(i,j,k)==7)
+    bc_rhoR(i,j,k)=rhoR(i,j-1,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==5 .and. isfluid(i,j,k)==7)
+    bc_rhoR(i,j,k)=rhoR(i,j,k+1)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==7)
+    bc_rhoR(i,j,k)=rhoR(i,j,k-1)
+  end forall
+  
+  if(lsingle_fluid)return
+  
+  ! neumann condition
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==7)
+    bc_rhoB(i,j,k)=rhoB(i+1,j,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==2 .and. isfluid(i,j,k)==7)
+    bc_rhoB(i,j,k)=rhoB(i-1,j,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==3 .and. isfluid(i,j,k)==7)
+    bc_rhoB(i,j,k)=rhoB(i,j+1,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==4 .and. isfluid(i,j,k)==7)
+    bc_rhoB(i,j,k)=rhoB(i,j-1,k)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==5 .and. isfluid(i,j,k)==7)
+    bc_rhoB(i,j,k)=rhoB(i,j,k+1)
+  end forall
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==7)
+    bc_rhoB(i,j,k)=rhoB(i,j,k-1)
+  end forall
+  
+  
+  return
+  
+ end subroutine set_bc_variable_hvar
+ 
+ subroutine apply_bounceback_pop(rho_s,u_s,v_s,w_s,aoptp)
+ 
+!***********************************************************************
 !     
 !     LBsoft subroutine for applying the bounceback 
 !     to fluid populations if necessary
@@ -8509,17 +9356,650 @@ subroutine driver_bc_densities
  
   implicit none 
   
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: rho_s,u_s,v_s,w_s
   type(REALPTR), dimension(0:links):: aoptp
   
-  integer :: i,j,k,l
+  integer :: i,j,k,l,sx,ex,sz,ez
   
-  do l=1,links,2
-    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,isfluid(i,j,k)==0)
-      buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
-      aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
-      aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
-    end forall
-  enddo
+  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
+  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
+  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
+  integer, parameter :: kk = 1
+  
+
+  
+  where(isfluid(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)==0)
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((2))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+    aoptp((2))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(1)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+    aoptp(1)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+      
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp((4))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp((4))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp(3)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp(3)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+      
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp((6))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp((6))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp(5)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp(5)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+      
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp((8))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp((8))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp(7)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp(7)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+      
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp((10))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp((10))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp(9)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp(9)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+      
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp((12))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp((12))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp(11)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp(11)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+      
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp((14))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp((14))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp(13)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp(13)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+      
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp((16))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp((16))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp(15)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp(15)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+      
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp((18))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp((18))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      aoptp(17)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     aoptp(17)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+      buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+       
+  elsewhere(isfluid(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)==6)
+    !anti-bounce-back approach
+    !from page 200 Kruger's book "the lattice boltzmann method"
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+    aoptp((2))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+        
+    aoptp((2))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -aoptp(1)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(2)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(2)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(2)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(2)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+       
+    aoptp(1)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(1)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(1)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(1)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(1)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+     
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+    aoptp((4))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+        
+    aoptp((4))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -aoptp(3)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(4)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(4)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(4)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(4)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+       
+    aoptp(3)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(3)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(3)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(3)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(3)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+     
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+    aoptp((6))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+        
+    aoptp((6))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -aoptp(5)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(6)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(6)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(6)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(6)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+       
+    aoptp(5)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(5)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(5)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(5)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(5)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+     
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+    aoptp((8))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+        
+    aoptp((8))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -aoptp(7)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(8)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(8)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(8)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(8)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+       
+    aoptp(7)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(7)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(7)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(7)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(7)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+     
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+    aoptp((10))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+        
+    aoptp((10))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -aoptp(9)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(10)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(10)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(10)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(10)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+       
+    aoptp(9)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(9)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(9)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(9)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(9)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+     
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+    aoptp((12))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+        
+    aoptp((12))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -aoptp(11)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(12)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(12)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(12)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(12)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+       
+    aoptp(11)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(11)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(11)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(11)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(11)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+     
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+    aoptp((14))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+        
+    aoptp((14))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -aoptp(13)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(14)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(14)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(14)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(14)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+       
+    aoptp(13)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(13)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(13)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(13)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(13)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+     
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+    aoptp((16))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+        
+    aoptp((16))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -aoptp(15)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(16)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(16)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(16)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(16)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+       
+    aoptp(15)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(15)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(15)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(15)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(15)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+     
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+    aoptp((18))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+        
+    aoptp((18))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -aoptp(17)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(18)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(18)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(18)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(18)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+       
+    aoptp(17)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     -buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     p(17)*TWO*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (ONE+(dex(17)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(17)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(17)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))**TWO/cssq4 - &
+     (u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO+ &
+     w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)**TWO)/cssq2)
+        
+  elsewhere(isfluid(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)==7)
+     !moving walls bounce-back approach
+     !from page 180 Kruger's book "the lattice boltzmann method"
+     
+     
+#if LATTICE==319
+    !de[x,y,z]=zero eliminated
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((2))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((2))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(1)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(2)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(2)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(1)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(1)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(1)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((4))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((4))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(3)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(4)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dey(4)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(3)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(3)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dey(3)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((6))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((6))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(5)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(6)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dez(6)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(5)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(5)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dez(5)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((8))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((8))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(7)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(8)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(8)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(8)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(7)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(7)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(7)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(7)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((10))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((10))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(9)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(10)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(10)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(10)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(9)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(9)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(9)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(9)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((12))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((12))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(11)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(12)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(12)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(12)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(11)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(11)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(11)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(11)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((14))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+  
+    aoptp((14))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(13)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(14)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(14)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(14)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(13)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(13)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(13)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(13)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((16))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((16))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(15)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(16)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dey(16)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(16)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(15)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(15)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dey(15)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(15)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((18))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((18))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(17)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(18)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dey(18)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(18)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(17)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(17)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dey(17)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(17)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    
+#else
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((2))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((2))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(1)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(2)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(2)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(2)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(2)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(1)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(1)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(1)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(1)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(1)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((4))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((4))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(3)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(4)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(4)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(4)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(4)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(3)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(3)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(3)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(3)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(3)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((6))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((6))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(5)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(6)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(6)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(6)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(6)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(5)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(5)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(5)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(5)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(5)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((8))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((8))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(7)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(8)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(8)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(8)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(8)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(7)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(7)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(7)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(7)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(7)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((10))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((10))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(9)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(10)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(10)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(10)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(10)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(9)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(9)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(9)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(9)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(9)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((12))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((12))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(11)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(12)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(12)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(12)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(12)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(11)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(11)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(11)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(11)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(11)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((14))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((14))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(13)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(14)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(14)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(14)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(14)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(13)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(13)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(13)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(13)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(13)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((16))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((16))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(15)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(16)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(16)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(16)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(16)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(15)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(15)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(15)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(15)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(15)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+    buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp((18))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+     
+    aoptp((18))%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     aoptp(17)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(18)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(18)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(18)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(18)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+    
+    aoptp(17)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)- &
+     p(17)*pref_bouzidi*rho_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)* &
+     (dex(17)*u_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dey(17)*v_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)+ &
+     dez(17)*w_s(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1))
+     
+#endif
+        
+  end where
+     
+  
+  
+  forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,isfluid(i,j,k)==8)
+    !equilibrium scheme
+    !from page 191 Kruger's book "the lattice boltzmann method"
+    aoptp(0)%p(i,j,k)=equil_pop00(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(1)%p(i,j,k)=equil_pop01(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(2)%p(i,j,k)=equil_pop02(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(3)%p(i,j,k)=equil_pop03(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(4)%p(i,j,k)=equil_pop04(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(5)%p(i,j,k)=equil_pop05(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(6)%p(i,j,k)=equil_pop06(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(7)%p(i,j,k)=equil_pop07(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(8)%p(i,j,k)=equil_pop08(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(9)%p(i,j,k)=equil_pop09(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(10)%p(i,j,k)=equil_pop10(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(11)%p(i,j,k)=equil_pop11(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(12)%p(i,j,k)=equil_pop12(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(13)%p(i,j,k)=equil_pop13(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(14)%p(i,j,k)=equil_pop14(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(15)%p(i,j,k)=equil_pop15(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(16)%p(i,j,k)=equil_pop16(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(17)%p(i,j,k)=equil_pop17(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+
+    aoptp(18)%p(i,j,k)=equil_pop18(rho_s(i,j,k),u_s(i,j,k),v_s(i,j,k), &
+     w_s(i,j,k))
+     
+  end forall
   
   return
   

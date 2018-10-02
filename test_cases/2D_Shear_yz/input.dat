@@ -1,5 +1,5 @@
 [ROOM SYSTEM]
-box 2 64 64
+box 32 32 32
 steps 500
 diagnostic yes
 boundary condition 1 1 0
