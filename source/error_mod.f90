@@ -80,6 +80,12 @@
          ' implemented. Check the bc_type value selected'
       case (14)
         write(outp,outf)'ERROR - wrong LB integrator selected'
+      case (15)
+        write(outp,outf2)'ERROR - bad allocation in subroutine ', &
+         'initialize_isfluid_bcfluid.'
+      case (16)
+        write(outp,outf2)'ERROR - in subroutine an open boundary node ', &
+         'was set without a direction.'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select

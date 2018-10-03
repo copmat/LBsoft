@@ -10,7 +10,8 @@
 #include <default_macro.h>
 
 MODULE lbempi_mod
-  use version_mod, only : idrank, mxrank,finalize_world,or_world_larr,get_sync_world
+  use version_mod, only : idrank, mxrank,finalize_world,or_world_larr, &
+   get_sync_world,sum_world_iarr
   use aop_mod 
   IMPLICIT NONE
 
@@ -100,6 +101,9 @@ MODULE lbempi_mod
   INTEGER(KIND=1), POINTER :: buffs_isfluid(:,:), buffr_isfluid(:,:)
   
   logical, save :: ldo_second=.false.
+  
+  integer, dimension(:), allocatable, public, protected :: gminx,gmaxx, &
+   gminy,gmaxy,gminz,gmaxz
   
   public :: commspop, commrpop
   PUBLIC :: buff_transf_r,buff_transf_s
@@ -236,7 +240,31 @@ CONTAINS
        iypbc=1
        izpbc=1
     ENDIF
-  
+    
+    
+    gminx(0:mxrank-1)=0
+     gmaxx(0:mxrank-1)=0
+     gminy(0:mxrank-1)=0
+     gmaxy(0:mxrank-1)=0
+     gminz(0:mxrank-1)=0
+     gmaxz(0:mxrank-1)=0
+     
+     do i=0,mxrank-1
+       if(i==idrank)then
+         gminx(i)=minx
+         gmaxx(i)=maxx
+         gminy(i)=miny
+         gmaxy(i)=maxy
+         gminz(i)=minz
+         gmaxz(i)=maxz
+       endif
+     enddo
+     call sum_world_iarr(gminx,mxrank)
+     call sum_world_iarr(gmaxx,mxrank)
+     call sum_world_iarr(gminy,mxrank)
+     call sum_world_iarr(gmaxy,mxrank)
+     call sum_world_iarr(gminz,mxrank)
+     call sum_world_iarr(gmaxz,mxrank)
 
 
 END SUBROUTINE setupcom
@@ -373,6 +401,30 @@ end subroutine
   do i=ownernlb,ownernub
      ownern(i)=0
   enddo
+  
+  gminx(0:mxrank-1)=0
+     gmaxx(0:mxrank-1)=0
+     gminy(0:mxrank-1)=0
+     gmaxy(0:mxrank-1)=0
+     gminz(0:mxrank-1)=0
+     gmaxz(0:mxrank-1)=0
+     
+     do i=0,mxrank-1
+       if(i==idrank)then
+         gminx(i)=minx
+         gmaxx(i)=maxx
+         gminy(i)=miny
+         gmaxy(i)=maxy
+         gminz(i)=minz
+         gmaxz(i)=maxz
+       endif
+     enddo
+     call sum_world_iarr(gminx,mxrank)
+     call sum_world_iarr(gmaxx,mxrank)
+     call sum_world_iarr(gminy,mxrank)
+     call sum_world_iarr(gmaxy,mxrank)
+     call sum_world_iarr(gminz,mxrank)
+     call sum_world_iarr(gmaxz,mxrank)
   
   return
   
@@ -1154,6 +1206,7 @@ end subroutine
        stop
      endif
      
+     
 #endif
     
 
@@ -1302,36 +1355,6 @@ end subroutine
        lmaxz=maxz
     endif
     
-!    if(minx.lt.1) then
-!       lminx=1
-!    else
-!       lminx=minx
-!    endif
-!    if(miny.lt.1) then
-!       lminy=1
-!    else
-!       lminy=miny
-!    endif
-!    if(minz.lt.1) then
-!       lminz=1
-!    else
-!       lminz=minz
-!    endif
-!    if(maxx.gt.nx) then
-!       lmaxx=nx
-!    else
-!       lmaxx=maxx
-!    endif
-!    if(maxy.gt.ny) then
-!       lmaxy=ny
-!    else
-!       lmaxy=maxy
-!    endif
-!    if(maxz.gt.nz) then
-!       lmaxz=nz
-!    else
-!       lmaxz=maxz
-!    endif
     
     
     if(lverbose)write(6,*)'id=',idrank,'lminx=',lminx,'lmaxx=',lmaxx,'lminy=',lminy, &
@@ -1385,7 +1408,7 @@ end subroutine
                 !max                if(idrank.eq.1) then
                 !max                   write(51,*)'i',itemp,'j',jtemp,'k',ktemp,'owner',ownern(i4)
                 !max                endif   
-                IF(ownern(i4).NE.myid.AND.isfluid(itemp2,jtemp2,ktemp2)==1) THEN
+                IF(ownern(i4).NE.myid.AND.isfluid(i,j,k)==1) THEN
                    sender(ownern(i4))=sender(ownern(i4))+1
                    !max                   write(0,*)'ownern ',ownern(i4),'for node ',i4,'ix=',i,'iy=',j,'iz=',k,'l=',l
                    !max                   write(0,*)'itemp=',itemp,'jtemp=',jtemp,'ktemp=',ktemp
@@ -1522,7 +1545,7 @@ end subroutine
                 endif
                 i4=i4back(itemp,jtemp,ktemp)
 
-                IF(ownern(i4).NE.myid.AND.isfluid(itemp2,jtemp2,ktemp2)==1) THEN   ! select nodes with ownership /= myid
+                IF(ownern(i4).NE.myid.AND.isfluid(i,jy,k)==1) THEN   ! select nodes with ownership /= myid
                    j=sender(ownern(i4))  !find the unique ID of the cast operation
                    i_pop2send_fluid(0,n_pop2send_fluid(j),j)=l !direction of the population
                    i_pop2send_fluid(1,n_pop2send_fluid(j),j)=i4back(i,jy,k) !unique ID of the node

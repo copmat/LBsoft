@@ -24,6 +24,7 @@
  integer, public, save :: nlbuffservice=0
  integer, public, save :: nibuffservice=0
  integer, public, save :: nbuffservice=0
+ integer, public, save, protected :: nbuffservice3d=0
  integer, public, save :: nbuffservice_x=0
  integer, public, save :: nbuffservice_y=0
  integer, public, save :: nbuffservice_z=0
@@ -203,6 +204,9 @@
       ltest=.true.
     endif
   endif
+  
+  nbuffservice3d=(nbuffservice_x-imiomin_x+1)* &
+   (nbuffservice_y-imiomin_y+1)*(nbuffservice_z-imiomin_z+1)
   
   call or_world_larr(ltest,1)
   if(ltest(1))call error(8)

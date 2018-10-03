@@ -5,7 +5,7 @@
 
 #define D3Q19
 
-#define BCPOINTER
+
 
 #define IOOUT 6
 

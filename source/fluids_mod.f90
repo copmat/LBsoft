@@ -20,7 +20,7 @@
                    allocate_array_ibuffservice,buffservice, &
                    allocate_array_buffservice,lbuffservice, &
                    allocate_array_lbuffservice, &
-                   buffservice3d, &
+                   nbuffservice3d,buffservice3d, &
                    rand_noseeded,linit_seed,gauss_noseeded,write_fmtnumb
 
  use lbempi_mod,  only : commspop, commrpop, i4find, i4back, &
@@ -40,7 +40,7 @@
  integer, parameter, public :: links=18
 #endif
 
- integer, parameter, public :: ntypebc=6
+ integer, parameter, public :: nbcdir=6
  
  !max
  integer, save, public :: minx, maxx, miny, maxy, minz, maxz
@@ -169,11 +169,23 @@
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: gradpsixB
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: gradpsiyB
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: gradpsizB
+ 
+#ifdef OLDBOUNCE
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: bc_rhoR
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: bc_rhoB
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: bc_u
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: bc_v
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: bc_w
+#else
+ real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_rhoR
+ real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_rhoB
+ real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_u
+ real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_v
+ real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_w
+#endif
+ integer, allocatable :: ibounce(:,:)
+ integer :: nbounce0,nbounce6,nbounce7,nbounce8
+ integer, dimension(0:nbcdir) :: nbounce6dir,nbounce7dir,nbounce8dir
  
 #if LATTICE==319
  
@@ -280,9 +292,10 @@
  public :: set_value_bc_south
  public :: set_fluid_wall_sc
  public :: set_LBintegrator_type
- public :: initialize_isfluid
+ public :: initialize_isfluid_bcfluid
  public :: test_fake_pops
  public :: probe_pops_in_node
+ public :: driver_bc_pop_selfcomm
  
  contains
  
@@ -381,10 +394,7 @@
      aoptpR(17)%p => f17R
      aoptpR(18)%p => f18R
      
-     allocate(bc_rhoR(ix:mynx,iy:myny,iz:mynz),stat=istat(49))
-     allocate(bc_u(ix:mynx,iy:myny,iz:mynz),stat=istat(50))
-     allocate(bc_v(ix:mynx,iy:myny,iz:mynz),stat=istat(51))
-     allocate(bc_w(ix:mynx,iy:myny,iz:mynz),stat=istat(52))
+     
 
      if(.not. lsingle_fluid)then
         
@@ -441,8 +451,6 @@
         aoptpB(17)%p => f17B
         aoptpB(18)%p => f18B
         
-        allocate(bc_rhoB(ix:mynx,iy:myny,iz:mynz),stat=istat(69))
-
      endif
 
      ltest=.false.
@@ -528,7 +536,83 @@
        call get_sync_world
      enddo
    endif
-     
+   
+   isfluid(ix:mynx,iy:myny,iz:mynz)=3
+   bcfluid(ix:mynx,iy:myny,iz:mynz)=0
+   rhoR(ix:mynx,iy:myny,iz:mynz)=ZERO
+
+   u(ix:mynx,iy:myny,iz:mynz)=ZERO
+   v(ix:mynx,iy:myny,iz:mynz)=ZERO
+   w(ix:mynx,iy:myny,iz:mynz)=ZERO
+
+   fuR(ix:mynx,iy:myny,iz:mynz)=ZERO
+   fvR(ix:mynx,iy:myny,iz:mynz)=ZERO
+   fwR(ix:mynx,iy:myny,iz:mynz)=ZERO
+
+   if(lShanChen)then
+    gradpsixR(ix:mynx,iy:myny,iz:mynz)=ZERO
+    gradpsiyR(ix:mynx,iy:myny,iz:mynz)=ZERO
+    gradpsizR(ix:mynx,iy:myny,iz:mynz)=ZERO
+    psiR(ix:mynx,iy:myny,iz:mynz)=ZERO
+   endif
+
+   omega(ix:mynx,iy:myny,iz:mynz)=ZERO
+
+   f00R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f01R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f02R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f03R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f04R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f05R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f06R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f07R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f08R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f09R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f10R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f11R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f12R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f13R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f14R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f15R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f16R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f17R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   f18R(ix:mynx,iy:myny,iz:mynz)=ZERO
+   
+   if(.not. lsingle_fluid)then
+        
+     rhoB(ix:mynx,iy:myny,iz:mynz)=ZERO
+
+      fuB(ix:mynx,iy:myny,iz:mynz)=ZERO
+      fvB(ix:mynx,iy:myny,iz:mynz)=ZERO
+      fwB(ix:mynx,iy:myny,iz:mynz)=ZERO
+
+        if(lShanChen)then
+         gradpsixB(ix:mynx,iy:myny,iz:mynz)=ZERO
+         gradpsiyB(ix:mynx,iy:myny,iz:mynz)=ZERO
+         gradpsizB(ix:mynx,iy:myny,iz:mynz)=ZERO
+         psiB(ix:mynx,iy:myny,iz:mynz)=ZERO
+        endif
+
+      f00B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f01B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f02B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f03B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f04B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f05B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f06B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f07B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f08B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f09B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f10B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f11B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f12B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f13B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f14B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f15B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f16B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f17B(ix:mynx,iy:myny,iz:mynz)=ZERO
+      f18B(ix:mynx,iy:myny,iz:mynz)=ZERO
+   endif
      
      
      !allocate pointers for managing bc density within the same process
@@ -563,6 +647,7 @@
  !          0           1           1           6
  !          1           1           1           7
   
+  
   if( itemp1 .ne. 0 .and. itemp1 .ne. 1)then
     call error(9)
   endif
@@ -581,11 +666,11 @@
   
  end subroutine set_boundary_conditions_type
  
- subroutine initialize_isfluid
+ subroutine initialize_isfluid_bcfluid
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for initialize the isfluid
+!     LBsoft subroutine for initialize the isfluid and bcfluid
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -594,7 +679,11 @@
 !***********************************************************************
  
   implicit none
-  integer :: i,j,k,l
+  integer :: i,j,k,l,idir
+  
+  logical :: ltest(1)
+  integer, parameter :: nistatmax=10
+  integer, dimension(nistatmax) :: istat
  
   isfluid(:,:,:)=3
   bcfluid(:,:,:)=0
@@ -874,12 +963,177 @@
   !apply the bc if necessary within the same process
   call initialiaze_manage_bc_isfluid_selfcomm(bcfluid)
   
+  ltest=.false.
+  do k=minz-1,maxz+1
+    do j=miny-1,maxy+1
+      do i=minx-1,maxx+1
+        if(isfluid(i,j,k)>5 .and. bcfluid(i,j,k)==0)then
+          !open boundary node without a direction is evil
+          ltest=.true.
+        endif
+      enddo
+    enddo
+  enddo
+  call or_world_larr(ltest,1)
+  if(ltest(1))call error(16)
+  
+  l=0
+  do k=minz-1,maxz+1
+    do j=miny-1,maxy+1
+      do i=minx-1,maxx+1
+        if(isfluid(i,j,k)==0)then
+          l=l+1
+        endif
+      enddo
+    enddo
+  enddo
+  nbounce0=l
+  nbounce6dir(0)=l
+  do idir=1,nbcdir
+    do k=minz-1,maxz+1
+      do j=miny-1,maxy+1
+        do i=minx-1,maxx+1
+          if(isfluid(i,j,k)==6 .and. bcfluid(i,j,k)==idir)then
+            l=l+1
+          endif
+        enddo
+      enddo
+    enddo
+    nbounce6dir(idir)=l
+  enddo
+  nbounce6=l
+  
+  nbounce7dir(0)=l
+  do idir=1,nbcdir
+    do k=minz-1,maxz+1
+      do j=miny-1,maxy+1
+        do i=minx-1,maxx+1
+          if(isfluid(i,j,k)==7 .and. bcfluid(i,j,k)==idir)then
+            l=l+1
+          endif
+        enddo
+      enddo
+    enddo
+    nbounce7dir(idir)=l
+  enddo
+  nbounce7=l
+  
+  nbounce8dir(0)=l
+  do idir=1,nbcdir
+    do k=minz-1,maxz+1
+      do j=miny-1,maxy+1
+        do i=minx-1,maxx+1
+          if(isfluid(i,j,k)==8 .and. bcfluid(i,j,k)==idir)then
+            l=l+1
+          endif
+        enddo
+      enddo
+    enddo
+    nbounce8dir(idir)=l
+  enddo
+  nbounce8=l
+  
+  !allocate ibounce for inderect addressing 
+  !NOTE that it is computationally less expensive than do a loop over all
+  allocate(ibounce(3,nbounce8))
+  
+  l=0
+  do k=minz-1,maxz+1
+    do j=miny-1,maxy+1
+      do i=minx-1,maxx+1
+        if(isfluid(i,j,k)==0)then
+          l=l+1
+          ibounce(1,l)=i
+          ibounce(2,l)=j
+          ibounce(3,l)=k
+        endif
+      enddo
+    enddo
+  enddo
+  
+  !I apply an order to avoid an if in run time
+  do idir=1,nbcdir
+    do k=minz-1,maxz+1
+      do j=miny-1,maxy+1
+        do i=minx-1,maxx+1
+          if(isfluid(i,j,k)==6 .and. bcfluid(i,j,k)==idir)then
+            l=l+1
+            ibounce(1,l)=i
+            ibounce(2,l)=j
+            ibounce(3,l)=k
+          endif
+        enddo
+      enddo
+    enddo
+  enddo
+
+  do idir=1,nbcdir
+    do k=minz-1,maxz+1
+      do j=miny-1,maxy+1
+        do i=minx-1,maxx+1
+          if(isfluid(i,j,k)==7 .and. bcfluid(i,j,k)==idir)then
+            l=l+1
+            ibounce(1,l)=i
+            ibounce(2,l)=j
+            ibounce(3,l)=k
+          endif
+        enddo
+      enddo
+    enddo
+  enddo
+
+  do idir=1,nbcdir
+    do k=minz-1,maxz+1
+      do j=miny-1,maxy+1
+        do i=minx-1,maxx+1
+          if(isfluid(i,j,k)==8 .and. bcfluid(i,j,k)==idir)then
+            l=l+1
+            ibounce(1,l)=i
+            ibounce(2,l)=j
+            ibounce(3,l)=k
+          endif
+        enddo
+      enddo
+    enddo
+  enddo
+  
+  
+  istat(1:nistatmax)=0
+#ifdef OLDBOUNCE
+  allocate(bc_rhoR(minx-nbuff:maxx+nbuff,miny-nbuff:maxy+nbuff,minz-nbuff:maxz+nbuff),stat=istat(1))
+  allocate(bc_u(minx-nbuff:maxx+nbuff,miny-nbuff:maxy+nbuff,minz-nbuff:maxz+nbuff),stat=istat(2))
+  allocate(bc_v(minx-nbuff:maxx+nbuff,miny-nbuff:maxy+nbuff,minz-nbuff:maxz+nbuff),stat=istat(3))
+  allocate(bc_w(minx-nbuff:maxx+nbuff,miny-nbuff:maxy+nbuff,minz-nbuff:maxz+nbuff),stat=istat(4))
+  if(.not. lsingle_fluid)then
+    allocate(bc_rhoB(minx-nbuff:maxx+nbuff,miny-nbuff:maxy+nbuff,minz-nbuff:maxz+nbuff),stat=istat(5))
+  endif
+#else
+  allocate(bc_rhoR(nbounce0+1:nbounce8),stat=istat(1))
+  allocate(bc_u(nbounce0+1:nbounce8),stat=istat(2))
+  allocate(bc_v(nbounce0+1:nbounce8),stat=istat(3))
+  allocate(bc_w(nbounce0+1:nbounce8),stat=istat(4))
+  if(.not. lsingle_fluid)then
+    allocate(bc_rhoB(nbounce0+1:nbounce8),stat=istat(5))
+  endif
+#endif
+
   !set the bc if necessary with their fixed values given in input
-  call set_bc_fixed_hvar
+  call set_bc_hvar
+
+  ltest=.false.
+  if(any(istat.ne.0))then
+    do i=1,nistatmax
+      if(istat(i).ne.0)exit
+    enddo
+    call warning(2,dble(i))
+     ltest=.true.
+   endif
+   call or_world_larr(ltest,1)
+   if(ltest(1))call error(15)
   
   return
   
- end subroutine initialize_isfluid
+ end subroutine initialize_isfluid_bcfluid
  
  subroutine initialize_fluids
  
@@ -2508,6 +2762,29 @@
   
  end subroutine compute_omega
  
+ subroutine driver_bc_pop_selfcomm
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the pbc within the same process
+!     on the Boltzmann populations
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+
+  implicit none
+  
+  call manage_bc_pop_selfcomm(popR_managebc)
+  
+  if(lsingle_fluid)return
+  
+  call manage_bc_pop_selfcomm(popB_managebc)
+  
+ end subroutine driver_bc_pop_selfcomm
+ 
  subroutine driver_streaming_fluids
  
 !***********************************************************************
@@ -2553,10 +2830,10 @@
     jshift=ey(l)
     kshift=ez(l)
     forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
-      buffservice3d(i+ishift,j+jshift,k+kshift) = aoptpR(l)%p(i,j,k)
+        buffservice3d(i+ishift,j+jshift,k+kshift) = aoptpR(l)%p(i,j,k)
     end forall
     forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
-      aoptpR(l)%p(i,j,k) = buffservice3d(i,j,k)
+        aoptpR(l)%p(i,j,k) = buffservice3d(i,j,k)
     end forall
   enddo
   
@@ -6217,7 +6494,7 @@ subroutine driver_bc_densities
                 endif
               endif
               i4=i4back(itemp,jtemp,ktemp) 
-              i4orig=i4back(itemp2,jtemp2,ktemp2) 
+              i4orig=i4back(itemp2,jtemp2,ktemp2)
               if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
                 npop_managebc=npop_managebc+1
               endif
@@ -6275,7 +6552,7 @@ subroutine driver_bc_densities
                 endif
               endif
               i4=i4back(itemp,jtemp,ktemp) 
-              i4orig=i4back(itemp2,jtemp2,ktemp2) 
+              i4orig=i4back(itemp2,jtemp2,ktemp2)
               if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
                 npop_managebc=npop_managebc+1
                 popR_managebc(2,npop_managebc)%p=>aoptpR(l)%p(itemp2,jtemp2,ktemp2)
@@ -8833,8 +9110,10 @@ subroutine driver_bc_densities
  
   implicit none
   
-  integer :: i,j,k
-  ! dirichlet condition
+  integer :: i,j,k,idir,inits,ends,ishift,jshift,kshift
+  
+#ifdef OLDBOUNCE
+   ! dirichlet condition
   forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==6)
     bc_rhoR(i,j,k)=bc_rhoR_east
     bc_u(i,j,k)=u(i+1,j,k)
@@ -9038,6 +9317,288 @@ subroutine driver_bc_densities
     bc_rhoB(i,j,k)=bc_rhoB_south
   end forall
   
+#else
+  
+  !INITIALIZE isfluid=6:8 ; bcfluid from 1 to 6
+  inits=nbounce0+1
+  ends=nbounce8
+  forall(i=inits:ends)
+    bc_rhoR(i)=ZERO
+    bc_u(i)=ZERO
+    bc_v(i)=ZERO
+    bc_w(i)=ZERO
+  end forall
+  if(.not.lsingle_fluid)then
+    forall(i=inits:ends)
+      bc_rhoB(i)=ZERO
+    end forall
+  endif
+  
+  !not fixed bc value
+  
+  do idir=1,nbcdir
+    inits=nbounce6dir(idir-1)+1
+    ends=nbounce6dir(idir)
+    ishift=ex(idir)
+    jshift=ey(idir)
+    kshift=ez(idir)
+    forall(i=inits:ends)
+      bc_u(i)=u(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+      bc_v(i)=v(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+      bc_w(i)=w(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+    end forall
+  enddo
+  
+  
+  do idir=1,nbcdir
+    inits=nbounce7dir(idir-1)+1
+    ends=nbounce7dir(idir)
+    ishift=ex(idir)
+    jshift=ey(idir)
+    kshift=ez(idir)
+    if(lsingle_fluid)then
+      forall(i=inits:ends)
+        bc_rhoR(i)=rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+      end forall
+    else
+      forall(i=inits:ends)
+        bc_rhoR(i)=rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+        bc_rhoB(i)=rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+      end forall
+    endif
+  enddo
+  
+  !fixed bc value
+  
+  !isfluid=6 ; bcfluid from 1 to 6
+  ! dirichlet condition
+  inits=nbounce6dir(0)+1
+  ends=nbounce6dir(1)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_east
+  end forall
+  
+  inits=nbounce6dir(1)+1
+  ends=nbounce6dir(2)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_west
+  end forall
+  
+  inits=nbounce6dir(2)+1
+  ends=nbounce6dir(3)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_rear
+  end forall
+  
+  inits=nbounce6dir(3)+1
+  ends=nbounce6dir(4)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_front
+  end forall
+  
+  inits=nbounce6dir(4)+1
+  ends=nbounce6dir(5)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_north
+  end forall
+  
+  inits=nbounce6dir(5)+1
+  ends=nbounce6dir(6)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_south
+  end forall
+  
+  if(.not. lsingle_fluid)then
+    
+    !isfluid=6 ; bcfluid from 1 to 6
+    ! dirichlet condition
+    inits=nbounce6dir(0)+1
+    ends=nbounce6dir(1)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_east
+    end forall
+    
+    inits=nbounce6dir(1)+1
+    ends=nbounce6dir(2)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_west
+    end forall
+    
+    inits=nbounce6dir(2)+1
+    ends=nbounce6dir(3)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_rear
+    end forall
+    
+    inits=nbounce6dir(3)+1
+    ends=nbounce6dir(4)
+   forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_front
+   end forall
+     
+    inits=nbounce6dir(4)+1
+    ends=nbounce6dir(5)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_north
+    end forall
+    
+    inits=nbounce6dir(5)+1
+    ends=nbounce6dir(6)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_south
+    end forall
+  
+  endif
+  
+  ! neumann condition
+  
+  inits=nbounce7dir(0)+1
+  ends=nbounce7dir(1)
+  forall(i=inits:ends)
+    bc_u(i)=bc_u_east
+    bc_v(i)=bc_v_east
+    bc_w(i)=bc_w_east
+  end forall
+  
+  inits=nbounce7dir(1)+1
+  ends=nbounce7dir(2)
+  forall(i=inits:ends)
+    bc_u(i)=bc_u_west
+    bc_v(i)=bc_v_west
+    bc_w(i)=bc_w_west
+  end forall
+  
+  inits=nbounce7dir(2)+1
+  ends=nbounce7dir(3)
+  forall(i=inits:ends)
+    bc_u(i)=bc_u_rear
+    bc_v(i)=bc_v_rear
+    bc_w(i)=bc_w_rear
+  end forall
+  
+  inits=nbounce7dir(3)+1
+  ends=nbounce7dir(4)
+  forall(i=inits:ends)
+    bc_u(i)=bc_u_front
+    bc_v(i)=bc_v_front
+    bc_w(i)=bc_w_front
+  end forall
+  
+  inits=nbounce7dir(4)+1
+  ends=nbounce7dir(5)
+  forall(i=inits:ends)
+    bc_u(i)=bc_u_north
+    bc_v(i)=bc_v_north
+    bc_w(i)=bc_w_north
+  end forall
+  
+  inits=nbounce7dir(5)+1
+  ends=nbounce7dir(6)
+  forall(i=inits:ends)
+    bc_u(i)=bc_u_south
+    bc_v(i)=bc_v_south
+    bc_w(i)=bc_w_south
+  end forall
+  
+  ! robin condition
+  inits=nbounce8dir(0)+1
+  ends=nbounce8dir(1)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_east
+    bc_u(i)=bc_u_east
+    bc_v(i)=bc_v_east
+    bc_w(i)=bc_w_east
+  end forall
+  
+  inits=nbounce8dir(1)+1
+  ends=nbounce8dir(2)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_west
+    bc_u(i)=bc_u_west
+    bc_v(i)=bc_v_west
+    bc_w(i)=bc_w_west
+  end forall
+  
+  inits=nbounce8dir(2)+1
+  ends=nbounce8dir(3)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_rear
+    bc_u(i)=bc_u_rear
+    bc_v(i)=bc_v_rear
+    bc_w(i)=bc_w_rear
+  end forall
+  
+  inits=nbounce8dir(3)+1
+  ends=nbounce8dir(4)
+  forall(i=inits:ends)
+    bc_rhoB(i)=bc_rhoR_front
+    bc_u(i)=bc_u_front
+    bc_v(i)=bc_v_front
+    bc_w(i)=bc_w_front
+  end forall
+  
+  inits=nbounce8dir(4)+1
+  ends=nbounce8dir(5)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_north
+    bc_u(i)=bc_u_north
+    bc_v(i)=bc_v_north
+    bc_w(i)=bc_w_north
+  end forall
+  
+  inits=nbounce8dir(5)+1
+  ends=nbounce8dir(6)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_south
+    bc_u(i)=bc_u_south
+    bc_v(i)=bc_v_south
+    bc_w(i)=bc_w_south
+  end forall
+  
+  if(.not. lsingle_fluid)then
+    
+    !isfluid=8 ; bcfluid from 1 to 6
+    ! dirichlet condition
+    inits=nbounce8dir(0)+1
+    ends=nbounce8dir(1)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_east
+    end forall
+    
+    inits=nbounce8dir(1)+1
+    ends=nbounce8dir(2)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_west
+    end forall
+    
+    inits=nbounce8dir(2)+1
+    ends=nbounce8dir(3)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_rear
+    end forall
+    
+    inits=nbounce8dir(3)+1
+    ends=nbounce8dir(4)
+   forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_front
+   end forall
+     
+    inits=nbounce8dir(4)+1
+    ends=nbounce8dir(5)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_north
+    end forall
+    
+    inits=nbounce8dir(5)+1
+    ends=nbounce8dir(6)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_south
+    end forall
+  
+  endif
+  
+#endif
+  
   return
   
  end subroutine set_bc_hvar
@@ -9057,8 +9618,10 @@ subroutine driver_bc_densities
  
   implicit none
   
-  integer :: i,j,k
+  integer :: i,j,k,idir,inits,ends
   
+#ifdef OLDBOUNCE
+
   forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==6)
     bc_rhoR(i,j,k)=ZERO
     bc_u(i,j,k)=ZERO
@@ -9226,6 +9789,253 @@ subroutine driver_bc_densities
   forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==8)
     bc_rhoB(i,j,k)=bc_rhoB_south
   end forall
+
+#else
+  
+  !INITIALIZE isfluid=6:8 ; bcfluid from 1 to 6
+  inits=nbounce0+1
+  ends=nbounce8
+  forall(i=inits:ends)
+    bc_rhoR(i)=ZERO
+    bc_u(i)=ZERO
+    bc_v(i)=ZERO
+    bc_w(i)=ZERO
+  end forall
+  if(.not.lsingle_fluid)then
+    forall(i=inits:ends)
+      bc_rhoB(i)=ZERO
+    end forall
+  endif
+  
+  !fixed bc value
+  
+  !isfluid=6 ; bcfluid from 1 to 6
+  ! dirichlet condition
+  inits=nbounce6dir(0)+1
+  ends=nbounce6dir(1)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_east
+  end forall
+  
+  inits=nbounce6dir(1)+1
+  ends=nbounce6dir(2)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_west
+  end forall
+  
+  inits=nbounce6dir(2)+1
+  ends=nbounce6dir(3)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_rear
+  end forall
+  
+  inits=nbounce6dir(3)+1
+  ends=nbounce6dir(4)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_front
+  end forall
+  
+  inits=nbounce6dir(4)+1
+  ends=nbounce6dir(5)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_north
+  end forall
+  
+  inits=nbounce6dir(5)+1
+  ends=nbounce6dir(6)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_south
+  end forall
+  
+  if(.not. lsingle_fluid)then
+    
+    !isfluid=6 ; bcfluid from 1 to 6
+    ! dirichlet condition
+    inits=nbounce6dir(0)+1
+    ends=nbounce6dir(1)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_east
+    end forall
+    
+    inits=nbounce6dir(1)+1
+    ends=nbounce6dir(2)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_west
+    end forall
+    
+    inits=nbounce6dir(2)+1
+    ends=nbounce6dir(3)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_rear
+    end forall
+    
+    inits=nbounce6dir(3)+1
+    ends=nbounce6dir(4)
+   forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_front
+   end forall
+     
+    inits=nbounce6dir(4)+1
+    ends=nbounce6dir(5)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_north
+    end forall
+    
+    inits=nbounce6dir(5)+1
+    ends=nbounce6dir(6)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_south
+    end forall
+  
+  endif
+  
+  ! neumann condition
+  
+  inits=nbounce7dir(0)+1
+  ends=nbounce7dir(1)
+  forall(i=inits:ends)
+    bc_u(i)=bc_u_east
+    bc_v(i)=bc_v_east
+    bc_w(i)=bc_w_east
+  end forall
+  
+  inits=nbounce7dir(1)+1
+  ends=nbounce7dir(2)
+  forall(i=inits:ends)
+    bc_u(i)=bc_u_west
+    bc_v(i)=bc_v_west
+    bc_w(i)=bc_w_west
+  end forall
+  
+  inits=nbounce7dir(2)+1
+  ends=nbounce7dir(3)
+  forall(i=inits:ends)
+    bc_u(i)=bc_u_rear
+    bc_v(i)=bc_v_rear
+    bc_w(i)=bc_w_rear
+  end forall
+  
+  inits=nbounce7dir(3)+1
+  ends=nbounce7dir(4)
+  forall(i=inits:ends)
+    bc_u(i)=bc_u_front
+    bc_v(i)=bc_v_front
+    bc_w(i)=bc_w_front
+  end forall
+  
+  inits=nbounce7dir(4)+1
+  ends=nbounce7dir(5)
+  forall(i=inits:ends)
+    bc_u(i)=bc_u_north
+    bc_v(i)=bc_v_north
+    bc_w(i)=bc_w_north
+  end forall
+  
+  inits=nbounce7dir(5)+1
+  ends=nbounce7dir(6)
+  forall(i=inits:ends)
+    bc_u(i)=bc_u_south
+    bc_v(i)=bc_v_south
+    bc_w(i)=bc_w_south
+  end forall
+  
+  inits=nbounce8dir(0)+1
+  ends=nbounce8dir(1)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_east
+    bc_u(i)=bc_u_east
+    bc_v(i)=bc_v_east
+    bc_w(i)=bc_w_east
+  end forall
+  
+  inits=nbounce8dir(1)+1
+  ends=nbounce8dir(2)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_west
+    bc_u(i)=bc_u_west
+    bc_v(i)=bc_v_west
+    bc_w(i)=bc_w_west
+  end forall
+  
+  inits=nbounce8dir(2)+1
+  ends=nbounce8dir(3)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_rear
+    bc_u(i)=bc_u_rear
+    bc_v(i)=bc_v_rear
+    bc_w(i)=bc_w_rear
+  end forall
+  
+  inits=nbounce8dir(3)+1
+  ends=nbounce8dir(4)
+  forall(i=inits:ends)
+    bc_rhoB(i)=bc_rhoR_front
+    bc_u(i)=bc_u_front
+    bc_v(i)=bc_v_front
+    bc_w(i)=bc_w_front
+  end forall
+  
+  inits=nbounce8dir(4)+1
+  ends=nbounce8dir(5)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_north
+    bc_u(i)=bc_u_north
+    bc_v(i)=bc_v_north
+    bc_w(i)=bc_w_north
+  end forall
+  
+  inits=nbounce8dir(5)+1
+  ends=nbounce8dir(6)
+  forall(i=inits:ends)
+    bc_rhoR(i)=bc_rhoR_south
+    bc_u(i)=bc_u_south
+    bc_v(i)=bc_v_south
+    bc_w(i)=bc_w_south
+  end forall
+  
+  if(.not. lsingle_fluid)then
+    
+    !isfluid=8 ; bcfluid from 1 to 6
+    ! dirichlet condition
+    inits=nbounce8dir(0)+1
+    ends=nbounce8dir(1)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_east
+    end forall
+    
+    inits=nbounce8dir(1)+1
+    ends=nbounce8dir(2)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_west
+    end forall
+    
+    inits=nbounce8dir(2)+1
+    ends=nbounce8dir(3)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_rear
+    end forall
+    
+    inits=nbounce8dir(3)+1
+    ends=nbounce8dir(4)
+   forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_front
+   end forall
+     
+    inits=nbounce8dir(4)+1
+    ends=nbounce8dir(5)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_north
+    end forall
+    
+    inits=nbounce8dir(5)+1
+    ends=nbounce8dir(6)
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoB_south
+    end forall
+  
+  endif
+  
+#endif
   
   return
   
@@ -9247,7 +10057,9 @@ subroutine driver_bc_densities
  
   implicit none
   
-  integer :: i,j,k
+  integer :: i,j,k,idir,inits,ends,ishift,jshift,kshift
+  
+#ifdef OLDBOUNCE
   ! dirichlet condition
   forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==6)
     bc_u(i,j,k)=u(i+1,j,k)
@@ -9335,7 +10147,43 @@ subroutine driver_bc_densities
   forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==6 .and. isfluid(i,j,k)==7)
     bc_rhoB(i,j,k)=rhoB(i,j,k-1)
   end forall
+#else
   
+  !not fixed bc value
+  
+  do idir=1,nbcdir
+    inits=nbounce6dir(idir-1)+1
+    ends=nbounce6dir(idir)
+    ishift=ex(idir)
+    jshift=ey(idir)
+    kshift=ez(idir)
+    forall(i=inits:ends)
+      bc_u(i)=u(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+      bc_v(i)=v(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+      bc_w(i)=w(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+    end forall
+  enddo
+  
+  
+  do idir=1,nbcdir
+    inits=nbounce7dir(idir-1)+1
+    ends=nbounce7dir(idir)
+    ishift=ex(idir)
+    jshift=ey(idir)
+    kshift=ez(idir)
+    if(lsingle_fluid)then
+      forall(i=inits:ends)
+        bc_rhoR(i)=rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+      end forall
+    else
+      forall(i=inits:ends)
+        bc_rhoR(i)=rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+        bc_rhoB(i)=rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+      end forall
+    endif
+  enddo
+  
+#endif
   
   return
   
@@ -9356,7 +10204,11 @@ subroutine driver_bc_densities
  
   implicit none 
   
+#ifdef OLDBOUNCE
   real(kind=PRC), allocatable, dimension(:,:,:)  :: rho_s,u_s,v_s,w_s
+#else
+  real(kind=PRC), allocatable, dimension(:)  :: rho_s,u_s,v_s,w_s
+#endif
   type(REALPTR), dimension(0:links):: aoptp
   
   integer :: i,j,k,l,sx,ex,sz,ez
@@ -9366,7 +10218,7 @@ subroutine driver_bc_densities
   real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
   integer, parameter :: kk = 1
   
-
+#ifdef OLDBOUNCE
   
   where(isfluid(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)==0)
     buffservice3d(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
@@ -10000,6 +10852,498 @@ subroutine driver_bc_densities
      w_s(i,j,k))
      
   end forall
+  
+#else
+  if(nbounce0<1)goto 110
+  forall(i=1:nbounce0)
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((2))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+    aoptp((2))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+    aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+      
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp((4))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp((4))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+      
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp((6))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp((6))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+      
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp((8))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp((8))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+      
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp((10))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp((10))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+      
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp((12))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp((12))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+      
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp((14))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp((14))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+      
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp((16))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp((16))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+      
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp((18))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp((18))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+      buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+  end forall
+  
+ 110 continue
+  if(nbounce6<nbounce0+1)goto 111
+  
+  forall(i=nbounce0+1:nbounce6)
+    !dirichlet condition
+    !anti-bounce-back approach
+    !from page 200 Kruger's book "the lattice boltzmann method"
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+    aoptp((2))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+        
+    aoptp((2))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(2)*TWO*rho_s(i)* &
+     (ONE+(dex(2)*u_s(i)+ &
+     dey(2)*v_s(i)+ &
+     dez(2)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+       
+    aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(1)*TWO*rho_s(i)* &
+     (ONE+(dex(1)*u_s(i)+ &
+     dey(1)*v_s(i)+ &
+     dez(1)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+    aoptp((4))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+        
+    aoptp((4))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(4)*TWO*rho_s(i)* &
+     (ONE+(dex(4)*u_s(i)+ &
+     dey(4)*v_s(i)+ &
+     dez(4)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+       
+    aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(3)*TWO*rho_s(i)* &
+     (ONE+(dex(3)*u_s(i)+ &
+     dey(3)*v_s(i)+ &
+     dez(3)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+    aoptp((6))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+        
+    aoptp((6))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(6)*TWO*rho_s(i)* &
+     (ONE+(dex(6)*u_s(i)+ &
+     dey(6)*v_s(i)+ &
+     dez(6)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+       
+    aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(5)*TWO*rho_s(i)* &
+     (ONE+(dex(5)*u_s(i)+ &
+     dey(5)*v_s(i)+ &
+     dez(5)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+    aoptp((8))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+        
+    aoptp((8))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(8)*TWO*rho_s(i)* &
+     (ONE+(dex(8)*u_s(i)+ &
+     dey(8)*v_s(i)+ &
+     dez(8)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+       
+    aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(7)*TWO*rho_s(i)* &
+     (ONE+(dex(7)*u_s(i)+ &
+     dey(7)*v_s(i)+ &
+     dez(7)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+    aoptp((10))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+        
+    aoptp((10))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(10)*TWO*rho_s(i)* &
+     (ONE+(dex(10)*u_s(i)+ &
+     dey(10)*v_s(i)+ &
+     dez(10)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+       
+    aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(9)*TWO*rho_s(i)* &
+     (ONE+(dex(9)*u_s(i)+ &
+     dey(9)*v_s(i)+ &
+     dez(9)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+    aoptp((12))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+        
+    aoptp((12))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(12)*TWO*rho_s(i)* &
+     (ONE+(dex(12)*u_s(i)+ &
+     dey(12)*v_s(i)+ &
+     dez(12)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+       
+    aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(11)*TWO*rho_s(i)* &
+     (ONE+(dex(11)*u_s(i)+ &
+     dey(11)*v_s(i)+ &
+     dez(11)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+    aoptp((14))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+        
+    aoptp((14))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(14)*TWO*rho_s(i)* &
+     (ONE+(dex(14)*u_s(i)+ &
+     dey(14)*v_s(i)+ &
+     dez(14)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+       
+    aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(13)*TWO*rho_s(i)* &
+     (ONE+(dex(13)*u_s(i)+ &
+     dey(13)*v_s(i)+ &
+     dez(13)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+    aoptp((16))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+        
+    aoptp((16))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(16)*TWO*rho_s(i)* &
+     (ONE+(dex(16)*u_s(i)+ &
+     dey(16)*v_s(i)+ &
+     dez(16)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+       
+    aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(15)*TWO*rho_s(i)* &
+     (ONE+(dex(15)*u_s(i)+ &
+     dey(15)*v_s(i)+ &
+     dez(15)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+    aoptp((18))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+        
+    aoptp((18))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(18)*TWO*rho_s(i)* &
+     (ONE+(dex(18)*u_s(i)+ &
+     dey(18)*v_s(i)+ &
+     dez(18)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+       
+    aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(17)*TWO*rho_s(i)* &
+     (ONE+(dex(17)*u_s(i)+ &
+     dey(17)*v_s(i)+ &
+     dez(17)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+        
+  end forall
+  
+ 111 continue
+  if(nbounce7<nbounce6+1)goto 112
+  
+  forall(i=nbounce6+1:nbounce7)
+    !neumann condition
+    !moving walls bounce-back approach
+    !from page 180 Kruger's book "the lattice boltzmann method"
+    !NOTE de[x,y,z]=zero eliminated
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((2))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     
+    aoptp((2))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(2)*pref_bouzidi*rho_s(i)* &
+     (dex(2)*u_s(i))
+    
+    aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(1)*pref_bouzidi*rho_s(i)* &
+     (dex(1)*u_s(i))
+     
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((4))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     
+    aoptp((4))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(4)*pref_bouzidi*rho_s(i)* &
+     (dey(4)*v_s(i))
+    
+    aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(3)*pref_bouzidi*rho_s(i)* &
+     (dey(3)*v_s(i))
+     
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((6))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     
+    aoptp((6))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(6)*pref_bouzidi*rho_s(i)* &
+     (dez(6)*w_s(i))
+    
+    aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(5)*pref_bouzidi*rho_s(i)* &
+     (dez(5)*w_s(i))
+     
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((8))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     
+    aoptp((8))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(8)*pref_bouzidi*rho_s(i)* &
+     (dex(8)*u_s(i)+ &
+     dey(8)*v_s(i))
+    
+    aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(7)*pref_bouzidi*rho_s(i)* &
+     (dex(7)*u_s(i)+ &
+     dey(7)*v_s(i))
+     
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((10))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     
+    aoptp((10))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(10)*pref_bouzidi*rho_s(i)* &
+     (dex(10)*u_s(i)+ &
+     dey(10)*v_s(i))
+    
+    aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(9)*pref_bouzidi*rho_s(i)* &
+     (dex(9)*u_s(i)+ &
+     dey(9)*v_s(i))
+     
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((12))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     
+    aoptp((12))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(12)*pref_bouzidi*rho_s(i)* &
+     (dex(12)*u_s(i)+ &
+     dez(12)*w_s(i))
+    
+    aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(11)*pref_bouzidi*rho_s(i)* &
+     (dex(11)*u_s(i)+ &
+     dez(11)*w_s(i))
+     
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((14))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+  
+    aoptp((14))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(14)*pref_bouzidi*rho_s(i)* &
+     (dex(14)*u_s(i)+ &
+     dez(14)*w_s(i))
+    
+    aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(13)*pref_bouzidi*rho_s(i)* &
+     (dex(13)*u_s(i)+ &
+     dez(13)*w_s(i))
+     
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((16))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     
+    aoptp((16))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(16)*pref_bouzidi*rho_s(i)* &
+     (dey(16)*v_s(i)+ &
+     dez(16)*w_s(i))
+    
+    aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(15)*pref_bouzidi*rho_s(i)* &
+     (dey(15)*v_s(i)+ &
+     dez(15)*w_s(i))
+     
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((18))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     
+    aoptp((18))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(18)*pref_bouzidi*rho_s(i)* &
+     (dey(18)*v_s(i)+ &
+     dez(18)*w_s(i))
+    
+    aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))- &
+     p(17)*pref_bouzidi*rho_s(i)* &
+     (dey(17)*v_s(i)+ &
+     dez(17)*w_s(i))
+  
+  end forall
+  
+ 112 continue
+  if(nbounce8<nbounce7+1)goto 113
+  
+  forall(i=nbounce7+1:nbounce8)
+    !robin conditions
+    !equilibrium scheme
+    !from page 191 Kruger's book "the lattice boltzmann method"
+    aoptp(0)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop00(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop01(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(2)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop02(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop03(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(4)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop04(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop05(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop06(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop07(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(8)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop08(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop09(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(10)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop10(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop11(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(12)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop12(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop13(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(14)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop14(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop15(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(16)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop16(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop17(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(18)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop18(rho_s(i),u_s(i),v_s(i),w_s(i))
+     
+  end forall
+  
+ 113 continue
+  
+#endif
   
   return
   

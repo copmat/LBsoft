@@ -53,10 +53,10 @@
   use utility_mod,     only : init_random_seed,allocate_array_buffservice3d
   use lbempi_mod,      only : setupcom,create_findneigh_list_hvar, &
                         create_findneigh_list_pops,deallocate_ownern
-  use fluids_mod,      only : allocate_fluids,initialize_fluids, &
+  use fluids_mod,      only : allocate_fluids,initialize_isfluid_bcfluid, &
                         nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
                         miny,maxy,minz,maxz,nbuff,lsingle_fluid, &
-                        initialize_isfluid,isfluid
+                        isfluid,initialize_fluids
   use write_output_mod,only: write_test_map
   use integrator_mod,  only : initime,endtime,tstep,set_nstep, &
                         update_nstep,nstep,driver_integrator,nstepmax
@@ -110,13 +110,15 @@
    
 ! allocate arrays of the nanofiber quantities
   call allocate_fluids
+  
    
   call create_findneigh_list_hvar(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
    miny,maxy,minz,maxz)  
    
-! initialize isfluid
-  call initialize_isfluid
+! initialize isfluid and bcfluid (type of node and bc adopted)
+  call initialize_isfluid_bcfluid
   
+ 
   call create_findneigh_list_pops(nx,ny,nz,nbuff,ibctype,isfluid,ixpbc,iypbc,izpbc,minx,maxx, &
    miny,maxy,minz,maxz)  
    
@@ -124,7 +126,7 @@
   !call deallocate_ownern
   
 !da rivedere
-#ifndef ALLAMAX
+#ifdef ALLAMAX
   call allocate_array_buffservice3d(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,1-nbuff,nz+nbuff)
 #else
   call allocate_array_buffservice3d(minx-nbuff,maxx+nbuff,miny-nbuff,maxy+nbuff,minz-nbuff,maxz+nbuff)
