@@ -125,6 +125,8 @@ MODULE lbempi_mod
   public :: comm_init_isfluid
   public :: create_findneigh_list_hvar
   public :: create_findneigh_list_pops
+  public :: commexch_vel_component
+  public :: commwait_vel_component
   
 CONTAINS
 #define LARGEINT 1073741824
@@ -241,31 +243,39 @@ CONTAINS
        izpbc=1
     ENDIF
     
+    allocate(gminx(0:mxrank-1))
+    allocate(gmaxx(0:mxrank-1))
+    allocate(gminy(0:mxrank-1))
+    allocate(gmaxy(0:mxrank-1))
+    allocate(gminz(0:mxrank-1))
+    allocate(gmaxz(0:mxrank-1))
+    
     
     gminx(0:mxrank-1)=0
-     gmaxx(0:mxrank-1)=0
-     gminy(0:mxrank-1)=0
-     gmaxy(0:mxrank-1)=0
-     gminz(0:mxrank-1)=0
-     gmaxz(0:mxrank-1)=0
-     
-     do i=0,mxrank-1
-       if(i==idrank)then
-         gminx(i)=minx
-         gmaxx(i)=maxx
-         gminy(i)=miny
-         gmaxy(i)=maxy
-         gminz(i)=minz
-         gmaxz(i)=maxz
-       endif
-     enddo
-     call sum_world_iarr(gminx,mxrank)
-     call sum_world_iarr(gmaxx,mxrank)
-     call sum_world_iarr(gminy,mxrank)
-     call sum_world_iarr(gmaxy,mxrank)
-     call sum_world_iarr(gminz,mxrank)
-     call sum_world_iarr(gmaxz,mxrank)
-
+    gmaxx(0:mxrank-1)=0
+    gminy(0:mxrank-1)=0
+    gmaxy(0:mxrank-1)=0
+    gminz(0:mxrank-1)=0
+    gmaxz(0:mxrank-1)=0
+       
+    do i=0,mxrank-1
+      if(i==idrank)then
+        gminx(i)=minx
+        gmaxx(i)=maxx
+        gminy(i)=miny
+        gmaxy(i)=maxy
+        gminz(i)=minz
+        gmaxz(i)=maxz
+      endif
+    enddo
+    call sum_world_iarr(gminx,mxrank)
+    call sum_world_iarr(gmaxx,mxrank)
+    call sum_world_iarr(gminy,mxrank)
+    call sum_world_iarr(gmaxy,mxrank)
+    call sum_world_iarr(gminz,mxrank)
+    call sum_world_iarr(gmaxz,mxrank)
+    
+    return
 
 END SUBROUTINE setupcom
 
@@ -402,29 +412,37 @@ end subroutine
      ownern(i)=0
   enddo
   
+  allocate(gminx(0:mxrank-1))
+  allocate(gmaxx(0:mxrank-1))
+  allocate(gminy(0:mxrank-1))
+  allocate(gmaxy(0:mxrank-1))
+  allocate(gminz(0:mxrank-1))
+  allocate(gmaxz(0:mxrank-1))
+  
+  
   gminx(0:mxrank-1)=0
-     gmaxx(0:mxrank-1)=0
-     gminy(0:mxrank-1)=0
-     gmaxy(0:mxrank-1)=0
-     gminz(0:mxrank-1)=0
-     gmaxz(0:mxrank-1)=0
+  gmaxx(0:mxrank-1)=0
+  gminy(0:mxrank-1)=0
+  gmaxy(0:mxrank-1)=0
+  gminz(0:mxrank-1)=0
+  gmaxz(0:mxrank-1)=0
      
-     do i=0,mxrank-1
-       if(i==idrank)then
-         gminx(i)=minx
-         gmaxx(i)=maxx
-         gminy(i)=miny
-         gmaxy(i)=maxy
-         gminz(i)=minz
-         gmaxz(i)=maxz
-       endif
-     enddo
-     call sum_world_iarr(gminx,mxrank)
-     call sum_world_iarr(gmaxx,mxrank)
-     call sum_world_iarr(gminy,mxrank)
-     call sum_world_iarr(gmaxy,mxrank)
-     call sum_world_iarr(gminz,mxrank)
-     call sum_world_iarr(gmaxz,mxrank)
+  do i=0,mxrank-1
+    if(i==idrank)then
+      gminx(i)=minx
+      gmaxx(i)=maxx
+      gminy(i)=miny
+      gmaxy(i)=maxy
+      gminz(i)=minz
+      gmaxz(i)=maxz
+    endif
+  enddo
+  call sum_world_iarr(gminx,mxrank)
+  call sum_world_iarr(gmaxx,mxrank)
+  call sum_world_iarr(gminy,mxrank)
+  call sum_world_iarr(gmaxy,mxrank)
+  call sum_world_iarr(gminz,mxrank)
+  call sum_world_iarr(gmaxz,mxrank)
   
   return
   
@@ -2310,6 +2328,56 @@ end subroutine
   endif
 
    END SUBROUTINE commexch_dens
+   
+  SUBROUTINE commexch_vel_component(dtemp)
+
+  IMPLICIT NONE
+
+  ! REAL(KIND=PRC) :: pop_ptr(0:,0:)
+  ! REAL(KIND=PRC) :: pop_ptr(0:,0:)
+  !max REAL(KIND=PRC) :: pop_ptr(0:,0:)
+  REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp
+!max  REAL(KIND=PRC) :: pop_ptr(0:npop-1,0:*)
+  INTEGER :: request(0:maxneigh-1)
+  INTEGER :: status(MPI_STATUS_SIZE,0:maxneigh-1)
+  INTEGER :: i,j,mym(3)
+  INTEGER(kind=IPRC) :: i4, itemp, jtemp, ktemp
+
+  if(numprocs==1)return
+  
+  do i=0, n_pe2recv_fluid_hvar-1
+    CALL MPI_IRECV(buffr_hvar(0,i),n_var2recv_fluid(i),MYFLOAT, &
+      &  i_pe2recv_fluid_hvar(i),i_pe2recv_fluid_hvar(i)+tag_hvar, &
+        MPI_COMM_WORLD,requestm_hvar(i),ierr)
+  enddo
+  
+  
+
+
+   do i=0, n_pe2send_fluid_hvar-1
+      do j=0,n_var2send_fluid(i)-1
+         !max         buffpops(j,i)=pop_ptr(i_pop2send_fluid(0,j,i),i_pop2send_fluid(1,j,i))
+         i4=i_var2send_fluid(0,j,i)
+         !ktemp = i4/INT(nxy2,KIND=IPRC)
+         !jtemp = (i4 - ktemp*INT(nxy2,KIND=IPRC))/INT(nx2,KIND=IPRC)
+         !itemp = i4 - ktemp*INT(nxy2,KIND=IPRC) - jtemp*INT(nx2,KIND=IPRC)
+         mym=i4find(i4)
+         ktemp = mym(3)
+         jtemp = mym(2)
+         itemp = mym(1)
+!max         write(50+myid,*)'id=',myid,'l=',i_pop2send_fluid(0,j,i),'ix=',itemp,'iy=',jtemp,'iz=',ktemp
+         buffs_hvar(j,i)=dtemp(itemp,jtemp,ktemp)
+         !buffpops(j,i)=pop_ptr(i_pop2send_fluid(0,j,i))%p(itemp,jtemp,ktemp)
+      enddo
+
+      CALL MPI_ISEND(buffs_hvar(0,i),n_var2send_fluid(i),MYFLOAT, &
+       & i_pe2send_fluid_hvar(i),myid+tag_hvar,MPI_COMM_WORLD,request_hvar(i),ierr)
+     
+
+   enddo
+   
+
+   END SUBROUTINE commexch_vel_component
  
    SUBROUTINE commwait_dens(dtemp,dtemp2)
 
@@ -2375,6 +2443,48 @@ end subroutine
    endif
 
    END SUBROUTINE commwait_dens
+   
+   SUBROUTINE commwait_vel_component(dtemp)
+
+  IMPLICIT NONE
+
+  ! REAL(KIND=PRC) :: pop_ptr(0:,0:)
+  ! REAL(KIND=PRC) :: pop_ptr(0:,0:)
+  !max REAL(KIND=PRC) :: pop_ptr(0:,0:)
+  !TYPE(REALPTR), dimension(0:links):: pop_ptr
+  REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp
+!max  REAL(KIND=PRC) :: pop_ptr(0:npop-1,0:*)
+  INTEGER :: request(0:maxneigh-1)
+  INTEGER :: status(MPI_STATUS_SIZE,0:maxneigh-1)
+  INTEGER :: i,j,mym(3)
+  INTEGER(kind=IPRC) :: i4, itemp, jtemp, ktemp
+  
+  if(numprocs==1)return
+
+   if(n_pe2recv_fluid_hvar.gt.0) then
+      CALL MPI_WAITALL(n_pe2recv_fluid_hvar,requestm_hvar,status,ierr)
+   endif
+   do i=0, n_pe2recv_fluid_hvar-1
+      do j=0,n_var2recv_fluid(i)-1
+         i4=i_var2recv_fluid(1,j,i)
+         !ktemp = i4/INT(nxy2,KIND=IPRC)
+         !jtemp = (i4 - ktemp*INT(nxy2,KIND=IPRC))/INT(nx2,KIND=IPRC)
+         !itemp = i4 - ktemp*INT(nxy2,KIND=IPRC) - jtemp*INT(nx2,KIND=IPRC)
+         mym=i4find(i4)
+         ktemp = mym(3)
+         jtemp = mym(2)
+         itemp = mym(1)
+         !pop_ptr(i_pop2recv_fluid(0,j,i))%p(itemp,jtemp,ktemp)=buffpopr(j,i)
+         dtemp(itemp,jtemp,ktemp)=buffr_hvar(j,i)
+      enddo
+   enddo
+   
+   if(n_pe2send_fluid_hvar.gt.0) then
+      CALL MPI_WAITALL(n_pe2send_fluid_hvar,request_hvar,status,ierr)
+   endif
+   
+
+   END SUBROUTINE commwait_vel_component
    
    SUBROUTINE comm_hvar(dtemp,dtemp2)
    
@@ -2512,6 +2622,26 @@ end subroutine
    return
    
    END SUBROUTINE commwait_dens
+   
+   SUBROUTINE commexch_vel_component(dtemp)
+   
+   IMPLICIT NONE
+   
+   REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp
+   
+   return
+   
+   END SUBROUTINE commexch_vel_component
+   
+    SUBROUTINE commwait_vel_component(dtemp)
+   
+   IMPLICIT NONE
+   
+   REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp
+   
+   return
+   
+   END SUBROUTINE commwait_vel_component
    
   SUBROUTINE comm_init_isfluid(temp)
 

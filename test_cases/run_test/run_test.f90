@@ -3,7 +3,7 @@
  
   implicit none
   
-  integer, parameter :: ntest=7
+  integer, parameter :: ntest=10
   
   integer, parameter :: orig_io=1017
   integer, parameter :: orig_mapio=18
@@ -36,7 +36,7 @@
   character(len=8) :: mystring8
   logical :: lexist
   
-  real, parameter :: mytol=1.e-4
+  real, parameter :: mytol=1.e-8
   
   
   if(iargc()/=0 .and. iargc()/=6)then
@@ -98,13 +98,16 @@
   labeltest(1:ntest)=repeat(' ',maxlen)
   origpath=repeat(' ',maxlen)
   
-  labeltest(1)='2D_Poiseuille_xy'
-  labeltest(2)='2D_Poiseuille_xz'
-  labeltest(3)='2D_Poiseuille_yz'
-  labeltest(4)='2D_Shear_xy'
-  labeltest(5)='2D_Shear_xz'
-  labeltest(6)='2D_Shear_yz'
-  labeltest(7)='3D_Spinodal'
+  labeltest(1)='2D_Poiseuille_gradP_xy'
+  labeltest(2)='2D_Poiseuille_gradP_xz'
+  labeltest(3)='2D_Poiseuille_gradP_yz'
+  labeltest(4)='2D_Poiseuille_xy'
+  labeltest(5)='2D_Poiseuille_xz'
+  labeltest(6)='2D_Poiseuille_yz'
+  labeltest(7)='2D_Shear_xy'
+  labeltest(8)='2D_Shear_xz'
+  labeltest(9)='2D_Shear_yz'
+  labeltest(10)='3D_Spinodal'
   
   call getcwd(origpath)
   origpath=trim(origpath)

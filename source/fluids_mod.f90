@@ -25,7 +25,8 @@
 
  use lbempi_mod,  only : commspop, commrpop, i4find, i4back, &
                    ownern,deallocate_ownern,commexch_dens, &
-                   commwait_dens,comm_init_isfluid
+                   commwait_dens,comm_init_isfluid,commexch_vel_component, &
+                   commwait_vel_component
 
  
  implicit none
@@ -65,6 +66,9 @@
  integer, save :: nvar_managebc=0
  type(REALPTR_S), allocatable, dimension(:,:) :: rhoR_managebc
  type(REALPTR_S), allocatable, dimension(:,:) :: rhoB_managebc
+ type(REALPTR_S), allocatable, dimension(:,:) :: u_managebc
+ type(REALPTR_S), allocatable, dimension(:,:) :: v_managebc
+ type(REALPTR_S), allocatable, dimension(:,:) :: w_managebc
  
  integer, save :: npop_managebc=0
  type(REALPTR_S), allocatable, dimension(:,:) :: popR_managebc
@@ -85,6 +89,11 @@
  logical, save, protected, public :: lvorticity=.false.
  
  logical, save, protected, public :: lwall_SC=.false.
+ 
+ logical, save, protected, public :: lexch_dens=.false.
+ logical, save, protected, public :: lexch_u=.false.
+ logical, save, protected, public :: lexch_v=.false.
+ logical, save, protected, public :: lexch_w=.false.
  
  real(kind=PRC), save, protected, public :: t_LB = ONE
  
@@ -151,9 +160,9 @@
  integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: bcfluid
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:),target :: rhoR
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:),target :: rhoB
- real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: u
- real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: v
- real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: w
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:),target  :: u
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:),target  :: v
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:),target  :: w
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: omega
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: fuR
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: fvR
@@ -296,6 +305,7 @@
  public :: test_fake_pops
  public :: probe_pops_in_node
  public :: driver_bc_pop_selfcomm
+ public :: driver_initialiaze_manage_bc_selfcomm
  
  contains
  
@@ -615,14 +625,6 @@
    endif
      
      
-     !allocate pointers for managing bc density within the same process
-     call initialiaze_manage_bc_hvar_selfcomm
-     
-#ifndef ALLAMAX
-     call initialiaze_manage_bc_pop_selfcomm
-#endif
-     
-     
      
      return
 
@@ -665,6 +667,32 @@
   return
   
  end subroutine set_boundary_conditions_type
+ 
+ subroutine driver_initialiaze_manage_bc_selfcomm
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the initialization of 
+!     the communication within the same process bewteen nodes linked
+!     because of the periodic bc
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+ 
+  call initialiaze_manage_bc_hvar_selfcomm
+  
+#ifndef ALLAMAX
+  call initialiaze_manage_bc_pop_selfcomm
+#endif
+  
+  return
+  
+ end subroutine
  
  subroutine initialize_isfluid_bcfluid
  
@@ -735,7 +763,7 @@
               isfluid(i,j,k)=0
             elseif(j==(ny+1) .and. k==0)then !south rear edge
               isfluid(i,j,k)=0
-            elseif(i==0 .and. k==0)then !south south west
+            elseif(i==0 .and. k==0)then !south west edge
               isfluid(i,j,k)=0
             elseif(i==(nx+1))then !east side
               if(bc_type_east/=0)then
@@ -784,7 +812,15 @@
             endif
           elseif(ibctype==1)then ! 1 T F F
             if(j==0 .or. j==(ny+1) .or. k==0 .or. k==(nz+1))then
-              if(k==(nz+1))then !north side
+              if(k==(nz+1) .and. j==0)then !north front edge
+                isfluid(i,j,k)=0
+              elseif(k==(nz+1) .and. j==(ny+1))then !north rear edge
+                isfluid(i,j,k)=0
+              elseif(k==0 .and. j==0)then !south front edge
+                isfluid(i,j,k)=0
+              elseif(k==0 .and. j==(ny+1))then !south rear edge
+                isfluid(i,j,k)=0
+              elseif(k==(nz+1))then !north side
                 if(bc_type_north/=0)then
                   isfluid(i,j,k)= bc_type_north+5
                   bcfluid(i,j,k)=6
@@ -818,7 +854,15 @@
             endif
           elseif(ibctype==2)then ! 2 F T F
             if(i==0 .or. i==(nx+1) .or. k==0 .or. k==(nz+1))then
-              if(i==(nx+1))then !east side
+              if(i==(nx+1) .and. k==(nz+1))then !east north edge
+                isfluid(i,j,k)=0
+              elseif(i==(nx+1) .and. k==0)then !east south edge
+                isfluid(i,j,k)=0
+              elseif(i==0 .and. k==(nz+1))then !west north edge
+                isfluid(i,j,k)=0
+              elseif(i==0 .and. k==0)then !west south edge
+                isfluid(i,j,k)=0
+              elseif(i==(nx+1))then !east side
                 if(bc_type_east/=0)then
                   isfluid(i,j,k)= bc_type_east+5
                   bcfluid(i,j,k)=2
@@ -872,7 +916,15 @@
             endif
           elseif(ibctype==4)then ! 4 F F T
             if(i==0 .or. i==(nx+1) .or. j==0 .or. j==(ny+1))then
-              if(i==(nx+1))then !east side
+              if(i==(nx+1) .and. j==0)then !east front edge
+                isfluid(i,j,k)=0
+              elseif(i==(nx+1) .and. j==(ny+1))then !east rear edge
+                isfluid(i,j,k)=0
+              elseif(i==0 .and. j==0)then !west front edge
+                isfluid(i,j,k)=0
+              elseif(i==0 .and. j==(ny+1))then !west rear edge
+                isfluid(i,j,k)=0
+              elseif(i==(nx+1))then !east side
                 if(bc_type_east/=0)then
                   isfluid(i,j,k)= bc_type_east+5
                   bcfluid(i,j,k)=2
@@ -1119,7 +1171,7 @@
 
   !set the bc if necessary with their fixed values given in input
   call set_bc_hvar
-
+  
   ltest=.false.
   if(any(istat.ne.0))then
     do i=1,nistatmax
@@ -1130,7 +1182,25 @@
    endif
    call or_world_larr(ltest,1)
    if(ltest(1))call error(15)
-  
+   
+   !certain bc need few hydrodynamic variables in the halo
+   !check if it is the case and gives the order to communicate the hvar 
+   !within the halo
+   if(bc_type_east==1 .or. bc_type_west==1)then
+     lexch_u=.true.
+   endif
+   if(bc_type_front==1 .or. bc_type_rear==1)then
+     lexch_v=.true.
+   endif
+   if(bc_type_north==1 .or. bc_type_south==1)then
+     lexch_w=.true.
+   endif
+   if(bc_type_east==2 .or. bc_type_west==2 .or. &
+    bc_type_front==2 .or. bc_type_rear==2 .or. &
+    bc_type_north==2 .or. bc_type_south==2)then
+     lexch_dens=.true.
+   endif
+   
   return
   
  end subroutine initialize_isfluid_bcfluid
@@ -1169,7 +1239,16 @@
   
   call set_initial_vel_fluids
   
-  call driver_bc_densities
+#ifdef MPI
+  call commexch_dens(rhoR,rhoB)
+#endif
+  call manage_bc_hvar_selfcomm(rhoR_managebc)
+  if(.not. lsingle_fluid)then
+    call manage_bc_hvar_selfcomm(rhoB_managebc)
+  endif
+#ifdef MPI
+  call commwait_dens(rhoR,rhoB)
+#endif
   
   call driver_copy_densities_wall
   
@@ -1192,6 +1271,8 @@
   call driver_set_initial_pop_fluids
   
   if(lunique_omega)call set_unique_omega
+  
+  if(lShanChen)lexch_dens=.true.
   
   !restart to be added
   
@@ -5129,19 +5210,18 @@ subroutine driver_bc_densities
 
 #ifdef MPI
 
+  if(lexch_dens)then
 #ifdef MPI
-  call commexch_dens(rhoR,rhoB)
+    call commexch_dens(rhoR,rhoB)
 #endif
-
-  call manage_bc_hvar_selfcomm(rhoR_managebc)
-  
-  if(.not. lsingle_fluid)then
-    call manage_bc_hvar_selfcomm(rhoB_managebc)
+    call manage_bc_hvar_selfcomm(rhoR_managebc)
+    if(.not. lsingle_fluid)then
+      call manage_bc_hvar_selfcomm(rhoB_managebc)
+    endif
+#ifdef MPI
+    call commwait_dens(rhoR,rhoB)
+#endif
   endif
-  
-#ifdef MPI
-  call commwait_dens(rhoR,rhoB)
-#endif
   
   return
   
@@ -5318,6 +5398,16 @@ subroutine driver_bc_densities
   allocate(rhoR_managebc(2,nvar_managebc))
   if(.not. lsingle_fluid)allocate(rhoB_managebc(2,nvar_managebc))
   
+  if(lexch_u)then
+    allocate(u_managebc(2,nvar_managebc))
+  endif
+  if(lexch_v)then
+    allocate(v_managebc(2,nvar_managebc))
+  endif
+  if(lexch_w)then
+    allocate(w_managebc(2,nvar_managebc))
+  endif
+  
   nvar_managebc=0
   do k=minz-nbuff,maxz+nbuff
     do j=miny-nbuff,maxy+nbuff
@@ -5365,6 +5455,18 @@ subroutine driver_bc_densities
               rhoB_managebc(1,nvar_managebc)%p=>rhoB(itemp2,jtemp2,ktemp2) !who must recevice is one
               rhoB_managebc(2,nvar_managebc)%p=>rhoB(itemp,jtemp,ktemp)
             endif
+            if(lexch_u)then
+              u_managebc(1,nvar_managebc)%p=>u(itemp2,jtemp2,ktemp2)   !who must recevice is one
+              u_managebc(2,nvar_managebc)%p=>u(itemp,jtemp,ktemp)
+            endif
+            if(lexch_v)then
+              v_managebc(1,nvar_managebc)%p=>v(itemp2,jtemp2,ktemp2)   !who must recevice is one
+              v_managebc(2,nvar_managebc)%p=>v(itemp,jtemp,ktemp)
+            endif
+            if(lexch_w)then
+              w_managebc(1,nvar_managebc)%p=>w(itemp2,jtemp2,ktemp2)   !who must recevice is one
+              w_managebc(2,nvar_managebc)%p=>w(itemp,jtemp,ktemp)
+            endif
           endif
         endif
       enddo
@@ -5382,7 +5484,7 @@ subroutine driver_bc_densities
 !     LBsoft subroutine to manage the buffer fluid nodes
 !     within the same process for applying the boundary conditions
 !     using the node list created in subroutine
-!     initialiaze_manage_bc_hvar_selfcomm
+!     initialiaze_manage_bc_dens_selfcomm
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -5420,8 +5522,38 @@ subroutine driver_bc_densities
   implicit none
   
 #ifdef MPI
-   
-   return
+ 
+  if(lexch_u)then
+#ifdef MPI
+    call commexch_vel_component(u)
+#endif
+    call manage_bc_hvar_selfcomm(u_managebc)
+#ifdef MPI
+    call commwait_vel_component(u)
+#endif
+  endif
+  
+  if(lexch_v)then
+#ifdef MPI
+    call commexch_vel_component(v)
+#endif
+    call manage_bc_hvar_selfcomm(v_managebc)
+#ifdef MPI
+    call commwait_vel_component(v)
+#endif
+  endif
+  
+  if(lexch_w)then
+#ifdef MPI
+    call commexch_vel_component(w)
+#endif
+    call manage_bc_hvar_selfcomm(w_managebc)
+#ifdef MPI
+    call commwait_vel_component(w)
+#endif
+  endif
+  
+  return
    
 #else
   
@@ -9111,6 +9243,7 @@ subroutine driver_bc_densities
   implicit none
   
   integer :: i,j,k,idir,inits,ends,ishift,jshift,kshift
+  integer :: ishift2,jshift2,kshift2
   
 #ifdef OLDBOUNCE
    ! dirichlet condition
@@ -9342,28 +9475,74 @@ subroutine driver_bc_densities
     ishift=ex(idir)
     jshift=ey(idir)
     kshift=ez(idir)
-    forall(i=inits:ends)
-      bc_u(i)=u(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
-      bc_v(i)=v(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
-      bc_w(i)=w(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
-    end forall
+    ishift2=ex(idir)*2
+    jshift2=ey(idir)*2
+    kshift2=ez(idir)*2
+    if(inits>ends)cycle
+    if(idir==1 .or. idir==2)then
+      forall(i=inits:ends)
+        bc_u(i)=interpolation_order_2(u(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+         u(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         u(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
+      end forall
+      where(bc_u(inits:ends)>cssq*HALF)
+        bc_u(inits:ends)=cssq*HALF
+      elsewhere(bc_u(inits:ends)<-cssq*HALF)
+        bc_u(inits:ends)=-cssq*HALF
+      end where
+    endif
+    if(idir==3 .or. idir==4)then
+      forall(i=inits:ends)
+        bc_v(i)=interpolation_order_2(v(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+         v(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         v(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
+      end forall
+      where(bc_v(inits:ends)>cssq*HALF)
+        bc_v(inits:ends)=cssq*HALF
+      elsewhere(bc_v(inits:ends)<-cssq*HALF)
+        bc_v(inits:ends)=-cssq*HALF
+      end where
+    endif
+    if(idir==5 .or.idir==6)then
+      forall(i=inits:ends)
+        bc_w(i)=interpolation_order_2(w(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+         w(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         w(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
+      end forall
+      where(bc_w(inits:ends)>cssq*HALF)
+        bc_w(inits:ends)=cssq*HALF
+      elsewhere(bc_w(inits:ends)<-cssq*HALF)
+        bc_w(inits:ends)=-cssq*HALF
+      end where
+    endif
   enddo
   
   
   do idir=1,nbcdir
     inits=nbounce7dir(idir-1)+1
     ends=nbounce7dir(idir)
+    if(inits>ends)cycle
     ishift=ex(idir)
     jshift=ey(idir)
     kshift=ez(idir)
+    ishift2=ex(idir)*2
+    jshift2=ey(idir)*2
+    kshift2=ez(idir)*2
+    if(inits>ends)cycle
     if(lsingle_fluid)then
       forall(i=inits:ends)
-        bc_rhoR(i)=rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+        bc_rhoR(i)=interpolation_order_2(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
       end forall
     else
       forall(i=inits:ends)
-        bc_rhoR(i)=rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
-        bc_rhoB(i)=rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+        bc_rhoR(i)=interpolation_order_2(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
+        bc_rhoB(i)=interpolation_order_2(rhoB(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+         rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
       end forall
     endif
   enddo
@@ -9372,81 +9551,106 @@ subroutine driver_bc_densities
   
   !isfluid=6 ; bcfluid from 1 to 6
   ! dirichlet condition
+
   inits=nbounce6dir(0)+1
   ends=nbounce6dir(1)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_east
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_west
+    end forall
+  endif
   
   inits=nbounce6dir(1)+1
   ends=nbounce6dir(2)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_west
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_east
+    end forall
+  endif
   
   inits=nbounce6dir(2)+1
   ends=nbounce6dir(3)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_rear
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_front
+    end forall
+  endif
   
   inits=nbounce6dir(3)+1
   ends=nbounce6dir(4)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_front
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_rear
+    end forall
+  endif
   
   inits=nbounce6dir(4)+1
   ends=nbounce6dir(5)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_north
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_south
+    end forall
+  endif
   
   inits=nbounce6dir(5)+1
   ends=nbounce6dir(6)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_south
-  end forall
-  
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_north
+    end forall
+  endif
+    
   if(.not. lsingle_fluid)then
     
     !isfluid=6 ; bcfluid from 1 to 6
     ! dirichlet condition
     inits=nbounce6dir(0)+1
     ends=nbounce6dir(1)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_east
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_west !bc_rhoB_east
+      end forall
+    endif
     
     inits=nbounce6dir(1)+1
     ends=nbounce6dir(2)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_west
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_east !bc_rhoB_west
+      end forall
+    endif
     
     inits=nbounce6dir(2)+1
     ends=nbounce6dir(3)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_rear
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_front !bc_rhoB_rear
+      end forall
+    endif
     
     inits=nbounce6dir(3)+1
     ends=nbounce6dir(4)
-   forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_front
-   end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_rear !bc_rhoB_front
+      end forall
+    endif
      
     inits=nbounce6dir(4)+1
     ends=nbounce6dir(5)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_north
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_south !bc_rhoB_north
+      end forall
+    endif
     
     inits=nbounce6dir(5)+1
     ends=nbounce6dir(6)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_south
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_north !bc_rhoB_south
+      end forall
+    endif
   
   endif
   
@@ -9454,106 +9658,129 @@ subroutine driver_bc_densities
   
   inits=nbounce7dir(0)+1
   ends=nbounce7dir(1)
-  forall(i=inits:ends)
-    bc_u(i)=bc_u_east
-    bc_v(i)=bc_v_east
-    bc_w(i)=bc_w_east
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_west
+      bc_v(i)=bc_v_west
+      bc_w(i)=bc_w_west
+    end forall
+  endif
   
   inits=nbounce7dir(1)+1
   ends=nbounce7dir(2)
-  forall(i=inits:ends)
-    bc_u(i)=bc_u_west
-    bc_v(i)=bc_v_west
-    bc_w(i)=bc_w_west
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_east
+      bc_v(i)=bc_v_east
+      bc_w(i)=bc_w_east
+    end forall
+  endif
   
   inits=nbounce7dir(2)+1
   ends=nbounce7dir(3)
-  forall(i=inits:ends)
-    bc_u(i)=bc_u_rear
-    bc_v(i)=bc_v_rear
-    bc_w(i)=bc_w_rear
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_front
+      bc_v(i)=bc_v_front
+      bc_w(i)=bc_w_front
+    end forall
+  endif
   
   inits=nbounce7dir(3)+1
   ends=nbounce7dir(4)
-  forall(i=inits:ends)
-    bc_u(i)=bc_u_front
-    bc_v(i)=bc_v_front
-    bc_w(i)=bc_w_front
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_rear
+      bc_v(i)=bc_v_rear
+      bc_w(i)=bc_w_rear
+    end forall
+  endif
   
   inits=nbounce7dir(4)+1
   ends=nbounce7dir(5)
-  forall(i=inits:ends)
-    bc_u(i)=bc_u_north
-    bc_v(i)=bc_v_north
-    bc_w(i)=bc_w_north
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_south
+      bc_v(i)=bc_v_south
+      bc_w(i)=bc_w_south
+    end forall
+  endif
   
   inits=nbounce7dir(5)+1
   ends=nbounce7dir(6)
-  forall(i=inits:ends)
-    bc_u(i)=bc_u_south
-    bc_v(i)=bc_v_south
-    bc_w(i)=bc_w_south
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_north
+      bc_v(i)=bc_v_north
+      bc_w(i)=bc_w_north
+    end forall
+  endif
   
-  ! robin condition
   inits=nbounce8dir(0)+1
   ends=nbounce8dir(1)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_east
-    bc_u(i)=bc_u_east
-    bc_v(i)=bc_v_east
-    bc_w(i)=bc_w_east
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_west
+      bc_u(i)=bc_u_west
+      bc_v(i)=bc_v_west
+      bc_w(i)=bc_w_west
+    end forall
+  endif
   
   inits=nbounce8dir(1)+1
   ends=nbounce8dir(2)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_west
-    bc_u(i)=bc_u_west
-    bc_v(i)=bc_v_west
-    bc_w(i)=bc_w_west
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_east
+      bc_u(i)=bc_u_east
+      bc_v(i)=bc_v_east
+      bc_w(i)=bc_w_east
+    end forall
+  endif
   
   inits=nbounce8dir(2)+1
   ends=nbounce8dir(3)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_rear
-    bc_u(i)=bc_u_rear
-    bc_v(i)=bc_v_rear
-    bc_w(i)=bc_w_rear
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoR_front
+      bc_u(i)=bc_u_front
+      bc_v(i)=bc_v_front
+      bc_w(i)=bc_w_front
+    end forall
+  endif
   
   inits=nbounce8dir(3)+1
   ends=nbounce8dir(4)
-  forall(i=inits:ends)
-    bc_rhoB(i)=bc_rhoR_front
-    bc_u(i)=bc_u_front
-    bc_v(i)=bc_v_front
-    bc_w(i)=bc_w_front
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_rear
+      bc_u(i)=bc_u_rear
+      bc_v(i)=bc_v_rear
+      bc_w(i)=bc_w_rear
+    end forall
+  endif
   
   inits=nbounce8dir(4)+1
   ends=nbounce8dir(5)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_north
-    bc_u(i)=bc_u_north
-    bc_v(i)=bc_v_north
-    bc_w(i)=bc_w_north
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_south
+      bc_u(i)=bc_u_south
+      bc_v(i)=bc_v_south
+      bc_w(i)=bc_w_south
+    end forall
+  endif
   
   inits=nbounce8dir(5)+1
   ends=nbounce8dir(6)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_south
-    bc_u(i)=bc_u_south
-    bc_v(i)=bc_v_south
-    bc_w(i)=bc_w_south
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_north
+      bc_u(i)=bc_u_north
+      bc_v(i)=bc_v_north
+      bc_w(i)=bc_w_north
+    end forall
+  endif
   
   if(.not. lsingle_fluid)then
     
@@ -9561,40 +9788,53 @@ subroutine driver_bc_densities
     ! dirichlet condition
     inits=nbounce8dir(0)+1
     ends=nbounce8dir(1)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_east
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        
+        bc_rhoB(i)=bc_rhoB_west
+      end forall
+    endif
     
     inits=nbounce8dir(1)+1
     ends=nbounce8dir(2)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_west
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_east
+      end forall
+    endif
     
     inits=nbounce8dir(2)+1
     ends=nbounce8dir(3)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_rear
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_front
+      end forall
+    endif
     
     inits=nbounce8dir(3)+1
     ends=nbounce8dir(4)
-   forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_front
-   end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_rear
+      end forall
+    endif
      
     inits=nbounce8dir(4)+1
     ends=nbounce8dir(5)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_north
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_south
+      end forall
+    endif
     
     inits=nbounce8dir(5)+1
     ends=nbounce8dir(6)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_south
-    end forall
-  
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_north
+      end forall
+    endif
+    
   endif
   
 #endif
@@ -9792,20 +10032,6 @@ subroutine driver_bc_densities
 
 #else
   
-  !INITIALIZE isfluid=6:8 ; bcfluid from 1 to 6
-  inits=nbounce0+1
-  ends=nbounce8
-  forall(i=inits:ends)
-    bc_rhoR(i)=ZERO
-    bc_u(i)=ZERO
-    bc_v(i)=ZERO
-    bc_w(i)=ZERO
-  end forall
-  if(.not.lsingle_fluid)then
-    forall(i=inits:ends)
-      bc_rhoB(i)=ZERO
-    end forall
-  endif
   
   !fixed bc value
   
@@ -9813,79 +10039,103 @@ subroutine driver_bc_densities
   ! dirichlet condition
   inits=nbounce6dir(0)+1
   ends=nbounce6dir(1)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_east
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_west
+    end forall
+  endif
   
   inits=nbounce6dir(1)+1
   ends=nbounce6dir(2)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_west
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_east
+    end forall
+  endif
   
   inits=nbounce6dir(2)+1
   ends=nbounce6dir(3)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_rear
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_front
+    end forall
+  endif
   
   inits=nbounce6dir(3)+1
   ends=nbounce6dir(4)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_front
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_rear
+    end forall
+  endif
   
   inits=nbounce6dir(4)+1
   ends=nbounce6dir(5)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_north
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_south
+    end forall
+  endif
   
   inits=nbounce6dir(5)+1
   ends=nbounce6dir(6)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_south
-  end forall
-  
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_north
+    end forall
+  endif
+    
   if(.not. lsingle_fluid)then
     
     !isfluid=6 ; bcfluid from 1 to 6
     ! dirichlet condition
     inits=nbounce6dir(0)+1
     ends=nbounce6dir(1)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_east
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_west !bc_rhoB_east
+      end forall
+    endif
     
     inits=nbounce6dir(1)+1
     ends=nbounce6dir(2)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_west
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_east !bc_rhoB_west
+      end forall
+    endif
     
     inits=nbounce6dir(2)+1
     ends=nbounce6dir(3)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_rear
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_front !bc_rhoB_rear
+      end forall
+    endif
     
     inits=nbounce6dir(3)+1
     ends=nbounce6dir(4)
-   forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_front
-   end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_rear !bc_rhoB_front
+      end forall
+    endif
      
     inits=nbounce6dir(4)+1
     ends=nbounce6dir(5)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_north
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_south !bc_rhoB_north
+      end forall
+    endif
     
     inits=nbounce6dir(5)+1
     ends=nbounce6dir(6)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_south
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_north !bc_rhoB_south
+      end forall
+    endif
   
   endif
   
@@ -9893,105 +10143,129 @@ subroutine driver_bc_densities
   
   inits=nbounce7dir(0)+1
   ends=nbounce7dir(1)
-  forall(i=inits:ends)
-    bc_u(i)=bc_u_east
-    bc_v(i)=bc_v_east
-    bc_w(i)=bc_w_east
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_west
+      bc_v(i)=bc_v_west
+      bc_w(i)=bc_w_west
+    end forall
+  endif
   
   inits=nbounce7dir(1)+1
   ends=nbounce7dir(2)
-  forall(i=inits:ends)
-    bc_u(i)=bc_u_west
-    bc_v(i)=bc_v_west
-    bc_w(i)=bc_w_west
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_east
+      bc_v(i)=bc_v_east
+      bc_w(i)=bc_w_east
+    end forall
+  endif
   
   inits=nbounce7dir(2)+1
   ends=nbounce7dir(3)
-  forall(i=inits:ends)
-    bc_u(i)=bc_u_rear
-    bc_v(i)=bc_v_rear
-    bc_w(i)=bc_w_rear
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_front
+      bc_v(i)=bc_v_front
+      bc_w(i)=bc_w_front
+    end forall
+  endif
   
   inits=nbounce7dir(3)+1
   ends=nbounce7dir(4)
-  forall(i=inits:ends)
-    bc_u(i)=bc_u_front
-    bc_v(i)=bc_v_front
-    bc_w(i)=bc_w_front
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_rear
+      bc_v(i)=bc_v_rear
+      bc_w(i)=bc_w_rear
+    end forall
+  endif
   
   inits=nbounce7dir(4)+1
   ends=nbounce7dir(5)
-  forall(i=inits:ends)
-    bc_u(i)=bc_u_north
-    bc_v(i)=bc_v_north
-    bc_w(i)=bc_w_north
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_south
+      bc_v(i)=bc_v_south
+      bc_w(i)=bc_w_south
+    end forall
+  endif
   
   inits=nbounce7dir(5)+1
   ends=nbounce7dir(6)
-  forall(i=inits:ends)
-    bc_u(i)=bc_u_south
-    bc_v(i)=bc_v_south
-    bc_w(i)=bc_w_south
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_north
+      bc_v(i)=bc_v_north
+      bc_w(i)=bc_w_north
+    end forall
+  endif
   
   inits=nbounce8dir(0)+1
   ends=nbounce8dir(1)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_east
-    bc_u(i)=bc_u_east
-    bc_v(i)=bc_v_east
-    bc_w(i)=bc_w_east
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_west
+      bc_u(i)=bc_u_west
+      bc_v(i)=bc_v_west
+      bc_w(i)=bc_w_west
+    end forall
+  endif
   
   inits=nbounce8dir(1)+1
   ends=nbounce8dir(2)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_west
-    bc_u(i)=bc_u_west
-    bc_v(i)=bc_v_west
-    bc_w(i)=bc_w_west
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_east
+      bc_u(i)=bc_u_east
+      bc_v(i)=bc_v_east
+      bc_w(i)=bc_w_east
+    end forall
+  endif
   
   inits=nbounce8dir(2)+1
   ends=nbounce8dir(3)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_rear
-    bc_u(i)=bc_u_rear
-    bc_v(i)=bc_v_rear
-    bc_w(i)=bc_w_rear
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoR_front
+      bc_u(i)=bc_u_front
+      bc_v(i)=bc_v_front
+      bc_w(i)=bc_w_front
+    end forall
+  endif
   
   inits=nbounce8dir(3)+1
   ends=nbounce8dir(4)
-  forall(i=inits:ends)
-    bc_rhoB(i)=bc_rhoR_front
-    bc_u(i)=bc_u_front
-    bc_v(i)=bc_v_front
-    bc_w(i)=bc_w_front
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_rear
+      bc_u(i)=bc_u_rear
+      bc_v(i)=bc_v_rear
+      bc_w(i)=bc_w_rear
+    end forall
+  endif
   
   inits=nbounce8dir(4)+1
   ends=nbounce8dir(5)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_north
-    bc_u(i)=bc_u_north
-    bc_v(i)=bc_v_north
-    bc_w(i)=bc_w_north
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_south
+      bc_u(i)=bc_u_south
+      bc_v(i)=bc_v_south
+      bc_w(i)=bc_w_south
+    end forall
+  endif
   
   inits=nbounce8dir(5)+1
   ends=nbounce8dir(6)
-  forall(i=inits:ends)
-    bc_rhoR(i)=bc_rhoR_south
-    bc_u(i)=bc_u_south
-    bc_v(i)=bc_v_south
-    bc_w(i)=bc_w_south
-  end forall
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_north
+      bc_u(i)=bc_u_north
+      bc_v(i)=bc_v_north
+      bc_w(i)=bc_w_north
+    end forall
+  endif
   
   if(.not. lsingle_fluid)then
     
@@ -9999,40 +10273,53 @@ subroutine driver_bc_densities
     ! dirichlet condition
     inits=nbounce8dir(0)+1
     ends=nbounce8dir(1)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_east
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        
+        bc_rhoB(i)=bc_rhoB_west
+      end forall
+    endif
     
     inits=nbounce8dir(1)+1
     ends=nbounce8dir(2)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_west
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_east
+      end forall
+    endif
     
     inits=nbounce8dir(2)+1
     ends=nbounce8dir(3)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_rear
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_front
+      end forall
+    endif
     
     inits=nbounce8dir(3)+1
     ends=nbounce8dir(4)
-   forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_front
-   end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_rear
+      end forall
+    endif
      
     inits=nbounce8dir(4)+1
     ends=nbounce8dir(5)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_north
-    end forall
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_south
+      end forall
+    endif
     
     inits=nbounce8dir(5)+1
     ends=nbounce8dir(6)
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoB_south
-    end forall
-  
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_north
+      end forall
+    endif
+    
   endif
   
 #endif
@@ -10058,6 +10345,7 @@ subroutine driver_bc_densities
   implicit none
   
   integer :: i,j,k,idir,inits,ends,ishift,jshift,kshift
+  integer :: ishift2,jshift2,kshift2
   
 #ifdef OLDBOUNCE
   ! dirichlet condition
@@ -10096,6 +10384,8 @@ subroutine driver_bc_densities
     bc_v(i,j,k)=v(i,j,k-1)
     bc_w(i,j,k)=w(i,j,k-1)
   end forall
+  
+  
   ! neumann condition
   forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,bcfluid(i,j,k)==1 .and. isfluid(i,j,k)==7)
     bc_rhoR(i,j,k)=rhoR(i+1,j,k)
@@ -10157,28 +10447,74 @@ subroutine driver_bc_densities
     ishift=ex(idir)
     jshift=ey(idir)
     kshift=ez(idir)
-    forall(i=inits:ends)
-      bc_u(i)=u(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
-      bc_v(i)=v(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
-      bc_w(i)=w(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
-    end forall
+    ishift2=ex(idir)*2
+    jshift2=ey(idir)*2
+    kshift2=ez(idir)*2
+    if(inits>ends)cycle
+    if(idir==1 .or. idir==2)then
+      forall(i=inits:ends)
+        bc_u(i)=interpolation_order_2(u(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+         u(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         u(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
+      end forall
+      where(bc_u(inits:ends)>cssq*HALF)
+        bc_u(inits:ends)=cssq*HALF
+      elsewhere(bc_u(inits:ends)<-cssq*HALF)
+        bc_u(inits:ends)=-cssq*HALF
+      end where
+    endif
+    if(idir==3 .or. idir==4)then
+      forall(i=inits:ends)
+        bc_v(i)=interpolation_order_2(v(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+         v(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         v(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
+      end forall
+      where(bc_v(inits:ends)>cssq*HALF)
+        bc_v(inits:ends)=cssq*HALF
+      elsewhere(bc_v(inits:ends)<-cssq*HALF)
+        bc_v(inits:ends)=-cssq*HALF
+      end where
+    endif
+    if(idir==5 .or.idir==6)then
+      forall(i=inits:ends)
+        bc_w(i)=interpolation_order_2(w(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+         w(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         w(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
+      end forall
+      where(bc_w(inits:ends)>cssq*HALF)
+        bc_w(inits:ends)=cssq*HALF
+      elsewhere(bc_w(inits:ends)<-cssq*HALF)
+        bc_w(inits:ends)=-cssq*HALF
+      end where
+    endif
   enddo
   
   
   do idir=1,nbcdir
     inits=nbounce7dir(idir-1)+1
     ends=nbounce7dir(idir)
+    if(inits>ends)cycle
     ishift=ex(idir)
     jshift=ey(idir)
     kshift=ez(idir)
+    ishift2=ex(idir)*2
+    jshift2=ey(idir)*2
+    kshift2=ez(idir)*2
+    if(inits>ends)cycle
     if(lsingle_fluid)then
       forall(i=inits:ends)
-        bc_rhoR(i)=rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+        bc_rhoR(i)=interpolation_order_2(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
       end forall
     else
       forall(i=inits:ends)
-        bc_rhoR(i)=rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
-        bc_rhoB(i)=rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift)
+        bc_rhoR(i)=interpolation_order_2(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
+        bc_rhoB(i)=interpolation_order_2(rhoB(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+         rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
       end forall
     endif
   enddo
@@ -10927,38 +11263,34 @@ subroutine driver_bc_densities
     !dirichlet condition
     !anti-bounce-back approach
     !from page 200 Kruger's book "the lattice boltzmann method"
+    !NOTE de[x,y,z]=zero eliminated
+    
     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
-    aoptp((2))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+     aoptp((2))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
         
     aoptp((2))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(2)*TWO*rho_s(i)* &
-     (ONE+(dex(2)*u_s(i)+ &
-     dey(2)*v_s(i)+ &
-     dez(2)*w_s(i))**TWO/cssq4 - &
-     (u_s(i)**TWO+ &
-     v_s(i)**TWO+ &
-     w_s(i)**TWO)/cssq2)
-       
-    aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
-     -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
-     p(1)*TWO*rho_s(i)* &
-     (ONE+(dex(1)*u_s(i)+ &
-     dey(1)*v_s(i)+ &
-     dez(1)*w_s(i))**TWO/cssq4 - &
+     (ONE+(dex(2)*u_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
      
-     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
-    aoptp((4))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
-        
+    aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
+     p(1)*TWO*rho_s(i)* &
+     (ONE+(dex(1)*u_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((4))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+    
     aoptp((4))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(4)*TWO*rho_s(i)* &
-     (ONE+(dex(4)*u_s(i)+ &
-     dey(4)*v_s(i)+ &
-     dez(4)*w_s(i))**TWO/cssq4 - &
+     (ONE+(dey(4)*v_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
@@ -10966,22 +11298,18 @@ subroutine driver_bc_densities
     aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(3)*TWO*rho_s(i)* &
-     (ONE+(dex(3)*u_s(i)+ &
-     dey(3)*v_s(i)+ &
-     dez(3)*w_s(i))**TWO/cssq4 - &
+     (ONE+(dey(3)*v_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
      
-     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
-    aoptp((6))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
-        
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((6))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+    
     aoptp((6))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(6)*TWO*rho_s(i)* &
-     (ONE+(dex(6)*u_s(i)+ &
-     dey(6)*v_s(i)+ &
-     dez(6)*w_s(i))**TWO/cssq4 - &
+     (ONE+(dez(6)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
@@ -10989,22 +11317,19 @@ subroutine driver_bc_densities
     aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(5)*TWO*rho_s(i)* &
-     (ONE+(dex(5)*u_s(i)+ &
-     dey(5)*v_s(i)+ &
-     dez(5)*w_s(i))**TWO/cssq4 - &
+     (ONE+(dez(5)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
      
-     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
-    aoptp((8))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
-        
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((8))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+    
     aoptp((8))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(8)*TWO*rho_s(i)* &
      (ONE+(dex(8)*u_s(i)+ &
-     dey(8)*v_s(i)+ &
-     dez(8)*w_s(i))**TWO/cssq4 - &
+     dey(8)*v_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
@@ -11013,21 +11338,19 @@ subroutine driver_bc_densities
      -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(7)*TWO*rho_s(i)* &
      (ONE+(dex(7)*u_s(i)+ &
-     dey(7)*v_s(i)+ &
-     dez(7)*w_s(i))**TWO/cssq4 - &
+     dey(7)*v_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
      
-     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
-    aoptp((10))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
-        
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((10))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+    
     aoptp((10))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(10)*TWO*rho_s(i)* &
      (ONE+(dex(10)*u_s(i)+ &
-     dey(10)*v_s(i)+ &
-     dez(10)*w_s(i))**TWO/cssq4 - &
+     dey(10)*v_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
@@ -11036,20 +11359,18 @@ subroutine driver_bc_densities
      -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(9)*TWO*rho_s(i)* &
      (ONE+(dex(9)*u_s(i)+ &
-     dey(9)*v_s(i)+ &
-     dez(9)*w_s(i))**TWO/cssq4 - &
+     dey(9)*v_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
      
-     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
-    aoptp((12))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
-        
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((12))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+    
     aoptp((12))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(12)*TWO*rho_s(i)* &
      (ONE+(dex(12)*u_s(i)+ &
-     dey(12)*v_s(i)+ &
      dez(12)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -11059,20 +11380,18 @@ subroutine driver_bc_densities
      -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(11)*TWO*rho_s(i)* &
      (ONE+(dex(11)*u_s(i)+ &
-     dey(11)*v_s(i)+ &
      dez(11)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
      
-     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
-    aoptp((14))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((14))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
         
     aoptp((14))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(14)*TWO*rho_s(i)* &
      (ONE+(dex(14)*u_s(i)+ &
-     dey(14)*v_s(i)+ &
      dez(14)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -11082,20 +11401,18 @@ subroutine driver_bc_densities
      -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(13)*TWO*rho_s(i)* &
      (ONE+(dex(13)*u_s(i)+ &
-     dey(13)*v_s(i)+ &
      dez(13)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
      
-     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
-    aoptp((16))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((16))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
         
     aoptp((16))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(16)*TWO*rho_s(i)* &
-     (ONE+(dex(16)*u_s(i)+ &
-     dey(16)*v_s(i)+ &
+     (ONE+(dey(16)*v_s(i)+ &
      dez(16)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -11104,21 +11421,19 @@ subroutine driver_bc_densities
     aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(15)*TWO*rho_s(i)* &
-     (ONE+(dex(15)*u_s(i)+ &
-     dey(15)*v_s(i)+ &
+     (ONE+(dey(15)*v_s(i)+ &
      dez(15)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
      
-     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
-    aoptp((18))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
+    buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     aoptp((18))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
         
     aoptp((18))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(18)*TWO*rho_s(i)* &
-     (ONE+(dex(18)*u_s(i)+ &
-     dey(18)*v_s(i)+ &
+     (ONE+(dey(18)*v_s(i)+ &
      dez(18)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -11127,8 +11442,7 @@ subroutine driver_bc_densities
     aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))+ &
      p(17)*TWO*rho_s(i)* &
-     (ONE+(dex(17)*u_s(i)+ &
-     dey(17)*v_s(i)+ &
+     (ONE+(dey(17)*v_s(i)+ &
      dez(17)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -11348,6 +11662,33 @@ subroutine driver_bc_densities
   return
   
  end subroutine
+ 
+ pure function interpolation_order_2(arg0,arg1,arg2)
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in) :: arg0,arg1,arg2
+  
+  real(kind=PRC) :: interpolation_order_2
+  
+  !forward finite difference coeff 
+  !(2° order first derivative)
+  !(1° order second derivative)
+  real(kind=PRC), parameter, dimension(0:2) :: coeff1=(/-THREE*HALF,TWO,-HALF/)*HALF
+  real(kind=PRC), parameter, dimension(0:2) :: coeff2=(/ONE,-TWO,ONE/)*ONE/EIGHT
+  
+  !derivates
+!  der1=coeff1(0)*arg0+coeff1(1)*arg1+coeff1(2)*arg2
+!  der2=coeff2(0)*arg0+coeff2(1)*arg1+coeff2(2)*arg2
+  
+  !apply Maclaurin 2° order
+  interpolation_order_2=arg0- &
+   (coeff1(0)*arg0+coeff1(1)*arg1+coeff1(2)*arg2)+ &
+   (coeff2(0)*arg0+coeff2(1)*arg1+coeff2(2)*arg2)
+  
+  return
+  
+ end function interpolation_order_2
  
  subroutine bounceback_pop(aoptp)
  

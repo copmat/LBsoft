@@ -23,7 +23,8 @@
                         moments_fluids,driver_copy_densities_wall, &
                         lpair_SC,driver_apply_bounceback_pop, &
                         driver_streaming_fluids,aoptpR,test_fake_pops,&
-                        probe_pops_in_node,ex,ey,ez,isfluid
+                        probe_pops_in_node,ex,ey,ez,isfluid, &
+                        driver_bc_velocities
  use write_output_mod, only : write_vtk_frame
  
  implicit none
@@ -141,11 +142,15 @@
   call moments_fluids
   if(ldiagnostic)call end_timing2("LB","moments_fluids")
   
-  if(lpair_SC)then
-    if(ldiagnostic)call start_timing2("LB","driver_bc_densities")
-    call driver_bc_densities
-    if(ldiagnostic)call end_timing2("LB","driver_bc_densities")
+  if(ldiagnostic)call start_timing2("LB","driver_bc_densities")
+  call driver_bc_densities
+  if(ldiagnostic)call end_timing2("LB","driver_bc_densities")
+  
+  if(ldiagnostic)call start_timing2("LB","driver_bc_velocities")
+  call driver_bc_velocities
+  if(ldiagnostic)call end_timing2("LB","driver_bc_velocities")
     
+  if(lpair_SC)then
     if(ldiagnostic)call start_timing2("LB","driver_densities_wall")
     call driver_copy_densities_wall
     if(ldiagnostic)call end_timing2("LB","driver_densities_wall")
@@ -161,13 +166,13 @@
     if(ldiagnostic)call end_timing2("LB","compute_force_sc")
   endif
   
-  if(ldiagnostic)call start_timing2("IO","write_vtk_frame")
-  call write_vtk_frame(nstep)
-  if(ldiagnostic)call end_timing2("IO","write_vtk_frame")
-  
   if(ldiagnostic)call start_timing2("LB","compute_omega")
   call compute_omega
   if(ldiagnostic)call end_timing2("LB","compute_omega")
+  
+  if(ldiagnostic)call start_timing2("IO","write_vtk_frame")
+  call write_vtk_frame(nstep)
+  if(ldiagnostic)call end_timing2("IO","write_vtk_frame")
   
   if(ldiagnostic)call start_timing2("LB","collision_fluids")
   call driver_collision_fluids

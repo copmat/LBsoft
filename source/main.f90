@@ -56,7 +56,8 @@
   use fluids_mod,      only : allocate_fluids,initialize_isfluid_bcfluid, &
                         nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
                         miny,maxy,minz,maxz,nbuff,lsingle_fluid, &
-                        isfluid,initialize_fluids
+                        isfluid,initialize_fluids, &
+                        driver_initialiaze_manage_bc_selfcomm
   use write_output_mod,only: write_test_map
   use integrator_mod,  only : initime,endtime,tstep,set_nstep, &
                         update_nstep,nstep,driver_integrator,nstepmax
@@ -118,7 +119,12 @@
 ! initialize isfluid and bcfluid (type of node and bc adopted)
   call initialize_isfluid_bcfluid
   
- 
+  
+! allocate pointers for managing bc hvar and pops within the same process 
+! ONLY if it is necessary
+  call driver_initialiaze_manage_bc_selfcomm
+  
+  
   call create_findneigh_list_pops(nx,ny,nz,nbuff,ibctype,isfluid,ixpbc,iypbc,izpbc,minx,maxx, &
    miny,maxy,minz,maxz)  
    
