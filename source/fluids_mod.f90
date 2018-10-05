@@ -5400,7 +5400,8 @@ subroutine driver_bc_densities
               endif
               i4=i4back(itemp,jtemp,ktemp) 
               i4orig=i4back(itemp2,jtemp2,ktemp2)
-              if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
+              if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank &
+               .AND. isfluid(i,j,k)/=3) THEN
                 npop_managebc=npop_managebc+1
               endif
             endif
@@ -5458,7 +5459,8 @@ subroutine driver_bc_densities
               endif
               i4=i4back(itemp,jtemp,ktemp) 
               i4orig=i4back(itemp2,jtemp2,ktemp2)
-              if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
+              if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank &
+               .AND. isfluid(i,j,k)/=3) THEN
                 npop_managebc=npop_managebc+1
                 popR_managebc(2,npop_managebc)%p=>aoptpR(l)%p(itemp2,jtemp2,ktemp2)
                 popR_managebc(1,npop_managebc)%p=>aoptpR(l)%p(itemp,jtemp,ktemp)   !who must recevice is one
