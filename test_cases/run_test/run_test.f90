@@ -36,7 +36,7 @@
   character(len=8) :: mystring8
   logical :: lexist
   
-  real, parameter :: mytol=1.e-8
+  real, parameter :: mytol=1.e-15
   
   
   if(iargc()/=0 .and. iargc()/=6)then
@@ -187,7 +187,7 @@
           do kk=minz1,maxz1
             do jj=miny1,maxy1
               do ii=minx1,maxx1
-                read(orig_io+l,'(3i8,4f20.10)',end=100,err=100)imio3(1:3),dmio1(1:4,ii,jj,kk)
+                read(orig_io+l,'(3i8,4f24.16)',end=100,err=100)imio3(1:3),dmio1(1:4,ii,jj,kk)
               enddo
             enddo
           enddo
@@ -210,7 +210,7 @@
           do kk=minz2,maxz2
             do jj=miny2,maxy2
               do ii=minx2,maxx2
-                read(actual_io+l,'(3i8,4f20.10)',end=100,err=100)imio4(1:3),dmio2(1:4,ii,jj,kk)
+                read(actual_io+l,'(3i8,4f24.16)',end=100,err=100)imio4(1:3),dmio2(1:4,ii,jj,kk)
               enddo
             enddo
           enddo
@@ -276,7 +276,7 @@
           do kk=minz1,maxz1
             do jj=miny1,maxy1
               do ii=minx1,maxx1
-                read(orig_io+l,'(3i8,5f20.10)',end=110,err=110)imio3(1:3),dmio1(1:5,ii,jj,kk)
+                read(orig_io+l,'(3i8,5f24.16)',end=110,err=110)imio3(1:3),dmio1(1:5,ii,jj,kk)
               enddo
             enddo
           enddo
@@ -299,7 +299,7 @@
           do kk=minz2,maxz2
             do jj=miny2,maxy2
               do ii=minx2,maxx2
-                read(actual_io+l,'(3i8,5f20.10)',end=110,err=110)imio4(1:3),dmio2(1:5,ii,jj,kk)
+                read(actual_io+l,'(3i8,5f24.16)',end=110,err=110)imio4(1:3),dmio2(1:5,ii,jj,kk)
               enddo
             enddo
           enddo

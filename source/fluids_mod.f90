@@ -353,8 +353,9 @@
         allocate(gradpsiyR(ix:mynx,iy:myny,iz:mynz),stat=istat(13))
         allocate(gradpsizR(ix:mynx,iy:myny,iz:mynz),stat=istat(14))
         allocate(psiR(ix:mynx,iy:myny,iz:mynz),stat=istat(19))
-        allocate(wwfluid(ix:mynx,iy:myny,iz:mynz),stat=istat(19))
      endif
+     
+     allocate(wwfluid(ix:mynx,iy:myny,iz:mynz),stat=istat(20))
 
      allocate(omega(ix:mynx,iy:myny,iz:mynz),stat=istat(18))
 
@@ -1235,10 +1236,8 @@
   call commwait_dens(rhoR,rhoB)
 #endif
   
-  if(lShanChen)then
-    call initialize_copy_densities_wall
-    call driver_copy_densities_wall
-  endif
+  call initialize_copy_densities_wall
+  call driver_copy_densities_wall
   
   if(idistselect==3)then
     !perform a fake test with the density set as the real(i4) value

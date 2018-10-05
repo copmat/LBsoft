@@ -657,8 +657,6 @@ end subroutine
        m=0
     ENDIF
     
-
-    
     currproc=0
     curroffz=0
     curroffy=0

@@ -85,7 +85,6 @@
 ! determine processor identities
   call get_rank_world()
   call get_size_world()
-!  call alloc_domain()
 
 ! start clock
   call time_world(itime)
