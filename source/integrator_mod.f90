@@ -18,7 +18,7 @@
                        ldiagnostic
  use lbempi_mod,      only : i4back,ownern
  use fluids_mod,      only : initialize_fluid_force,compute_fluid_force_sc, &
-                        driver_bc_densities,driver_bc_pops,&
+                        driver_bc_densities,&
                         driver_collision_fluids,compute_omega, &
                         moments_fluids,driver_copy_densities_wall, &
                         lpair_SC,driver_apply_bounceback_pop, &
