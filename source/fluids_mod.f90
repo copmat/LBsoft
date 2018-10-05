@@ -158,6 +158,7 @@
  
  integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: isfluid
  integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: bcfluid
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: wwfluid
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:),target :: rhoR
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:),target :: rhoB
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:),target  :: u
@@ -352,6 +353,7 @@
         allocate(gradpsiyR(ix:mynx,iy:myny,iz:mynz),stat=istat(13))
         allocate(gradpsizR(ix:mynx,iy:myny,iz:mynz),stat=istat(14))
         allocate(psiR(ix:mynx,iy:myny,iz:mynz),stat=istat(19))
+        allocate(wwfluid(ix:mynx,iy:myny,iz:mynz),stat=istat(19))
      endif
 
      allocate(omega(ix:mynx,iy:myny,iz:mynz),stat=istat(18))
@@ -552,10 +554,11 @@
    fwR(ix:mynx,iy:myny,iz:mynz)=ZERO
 
    if(lShanChen)then
-    gradpsixR(ix:mynx,iy:myny,iz:mynz)=ZERO
-    gradpsiyR(ix:mynx,iy:myny,iz:mynz)=ZERO
-    gradpsizR(ix:mynx,iy:myny,iz:mynz)=ZERO
-    psiR(ix:mynx,iy:myny,iz:mynz)=ZERO
+     gradpsixR(ix:mynx,iy:myny,iz:mynz)=ZERO
+     gradpsiyR(ix:mynx,iy:myny,iz:mynz)=ZERO
+     gradpsizR(ix:mynx,iy:myny,iz:mynz)=ZERO
+     psiR(ix:mynx,iy:myny,iz:mynz)=ZERO
+     wwfluid(ix:mynx,iy:myny,iz:mynz)=0
    endif
 
    omega(ix:mynx,iy:myny,iz:mynz)=ZERO
@@ -1232,7 +1235,10 @@
   call commwait_dens(rhoR,rhoB)
 #endif
   
-  call driver_copy_densities_wall
+  if(lShanChen)then
+    call initialize_copy_densities_wall
+    call driver_copy_densities_wall
+  endif
   
   if(idistselect==3)then
     !perform a fake test with the density set as the real(i4) value
@@ -6383,7 +6389,7 @@ subroutine driver_bc_densities
 !     to fluid populations if necessary
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Bernaschi
+!     author: M. Lauricella
 !     last modification September 2018
 !     
 !***********************************************************************
@@ -6874,6 +6880,17 @@ subroutine driver_bc_densities
  
  pure function interpolation_order_2(arg0,arg1,arg2)
  
+!***********************************************************************
+!     
+!     LBsoft function for applying the Maclaurin 2° order using  
+!     the forward finite difference coeff for the derivatives
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
   implicit none
   
   real(kind=PRC), intent(in) :: arg0,arg1,arg2
@@ -7032,6 +7049,48 @@ subroutine driver_bc_densities
 !******************END PART TO MANAGE THE BOUNCEBACK********************
 
 !******************START PART TO MANAGE THE COPY WALL*******************
+
+ subroutine initialize_copy_densities_wall
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the reflection of the density 
+!     variables if requested from the boundary conditions
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k,l,ishift,jshift,kshift
+  REAL(kind=PRC) :: isum
+   
+   
+   do k=minz-1,maxz+1
+     do j=miny-1,maxy+1
+       do i=minx-1,maxx+1
+         if(isfluid(i,j,k)==0)then
+           isum=ZERO
+           do l=1,linksd3q27
+             ishift=i+exd3q27(l)
+             jshift=j+eyd3q27(l)
+             kshift=k+ezd3q27(l)
+             if(isfluid(ishift,jshift,kshift)==1)then
+               isum=isum+pd3q27(l)
+             endif
+           enddo
+           wwfluid(i,j,k)=isum
+         endif
+       enddo
+     enddo
+   enddo
+   
+   return
+   
+ end subroutine initialize_copy_densities_wall
  
  subroutine driver_copy_densities_wall
  
@@ -7048,12 +7107,12 @@ subroutine driver_bc_densities
  
   implicit none
   
-  integer :: i,j,k,l,ishift,jshift,kshift,ss
+  integer :: i,j,k,l,ishift,jshift,kshift
   REAL(kind=PRC) :: dsum1,dsum2
   REAL(kind=PRC) :: isum
   
   
-  
+#if 0
    
    if(lsingle_fluid)then
      do k=minz-1,maxz+1
@@ -7062,7 +7121,6 @@ subroutine driver_bc_densities
            if(isfluid(i,j,k)==0)then
              dsum1=ZERO
              isum=ZERO
-             ss=0
              do l=1,linksd3q27
                ishift=i+exd3q27(l)
                jshift=j+eyd3q27(l)
@@ -7102,6 +7160,45 @@ subroutine driver_bc_densities
        enddo
      enddo
    endif
+   
+#else
+   
+   if(lsingle_fluid)then
+     forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,wwfluid(i,j,k)/=ZERO)
+       rhoR(i,j,k)=ZERO
+     end forall
+     do l=1,linksd3q27
+       forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1, &
+        isfluid(i,j,k)==0 .and. &
+        isfluid(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))==1)
+         rhoR(i,j,k)=rhoR(i,j,k)+pd3q27(l)*rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))
+       end forall
+     enddo
+     forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1, &
+      wwfluid(i,j,k)/=ZERO)
+       rhoR(i,j,k)=rhoR(i,j,k)/wwfluid(i,j,k)
+     end forall
+   else
+     forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,wwfluid(i,j,k)/=ZERO)
+       rhoR(i,j,k)=ZERO
+       rhoB(i,j,k)=ZERO
+     end forall
+     do l=1,linksd3q27
+       forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1, &
+        isfluid(i,j,k)==0 .and. &
+        isfluid(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))==1)
+         rhoR(i,j,k)=rhoR(i,j,k)+pd3q27(l)*rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))
+         rhoB(i,j,k)=rhoB(i,j,k)+pd3q27(l)*rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))
+       end forall
+     enddo
+     forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1, &
+      wwfluid(i,j,k)/=ZERO)
+       rhoR(i,j,k)=rhoR(i,j,k)/wwfluid(i,j,k)
+       rhoB(i,j,k)=rhoB(i,j,k)/wwfluid(i,j,k)
+     end forall
+   endif
+   
+#endif
    
    return
    
