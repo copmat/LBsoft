@@ -6401,7 +6401,7 @@ subroutine driver_bc_densities
   real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
   integer, parameter :: kk = 1
   
-  if(nbounce0<1)goto 110
+  if(nbounce0>=1)then
   forall(i=1:nbounce0)
     buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      aoptp((2))%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))
@@ -6467,8 +6467,8 @@ subroutine driver_bc_densities
       buffservice3d(ibounce(1,i),ibounce(2,i),ibounce(3,i))
   end forall
   
- 110 continue
-  if(nbounce6<nbounce0+1)goto 111
+  endif
+  if(nbounce6>=nbounce0+1)then
   
   forall(i=nbounce0+1:nbounce6)
     !dirichlet condition
@@ -6661,8 +6661,8 @@ subroutine driver_bc_densities
         
   end forall
   
- 111 continue
-  if(nbounce7<nbounce6+1)goto 112
+  endif
+  if(nbounce7>=nbounce6+1)then
   
   forall(i=nbounce6+1:nbounce7)
     !neumann condition
@@ -6800,8 +6800,8 @@ subroutine driver_bc_densities
   
   end forall
   
- 112 continue
-  if(nbounce8<nbounce7+1)goto 113
+  endif
+  if(nbounce8>=nbounce7+1)then
   
   forall(i=nbounce7+1:nbounce8)
     !robin conditions
@@ -6866,7 +6866,7 @@ subroutine driver_bc_densities
      
   end forall
   
- 113 continue
+  endif
   
   return
   
