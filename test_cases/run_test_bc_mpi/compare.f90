@@ -32,6 +32,8 @@
   
   character(len=256) :: file_loc_proc
   
+  real, parameter :: mytol=1.e-15
+  
   
   origpath=repeat(' ',maxlen)
   
@@ -78,7 +80,7 @@
         do kk=minz1,maxz1
           do jj=miny1,maxy1
             do ii=minx1,maxx1
-              read(orig_io+l,'(3i8,4f20.10)',end=100,err=100)imio3(1:3),dmio1(1:4,ii,jj,kk)
+              read(orig_io+l,'(3i8,4f24.16)',end=100,err=100)imio3(1:3),dmio1(1:4,ii,jj,kk)
               if(imio3(1)/=ii .or. imio3(2)/=jj .or. imio3(3)/=kk)then
                 write(6,*)'problem in reading',trim(file_loc_proc),imio3(1:3),ii,jj,kk
                 stop
@@ -102,7 +104,7 @@
         do kk=minz2,maxz2
           do jj=miny2,maxy2
             do ii=minx2,maxx2
-              read(actual_io+l,'(3i8,4f20.10)',end=100,err=100)imio4(1:3),dmio2(1:4,ii,jj,kk)
+              read(actual_io+l,'(3i8,4f24.16)',end=100,err=100)imio4(1:3),dmio2(1:4,ii,jj,kk)
               if(imio4(1)/=ii .or. imio4(2)/=jj .or. imio4(3)/=kk)then
                 write(6,*)'problem in reading',trim(file_loc_proc),imio4(1:3),ii,jj,kk
                 stop
@@ -117,7 +119,7 @@
         do jj=1,ny1
           do ii=1,nx1
             do l=1,4
-              if(abs(dmio1(l,ii,jj,kk)-dmio2(l,ii,jj,kk))>1.d-9)then
+              if(abs(dmio1(l,ii,jj,kk)-dmio2(l,ii,jj,kk))>mytol)then
                 itest=0
                 write(6,'(2g20.10,4i6)')dmio1(l,ii,jj,kk),dmio2(l,ii,jj,kk),ii,jj,kk,l
                 goto 130
@@ -164,7 +166,7 @@
           do kk=minz1,maxz1
             do jj=miny1,maxy1
               do ii=minx1,maxx1
-                read(orig_io+l,'(3i8,5f20.10)',end=110,err=110)imio3(1:3),dmio1(1:5,ii,jj,kk)
+                read(orig_io+l,'(3i8,5f24.16)',end=110,err=110)imio3(1:3),dmio1(1:5,ii,jj,kk)
                 if(imio3(1)/=ii .or. imio3(2)/=jj .or. imio3(3)/=kk)then
                   write(6,*)'problem in reading',trim(file_loc_proc),imio3(1:3),ii,jj,kk
                   stop
@@ -188,7 +190,7 @@
           do kk=minz2,maxz2
             do jj=miny2,maxy2
               do ii=minx2,maxx2
-                read(actual_io+l,'(3i8,5f20.10)',end=110,err=110)imio4(1:3),dmio2(1:5,ii,jj,kk)
+                read(actual_io+l,'(3i8,5f24.16)',end=110,err=110)imio4(1:3),dmio2(1:5,ii,jj,kk)
                 if(imio4(1)/=ii .or. imio4(2)/=jj .or. imio4(3)/=kk)then
                   write(6,*)'problem in reading',trim(file_loc_proc),imio4(1:3),ii,jj,kk
                   stop
@@ -203,7 +205,7 @@
           do jj=1,ny1
             do ii=1,nx1
               do l=1,5
-                if(abs(dmio1(l,ii,jj,kk)-dmio2(l,ii,jj,kk))>1.d-9)then
+                if(abs(dmio1(l,ii,jj,kk)-dmio2(l,ii,jj,kk))>mytol)then
                   itest=0
                   write(6,'(2g20.10,4i6)')dmio1(l,ii,jj,kk),dmio2(l,ii,jj,kk),ii,jj,kk,l
                   goto 130

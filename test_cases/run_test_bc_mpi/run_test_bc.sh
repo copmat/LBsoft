@@ -109,9 +109,9 @@ while (( $i <= $ifine )); do
   jfine=6
   while (( $j <= $jfine )); do
     cd $WDR
-    echo "case: $k boundary condition ${pbcx[$i]} ${pbcy[$i]} ${pbcz[$i]}"
+    echo "case: $k boundary condition ${pbcx[$i]} ${pbcy[$i]} ${pbcz[$i]} on ${ncpu[$j]} CPUs"
     echo "case: $k decomposition type ${dtype[$j]} decomposition dimension ${ddime[$j]}"
-    echo "case: $k boundary condition ${pbcx[$i]} ${pbcy[$i]} ${pbcz[$i]}" >> myresults.out
+    echo "case: $k boundary condition ${pbcx[$i]} ${pbcy[$i]} ${pbcz[$i]} on ${ncpu[$j]} CPUs" >> myresults.out
     echo "case: $k decomposition type ${dtype[$j]} decomposition dimension ${ddime[$j]}" >> myresults.out
     abm=${itest[$k]}
     if [ $abm == "1" ]; then
