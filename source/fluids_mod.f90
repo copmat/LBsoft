@@ -5534,7 +5534,7 @@ subroutine driver_bc_densities
   implicit none
   integer ::i,j,k,l
   
-#if 0
+#ifdef ALLAMAX
    !ml qui c'è un errore
    call bounceback_pop(aoptpR)
    
