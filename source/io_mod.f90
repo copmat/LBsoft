@@ -37,7 +37,7 @@
   bc_type_south,bc_rhoR_front,bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front,&
   bc_type_front,bc_rhoR_rear,bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear,&
   bc_type_rear,set_fluid_wall_sc,wallR_SC,wallB_SC,LBintegrator, &
-  set_LBintegrator_type
+  set_LBintegrator_type,lbc_halfway,set_lbc_halfway
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery,lvtkfile
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
  use statistic_mod,         only : reprinttime,compute_statistic, &
@@ -319,6 +319,7 @@
   logical :: lidiagnostic=.false.
   logical :: temp_lnfluid=.false.
   logical :: temp_wall_SC=.false.
+  logical :: temp_lbc_halfway=.false.
   logical :: lerror1=.false.
   logical :: lerror2=.false.
   logical :: lerror4=.false.
@@ -578,6 +579,13 @@
             elseif(findstring('compon',directive,inumchar,maxlen))then
               temp_nfluid=intstr(directive,maxlen,inumchar)
               temp_lnfluid=.true.
+            elseif(findstring('bounc',directive,inumchar,maxlen))then
+              if(findstring('half',directive,inumchar,maxlen))then
+                temp_lbc_halfway=.true.
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
+              endif
             elseif(findstring('bound',directive,inumchar,maxlen))then
               if(findstring('open',directive,inumchar,maxlen))then
                 if(findstring('east',directive,inumchar,maxlen))then
@@ -979,6 +987,19 @@
       mystring=repeat(' ',dimprint)
       mystring='fluid components'
       write(6,'(2a,i12)')mystring,": ",temp_nfluid
+    endif
+  endif
+  
+  call bcast_world_l(temp_lbc_halfway)
+  if(temp_lbc_halfway)then
+    call set_lbc_halfway(temp_lbc_halfway)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='halfway bounce back'
+      mystring12=repeat(' ',dimprint2)
+      mystring12='yes'
+      mystring12=adjustr(mystring12)
+      write(6,'(3a)')mystring,": ",mystring12
     endif
   endif
   

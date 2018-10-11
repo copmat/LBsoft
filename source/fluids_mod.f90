@@ -95,6 +95,8 @@
  logical, save, protected, public :: lexch_v=.false.
  logical, save, protected, public :: lexch_w=.false.
  
+ logical, save, protected, public :: lbc_halfway=.false.
+ 
  real(kind=PRC), save, protected, public :: t_LB = ONE
  
  real(kind=PRC), save, protected, public :: beta         = ZERO
@@ -299,6 +301,7 @@
  public :: probe_pops_in_node
  public :: driver_bc_pop_selfcomm
  public :: driver_initialiaze_manage_bc_selfcomm
+ public :: set_lbc_halfway
  
  contains
  
@@ -2047,6 +2050,29 @@
   return
   
  end subroutine set_mean_value_vel_fluids
+ 
+ subroutine set_lbc_halfway(ltemp1)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the value of lbc_halfway for select 
+!     the halfway bounce back mode
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(in) :: ltemp1
+  
+  lbc_halfway=ltemp1
+  
+  return
+  
+ end subroutine set_lbc_halfway
  
  subroutine set_lsingle_fluid(ltemp1)
  
