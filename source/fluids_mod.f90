@@ -2895,14 +2895,25 @@
   implicit none
   
   integer :: i,j,k,l,ishift,jshift,kshift
+  integer, save :: iter=0
+  
+  iter=iter+1
 
 
   
 #ifdef ALLAMAX
+   
+#ifdef DIAGNSTREAM
+  if(iter.eq.1)call print_all_pops(100,'mioprima',iter,aoptpR)
+#endif
   
   call streaming_fluids(f00R,f01R,f02R,f03R,f04R, &
    f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
    f14R,f15R,f16R,f17R,f18R,aoptpR)
+   
+#ifdef DIAGNSTREAM
+  if(iter.eq.1)call print_all_pops(300,'miodopo',iter,aoptpR)
+#endif
    
   if(lsingle_fluid)return
   
@@ -2911,6 +2922,25 @@
    f14B,f15B,f16B,f17B,f18B,aoptpB)
    
 #else
+
+#ifdef DIAGNSTREAM
+   if(iter.eq.1) then
+     if(allocated(ownern))then
+       call print_all_pops(100,'mioprima',iter,aoptpR)
+     else
+       do l=1,links
+!        write((50+idrank),*)'in pop ',l
+         do i=wminx,wmaxx
+           do j=wminy,wmaxy
+             do k=wminz,wmaxz
+                 write((100*idrank)+250+l,*)i,j,k,aoptpR(l)%p(i,j,k)
+             enddo
+           enddo
+          enddo
+       enddo
+     endif
+   endif
+#endif
     
 #ifdef MPI
   call commspop(aoptpR)
@@ -2932,6 +2962,24 @@
   
 #ifdef MPI
   call commrpop(aoptpR)
+#endif
+
+#ifdef DIAGNSTREAM
+  if(iter.eq.1) then
+    if(allocated(ownern))then
+       call print_all_pops(300,'miodopo',iter,aoptpR)
+    else
+      do l=1,links
+        do i=wminx,wmaxx
+          do j=wminy,wmaxy
+            do k=wminz,wmaxz
+              write((100*idrank)+270+l,*)i,j,k,aoptpR(l)%p(i,j,k)
+            enddo
+          enddo
+        enddo
+      enddo
+    endif
+  endif
 #endif
   
   if(lsingle_fluid)return
@@ -5559,10 +5607,17 @@ subroutine driver_bc_densities
  
   implicit none
   integer ::i,j,k,l
+  integer, save :: iter=0
+  
+  iter=iter+1
   
 #ifdef ALLAMAX
    !ml qui c'è un errore
    call bounceback_pop(aoptpR)
+   
+#ifdef DIAGNSTREAM
+  if(iter==1)call print_all_pops(100,'miodopobounce',iter,aoptpR)
+#endif
    
    if(lsingle_fluid)return
    
@@ -5574,7 +5629,9 @@ subroutine driver_bc_densities
   
   call apply_bounceback_pop(bc_rhoR,bc_u,bc_v,bc_w,aoptpR)
   
-
+#ifdef DIAGNSTREAM
+  if(iter==1)call print_all_pops(100,'miodopobounce',iter,aoptpR)
+#endif
   
   if(lsingle_fluid)return
   
@@ -7530,5 +7587,62 @@ subroutine driver_bc_densities
   return
   
  end subroutine test_fake_pops
+ 
+ subroutine print_all_pops(iosub,filenam,itersub,aoptp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the populations in ASCII format 
+!     for diagnostic purposes always ordered also in parallel
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iosub,itersub
+  character(len=*), intent(in) :: filenam
+  type(REALPTR), dimension(0:links):: aoptp
+  
+  character(len=120) :: mynamefile
+  integer :: i,j,k,l
+  
+  !ownern array is mandatory
+  if(.not. allocated(ownern))then
+    if(idrank==0)then
+      write(6,*)'Error in print_all_pops'
+      write(6,*)'ownern not allocated'
+    endif
+    call error(-1)
+  endif
+  
+  mynamefile=repeat(' ',120)
+  mynamefile=trim(filenam)//write_fmtnumb(itersub)//'.dat'
+  
+  if(idrank==0) then
+    open(unit=iosub*idrank+23,file=trim(mynamefile),status='replace')
+    close(iosub*idrank+23)
+  endif
+  do k=0,nz
+    do j=0,ny
+      do i=0,nx
+        if(ownern(i4back(i,j,k))==idrank)then
+          open(unit=iosub*idrank+23,file=trim(mynamefile),status='old',position='append')
+          do l=1,links
+            write(iosub*idrank+23,*)i,j,k,l,aoptp(l)%p(i,j,k)
+          enddo
+          close(iosub*idrank+23)
+        endif
+        call get_sync_world
+      enddo
+    enddo
+  enddo
+  
+  return
+  
+ end subroutine print_all_pops
  
  end module fluids_mod
