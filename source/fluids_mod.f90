@@ -487,6 +487,8 @@
            wminx=0
         endif
         minx=1
+     else 
+        wminx=minx-1
      endif
      if(miny.le.1) then
         if(iypbc.eq.1) then
@@ -495,6 +497,8 @@
            wminy=0
         endif
         miny=1
+     else 
+        wminy=miny-1
      endif
      if(minz.le.1) then
         if(izpbc.eq.1) then
@@ -503,6 +507,8 @@
            wminz=0
         endif
         minz=1
+     else 
+        wminz=minz-1
      endif
      if(maxx.ge.nx) then
         if(ixpbc.eq.1) then
@@ -511,6 +517,8 @@
            wmaxx=nx+1
         endif
         maxx=nx
+     else 
+        wmaxx=maxx+1
      endif
      if(maxy.ge.ny) then
         if(iypbc.eq.1) then
@@ -519,6 +527,8 @@
            wmaxy=ny+1
         endif
         maxy=ny
+     else 
+        wmaxy=maxy+1
      endif
      if(maxz.ge.nz) then
         if(izpbc.eq.1) then
@@ -527,6 +537,8 @@
            wmaxz=nz+1
         endif
         maxz=nz
+     else 
+        wmaxz=maxz+1
      endif
       
    if(lverbose)then
@@ -2927,17 +2939,6 @@
    if(iter.eq.1) then
      if(allocated(ownern))then
        call print_all_pops(100,'mioprima',iter,aoptpR)
-     else
-       do l=1,links
-!        write((50+idrank),*)'in pop ',l
-         do i=wminx,wmaxx
-           do j=wminy,wmaxy
-             do k=wminz,wmaxz
-                 write((100*idrank)+250+l,*)i,j,k,aoptpR(l)%p(i,j,k)
-             enddo
-           enddo
-          enddo
-       enddo
      endif
    endif
 #endif
@@ -2968,16 +2969,6 @@
   if(iter.eq.1) then
     if(allocated(ownern))then
        call print_all_pops(300,'miodopo',iter,aoptpR)
-    else
-      do l=1,links
-        do i=wminx,wmaxx
-          do j=wminy,wmaxy
-            do k=wminz,wmaxz
-              write((100*idrank)+270+l,*)i,j,k,aoptpR(l)%p(i,j,k)
-            enddo
-          enddo
-        enddo
-      enddo
     endif
   endif
 #endif
@@ -3050,7 +3041,7 @@
    do l=1,links
 !      write((50+idrank),*)'in pop ',l
        do i=wminx,wmaxx
-         do j=wminy,wmaxy
+         do j=miny,maxy
            do k=wminz,wmaxz
                write((100*idrank)+250+l,*)i,j,k,aoptp(l)%p(i,j,k)
            enddo
@@ -3063,13 +3054,16 @@
    call commspop(aoptp)
 
    do l=1,links
+
       ishift=ex(l)
       jshift=ey(l)
       kshift=ez(l)
-      forall(i=wminx+1:wmaxx-1,j=wminy+1:wmaxy-1,k=wminz+1:wmaxz-1)
+      forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz) buffservice3d(i,j,k) = -1
+!      forall(i=wminx+1:wmaxx-1,j=wminy+1:wmaxy-1,k=wminz+1:wmaxz-1)
+      forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1) 
          buffservice3d(i+ishift,j+jshift,k+kshift) = aoptp(l)%p(i,j,k)
       end forall
-
+#if 1
       do i=wminx,wmaxx,wmaxx-wminx
          itemp=i+ishift
          if(itemp.le.1.or.itemp.ge.(nx)) then
@@ -3275,17 +3269,18 @@
             enddo
          enddo
       enddo
-    
-      forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
+#endif    
+!max   forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
+       forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
    enddo
    call commrpop(aoptp)
-   
+
 #if 0
   if(iter.eq.1) then
   do l=1,links
 !     write(50+idrank,*)'out pop ',l
         do i=wminx,wmaxx
-         do j=wminy,wmaxy
+         do j=miny,maxy
             do k=wminz,wmaxz
                write((100*idrank)+270+l,*)i,j,k,aoptp(l)%p(i,j,k)
            enddo
@@ -7025,9 +7020,9 @@ subroutine driver_bc_densities
    do l=1,links
 !      write((50+idrank),*)'in pop ',l
        do i=wminx,wmaxx
-         do j=wminy,wmaxy
+         do j=miny,maxy
            do k=wminz,wmaxz
-               write((100*idrank)+50+l,*)i,j,k,aoptp(l)%p(i,j,k)
+               write((100*idrank)+250+l,*)i,j,k,aoptp(l)%p(i,j,k)
            enddo
          enddo
         enddo
@@ -7049,14 +7044,16 @@ subroutine driver_bc_densities
           endif
 !max          if(iypbc.ne.1.AND.jshift.ne.0) then
           if(jshift.ne.0) then
-            do j=wminy,wmaxy,wmaxy-wminy
-              if(j.lt.1.or.j.gt.(ny)) then
+!max            do j=wminy,wmaxy,wmaxy-wminy
+!max              if(j.lt.1.or.j.gt.(ny)) then
+            do j=miny-1,maxy+1,2+maxy-miny
+!max              if(j.lt.1.or.j.gt.(ny)) then
                 if(mod(l,2).eq.1) then
                   forall(k=minz:maxz) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
                   forall(k=minz:maxz) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
                   forall(k=minz:maxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
                 endif
-              endif
+!max              endif
             enddo
           endif
 !max          if(izpbc.ne.1.AND.kshift.ne.0) then
@@ -7105,6 +7102,19 @@ subroutine driver_bc_densities
             forall(i=minx:maxx,j=miny:maxy) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
             forall(i=minx:maxx,j=miny:maxy) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
           endif
+!abc
+!abc          if(jshift.ne.0) then
+!abc            do j=wminy,wmaxy,wmaxy-wminy
+!abc              if(j.lt.1.or.j.gt.(ny)) then
+!abc                if(mod(l,2).eq.1) then
+!abc                  forall(i=minx:maxx) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
+!abc                  forall(i=minx:maxx) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k) 
+!abc                  forall(i=minx:maxx) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
+!abc                endif
+!abc              endif
+!abc            enddo
+!abc         endif
+!abc
         endif
       enddo
     endif
@@ -7114,9 +7124,9 @@ subroutine driver_bc_densities
   do l=1,links
 !     write(50+idrank,*)'out pop ',l
         do i=wminx,wmaxx
-         do j=wminy,wmaxy
+         do j=miny,maxy
             do k=wminz,wmaxz
-               write((100*idrank)+70+l,*)i,j,k,aoptp(l)%p(i,j,k)
+               write((100*idrank)+270+l,*)i,j,k,aoptp(l)%p(i,j,k)
            enddo
          enddo
         enddo
