@@ -24,6 +24,7 @@ all:
 	@echo "gfortran-mpi                       "
 	@echo "intel                              "
 	@echo "intel-mpi                          "
+	@echo "intel-mpi-skylake                  "
 	@echo "                                   "
 	@echo "Possible choices for debugging are:"
 	@echo "                                   "
@@ -40,6 +41,7 @@ help:
 	@echo "gfortran-mpi                       "
 	@echo "intel                              "
 	@echo "intel-mpi                          "
+	@echo "intel-mpi-skylake                  "
 	@echo "                                   "
 	@echo "Possible choices for debugging are:"
 	@echo "                                   "
@@ -81,6 +83,15 @@ intel-mpi:
 	CFLAGS="-O2 -I $(CURDIR) -c" \
 	FFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -c" \
 	LDFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -o" \
+	TYPE=mpi \
+	EX=$(EXP) BINROOT=$(BINROOT) mpi
+	
+intel-mpi-skylake:
+	$(MAKE) CC=mpiicc \
+	FC=mpiifort \
+	CFLAGS="-O2 -I $(CURDIR) -xSKYLAKE-AVX512 -c" \
+	FFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -xSKYLAKE-AVX512 -c" \
+	LDFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -xSKYLAKE-AVX512 -o" \
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi
 
