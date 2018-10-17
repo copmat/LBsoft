@@ -58,7 +58,7 @@
                         miny,maxy,minz,maxz,nbuff,lsingle_fluid, &
                         isfluid,initialize_fluids, &
                         driver_initialiaze_manage_bc_selfcomm
-  use write_output_mod,only: write_test_map
+  use write_output_mod,only: write_test_map,lvtkfile
   use integrator_mod,  only : initime,endtime,tstep,set_nstep, &
                         update_nstep,nstep,driver_integrator,nstepmax
   use statistic_mod,   only : statistic_driver
@@ -116,7 +116,7 @@
    miny,maxy,minz,maxz)  
    
 ! initialize isfluid and bcfluid (type of node and bc adopted)
-  call initialize_isfluid_bcfluid
+  call initialize_isfluid_bcfluid(lvtkfile)
   
   
 ! allocate pointers for managing bc hvar and pops within the same process 

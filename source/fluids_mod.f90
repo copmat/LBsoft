@@ -705,7 +705,7 @@
   
  end subroutine
  
- subroutine initialize_isfluid_bcfluid
+ subroutine initialize_isfluid_bcfluid(lvtkfilesub)
  
 !***********************************************************************
 !     
@@ -718,6 +718,9 @@
 !***********************************************************************
  
   implicit none
+  
+  logical, intent(in) :: lvtkfilesub
+  
   integer :: i,j,k,l,idir
   
   logical :: ltest(1)
@@ -1200,6 +1203,13 @@
     bc_type_front==2 .or. bc_type_rear==2 .or. &
     bc_type_north==2 .or. bc_type_south==2)then
      lexch_dens=.true.
+   endif
+   
+   if(lvtkfilesub .and. mxrank>1)then
+     lexch_dens=.true.
+     lexch_u=.true.
+     lexch_v=.true.
+     lexch_w=.true.
    endif
    
   return

@@ -525,18 +525,6 @@ end subroutine
    
     IF(first) THEN
        
-#if defined(FNMD)
-       IF(numprocs.GT.1) THEN
-          mddir(0)=+(nx+2*nbuff)*(ny+2*nbuff)+1+(nx+2*nbuff) !z+1, x+1, y+1
-          mddir(1)=-(nx+2*nbuff)*(ny+2*nbuff)+1+(nx+2*nbuff) !z-1, x+1, y+1
-          mddir(2)=+(nx+2*nbuff)*(ny+2*nbuff)-1+(nx+2*nbuff) !z+1, x-1, y+1
-          mddir(3)=-(nx+2*nbuff)*(ny+2*nbuff)-1+(nx+2*nbuff) !z-1, x-1, y+1
-          mddir(4)=+(nx+2*nbuff)*(ny+2*nbuff)+1-(nx+2*nbuff) !z+1, x+1, y-1
-          mddir(5)=-(nx+2*nbuff)*(ny+2*nbuff)+1-(nx+2*nbuff) !z-1, x+1, y-1
-          mddir(6)=+(nx+2*nbuff)*(ny+2*nbuff)-1-(nx+2*nbuff) !z+1, x-1. y-1
-          mddir(7)=-(nx+2*nbuff)*(ny+2*nbuff)-1-(nx+2*nbuff) !z-1, x-1, y-1
-       ENDIF
-#endif
        minx=LARGEINT
        miny=LARGEINT
        minz=LARGEINT
