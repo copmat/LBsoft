@@ -283,6 +283,7 @@ CONTAINS
     call sum_world_iarr(gmaxz,mxrank)
     
 #if 1
+!   check if node ownerships are assigned in natural order
     ltest(1)=.false.
     do k=minz-nbuff,maxz+nbuff
       do j=miny-nbuff,maxy+nbuff
@@ -902,7 +903,7 @@ end subroutine
         maxz=nz
      endif
     
-# if 0
+#if 0
     do i=0,mxrank-1
       if(i==idrank)then
         write(6,*)idrank,minx,maxx,miny,maxy,minz,maxz
@@ -971,6 +972,7 @@ end subroutine
      endif
     
 #if 1
+!   check the natural order of the subdoumains
     ltest(1)=.false.
     do k=1,nprocz
       do j=1,nprocy
