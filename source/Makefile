@@ -133,25 +133,25 @@ intel-mpidebugger:
 seq:IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
 	Lib_VTK_IO.o get_mem.o serial_version_mod.o \
 	profiling_mod.o parse_mod.o error_mod.o aop_mod.o utility_mod.o \
-	comsetup_mod.o fluids_mod.o write_output_mod.o integrator_mod.o \
-	statistic_mod.o io_mod.o main.o
+	comsetup_mod.o fluids_mod.o particles_mod.o write_output_mod.o \
+	integrator_mod.o statistic_mod.o io_mod.o main.o
 	$(FC) $(LDFLAGS) $(EX) IR_Precision.o \
 	Lib_Pack_Data.o Lib_Base64.o Lib_VTK_IO.o get_mem.o \
 	serial_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
-	aop_mod.o utility_mod.o comsetup_mod.o fluids_mod.o write_output_mod.o \
-	integrator_mod.o statistic_mod.o io_mod.o main.o
+	aop_mod.o utility_mod.o comsetup_mod.o fluids_mod.o particles_mod.o \
+	write_output_mod.o integrator_mod.o statistic_mod.o io_mod.o main.o
 	mv $(EX) $(EXE)
 	
 mpi:IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
 	Lib_VTK_IO.o get_mem.o parallel_version_mod.o \
 	profiling_mod.o parse_mod.o error_mod.o aop_mod.o utility_mod.o \
-	comsetup_mod.o fluids_mod.o write_output_mod.o integrator_mod.o \
-	statistic_mod.o io_mod.o main.o
+	comsetup_mod.o fluids_mod.o particles_mod.o write_output_mod.o \
+	integrator_mod.o statistic_mod.o io_mod.o main.o
 	$(FC) $(LDFLAGS) $(EX) IR_Precision.o \
 	Lib_Pack_Data.o Lib_Base64.o Lib_VTK_IO.o get_mem.o \
 	parallel_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
-	aop_mod.o utility_mod.o comsetup_mod.o fluids_mod.o write_output_mod.o \
-	integrator_mod.o statistic_mod.o io_mod.o main.o
+	aop_mod.o utility_mod.o comsetup_mod.o fluids_mod.o particles_mod.o \
+	write_output_mod.o integrator_mod.o statistic_mod.o io_mod.o main.o
 	mv $(EXP) $(EXEP)
 	
 IR_Precision.o:IR_Precision.f90
@@ -195,6 +195,9 @@ comsetup_mod.o:comsetup_mod.f90
 	
 fluids_mod.o:fluids_mod.f90
 	$(FC) $(FFLAGS) fluids_mod.f90
+	
+particles_mod.o:particles_mod.f90
+	$(FC) $(FFLAGS) particles_mod.f90
 	
 write_output_mod.o:write_output_mod.f90
 	$(FC) $(FFLAGS) write_output_mod.f90
