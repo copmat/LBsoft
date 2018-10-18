@@ -13,7 +13,8 @@
 !***********************************************************************
   
  use version_mod,    only : idrank,mxrank,get_sync_world
- use lbempi_mod,     only : gminx,gmaxx,gminy,gmaxy,gminz,gmaxz
+ use lbempi_mod,     only : gminx,gmaxx,gminy,gmaxy,gminz,gmaxz,ownern,&
+  i4back
  use error_mod
  use utility_mod,    only : write_fmtnumb,ltest_mode
  use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w,lsingle_fluid, &
@@ -24,6 +25,7 @@
   character(len=*), parameter :: filenamevtk='output'
   integer, save, public, protected :: ivtkevery=50
   logical, save, public, protected :: lvtkfile=.false.
+  logical, save, public, protected :: lvtkownern=.true.
   
   public :: write_vtk_frame
   public :: set_value_ivtkevery
@@ -291,6 +293,7 @@
   
   logical, save :: lfirstdel=.true.
   character*1, save :: delimiter
+  INTEGER(kind=IPRC) :: i4
      
   if(lfirstdel)then
     call getcwd(sevt)
@@ -357,6 +360,9 @@
     if(.not. lsingle_fluid)then
       E_IO = PVTK_VAR_XML(varname='density2',tp='Float32')
     endif
+    if(lvtkownern)then
+      E_IO = PVTK_VAR_XML(varname='ownern',tp='Float32')
+    endif
     E_IO = PVTK_VAR_XML(Nc=3_I4P,varname='velocity',tp='Float32')
     E_IO = PVTK_DAT_XML(var_location = 'node', &
      var_block_action = 'close')
@@ -419,6 +425,18 @@
      rhoB(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
      nz1_p(idrank):nz2_p(idrank))
     E_IO = VTK_VAR_XML(cf=mf(idrank),NC_NN=nn_p(idrank),varname ='density2', &
+     var=reshape(service1,(/nn_p(idrank)/)))
+  endif
+  if(lvtkownern)then
+    do k=nz1_p(idrank),nz2_p(idrank)
+      do j=ny1_p(idrank),ny2_p(idrank)
+        do i=nx1_p(idrank),nx2_p(idrank)
+          i4=i4back(i,j,k)
+          service1(i,j,k)= ownern(i4)
+        enddo
+      enddo
+    enddo
+    E_IO = VTK_VAR_XML(cf=mf(idrank),NC_NN=nn_p(idrank),varname ='ownern', &
      var=reshape(service1,(/nn_p(idrank)/)))
   endif
      

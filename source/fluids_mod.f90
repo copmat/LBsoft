@@ -549,8 +549,8 @@
        if(i==idrank)then
          write(6,*)'fluids id=',idrank,'minx=',minx,'maxx=',maxx, &
           'miny=',miny,'maxy=',maxy,'minz=',minz,'maxz=',maxz
-         write(6,*)'fluids id=',idrank,'wminx=',wminx,'wmaxx=',wmaxx, &
-          'wminy=',wminy,'wmaxy=',wmaxy,'wminz=',wminz,'wmaxz=',wmaxz
+!         write(6,*)'fluids id=',idrank,'wminx=',wminx,'wmaxx=',wmaxx, &
+!          'wminy=',wminy,'wmaxy=',wmaxy,'wminz=',wminz,'wmaxz=',wmaxz
        endif
        call flush(6)
        call get_sync_world

@@ -80,8 +80,9 @@ MODULE lbempi_mod
   INTEGER :: i_pe2recv_fluid_hvar(0:maxneigh-1), n_var2recv_fluid(0:maxneigh-1)
 
   integer, protected, public :: nprocz, nprocy, nprocx
-  INTEGER :: nxy2, nx2
+  INTEGER, save :: nxy2, nx2,nx_comm,ny_comm,nz_comm
   integer :: nbuff_comm
+  integer, save, dimension(3) :: ipbc
 
   integer, POINTER :: countnpp(:)
   INTEGER(KIND=2), ALLOCATABLE :: ownern(:)
@@ -170,14 +171,17 @@ CONTAINS
    
   
   
-  INTEGER :: i
+  INTEGER :: i,j,k,itemp
   INTEGER :: ownernlb,ownernub
-
+  logical :: ltest(1)
+  INTEGER(kind=IPRC) :: i4
   
   myid=idrank
   numprocs=mxrank
   
-
+  nx_comm=nx
+  ny_comm=ny
+  nz_comm=nz
   nxy2=(nx+2*nbuff)*(ny+2*nbuff)
   nx2=nx+(2*nbuff)
   nbuff_comm=nbuff
@@ -194,10 +198,6 @@ CONTAINS
   enddo
   
   ldo_second=(.not. lsingle_fluid)
-  
-  call cartdeco(nx,ny,nz,nbuff,.true.,ownern,ownernlb,minx,maxx,miny,maxy, &
-   minz,maxz)
-  
   
   
     !     itemp1      itemp2      itemp3     ibctype
@@ -243,6 +243,13 @@ CONTAINS
        izpbc=1
     ENDIF
     
+    ipbc(1)=ixpbc
+    ipbc(2)=iypbc
+    ipbc(3)=izpbc
+    
+    call cartdeco(nx,ny,nz,nbuff,.true.,ownern,ownernlb,minx,maxx,miny,maxy, &
+     minz,maxz)
+    
     allocate(gminx(0:mxrank-1))
     allocate(gmaxx(0:mxrank-1))
     allocate(gminy(0:mxrank-1))
@@ -274,6 +281,33 @@ CONTAINS
     call sum_world_iarr(gmaxy,mxrank)
     call sum_world_iarr(gminz,mxrank)
     call sum_world_iarr(gmaxz,mxrank)
+    
+#if 1
+    ltest(1)=.false.
+    do k=minz-nbuff,maxz+nbuff
+      do j=miny-nbuff,maxy+nbuff
+        do i=minx-nbuff,maxx+nbuff
+          i4=i4back(i,j,k)
+          itemp=ownernfind(i,j,k)
+          if(itemp.ne.int(ownern(i4)))then
+            write(6,*)'wrong assignment of node ownership'
+            write(6,*)'expected',idrank,i,j,k,itemp
+            write(6,*)'obtained',idrank,i,j,k,int(ownern(i4))
+            call flush(6)
+            ltest(1)=.true.
+            goto 121
+          endif
+        enddo
+      enddo
+    enddo
+ 121 continue
+    call or_world_larr(ltest,1)
+    if(ltest(1))then
+      call finalize_world
+      stop
+    endif
+#endif
+    
     
     return
 
@@ -344,6 +378,10 @@ end subroutine
   
   myid=idrank
   numprocs=mxrank
+  
+  nx_comm=nx
+  ny_comm=ny
+  nz_comm=nz
 
   nxy2=(nx+2*nbuff)*(ny+2*nbuff)
   nx2=nx+(2*nbuff)
@@ -402,6 +440,10 @@ end subroutine
        iypbc=1
        izpbc=1
     ENDIF
+    
+  ipbc(1)=ixpbc
+  ipbc(2)=iypbc
+  ipbc(3)=izpbc
   
   !ownernlb=(1-nbuff)+((1-nbuff)*nx2)+((1-nbuff)*nxy2)
   ownernlb=1
@@ -648,6 +690,7 @@ end subroutine
     currproc=0
     curroffz=0
     curroffy=0
+    slice=0; slicez=0; slicey=0; slicex=0
     IF(domdec.EQ.1) THEN      !along z
        slice=(nz)/numprocs
        IF(MOD((nz),numprocs).NE.0) THEN
@@ -662,9 +705,9 @@ end subroutine
     ENDIF
     DO iz=1, nz
        IF(domdec.EQ.1) THEN   !along z
-          IF(slice.EQ.1.AND.iz.LT.(nz)) THEN
+          IF(slice.EQ.0.AND.iz.LT.(nz)) THEN
              currproc=currproc+1
-             slice=((nz)-(iz))/(numprocs-currproc)
+             slice=((nz)-(iz))/(numprocs-currproc)-1
              IF(MOD((nz)-(iz),(numprocs-currproc)).NE.0) THEN
                 slice=slice+1
              ENDIF
@@ -707,9 +750,9 @@ end subroutine
        ENDIF
        DO iy=1, ny
           IF(domdec.EQ.2) THEN
-             IF(slice.EQ.1.AND.iy.LT.(ny)) THEN
+             IF(slice.EQ.0.AND.iy.LT.(ny)) THEN
                 currproc=currproc+1
-                slice=((ny)-(iy))/(numprocs-currproc)
+                slice=((ny)-(iy))/(numprocs-currproc)-1
                 IF(MOD((ny)-(iy),(numprocs-currproc)).NE.0) THEN
                    slice=slice+1
                 ENDIF
@@ -717,10 +760,10 @@ end subroutine
                 slice=slice-1
              ENDIF
           ELSE IF(domdec.EQ.4) THEN !along zy
-             IF(slice.EQ.1.AND.iy.LT.(ny)) THEN
+             IF(slice.EQ.0.AND.iy.LT.(ny)) THEN
                 currproc=currproc+1
                 slice=((ny)-(iy))/ &
-                     ((numprocs/2)-(currproc-currpoff))
+                     ((numprocs/2)-(currproc-currpoff))-1
                 IF(MOD((ny)-(iy),&
                      (numprocs/2)-(currproc-currpoff)).NE.0) THEN
                    slice=slice+1
@@ -778,9 +821,9 @@ end subroutine
              ! i4=iz*nxy2 + iy*nx2 + ix
              i4=i4back(ix,iy,iz)
              IF(domdec.EQ.3) THEN !along x
-                IF(slice.EQ.1.AND.ix.LT.(nx)) THEN
+                IF(slice.EQ.0.AND.ix.LT.(nx)) THEN
                    currproc=currproc+1
-                   slice=((nx)-(ix))/(numprocs-currproc)
+                   slice=((nx)-(ix))/(numprocs-currproc)-1
                    IF(MOD((nx)-(ix),(numprocs-currproc)).NE.0) THEN
                       slice=slice+1
                    ENDIF
@@ -788,10 +831,10 @@ end subroutine
                    slice=slice-1
                 ENDIF
              ELSE IF(domdec.EQ.5.OR.domdec.EQ.6) THEN !along zx or along yx
-                IF(slice.EQ.1.AND.ix.LT.(nx)) THEN
+                IF(slice.EQ.0.AND.ix.LT.(nx)) THEN
                    currproc=currproc+1
                    slice=((nx)-(ix))/ &
-                        ((numprocs/2)-(currproc-currpoff))
+                        ((numprocs/2)-(currproc-currpoff))-1
                    IF(MOD((nx)-(ix),&
                         (numprocs/2)-(currproc-currpoff)).NE.0) THEN
                       slice=slice+1
@@ -859,27 +902,58 @@ end subroutine
         maxz=nz
      endif
     
+# if 0
+    do i=0,mxrank-1
+      if(i==idrank)then
+        write(6,*)idrank,minx,maxx,miny,maxy,minz,maxz
+        call flush(6)
+      endif
+      call get_sync_world
+    enddo
+#endif
+    
     ltest(1)=.false.
     
     do k=1-nbuff,nz+nbuff
        do j=1-nbuff,ny+nbuff
          do i=1-nbuff,nx+nbuff
-           if(i<minx.or.j<miny.or.k<minz.or.i>maxx.or.j>maxy.or.k>maxz)then
+           if(i<1.or.j<1.or.k<1.or.i>nx.or.j>ny.or.k>nz)then
              itemp=i
              jtemp=j
              ktemp=k
-             if(i<1)itemp=1
-             if(i>nx)itemp=nx
-             if(j<1)jtemp=1
-             if(j>ny)jtemp=ny
-             if(k<1)ktemp=1
-             if(k>nz)ktemp=nz
+             if(ipbc(1)==1)then
+               if(i<1)itemp=itemp+nx
+               if(i>nx)itemp=itemp-nx
+             else
+               if(i<1)itemp=1
+               if(i>nx)itemp=nx
+             endif
+             if(ipbc(2)==1)then
+               if(j<1)jtemp=jtemp+ny
+               if(j>ny)jtemp=jtemp-ny
+             else
+               if(j<1)jtemp=1
+               if(j>ny)jtemp=ny
+             endif
+             if(ipbc(3)==1)then
+               if(k<1)ktemp=ktemp+nz
+               if(k>nz)ktemp=ktemp-nz
+             else
+               if(k<1)ktemp=1
+               if(k>nz)ktemp=nz
+             endif
+             if(itemp<1.or.jtemp<1.or.ktemp<1.or.itemp>nx.or.jtemp>ny.or.ktemp>nz)then
+               write(6,*)'ERROR in building the ownern frame'
+               ltest(1)=.true.
+               goto 121
+             endif
              i4target=i4back(i,j,k)
              i4=i4back(itemp,jtemp,ktemp)
              if(i4target<0 .or. i4<0)then
                write(6,*)'ERROR in cartdeco id ',idrank,' ijk ', &
                 i,j,k,' i4target ',i4target,' ijktemp ',itemp,jtemp,ktemp,i4
                ltest(1)=.true.
+               goto 121
              else
                ownern(i4target)=ownern(i4)
                currproc=ownern(i4)
@@ -889,13 +963,39 @@ end subroutine
          enddo
        enddo
      enddo
-     
+121  continue
      call or_world_larr(ltest,1)
      if(ltest(1))then
        call finalize_world
        stop
      endif
-     
+    
+#if 1
+    ltest(1)=.false.
+    do k=1,nprocz
+      do j=1,nprocy
+        do i=1,nprocx
+          ix=idnodeback(i,j,k)
+          if(ix==idrank)then
+            i4=i4back(minx,miny,minz)
+            if(ownern(i4).ne.idrank)then
+              write(6,*)'wrong order of subdomains'
+              write(6,*)idrank,minx,maxx,miny,maxy,minz,maxz
+              write(6,*)'expected',idrank,idnodefind(idrank),idrank
+              write(6,*)'obtained',idrank,idnodefind(int(ownern(i4))),ownern(i4)
+              call flush(6)
+              ltest(1)=.true.
+            endif
+          endif
+        enddo
+      enddo
+    enddo
+    call or_world_larr(ltest,1)
+    if(ltest(1))then
+      call finalize_world
+      stop
+    endif
+#endif
     
     
   END SUBROUTINE cartdeco
@@ -940,6 +1040,87 @@ end subroutine
     
     return
   END FUNCTION i4find
+  
+  
+  function idnodeback(i,j,k) result(out)
+    
+    implicit none
+    integer,intent(in) :: i !< i-location on mesh
+    integer,intent(in) :: j !< j-location on mesh
+    integer,intent(in) :: k !< k-location on mesh
+    integer :: out
+     
+    out = i+j*nprocx+k*nprocx*nprocy-1
+
+  END function idnodeback
+  
+ !> Returns the i,j,k triplet-form of a i4-form
+  function idnodefind(i4sub) result(i4find)
+    
+    implicit none
+    integer, intent(in) :: i4sub
+    integer, dimension(3) :: i4find
+    
+    i4find(3) = (i4sub/nprocx*nprocy)
+    i4find(2) = ((i4sub - i4find(3)*nprocx*nprocy)/nprocx)
+    i4find(1) = (i4sub - i4find(3)*nprocx*nprocy - i4find(2)*nprocx)
+    
+    return
+  END function idnodefind
+  
+  
+  function ownernfind(i,j,k) result(i4find)
+    
+    implicit none
+    integer,intent(in) :: i !< i-location on mesh
+    integer,intent(in) :: j !< j-location on mesh
+    integer,intent(in) :: k !< k-location on mesh
+    integer :: i4find
+    integer :: l,itemp,jtemp,ktemp
+    logical :: ltest(1),lt(3)
+    
+    itemp=i
+    jtemp=j
+    ktemp=k
+    
+    if(ipbc(1)==1)then
+      if(i<1)itemp=itemp+nx_comm
+      if(i>nx_comm)itemp=itemp-nx_comm
+    else
+      if(i<1)itemp=1
+      if(i>nx_comm)itemp=nx_comm
+    endif
+    if(ipbc(2)==1)then
+       if(j<1)jtemp=jtemp+ny_comm
+       if(j>ny_comm)jtemp=jtemp-ny_comm
+    else
+       if(j<1)jtemp=1
+       if(j>ny_comm)jtemp=ny_comm
+    endif
+    if(ipbc(3)==1)then
+       if(k<1)ktemp=ktemp+nz_comm
+       if(k>nz_comm)ktemp=ktemp-nz_comm
+    else
+       if(k<1)ktemp=1
+       if(k>nz_comm)ktemp=nz_comm
+    endif
+    
+    do l=0,mxrank-1
+      lt(1:3)=.false.
+      if(itemp.ge.gminx(l) .and. itemp.le.gmaxx(l))lt(1)=.true.
+      if(jtemp.ge.gminy(l) .and. jtemp.le.gmaxy(l))lt(2)=.true.
+      if(ktemp.ge.gminz(l) .and. ktemp.le.gmaxz(l))lt(3)=.true.
+      if(all(lt))then
+        i4find=l
+        return
+      endif
+    enddo
+    
+    i4find=-1
+    
+    return
+  END function ownernfind
+  
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE findneigh(nx,ny,nz,nbuff,ibctype,isfluid,ixpbc,iypbc,izpbc,minx,maxx, &
        miny,maxy,minz,maxz)
