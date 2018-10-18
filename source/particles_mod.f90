@@ -6,6 +6,11 @@
 !     
 !     LBsoft module containing variable and subroutines of the
 !     particle managing
+!
+!     few variable names and subroutines are inspired from
+!     DL POLY CLASSICS distributed under BSD licence from
+!     the daresbury laboratory (in primis we like to acknowledge 
+!     prof. w. smith)
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -13,7 +18,8 @@
 !     
 !***********************************************************************
  
- use version_mod,    only : idrank,mxrank,or_world_larr,finalize_world,get_sync_world
+ use version_mod, only : idrank,mxrank,or_world_larr,finalize_world, &
+                   get_sync_world
  use error_mod
  use aop_mod
  use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
@@ -32,6 +38,47 @@
  implicit none
  
  private
+ 
+ !key for periodic boundary conditions
+ integer, public, protected, save :: imcon=0
+ 
+ !cell vectors
+ double precision, dimension(9), public, protected, save :: cell
+ 
+ !key for activate the body rotation
+ logical, public, protected, save :: lrotate=.true.
+ 
+ !position of particles
+ double precision, allocatable, public, protected, save :: xxx(:)
+ double precision, allocatable, public, protected, save :: yyy(:)
+ double precision, allocatable, public, protected, save :: zzz(:)
+ !components of angular velocity
+ double precision, allocatable, public, protected, save :: vxx(:)
+ double precision, allocatable, public, protected, save :: vyy(:)
+ double precision, allocatable, public, protected, save :: vzz(:)
+ !components of force
+ double precision, allocatable, public, protected, save :: fxx(:)
+ double precision, allocatable, public, protected, save :: fyy(:)
+ double precision, allocatable, public, protected, save :: fzz(:)
+ !radius of particles
+ double precision, allocatable, public, protected, save :: rdim(:)
+ !particle mass
+ double precision, allocatable, public, protected, save :: weight(:)
+ !rotational inertia in body fixed frame
+ double precision, allocatable, public, protected, save :: rotin(:)
+ !components of angular velocity
+ double precision, allocatable, public, protected, save :: oxx(:)
+ double precision, allocatable, public, protected, save :: oyy(:)
+ double precision, allocatable, public, protected, save :: ozz(:)
+ !components of quaternion vector
+ double precision, allocatable, public, protected, save :: q0(:)
+ double precision, allocatable, public, protected, save :: q1(:)
+ double precision, allocatable, public, protected, save :: q2(:)
+ double precision, allocatable, public, protected, save :: q3(:)
+ !components of torque on rigid body
+ double precision, allocatable, public, protected, save :: tqx(:)
+ double precision, allocatable, public, protected, save :: tqy(:)
+ double precision, allocatable, public, protected, save :: tqz(:)
  
  public :: initialize_particles
  
