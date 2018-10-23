@@ -38,6 +38,9 @@
   bc_type_front,bc_rhoR_rear,bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear,&
   bc_type_rear,set_fluid_wall_sc,wallR_SC,wallB_SC,LBintegrator, &
   set_LBintegrator_type,lbc_halfway,set_lbc_halfway
+ use particles_mod,         only : set_natms_tot,natms_tot,lparticles, &
+  set_lparticles,set_densvar,densvar,lspherical,set_rcut,rcut,delr, &
+  set_delr,rotmat_2_quat
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery,lvtkfile
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
  use statistic_mod,         only : reprinttime,compute_statistic, &
@@ -54,6 +57,7 @@
  integer, public, protected, save :: nprintlist=0
  integer, public, protected, save :: iprinttime=0
  integer, public, protected, save :: eprinttime=0
+ integer, public, protected, save :: nxyzlist=0
  logical, public, protected, save :: lprintlist=.false.
  logical, public, protected, save :: lprinttime=.false.
  real(kind=PRC), public, protected, save :: printtime=FIFTY
@@ -65,11 +69,14 @@
  integer, public, protected, save, allocatable, dimension(:) :: printlist
  real(kind=PRC), public, protected, allocatable, save :: xprint(:)
  
+ integer, public, protected, allocatable, dimension(:), save :: xyzlist
+ 
  public :: print_logo
  public :: read_input
  public :: print_memory_registration
  public :: outprint_driver
  public :: allocate_print
+ public :: read_input_atom
  
  contains
  
@@ -320,11 +327,17 @@
   logical :: temp_lnfluid=.false.
   logical :: temp_wall_SC=.false.
   logical :: temp_lbc_halfway=.false.
+  logical :: temp_lparticles=.false.
   logical :: lerror1=.false.
   logical :: lerror2=.false.
+  logical :: lerror3=.false.
   logical :: lerror4=.false.
   logical :: lerror5=.false.
   logical :: lerror6=.false.
+  logical :: lmd=.false.
+  logical :: temp_densvar=.false.
+  logical :: temp_rcut=.false.
+  logical :: temp_delr=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -379,6 +392,10 @@
   real(kind=PRC) :: dtemp_bc_w_rear = ZERO
   real(kind=PRC) :: dtemp_bc_w_north= ZERO
   real(kind=PRC) :: dtemp_bc_w_south= ZERO
+  
+  real(kind=PRC) :: dtemp_densvar= ZERO
+  real(kind=PRC) :: dtemp_rcut= ZERO
+  real(kind=PRC) :: dtemp_delr= ZERO
   
   integer, parameter :: dimprint=36
   integer, parameter :: dimprint2=12
@@ -745,9 +762,56 @@
               lerror6=.true.
             endif
           enddo
+        elseif(findstring('md',directive,inumchar,maxlen))then
+          lredo2=.true.
+          lmd=.true.
+          do while(lredo2)
+            call getline(safe,inputunit,maxlen,redstring)
+            if(.not.safe)then
+             call warning(1,dble(iline),redstring)
+             lerror5=.true.
+            endif
+            iline=iline+1
+            call strip(redstring,maxlen)
+            call lowcase(redstring,maxlen)
+            call copystring(redstring,directive,maxlen)
+            if(redstring(1:1)=='#')then
+              cycle
+            elseif(redstring(1:1)=='!')then
+              cycle
+            elseif(redstring(1:1)==' ')then
+              cycle
+            elseif(findstring('particle',directive,inumchar,maxlen))then
+              if(findstring('yes',directive,inumchar,maxlen))then
+                temp_lparticles=.true.
+              elseif(findstring('no',directive,inumchar,maxlen))then
+                temp_lparticles=.false.
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
+              endif
+            elseif(findstring('densvar',directive,inumchar,maxlen))then
+              dtemp_densvar=dblstr(directive,maxlen,inumchar)
+              temp_densvar=.true.
+            elseif(findstring('rcut',directive,inumchar,maxlen))then
+              dtemp_rcut=dblstr(directive,maxlen,inumchar)
+              temp_rcut=.true.
+            elseif(findstring('delr',directive,inumchar,maxlen))then
+              dtemp_delr=dblstr(directive,maxlen,inumchar)
+              temp_delr=.true.
+            elseif(findstring('[end room',directive,inumchar,maxlen))then
+              lredo2=.false.
+            elseif(findstring('[end',directive,inumchar,maxlen))then
+              lredo=.false.
+              lredo2=.false.
+            else
+              call warning(1,dble(iline),redstring)
+              lerror6=.true.
+            endif
+          enddo
         endif
       elseif(findstring('[end',directive,inumchar,maxlen))then
-         lredo=.false.
+        lredo=.false.
       else
         call warning(1,dble(iline),redstring)
         lerror4=.true.
@@ -1316,6 +1380,70 @@
     end select
   endif
   
+  call bcast_world_l(lmd)
+  if(lmd)then
+    if(idrank==0)write(6,'(/,3a,/)')repeat('*',29), &
+     "parameters of MD room",repeat('*',29)
+    
+    call bcast_world_l(temp_lparticles)
+    call set_lparticles(temp_lparticles)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='particles'
+      mystring12=repeat(' ',dimprint2)
+      if(lparticles)then
+        mystring12='yes'
+      else
+        mystring12='no'
+      endif
+      mystring12=adjustr(mystring12)
+      write(6,'(3a)')mystring,": ",mystring12
+    endif
+    
+    call bcast_world_l(temp_rcut)
+    if(temp_rcut)then
+      call bcast_world_f(dtemp_rcut)
+      call set_rcut(dtemp_rcut)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='potential cut-off'
+        write(6,'(2a,f12.6)')mystring,": ",rcut
+      endif
+    else
+      call warning(17)
+      call error(7)
+    endif
+    
+    call bcast_world_l(temp_delr)
+    if(temp_delr)then
+      call bcast_world_f(dtemp_delr)
+      call set_delr(dtemp_delr)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='width of verlet border'
+        write(6,'(2a,f12.6)')mystring,": ",delr
+      endif
+    else
+      call warning(18)
+      call error(7)
+    endif
+    
+    call bcast_world_l(temp_densvar)
+    if(temp_densvar)then
+      call bcast_world_f(dtemp_densvar)
+      if(dtemp_densvar<ONE)then
+        call warning(14,dtemp_densvar)
+        call error(5)
+      endif
+      call set_densvar(dtemp_densvar)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='density variance (densvar)'
+        write(6,'(2a,f12.6)')mystring,": ",densvar
+      endif
+    endif
+  endif
+  
   if(idrank==0)then
     write(6,'(/,3a,/)')repeat('*',32),"end input file",repeat('*',33)
   endif
@@ -1549,6 +1677,180 @@
   
  end subroutine label_argument
  
+ subroutine identify_argument_xyz(iarg,arg,printcodsub,lenstring,lfound)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for identifying the symbolic string of the 
+!     input xyz variables that have to be read
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: lenstring
+  integer ,intent(in) :: iarg
+  character(len=lenstring) ,allocatable, intent(in) :: arg(:)
+  logical, intent(out) :: lfound
+  integer, allocatable, intent(inout) :: printcodsub(:)
+  
+  integer :: inumchar
+  character(len=lenstring) :: temps
+  
+  lfound=.false.
+  temps=arg(iarg)
+  
+! for each symbolic string we associate an integer defined in 
+!  printcodsub
+
+!  if(findstring('char',temps,inumchar,lenstring))then
+!    printcodsub(iarg)=1
+!    lfound=.true.
+!  else
+  if(findstring('mass',temps,inumchar,lenstring))then
+    printcodsub(iarg)=2
+    lfound=.true.
+  elseif(findstring('radx',temps,inumchar,lenstring))then
+    printcodsub(iarg)=3
+    lfound=.true.
+  elseif(findstring('rady',temps,inumchar,lenstring))then
+    printcodsub(iarg)=4
+    lfound=.true.
+  elseif(findstring('radz',temps,inumchar,lenstring))then
+    printcodsub(iarg)=5
+    lfound=.true.
+  elseif(findstring('rad',temps,inumchar,lenstring))then
+    printcodsub(iarg)=6
+    lfound=.true.
+  elseif(findstring('vx',temps,inumchar,lenstring))then
+    printcodsub(iarg)=7
+    lfound=.true.
+  elseif(findstring('vy',temps,inumchar,lenstring))then
+    printcodsub(iarg)=8
+    lfound=.true.
+  elseif(findstring('vz',temps,inumchar,lenstring))then
+    printcodsub(iarg)=9
+    lfound=.true.
+  elseif(findstring('ox',temps,inumchar,lenstring))then
+    printcodsub(iarg)=10
+    lfound=.true.
+  elseif(findstring('oy',temps,inumchar,lenstring))then
+    printcodsub(iarg)=11
+    lfound=.true.
+  elseif(findstring('oz',temps,inumchar,lenstring))then
+    printcodsub(iarg)=12
+    lfound=.true.
+  elseif(findstring('txx',temps,inumchar,lenstring))then
+    printcodsub(iarg)=13
+    lfound=.true.
+  elseif(findstring('txy',temps,inumchar,lenstring))then
+    printcodsub(iarg)=14
+    lfound=.true.
+  elseif(findstring('txz',temps,inumchar,lenstring))then
+    printcodsub(iarg)=15
+    lfound=.true.
+  elseif(findstring('tyx',temps,inumchar,lenstring))then
+    printcodsub(iarg)=16
+    lfound=.true.
+  elseif(findstring('tyy',temps,inumchar,lenstring))then
+    printcodsub(iarg)=17
+    lfound=.true.
+  elseif(findstring('tyz',temps,inumchar,lenstring))then
+    printcodsub(iarg)=18
+    lfound=.true.
+  elseif(findstring('tzx',temps,inumchar,lenstring))then
+    printcodsub(iarg)=19
+    lfound=.true.
+  elseif(findstring('tzy',temps,inumchar,lenstring))then
+    printcodsub(iarg)=20
+    lfound=.true.
+  elseif(findstring('tzz',temps,inumchar,lenstring))then
+    printcodsub(iarg)=21
+    lfound=.true.
+  else
+    lfound=.false.
+  endif
+  
+  
+  return
+  
+ end subroutine identify_argument_xyz
+ 
+ function legendobs_xyz(iarg,xyzcod)
+ 
+!***********************************************************************
+!     
+!     LBsoft function for returning the legend which is associated to
+!     the integer contained in the xyzcod array
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iarg
+  integer, intent(in), allocatable, dimension(:) :: xyzcod
+  
+  character(len=52) :: legendobs_xyz
+  
+  legendobs_xyz=repeat(' ',52)
+!  if(xyzcod(iarg)==1)then
+!    legendobs_xyz='char =  charge of the particle                    '
+!  else
+  if(xyzcod(iarg)==2)then
+    legendobs_xyz='mass =  mass of the particle                      '
+  elseif(xyzcod(iarg)==3)then
+    legendobs_xyz='radx =  radius of the particle along x            '
+  elseif(xyzcod(iarg)==4)then
+    legendobs_xyz='rady =  radius of the particle along y            '
+  elseif(xyzcod(iarg)==5)then
+    legendobs_xyz='radz =  radius of the particle along z            '
+  elseif(xyzcod(iarg)==6)then
+    legendobs_xyz='rad  =  radius of the spherical particle          '
+  elseif(xyzcod(iarg)==7)then
+    legendobs_xyz='vx   =  particle velocity along x                 '
+  elseif(xyzcod(iarg)==8)then
+    legendobs_xyz='vy   =  particle velocity along y                 '
+  elseif(xyzcod(iarg)==9)then
+    legendobs_xyz='vz   =  particle velocity along z                 '
+  elseif(xyzcod(iarg)==10)then
+    legendobs_xyz='ox   =  particle angular velocity along x         '
+  elseif(xyzcod(iarg)==11)then
+    legendobs_xyz='oy   =  particle angular velocity along y         '
+  elseif(xyzcod(iarg)==12)then
+    legendobs_xyz='oz   =  particle angular velocity along z         '
+  elseif(xyzcod(iarg)==13)then
+    legendobs_xyz='txx  =  particle rotational matrix x term along x '
+  elseif(xyzcod(iarg)==14)then
+    legendobs_xyz='txy  =  particle rotational matrix x term along y '
+  elseif(xyzcod(iarg)==15)then
+    legendobs_xyz='txz  =  particle rotational matrix x term along z '
+  elseif(xyzcod(iarg)==16)then
+    legendobs_xyz='tyx  =  particle rotational matrix y term along x '
+  elseif(xyzcod(iarg)==17)then
+    legendobs_xyz='tyy  =  particle rotational matrix y term along y '
+  elseif(xyzcod(iarg)==18)then
+    legendobs_xyz='tyz  =  particle rotational matrix y term along z '
+  elseif(xyzcod(iarg)==19)then
+    legendobs_xyz='tzx  =  particle rotational matrix z term along x '
+  elseif(xyzcod(iarg)==20)then
+    legendobs_xyz='tzy  =  particle rotational matrix z term along y '
+  elseif(xyzcod(iarg)==21)then
+    legendobs_xyz='tzz  =  particle rotational matrix z term along z '
+  endif
+  legendobs_xyz=adjustl(legendobs_xyz)
+  
+  return
+  
+ end function legendobs_xyz
+ 
  subroutine outprint_driver(k,timesub)
  
 !***********************************************************************
@@ -1645,6 +1947,260 @@
   return
   
  end subroutine outprint_term
+ 
+ subroutine read_input_atom(inputunit,inputname,xxs,yys,zzs,others)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for reading the input atomic file
+!
+!     note: the input file is written in a modified xyz format
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: inputunit
+  character(len=*), intent(in) :: inputname
+  real(kind=PRC), allocatable, dimension(:) :: xxs,yys,zzs
+  real(kind=PRC), allocatable, dimension(:,:) :: others
+  
+  character(len=maxlen) :: redstring,directive
+  integer :: inumchar,i,j,nwords,iline,itest
+  character(len=maxlen) ,allocatable :: outwords(:),outwords2(:)
+  logical :: lerror1,lerror2,lerror3,lerror4,safe,lexists
+  integer :: temp_natms_tot
+  logical :: lxyzlisterror,lfoundprintxyz,lxyzlist,lxyzlist1,lxyzlist2
+  
+  character(len=*),parameter :: of='(a)'
+  integer, parameter :: natmname=4
+  
+  if(.not. lparticles)return
+  
+  temp_natms_tot=0
+  lerror1=.false.
+  lerror2=.false.
+  lerror3=.false.
+  lerror4=.false.
+  lxyzlist1=.false.
+  lxyzlist2=.false.
+  lxyzlisterror=.false.
+  
+  if(idrank==0)then
+  
+!   check if the input file exist
+    inquire(file=inputname,exist=lexists)
+    if(.not.lexists)then
+      lerror1=.true.
+      goto 120
+    endif
+    
+!   open the inout file
+    open(unit=inputunit,file=inputname,status='old',action='read', &
+    iostat=itest)
+    if(itest/=0)then
+      lerror2=.true.
+      goto 120
+    endif
+    
+    write(6,of)"                                                                               "
+    write(6,of)"*****************************READ XYZ INPUT FILE*******************************"
+    write(6,of)"                                                                               "
+    
+    write(6,'(/,3a)')'start reading ',trim(inputname),' file'
+    
+!   counter the line which are read in the input file
+    iline=0
+    
+!   read the input file
+
+    call getline(safe,inputunit,maxlen,redstring)
+    iline=iline+1
+    if(.not.safe)then
+      call warning(11,dble(iline))
+      lerror3=.true.
+      goto 120
+    endif
+    call strip(redstring,maxlen)
+    call copystring(redstring,directive,maxlen)
+    temp_natms_tot=intstr(directive,maxlen,inumchar)
+    if(temp_natms_tot<1)then
+      call warning(11,dble(iline))
+      lerror3=.true.
+      goto 120
+    endif
+    
+    call getline(safe,inputunit,maxlen,redstring)
+    iline=iline+1
+    if(.not.safe)then
+      call warning(11,dble(iline))
+      lerror3=.true.
+      goto 120
+    endif
+    call strip(redstring,maxlen)
+    call copystring(redstring,directive,maxlen)
+    call findwords(nwords,outwords,directive,maxlen)
+    nxyzlist=max(0,nwords-2)
+    if(nwords>=2)then
+      directive=outwords(1)
+      if(findstring('read',directive,inumchar,maxlen))then
+        lxyzlist1=.true.
+      endif
+      directive=outwords(2)
+      if(findstring('list',directive,inumchar,maxlen))then
+        lxyzlist2=.true.
+      endif
+    endif
+    lxyzlist=(lxyzlist1.and.lxyzlist2)
+    if(lxyzlist)then
+      write(6,'(/,a)')'read list invoked'
+      if(nxyzlist>0)allocate(xyzlist(nxyzlist))
+      if(allocated(outwords2))deallocate(outwords2)
+      if(nxyzlist>0)allocate(outwords2(nxyzlist))
+      do i=1,nxyzlist
+        outwords2(i)=outwords(i+2)
+        call identify_argument_xyz(i,outwords2,xyzlist,maxlen, &
+         lfoundprintxyz)
+        lxyzlisterror=(lxyzlisterror .or. (.not.lfoundprintxyz))
+        if(lxyzlisterror)then
+          call warning(11,dble(iline))
+          call warning(12)
+          call warning(13)
+          goto 120
+        endif
+      enddo
+      call print_legend_xyz(6)
+      do i=1,nxyzlist
+        if(xyzlist(i)>=3 .and. xyzlist(i)<=5)then
+          if(lspherical)then
+            lerror4=.true.
+            call warning(11,dble(iline))
+            call warning(16)
+            goto 120
+          endif
+        endif
+      enddo
+    endif
+    if(allocated(xxs))deallocate(xxs)
+    if(allocated(yys))deallocate(yys)
+    if(allocated(zzs))deallocate(zzs)
+    allocate(xxs(temp_natms_tot))
+    allocate(yys(temp_natms_tot))
+    allocate(zzs(temp_natms_tot))
+    if(nxyzlist>0)then
+      if(allocated(others))deallocate(others)
+      allocate(others(nxyzlist,temp_natms_tot))
+      do i=1,temp_natms_tot
+        call getline(safe,inputunit,maxlen,redstring)
+        iline=iline+1
+        if(.not.safe)then
+          call warning(11,dble(iline))
+          lerror3=.true.
+          goto 120
+        endif
+        call strip(redstring,maxlen)
+        directive(1:maxlen)=redstring(1+natmname:maxlen)// &
+         repeat(' ',natmname)
+        xxs(i)=dblstr(directive,maxlen,inumchar)
+        yys(i)=dblstr(directive,maxlen,inumchar)
+        zzs(i)=dblstr(directive,maxlen,inumchar)
+        do j=1,nxyzlist
+          others(j,i)=dblstr(directive,maxlen,inumchar)
+        enddo
+      enddo
+    else
+      do i=1,temp_natms_tot
+        call getline(safe,inputunit,maxlen,redstring)
+        iline=iline+1
+        if(.not.safe)then
+          call warning(11,dble(iline))
+          lerror3=.true.
+          goto 120
+        endif
+        call strip(redstring,maxlen)
+        directive(1:maxlen)=redstring(1+natmname:maxlen)// &
+         repeat(' ',natmname)
+        xxs(i)=dblstr(directive,maxlen,inumchar)
+        yys(i)=dblstr(directive,maxlen,inumchar)
+        zzs(i)=dblstr(directive,maxlen,inumchar)
+      enddo
+    endif
+    
+  endif
+  
+120 continue
+  
+  call bcast_world_l(lerror1)
+  call bcast_world_l(lerror2)
+  call bcast_world_l(lerror3)
+  call bcast_world_l(lerror4)
+  call bcast_world_l(lxyzlisterror)
+  
+  if(lerror1)call error(17)
+  if(lerror2)call error(18)
+  if(lerror3)call error(19)
+  if(lerror4)call error(19)
+  if(lxyzlisterror)call error(19)
+  
+  call bcast_world_i(nxyzlist)
+  if(nxyzlist>0)then
+    if(idrank/=0)then
+      allocate(xyzlist(nxyzlist))
+    endif
+    call bcast_world_iarr(xyzlist,nxyzlist)
+  endif
+  
+  if(idrank==0)then
+    write(6,'(3a,/)')'file ',trim(inputname),' correctly closed'
+    write(6,of)"                                                                               "
+    write(6,of)"*******************************************************************************"
+    write(6,of)"                                                                               "
+  endif
+  
+  call bcast_world_i(temp_natms_tot)
+  call set_natms_tot(temp_natms_tot)
+  
+  return
+  
+ end subroutine read_input_atom
+ 
+ subroutine print_legend_xyz(iu)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for printing the legend of the observables
+!     written in input xyz file
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: iu
+  
+  integer :: i
+  
+  character(len=*),parameter :: of='(a)'
+  
+  if(idrank/=0)return
+  
+  write(iu,of)"                                                                               "
+  write(iu,of)"LIST SPECIFIED IN XYZ FILE:"
+  do i=1,nxyzlist
+    write(iu,'(a)')legendobs_xyz(i,xyzlist)
+  enddo
+  write(iu,of)"                                                                               "
+  
+  return
+  
+ end subroutine print_legend_xyz
  
  end module io_mod
 

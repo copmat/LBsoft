@@ -86,6 +86,16 @@
       case (16)
         write(outp,outf2)'ERROR - in subroutine an open boundary node ', &
          'was set without a direction.'
+      case (17)
+        write(outp,outf)'ERROR - input file named input.xyz not found.'
+      case (18)
+        write(outp,outf)'ERROR - input.xyz file opened with error.'
+      case (19)
+        write(outp,outf)'ERROR - error in reading the input file input.xyz.'
+      case (20)
+        write(outp,outf)'ERROR - bad allocation in subroutine allocate_particles.'
+      case (21)
+        write(outp,outf)'ERROR - densvar is too low. Increase it in input file.'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select
@@ -199,6 +209,92 @@
     case (10)
         write(outp,'(/,2a,/)')"WARNING - the shanchen pair force cannot be", &
          " applyied with a single fluid component!"
+    case (11)
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,3a,/)')"WARNING - there is an error in at line ", &
+       trim(adjustl(r_char))," in the input.xyz file:"
+    case (12)
+      write(outp,'(/,a)')"WARNING - 'read list' is not correctly specified"
+      write(outp,'(a,/)')"WARNING - 'read list' should be specified as 'read list [keys]'"
+    case (13)
+      write(outp,'(/,a)') &
+      "WARNING - possible [keys] to be used are reported in the following table"
+      write(outp,'(a)') &
+      "WARNING - each [key] should be separated by a space character (e.g. mass vx vy vz rad)"
+      write(outp,'(a)') &
+      "WARNING - ********************************************************************************"
+      write(outp,'(a)') &
+      "WARNING - * [keys]               * [meanings]                                            *"
+      write(outp,'(a)') &
+      "WARNING - ********************************************************************************"
+!      write(outp,'(a)') &
+!      "WARNING - * char                 * charge of the particle in lb units                    *"
+      write(outp,'(a)') &
+      "WARNING - * mass                 * mass of the particle in lb units                      *"
+      write(outp,'(a)') &
+      "WARNING - * vx                   * particle velocity along x in lb units                 *"
+      write(outp,'(a)') &
+      "WARNING - * vy                   * particle velocity along y in lb units                 *"
+      write(outp,'(a)') &
+      "WARNING - * vz                   * particle velocity along z in lb units                 *"
+      write(outp,'(a)') &
+      "WARNING - * ox                   * particle angular velocity along x in lb units         *"
+      write(outp,'(a)') &
+      "WARNING - * oy                   * particle angular velocity along y in lb units         *"
+      write(outp,'(a)') &
+      "WARNING - * oz                   * particle angular velocity along z in lb units         *"
+      write(outp,'(a)') &
+      "WARNING - * rad                  * radius of the spherical particle in lb units          *"
+      write(outp,'(a)') &
+      "WARNING - * radx                 * radius of the particle along x in lb units            *"
+      write(outp,'(a)') &
+      "WARNING - * rady                 * radius of the particle along x in lb units            *"
+      write(outp,'(a)') &
+      "WARNING - * radz                 * radius of the particle along x in lb units            *"
+      write(outp,'(a)') &
+      "WARNING - * txx                  * particle rotational matrix x term along x             *"
+      write(outp,'(a)') &
+      "WARNING - * txy                  * particle rotational matrix x term along y             *"
+      write(outp,'(a)') &
+      "WARNING - * txz                  * particle rotational matrix x term along z             *"
+      write(outp,'(a)') &
+      "WARNING - * tyx                  * particle rotational matrix y term along x             *"
+      write(outp,'(a)') &
+      "WARNING - * tyy                  * particle rotational matrix y term along y             *"
+      write(outp,'(a)') &
+      "WARNING - * tyz                  * particle rotational matrix y term along z             *"
+      write(outp,'(a)') &
+      "WARNING - * tzx                  * particle rotational matrix z term along x             *"
+      write(outp,'(a)') &
+      "WARNING - * tzy                  * particle rotational matrix z term along y             *"
+      write(outp,'(a)') &
+      "WARNING - * tzz                  * particle rotational matrix z term along z             *"
+      write(outp,'(a,/)') &
+      "WARNING - ********************************************************************************"
+    case (14)
+      write (r_char,'(g10.6)')ddata
+      write(outp,'(/,a)')"WARNING - densvar should equal or greater than 1."
+       write(outp,'(2a,/)')"WARNING - the actual value of densvar is : ", &
+       trim(adjustl(r_char))
+    case (15)
+      write (r_char,'(g10.6)')ddata
+      write(outp,'(/,a)')"WARNING - densvar is too low."
+       write(outp,'(2a,/)')"WARNING - the actual value of densvar is : ", &
+       trim(adjustl(r_char))
+    case (16)
+      write(outp,'(/,a)')"WARNING - 'read list' is not correctly specified"
+      write(outp,'(a,/)')"WARNING - 'read list' contains radx rady radz but particles are spherical"
+    case (17)
+      write(outp,'(/,2a,/)')"WARNING - rcut (potential cut-off) is not defined in ", &
+      "input file"
+    case (18)
+      write(outp,'(/,2a,/)')"WARNING - delr (width of verlet border) is not defined in ", &
+      "input file"
+    case (19)
+      write(outp,'(/,2a)')"WARNING - particle orientation NOT specified in ", &
+      "input file"
+      write(outp,'(2a,/)')"an uniform random orientation has been set ", &
+      "for each particle"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

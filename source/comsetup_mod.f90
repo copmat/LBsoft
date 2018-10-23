@@ -85,7 +85,7 @@ MODULE lbempi_mod
   integer, save, dimension(3) :: ipbc
 
   integer, POINTER :: countnpp(:)
-  INTEGER(KIND=2), ALLOCATABLE :: ownern(:)
+  INTEGER(KIND=2), public, protected, ALLOCATABLE :: ownern(:)
 
   INTEGER(kind=IPRC), ALLOCATABLE :: i_pop2send_fluid(:,:,:), i_pop2recv_fluid(:,:,:)
   INTEGER(kind=IPRC), ALLOCATABLE :: i_var2send_fluid(:,:,:), i_var2recv_fluid(:,:,:)
@@ -128,6 +128,8 @@ MODULE lbempi_mod
   public :: create_findneigh_list_pops
   public :: commexch_vel_component
   public :: commwait_vel_component
+  public :: ownernfind
+  public :: ownernfind_arr
   
 CONTAINS
 #define LARGEINT 1073741824
@@ -250,21 +252,21 @@ CONTAINS
     call cartdeco(nx,ny,nz,nbuff,.true.,ownern,ownernlb,minx,maxx,miny,maxy, &
      minz,maxz)
     
-    allocate(gminx(0:mxrank-1))
-    allocate(gmaxx(0:mxrank-1))
-    allocate(gminy(0:mxrank-1))
-    allocate(gmaxy(0:mxrank-1))
-    allocate(gminz(0:mxrank-1))
-    allocate(gmaxz(0:mxrank-1))
-    
-    
-    gminx(0:mxrank-1)=0
-    gmaxx(0:mxrank-1)=0
-    gminy(0:mxrank-1)=0
-    gmaxy(0:mxrank-1)=0
-    gminz(0:mxrank-1)=0
-    gmaxz(0:mxrank-1)=0
-       
+    allocate(gminx(-1:mxrank-1))
+    allocate(gmaxx(-1:mxrank-1))
+    allocate(gminy(-1:mxrank-1))
+    allocate(gmaxy(-1:mxrank-1))
+    allocate(gminz(-1:mxrank-1))
+    allocate(gmaxz(-1:mxrank-1))
+  
+  
+    gminx(-1:mxrank-1)=0
+    gmaxx(-1:mxrank-1)=0
+    gminy(-1:mxrank-1)=0
+    gmaxy(-1:mxrank-1)=0
+    gminz(-1:mxrank-1)=0
+    gmaxz(-1:mxrank-1)=0
+     
     do i=0,mxrank-1
       if(i==idrank)then
         gminx(i)=minx
@@ -275,12 +277,21 @@ CONTAINS
         gmaxz(i)=maxz
       endif
     enddo
-    call sum_world_iarr(gminx,mxrank)
-    call sum_world_iarr(gmaxx,mxrank)
-    call sum_world_iarr(gminy,mxrank)
-    call sum_world_iarr(gmaxy,mxrank)
-    call sum_world_iarr(gminz,mxrank)
-    call sum_world_iarr(gmaxz,mxrank)
+    call sum_world_iarr(gminx,mxrank+1)
+    call sum_world_iarr(gmaxx,mxrank+1)
+    call sum_world_iarr(gminy,mxrank+1)
+    call sum_world_iarr(gmaxy,mxrank+1)
+    call sum_world_iarr(gminz,mxrank+1)
+    call sum_world_iarr(gmaxz,mxrank+1)
+    
+    !here store the pbc condition
+    gminx(-1)=ixpbc
+    gminy(-1)=iypbc
+    gminz(-1)=izpbc
+    !here store the total dimension
+    gmaxx(-1)=nx
+    gmaxy(-1)=ny
+    gmaxz(-1)=nz
     
 #if 1
 !   check if node ownerships are assigned in natural order
@@ -289,7 +300,8 @@ CONTAINS
       do j=miny-nbuff,maxy+nbuff
         do i=minx-nbuff,maxx+nbuff
           i4=i4back(i,j,k)
-          itemp=ownernfind(i,j,k)
+          itemp=ownernfind(i,j,k,mxrank,gminx,gmaxx, &
+           gminy,gmaxy,gminz,gmaxz)
           if(itemp.ne.int(ownern(i4)))then
             write(6,*)'wrong assignment of node ownership'
             write(6,*)'expected',idrank,i,j,k,itemp
@@ -455,20 +467,20 @@ end subroutine
      ownern(i)=0
   enddo
   
-  allocate(gminx(0:mxrank-1))
-  allocate(gmaxx(0:mxrank-1))
-  allocate(gminy(0:mxrank-1))
-  allocate(gmaxy(0:mxrank-1))
-  allocate(gminz(0:mxrank-1))
-  allocate(gmaxz(0:mxrank-1))
+  allocate(gminx(-1:mxrank-1))
+  allocate(gmaxx(-1:mxrank-1))
+  allocate(gminy(-1:mxrank-1))
+  allocate(gmaxy(-1:mxrank-1))
+  allocate(gminz(-1:mxrank-1))
+  allocate(gmaxz(-1:mxrank-1))
   
   
-  gminx(0:mxrank-1)=0
-  gmaxx(0:mxrank-1)=0
-  gminy(0:mxrank-1)=0
-  gmaxy(0:mxrank-1)=0
-  gminz(0:mxrank-1)=0
-  gmaxz(0:mxrank-1)=0
+  gminx(-1:mxrank-1)=0
+  gmaxx(-1:mxrank-1)=0
+  gminy(-1:mxrank-1)=0
+  gmaxy(-1:mxrank-1)=0
+  gminz(-1:mxrank-1)=0
+  gmaxz(-1:mxrank-1)=0
      
   do i=0,mxrank-1
     if(i==idrank)then
@@ -480,12 +492,21 @@ end subroutine
       gmaxz(i)=maxz
     endif
   enddo
-  call sum_world_iarr(gminx,mxrank)
-  call sum_world_iarr(gmaxx,mxrank)
-  call sum_world_iarr(gminy,mxrank)
-  call sum_world_iarr(gmaxy,mxrank)
-  call sum_world_iarr(gminz,mxrank)
-  call sum_world_iarr(gmaxz,mxrank)
+  call sum_world_iarr(gminx,mxrank+1)
+  call sum_world_iarr(gmaxx,mxrank+1)
+  call sum_world_iarr(gminy,mxrank+1)
+  call sum_world_iarr(gmaxy,mxrank+1)
+  call sum_world_iarr(gminz,mxrank+1)
+  call sum_world_iarr(gmaxz,mxrank+1)
+  
+  !here store the pbc condition
+  gminx(-1)=ixpbc
+  gminy(-1)=iypbc
+  gminz(-1)=izpbc
+  !here store the total dimension
+  gmaxx(-1)=nx
+  gmaxy(-1)=ny
+  gmaxz(-1)=nz
   
   return
   
@@ -1070,13 +1091,37 @@ end subroutine
     return
   END function idnodefind
   
+  pure function ownernfind_arr(i,j,k,nxs,nys,nzs,nbuffs,ownerns)
   
-  function ownernfind(i,j,k) result(i4find)
+   implicit none
+   
+   integer, intent(in) :: i,j,k,nxs,nys,nzs,nbuffs
+   integer(kind=2), allocatable, intent(in) :: ownerns(:)
+   integer(kind=IPRC) :: i4
+   
+   integer :: ownernfind_arr
+   
+   i4=int(k+nbuffs-1,kind=IPRC)*(nxs+2*nbuffs)*(nys+2*nbuffs)+ &
+    int(j+nbuffs-1,kind=IPRC)*(nxs+2*nbuffs)+int(i+nbuffs,kind=IPRC)
+    
+   ownernfind_arr=int(ownerns(i4))
+   
+   return
+   
+  end function ownernfind_arr
+  
+  pure function ownernfind(i,j,k,mxranksub,gminxs,gmaxxs, &
+     gminys,gmaxys,gminzs,gmaxzs) result(i4find)
     
     implicit none
     integer,intent(in) :: i !< i-location on mesh
     integer,intent(in) :: j !< j-location on mesh
     integer,intent(in) :: k !< k-location on mesh
+    integer,intent(in) :: mxranksub
+    !this is necessary to make it pure
+    integer,intent(in), dimension(-1:mxranksub-1) :: gminxs,gmaxxs, &
+     gminys,gmaxys,gminzs,gmaxzs
+     
     integer :: i4find
     integer :: l,itemp,jtemp,ktemp
     logical :: ltest(1),lt(3)
@@ -1085,33 +1130,33 @@ end subroutine
     jtemp=j
     ktemp=k
     
-    if(ipbc(1)==1)then
-      if(i<1)itemp=itemp+nx_comm
-      if(i>nx_comm)itemp=itemp-nx_comm
+    if(gminxs(-1)==1)then
+      if(i<1)itemp=itemp+gmaxxs(-1)
+      if(i>gmaxxs(-1))itemp=itemp-gmaxxs(-1)
     else
       if(i<1)itemp=1
-      if(i>nx_comm)itemp=nx_comm
+      if(i>gmaxxs(-1))itemp=gmaxxs(-1)
     endif
-    if(ipbc(2)==1)then
-       if(j<1)jtemp=jtemp+ny_comm
-       if(j>ny_comm)jtemp=jtemp-ny_comm
+    if(gminys(-1)==1)then
+       if(j<1)jtemp=jtemp+gmaxys(-1)
+       if(j>gmaxys(-1))jtemp=jtemp-gmaxys(-1)
     else
        if(j<1)jtemp=1
-       if(j>ny_comm)jtemp=ny_comm
+       if(j>gmaxys(-1))jtemp=gmaxys(-1)
     endif
-    if(ipbc(3)==1)then
-       if(k<1)ktemp=ktemp+nz_comm
-       if(k>nz_comm)ktemp=ktemp-nz_comm
+    if(gminzs(-1)==1)then
+       if(k<1)ktemp=ktemp+gmaxzs(-1)
+       if(k>gmaxzs(-1))ktemp=ktemp-gmaxzs(-1)
     else
        if(k<1)ktemp=1
-       if(k>nz_comm)ktemp=nz_comm
+       if(k>gmaxzs(-1))ktemp=gmaxzs(-1)
     endif
     
-    do l=0,mxrank-1
+    do l=0,mxranksub-1
       lt(1:3)=.false.
-      if(itemp.ge.gminx(l) .and. itemp.le.gmaxx(l))lt(1)=.true.
-      if(jtemp.ge.gminy(l) .and. jtemp.le.gmaxy(l))lt(2)=.true.
-      if(ktemp.ge.gminz(l) .and. ktemp.le.gmaxz(l))lt(3)=.true.
+      if(itemp.ge.gminxs(l) .and. itemp.le.gmaxxs(l))lt(1)=.true.
+      if(jtemp.ge.gminys(l) .and. jtemp.le.gmaxys(l))lt(2)=.true.
+      if(ktemp.ge.gminzs(l) .and. ktemp.le.gmaxzs(l))lt(3)=.true.
       if(all(lt))then
         i4find=l
         return

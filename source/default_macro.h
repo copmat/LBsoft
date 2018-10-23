@@ -33,6 +33,7 @@
 #define SIX       6.e0
 #define EIGHT     8.e0
 #define TEN      10.e0
+#define ELEVEN   11.e0
 #define TWELVE   12.e0
 #define SIXTEEN  16.e0
 #define EIGHTEEN  18.e0
@@ -42,6 +43,7 @@
 #define THIRTYSIX 36.e0
 #define FIFTY     50.e0
 #define HALF      0.5e0
+#define FOURTH    0.25e0
 
 #elif PRC==8
 
@@ -56,6 +58,7 @@
 #define SIX       6.d0
 #define EIGHT     8.d0
 #define TEN      10.d0
+#define ELEVEN   11.d0
 #define TWELVE   12.d0
 #define SIXTEEN  16.d0
 #define EIGHTEEN  18.d0
@@ -65,6 +68,7 @@
 #define THIRTYSIX 36.d0
 #define FIFTY     50.d0
 #define HALF      0.5d0
+#define FOURTH    0.25d0
 
 #else
 

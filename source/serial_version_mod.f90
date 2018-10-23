@@ -9,7 +9,7 @@
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
-!     last modification July 2018
+!     last modification October 2018
 !     
 !***********************************************************************
  
@@ -44,6 +44,21 @@
  public :: max_world_farr
  public :: and_world_larr
  public :: or_world_larr
+ public :: irecv_world_i
+ public :: irecv_world_f
+ public :: irecv_world_l
+ public :: isend_world_i
+ public :: isend_world_f
+ public :: isend_world_l
+ public :: irecv_world_iarr
+ public :: irecv_world_farr
+ public :: irecv_world_larr
+ public :: isend_world_iarr
+ public :: isend_world_farr
+ public :: isend_world_larr
+ public :: wait_world
+ public :: waitall_world
+ 
  
  contains
  
@@ -564,5 +579,346 @@
   return
   
  end subroutine or_world_larr
+ 
+ subroutine irecv_world_i(argument,idsource,tag,irequest)
+ 
+!***********************************************************************
+!     
+!     LBsoft global subroutine for receiving an integer value
+!     by a nonblocking receive operation
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(out) :: argument
+  integer, intent(in) :: idsource,tag
+  integer, intent(out) :: irequest
+  integer :: ierr
+  
+  return
+  
+ end subroutine irecv_world_i
+ 
+ subroutine irecv_world_f(argument,idsource,tag,irequest)
+ 
+!***********************************************************************
+!     
+!     LBsoft global subroutine for receiving a float value
+!     by a nonblocking receive operation
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC), intent(out) :: argument
+  integer, intent(in) :: idsource,tag
+  integer, intent(out) :: irequest
+  integer :: ierr
+  
+  return
+  
+ end subroutine irecv_world_f
+ 
+ subroutine irecv_world_l(argument,idsource,tag,irequest)
+ 
+!***********************************************************************
+!     
+!     LBsoft global subroutine for receiving a logical value
+!     by a nonblocking receive operation
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(out) :: argument
+  integer, intent(in) :: idsource,tag
+  integer, intent(out) :: irequest
+  integer :: ierr
+  
+  return
+  
+ end subroutine irecv_world_l
+ 
+ subroutine isend_world_i(argument,iddest,tag,irequest)
+ 
+!***********************************************************************
+!     
+!     LBsoft global subroutine for sending an integer value
+!     by a nonblocking send operation
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: argument
+  integer, intent(in) :: iddest,tag
+  integer, intent(out) :: irequest
+  integer :: ierr
+  
+  return
+  
+ end subroutine isend_world_i
+ 
+ subroutine isend_world_f(argument,iddest,tag,irequest)
+ 
+!***********************************************************************
+!     
+!     LBsoft global subroutine for sending a float value
+!     by a nonblocking send operation
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC), intent(in) :: argument
+  integer, intent(in) :: iddest,tag
+  integer, intent(out) :: irequest
+  integer :: ierr
+  
+  return
+  
+ end subroutine isend_world_f
+ 
+ subroutine isend_world_l(argument,iddest,tag,irequest)
+ 
+!***********************************************************************
+!     
+!     LBsoft global subroutine for sending a logical value
+!     by a nonblocking send operation
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(in) :: argument
+  integer, intent(in) :: iddest,tag
+  integer, intent(out) :: irequest
+  integer :: ierr
+  
+  return
+  
+ end subroutine isend_world_l
+ 
+ subroutine irecv_world_iarr(argument,narr,idsource,tag,irequest)
+ 
+!***********************************************************************
+!     
+!     LBsoft global subroutine for receiving an integer array
+!     by a nonblocking receive operation
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: narr
+  integer, dimension(narr), intent(out) :: argument
+  integer, intent(in) :: idsource,tag
+  integer, intent(out) :: irequest
+  integer :: ierr
+  
+  return
+  
+ end subroutine irecv_world_iarr
+ 
+ subroutine irecv_world_farr(argument,narr,idsource,tag,irequest)
+ 
+!***********************************************************************
+!     
+!     LBsoft global subroutine for receiving a float array
+!     by a nonblocking receive operation
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: narr
+  real(kind=PRC), dimension(narr), intent(out) :: argument
+  integer, intent(in) :: idsource,tag
+  integer, intent(out) :: irequest
+  integer :: ierr
+  
+  return
+  
+ end subroutine irecv_world_farr
+ 
+ subroutine irecv_world_larr(argument,narr,idsource,tag,irequest)
+ 
+!***********************************************************************
+!     
+!     LBsoft global subroutine for receiving a logical array
+!     by a nonblocking receive operation
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: narr
+  logical, dimension(narr), intent(out) :: argument
+  integer, intent(in) :: idsource,tag
+  integer, intent(out) :: irequest
+  integer :: ierr
+  
+  return
+  
+ end subroutine irecv_world_larr
+ 
+ subroutine isend_world_iarr(argument,narr,iddest,tag,irequest)
+ 
+!***********************************************************************
+!     
+!     LBsoft global subroutine for sending an integer array
+!     by a nonblocking send operation
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: narr
+  integer, dimension(narr), intent(in) :: argument
+  integer, intent(in) :: iddest,tag
+  integer, intent(out) :: irequest
+  integer :: ierr
+  
+  return
+  
+ end subroutine isend_world_iarr
+ 
+ subroutine isend_world_farr(argument,narr,iddest,tag,irequest)
+ 
+!***********************************************************************
+!     
+!     LBsoft global subroutine for sending a float array
+!     by a nonblocking send operation
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: narr
+  real(kind=PRC), dimension(narr), intent(in) :: argument
+  integer, intent(in) :: iddest,tag
+  integer, intent(out) :: irequest
+  integer :: ierr
+  
+  return
+  
+ end subroutine isend_world_farr
+ 
+ subroutine isend_world_larr(argument,narr,iddest,tag,irequest)
+ 
+!***********************************************************************
+!     
+!     LBsoft global subroutine for sending a logical array
+!     by a nonblocking send operation
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: narr
+  logical, dimension(narr), intent(in) :: argument
+  integer, intent(in) :: iddest,tag
+  integer, intent(out) :: irequest
+  integer :: ierr
+  
+  return
+  
+ end subroutine isend_world_larr
+ 
+ subroutine wait_world(argument,istatus)
+ 
+!***********************************************************************
+!     
+!     LBsoft global subroutine for waiting a nonblocking operation 
+!     to complete.
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(inout) :: argument
+  integer, dimension(1) :: istatus
+  integer :: ierr
+  
+  return
+  
+ end subroutine wait_world
+ 
+ subroutine waitall_world(argument,narr,istatus)
+ 
+!***********************************************************************
+!     
+!     LBsoft global subroutine for waiting a collection of nonblocking  
+!     operations to complete
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: narr
+  integer, dimension(narr), intent(inout) :: argument
+  integer, dimension(1,narr) :: istatus
+  integer :: ierr
+  
+  return
+  
+ end subroutine waitall_world
  
  end module version_mod

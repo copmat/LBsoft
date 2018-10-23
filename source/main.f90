@@ -58,7 +58,9 @@
                         miny,maxy,minz,maxz,nbuff,lsingle_fluid, &
                         isfluid,initialize_fluids, &
                         driver_initialiaze_manage_bc_selfcomm
-  use write_output_mod,only: write_test_map,lvtkfile
+  use particles_mod,   only : allocate_particles, &
+                        initialize_map_particles
+  use write_output_mod,only : write_test_map,lvtkfile
   use integrator_mod,  only : initime,endtime,tstep,set_nstep, &
                         update_nstep,nstep,driver_integrator,nstepmax
   use statistic_mod,   only : statistic_driver
@@ -72,6 +74,9 @@
   real(kind=PRC) :: itime,ctime,ftime
   
   real(kind=PRC) :: mymemory
+  
+  real(kind=PRC), allocatable, dimension(:) :: x_inp,y_inp,z_inp
+  real(kind=PRC), allocatable, dimension(:,:) :: o_inp
   
   logical :: ladd,lrem,lremdat,ldorefinment,lrecycle
   
@@ -108,33 +113,44 @@
     call startPreprocessingTime()  
   endif
    
-! allocate arrays of the nanofiber quantities
-  call allocate_fluids
-  
-   
-  call create_findneigh_list_hvar(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
-   miny,maxy,minz,maxz)  
+! allocate fluid arrays
+  call allocate_fluids  
    
 ! initialize isfluid and bcfluid (type of node and bc adopted)
   call initialize_isfluid_bcfluid(lvtkfile)
-  
   
 ! allocate pointers for managing bc hvar and pops within the same process 
 ! ONLY if it is necessary
   call driver_initialiaze_manage_bc_selfcomm
   
+! prepare list for neighbour comm of fluid pops
+  call create_findneigh_list_pops(nx,ny,nz,nbuff,ibctype,isfluid, &
+   ixpbc,iypbc,izpbc,minx,maxx,miny,maxy,minz,maxz)
   
-  call create_findneigh_list_pops(nx,ny,nz,nbuff,ibctype,isfluid,ixpbc,iypbc,izpbc,minx,maxx, &
-   miny,maxy,minz,maxz)  
-   
-!at this point you can deallocate ownern in order to release space
-  !call deallocate_ownern
+! prepare list for neighbour comm of hydrodynamic variables
+  call create_findneigh_list_hvar(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc, &
+   izpbc,minx,maxx,miny,maxy,minz,maxz)
   
-!da rivedere
+! allocate service array
 #ifdef ALLAMAX
-  call allocate_array_buffservice3d(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff,1-nbuff,nz+nbuff)
+  call allocate_array_buffservice3d(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff, &
+   1-nbuff,nz+nbuff)
 #else
-  call allocate_array_buffservice3d(minx-nbuff,maxx+nbuff,miny-nbuff,maxy+nbuff,minz-nbuff,maxz+nbuff)
+  call allocate_array_buffservice3d(minx-nbuff,maxx+nbuff,miny-nbuff, &
+   maxy+nbuff,minz-nbuff,maxz+nbuff)
+#endif
+
+! read input xyz file if necessary
+  call read_input_atom(700,'input.xyz',x_inp,y_inp,z_inp,o_inp)
+  
+! allocate particle arrays
+  call allocate_particles(ibctype)
+  
+  call initialize_map_particles(nxyzlist,xyzlist,x_inp,y_inp,z_inp,o_inp)
+
+! at this point you can deallocate ownern in order to release space
+#ifdef DEOWERN
+  call deallocate_ownern
 #endif
   
 ! allocate service arrays for printing modules

@@ -1,0 +1,29 @@
+[ROOM SYSTEM]
+box 64 64 64
+steps 100
+diagnostic yes
+boundary condition 1 1 1
+decomposition type 7
+decomposition dimension 1 1 1
+print list dens1 maxvx maxvy maxvz cpue cpur cpu
+print every 10
+print vtk 10
+test yes
+job time 4 d
+close time 10 s
+[END ROOM]
+[ROOM LB]
+components 1
+density gaussian
+density mean 1.d0 1.d0
+density stdev 1.d-4 1.d-4
+velocity mean 0.d0 0.d0 0.d0
+fluid tau 1.d0 1.d0
+[END ROOM]
+[ROOM MD]
+particle yes
+densvar 1.2d0
+rcut 6.d0
+delr 1.d0
+[END ROOM]
+[END]

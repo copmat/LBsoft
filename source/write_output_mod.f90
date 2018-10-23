@@ -465,8 +465,6 @@
   E_IO = VTK_GEO_XML(cf=mf(idrank))
   E_IO = VTK_END_XML(cf=mf(idrank))
   
-  call get_sync_world()
-  
   return
      
  end subroutine write_vtk_frame_parallel
