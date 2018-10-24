@@ -874,7 +874,7 @@
   
  end subroutine isend_world_larr
  
- subroutine wait_world(argument,istatus)
+ subroutine wait_world(argument)
  
 !***********************************************************************
 !     
@@ -890,14 +890,13 @@
   implicit none
   
   integer, intent(inout) :: argument
-  integer, dimension(1) :: istatus
   integer :: ierr
   
   return
   
  end subroutine wait_world
  
- subroutine waitall_world(argument,narr,istatus)
+ subroutine waitall_world(argument,narr)
  
 !***********************************************************************
 !     
@@ -914,7 +913,6 @@
   
   integer, intent(in) :: narr
   integer, dimension(narr), intent(inout) :: argument
-  integer, dimension(1,narr) :: istatus
   integer :: ierr
   
   return
