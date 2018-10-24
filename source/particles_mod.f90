@@ -28,8 +28,9 @@
                    allocate_array_ibuffservice,nbuffservice,buffservice, &
                    allocate_array_buffservice,lbuffservice, &
                    allocate_array_lbuffservice, &
-                   nbuffservice3d,buffservice3d, &
-                   rand_noseeded,linit_seed,gauss_noseeded,write_fmtnumb
+                   nbuffservice3d,buffservice3d,allocate_array_bdf, &
+                   xdf,ydf,zdf,rand_noseeded,linit_seed,gauss_noseeded,&
+                   write_fmtnumb,dcell,invert
 
  use lbempi_mod,  only : commspop, commrpop, i4find, i4back, &
                    ownern,deallocate_ownern,commexch_dens, &
@@ -37,7 +38,7 @@
                    commwait_vel_component,ownernfind,ownernfind_arr, &
                    ownern,gminx,gmaxx,gminy,gmaxy,gminz,gmaxz
  
- use fluids_mod,  only : nx,ny,nz,nbuff
+ use fluids_mod,  only : nx,ny,nz,nbuff,minx,maxx,miny,maxy,minz,maxz
 
  
  implicit none
@@ -59,6 +60,9 @@
  
  !expected number of particles in each neighborhood list
  integer, public, protected, save :: mslist=0
+ 
+ !expected number of particles in each neighborhood listcell
+ integer, public, protected, save :: mslistcell=0
  
  !number of subdomains in parallel decomposition
  integer, public, protected, save :: nbig_cells=0
@@ -86,8 +90,25 @@
  !key for activate the body rotation
  logical, public, protected, save :: lspherical=.true.
  
+ !there are enough cells for the link approach within the same process?
+ logical, public, protected, save :: lnolink=.false.
+ 
  !book of global particle ID
  integer, allocatable, public, protected, save :: atmbook(:)
+ 
+ !number of particle ID in the link cells within the same process
+ integer, allocatable, public, protected, save :: nlinklist(:)
+ !list of particle ID in the link cells within the same process
+ integer, allocatable, public, protected, save :: linklist(:,:)
+ 
+ !number of link cell within the same process
+ integer, save :: ncells=0
+ 
+ !global minimum number of link cell within the same process
+ integer, save :: ncellsmin=0
+ 
+ !global maximum number of link cell within the same process
+ integer, save :: ncellsmax=0
  
  !position of particles
  real(kind=PRC), allocatable, public, protected, save :: xxx(:)
@@ -265,8 +286,9 @@
   integer :: i
   integer, parameter :: nistatmax=100
   integer, dimension(nistatmax) :: istat
-  
+  real(kind=PRC) :: cellx,celly,cellz
   logical :: ltest(1)
+  integer :: ilx,ily,ilz
   
   if(.not. lparticles)return
   
@@ -274,6 +296,56 @@
   
   mxatms=ceiling(real(natms_tot,kind=PRC)*densvar)
   mslist=(mxatms/mxrank+1)*((mxatms-1)/mxrank+1)
+  
+  cellx=huge(ONE)
+  celly=huge(ONE)
+  cellz=huge(ONE)
+  do i=0,mxrank-1
+    cellx=min(real(gmaxx(i)-gminx(i),kind=PRC)+ONE,cellx)
+    celly=min(real(gmaxy(i)-gminy(i),kind=PRC)+ONE,celly)
+    cellz=min(real(gmaxz(i)-gminz(i),kind=PRC)+ONE,cellz)
+  enddo
+  
+  ilx=int(cellx/(rcut+delr))
+  ily=int(celly/(rcut+delr))
+  ilz=int(cellz/(rcut+delr))
+  !check there are enough link cells
+  lnolink=.false.
+  if(ilx.lt.3)lnolink=.true.
+  if(ily.lt.3)lnolink=.true.
+  if(ilz.lt.3)lnolink=.true.
+  ncellsmin=ilx*ily*ilz
+  
+  if(lnolink)then
+    call warning(21)
+  else
+    !cordination number of spheres in bcc and fcc is 12, thus....
+    mslistcell=max(((mxatms/mxrank)/ncellsmin+1),12)
+  endif
+  
+#if 1
+  if(.not. lnolink)then
+    lnolink=.true.
+    if(idrank==0)then
+      write(6,'(a)')'ATTENTION: link cell within the sub domain is under developing!'
+      write(6,'(a)')'ATTENTION: link cell will be applied only over the sub domains!'
+    endif
+  endif
+#endif
+  
+  cellx=ZERO
+  celly=ZERO
+  cellz=ZERO
+  do i=0,mxrank-1
+    cellx=max(real(gmaxx(i)-gminx(i),kind=PRC)+ONE,cellx)
+    celly=max(real(gmaxy(i)-gminy(i),kind=PRC)+ONE,celly)
+    cellz=max(real(gmaxz(i)-gminz(i),kind=PRC)+ONE,cellz)
+  enddo
+  
+  ilx=int(cellx/(rcut+delr))
+  ily=int(celly/(rcut+delr))
+  ilz=int(cellz/(rcut+delr))
+  ncellsmax=ilx*ily*ilz
   
   nbig_cells=mxrank
   
@@ -330,6 +402,11 @@
   allocate(tqy(mxatms),stat=istat(21))
   allocate(tqz(mxatms),stat=istat(22))
   
+  if(.not. lnolink)then
+    allocate(nlinklist(ncellsmax),stat=istat(23))
+    allocate(linklist(ncellsmax,mslistcell),stat=istat(24))
+  endif
+  
   ltest=.false.
   if(any(istat.ne.0))then
     do i=1,nistatmax
@@ -379,6 +456,11 @@
   tqy(1:mxatms)=ZERO
   tqz(1:mxatms)=ZERO
   
+  if(.not. lnolink)then
+    nlinklist(1:ncellsmax)=0
+    linklist(1:ncellsmax,1:mslistcell)=0
+  endif
+  
   return
  
  end subroutine allocate_particles
@@ -406,14 +488,18 @@
   real(kind=PRC), allocatable, dimension(:,:) :: ots
   
   integer :: i,j,k,ids,sub_i,idrank_sub
-  logical :: ltest(1)
+  logical :: ltest(1),lqinput,ltinput
   integer, dimension(0:mxrank-1) :: isend_nparticle
   integer :: isend_nvar
   integer, dimension(4+nxyzlist_sub,1:mxrank-1) :: irequest_send
   integer, dimension(4+nxyzlist_sub) :: irequest_recv
-  real(kind=PRC), dimension(9) :: rot
+  real(kind=PRC), dimension(9) :: rot,newrot
   real(kind=PRC) :: matrixmio(3,3),dmio(3)
   real(kind=PRC), dimension(3) :: xsubm,ysubm,zsubm
+#ifdef CHECKQUAT
+  real(kind=PRC), parameter :: toll=real(1.d-4,kind=PRC)
+  logical :: ltestrot(1)=.false.
+#endif
   
   if(.not. lparticles)return
   
@@ -521,6 +607,14 @@
                 q2(sub_i)=ots(j,i)
               case(21)
                 q3(sub_i)=ots(j,i)
+              case(22)
+                q0(sub_i)=ots(j,i)
+              case(23)
+                q1(sub_i)=ots(j,i)
+              case(24)
+                q2(sub_i)=ots(j,i)
+              case(25)
+                q3(sub_i)=ots(j,i)
               end select
             enddo
           endif
@@ -597,6 +691,18 @@
         case(21)
           call isend_world_farr(q3,isend_nparticle(idrank_sub),idrank_sub, &
            120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
+        case(22)
+          call isend_world_farr(q0,isend_nparticle(idrank_sub),idrank_sub, &
+           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
+        case(23)
+          call isend_world_farr(q1,isend_nparticle(idrank_sub),idrank_sub, &
+           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
+        case(24)
+          call isend_world_farr(q2,isend_nparticle(idrank_sub),idrank_sub, &
+           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
+        case(25)
+          call isend_world_farr(q3,isend_nparticle(idrank_sub),idrank_sub, &
+           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
         end select
       enddo
       call waitall_world(irequest_send(1:isend_nvar,idrank_sub),isend_nvar)
@@ -660,6 +766,14 @@
             case(20)
               q2(sub_i)=ots(j,i)
             case(21)
+              q3(sub_i)=ots(j,i)
+            case(22)
+              q0(sub_i)=ots(j,i)
+            case(23)
+              q1(sub_i)=ots(j,i)
+            case(24)
+              q2(sub_i)=ots(j,i)
+            case(25)
               q3(sub_i)=ots(j,i)
             end select
           enddo
@@ -738,6 +852,18 @@
       case(21)
         call irecv_world_farr(q3,isend_nparticle(idrank),0, &
          120+idrank+4+j,irequest_recv(4+j))
+      case(22)
+        call irecv_world_farr(q0,isend_nparticle(idrank),0, &
+         120+idrank+4+j,irequest_recv(4+j))
+      case(23)
+        call irecv_world_farr(q1,isend_nparticle(idrank),0, &
+         120+idrank+4+j,irequest_recv(4+j))
+      case(24)
+        call irecv_world_farr(q2,isend_nparticle(idrank),0, &
+         120+idrank+4+j,irequest_recv(4+j))
+      case(25)
+        call irecv_world_farr(q3,isend_nparticle(idrank),0, &
+         120+idrank+4+j,irequest_recv(4+j))
       end select
     enddo
     call waitall_world(irequest_recv(1:isend_nvar),isend_nvar)
@@ -755,15 +881,17 @@
   call print_all_particles(100,'mioprima',1)
 #endif
   
-  ltest=.false.
+  lqinput=.false.
+  ltinput=.false.
   if(nxyzlist_sub>0)then
     do j=1,nxyzlist_sub
       k=xyzlist_sub(j)
-      if(k>=13 .and. k<=21)ltest=.true.
+      if(k>=13 .and. k<=21)ltinput=.true.
+      if(xyzlist_sub(j)>=22)lqinput=.true.
     enddo
   endif
 
-  if(.not. ltest(1))then
+  if((.not. ltinput) .and. (.not. lqinput))then
     call warning(19)
     !transform the rotational matrix in quaternions using an uniform
     !distribution
@@ -772,6 +900,8 @@
       ysubm(1:3)=ZERO
       zsubm(1:3)=ZERO
       xsubm(1)=ONE
+      ysubm(2)=ONE
+      zsubm(3)=ONE
       call random_number(dmio(1))
       call random_number(dmio(2))
       call random_number(dmio(3))
@@ -791,28 +921,47 @@
       rot(8)=zsubm(2)
       rot(9)=zsubm(3)
       call rotmat_2_quat(rot,q0(i),q1(i),q2(i),q3(i))
+#ifdef CHECKQUAT
+      call quat_2_rotmat(q0(i),q1(i),q2(i),q3(i),newrot)
+      do j=1,9
+        if(abs(newrot(j)-rot(j))>toll)then
+          ltestrot=.true.
+        endif
+      enddo
+#endif
     enddo
   else
-    !transform the rotational matrix in quaternions
-    do i=1,natms
-      rot(1)=fxx(i)
-      rot(2)=fyy(i)
-      rot(3)=fzz(i)
-      rot(4)=tqx(i)
-      rot(5)=tqy(i)
-      rot(6)=tqz(i)
-      rot(7)=q1(i)
-      rot(8)=q2(i)
-      rot(9)=q3(i)
-      call rotmat_2_quat(rot,q0(i),q1(i),q2(i),q3(i))
-      fxx(i)=ZERO
-      fyy(i)=ZERO
-      fzz(i)=ZERO
-      tqx(i)=ZERO
-      tqy(i)=ZERO
-      tqz(i)=ZERO
-    enddo
+    if(ltinput)then
+      !transform the rotational matrix in quaternions
+      do i=1,natms
+        rot(1)=fxx(i)
+        rot(2)=fyy(i)
+        rot(3)=fzz(i)
+        rot(4)=tqx(i)
+        rot(5)=tqy(i)
+        rot(6)=tqz(i)
+        rot(7)=q1(i)
+        rot(8)=q2(i)
+        rot(9)=q3(i)
+        call rotmat_2_quat(rot,q0(i),q1(i),q2(i),q3(i))
+        fxx(i)=ZERO
+        fyy(i)=ZERO
+        fzz(i)=ZERO
+        tqx(i)=ZERO
+        tqy(i)=ZERO
+        tqz(i)=ZERO
+      enddo
+    endif
   endif
+  
+#ifdef CHECKQUAT
+  call or_world_larr(ltestrot,1)
+  if(ltestrot(1))then
+    call error(22)
+  endif
+#endif
+
+  call map_linkcell
   
   if(idrank==0)write(6,'(a)')'ATTENTION: MD is under developing!'
   call error(-1)
@@ -884,6 +1033,38 @@
   return
   
  end subroutine rotmat_2_quat
+ 
+ subroutine quat_2_rotmat(q0,q1,q2,q3,rot)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for determining the rotational matrix from
+!     quaternion using x convention for euler angles
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+      
+  real(kind=PRC), intent(in) :: q0,q1,q2,q3
+  real(kind=PRC), intent(out), dimension(9) :: rot
+      
+  rot(1)=q0**TWO+q1**TWO-q2**TWO-q3**TWO
+  rot(2)=TWO*(q1*q2-q0*q3)
+  rot(3)=TWO*(q1*q3+q0*q2)
+  rot(4)=TWO*(q1*q2+q0*q3)
+  rot(5)=q0**TWO-q1**TWO+q2**TWO-q3**TWO
+  rot(6)=TWO*(q2*q3-q0*q1)
+  rot(7)=TWO*(q1*q3-q0*q2)
+  rot(8)=TWO*(q2*q3+q0*q1)
+  rot(9)=q0**TWO-q1**TWO-q2**TWO+q3**TWO
+  
+  return
+  
+ end subroutine quat_2_rotmat
  
  subroutine rotate_vect(isub,lsub,xsubmy,ysubmy,zsubmy,center,matrix)
  
@@ -1006,455 +1187,92 @@
   
  end subroutine matrix_rotaxis 
  
-! subroutine parlink &
-!       (newlst,natms,nneut,idnode,mxnode,imcon,rcut,delr)
-      
-!!***********************************************************************
-!!     
-!!     dl_poly subroutine for constructing the verlet neighbour
-!!     list based on link-cell method with neutral groups
-!!     frozen atoms taken into account
-!!     
-!!     to be used with the link version of exclude :excludeneu_link
-!!     parallel replicated data version
-!!     
-!!     copyright - daresbury laboratory 1996
-!!     author    - t. forester january 1996.
-!!     
-!!***********************************************************************
-      
-!      implicit none
-      
-!      logical lchk,newlst,linc,lfrzi,ldo,swop
-!      integer natms,nneut,idnode,mxnode,imcon,idum,ibig(1)
-!      integer i,nsbcll,ilx,ily,ilz,ncells,ix,iy,iz
-!      integer icell,j,ic,ii,kc,jx,jy,jz,jc,ineu,ik,jneu,ineua,jneua
-!      integer ika,jneua1,i1,j1
-!      real(8) rcut,delr,rcsq,xm,ym,zm,det,xdc,ydc,zdc,tx,ty,tz
-!      real(8) cx,cy,cz,sxd,syd,szd,rsq,xd,yd,zd
-      
-!  real(kind=PRC), allocatable, dimension(:) :: uxx,uyy,uzz
-      
-      
-!  integer, parameter, dimension(27) :: &
-!   nix=(/ 0, 1,-1, 0, 0, 0, 0, 1,-1,-1, 1, 1,-1,-1, 1, 0, 0, 0, 0, 1,-1,-1, 1, 1,-1, 1,-1/)
-!  integer, parameter, dimension(27) :: &
-!   niy=(/ 0, 0, 0, 1,-1, 0, 0, 1,-1, 1,-1, 0, 0, 0, 0, 1,-1,-1, 1, 1,-1, 1,-1,-1, 1, 1,-1/)
-!  integer, parameter, dimension(27) :: &
-!   niz=(/ 0, 0, 0, 0, 0, 1,-1, 0, 0, 0, 0, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1,-1, 1/)
+ subroutine map_linkcell
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for building the the linklist of the linkcells
+!     contained in the subdomain of the process
+!     note: if rcut is too big (or cellsub too small), the linkcell 
+!     cannot be applied
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
   
-!  integer, save :: fail=0
-!  logical, save :: newjob=.true.
-      
-!!     allocate work arrays
-      
-!  allocate (uxx(mxatms),uyy(mxatms),uzz(mxatms),stat=fail)
-!  if(fail.ne.0)call error(1900)
-      
-!  lchk=.true.
-!  ibig=0
-!  if(newlst)then
+  real(kind=PRC) :: rcell(9),cellsub(9),det,rcsq,xdc,ydc,zdc
+  logical :: loutbound(1)
+  
+  integer :: i,ilx,ily,ilz,icell,ix,iy,iz
+  
+  if(lnolink)return
+  
+  call allocate_array_bdf(natms)
+        
+!  real space cut off 
+   rcsq=(rcut+delr)**TWO
+  
+   cellsub(1:9)=ZERO
+   cellsub(1)=real(maxx-minx,kind=PRC)+ONE
+   cellsub(5)=real(maxy-miny,kind=PRC)+ONE
+   cellsub(9)=real(maxz-minz,kind=PRC)+ONE
+  
+   call invert(cellsub,rcell,det)
    
-!!   zero link arrays
-!    forall(i=1:natms)
-!      link(i)=0
-!    end forall
+   ilx=int(cellsub(1)/(rcut+delr))
+   ily=int(cellsub(5)/(rcut+delr))
+   ilz=int(cellsub(9)/(rcut+delr))
+!     check there are enough link cells
+   lnolink=.false.
+   if(ilx.lt.3)lnolink=.true.
+   if(ily.lt.3)lnolink=.true.
+   if(ilz.lt.3)lnolink=.true.
+   
+   ncells=ilx*ily*ilz
         
-!!     construct pair force neighbour list
+!  link-cell cutoff for reduced space
+   xdc=real(ilx,kind=PRC)
+   ydc=real(ily,kind=PRC)
+   zdc=real(ilz,kind=PRC)
         
-!        do i=1,mslist
-          
-!          lentry(i)=0
-          
-!        enddo
-        
-!!     real space cut off 
-        
-!        rcsq=(rcut+delr)**2
-!!     
-!!     create mock cell vector for non-periodic system
-        
-!        if(imcon.eq.0.or.imcon.eq.6)then
-          
-!!     find maximum x,y,z postions
-          
-!          xm=0.d0
-!          ym=0.d0
-!          zm=0.d0
-          
-!          do i=1,natms
-            
-!            xm=max(xm,abs(xxx(i)))
-!            ym=max(ym,abs(yyy(i)))
-!            zm=max(zm,abs(zzz(i)))
-            
-!          enddo
-          
-          
-!        endif
-        
-!        call dcell(cell,celprp)
-!        call invert(cell,rcell,det)
-        
-!!     number of subcells
-        
-!        nsbcll=14
-        
-!        ilx=int(celprp(7)/(rcut+delr))
-!        ily=int(celprp(8)/(rcut+delr))
-!        ilz=int(celprp(9)/(rcut+delr))
-!!     
-!!     check there are enough link cells
-        
-!        linc=.false.
-!        if(ilx.lt.3)linc=.true.
-!        if(ily.lt.3)linc=.true.
-!        if(ilz.lt.3)linc=.true.
-!        if(linc) call error(305)
-        
-!        ncells=ilx*ily*ilz
-!        if(ncells.gt.mxcell)then
-          
-!          if(idnode.eq.0) write(nrite,*) 'mxcell must be >= ',ncells
-!          call  error(392)
-          
-!        endif
-        
-!!     calculate link cell indices
-        
-!        do i=1,ncells
-          
-!          lct(i)=0
-          
-!        enddo
-        
-!!     link-cell cutoff for reduced space
-        
-!        xdc=dble(ilx)
-!        ydc=dble(ily)
-!        zdc=dble(ilz)
-        
-!!     reduced space coordinates
-        
-!        if(newjob)then
-          
-!          newjob=.false.
-!          call images(imcon,idnode,mxnode,natms,cell,xxx,yyy,zzz)
-          
-!          if(mxnode.gt.1)  call merge
-!     x      (idnode,mxnode,natms,mxbuff,xxx,yyy,zzz,buffer)
-          
-!        endif
-        
-!        do i=1,natms
-          
-!          tx=xxx(i)
-!          ty=yyy(i)
-!          tz=zzz(i)
-          
-!          uxx(i)=(rcell(1)*tx+rcell(4)*ty+rcell(7)*tz)+0.5d0
-!          uyy(i)=(rcell(2)*tx+rcell(5)*ty+rcell(8)*tz)+0.5d0
-!          uzz(i)=(rcell(3)*tx+rcell(6)*ty+rcell(9)*tz)+0.5d0
-          
-!        enddo
-        
-!!     link neighbours 
-        
-!        do i=1,natms
-          
-!          ix=min(int(xdc*uxx(i)),ilx-1)
-!          iy=min(int(ydc*uyy(i)),ily-1)
-!          iz=min(int(zdc*uzz(i)),ilz-1)
-          
-!          icell=1+ix+ilx*(iy+ily*iz)
-          
-!          j=lct(icell)
-!          lct(icell)=i
-!          link(i)=j
-          
-!        enddo
-        
-!!     set control variables for loop over subcells
-        
-!        ix=1
-!        iy=1
-!        iz=1
-        
-!!     primary loop over subcells
-        
-!        do ic=1,ncells
-          
-!          ii=lct(ic)
-!          if(ii.gt.0)then
-            
-!!     secondary loop over subcells
-            
-!            do kc=1,nsbcll
-              
-!              i=ii
-              
-!              cx=0.d0
-!              cy=0.d0
-!              cz=0.d0
-!              jx=ix+nix(kc)
-!              jy=iy+niy(kc)
-!              jz=iz+niz(kc)
-              
-!!     minimum image convention
-              
-!              if(jx.gt.ilx)then
-                
-!                jx=jx-ilx
-!                cx=1.d0
-                
-!              elseif(jx.lt.1)then
-                
-!                jx=jx+ilx
-!                cx=-1.d0
-                
-!              endif
-              
-!              if(jy.gt.ily)then
-                
-!                jy=jy-ily
-!                cy=1.d0
-                
-!              elseif(jy.lt.1)then
-                
-!                jy=jy+ily
-!                cy=-1.d0
-                
-!              endif
-              
-!              if(jz.gt.ilz)then
-                
-!                jz=jz-ilz
-!                cz=1.d0
-                
-!              elseif(jz.lt.1)then
-                
-!                jz=jz+ilz
-!                cz=-1.d0
-                
-!              endif
-              
-!!     index of neighbouring cell
-              
-!              jc=jx+ilx*((jy-1)+ily*(jz-1))
-!              j=lct(jc)
-              
-!!     ignore if empty
-              
-!              if(j.gt.0)then
-                
-!                do while(i.ne.0)
-                  
-!!     test if site is of interest to this node
-                  
-!                  ineu=lstneu(i)
-!                  ik=0
-                  
-!!     i's  group index for this processor
-                  
-!                  if(mod(ineu-1,mxnode).eq.idnode)ik=((ineu-1)/mxnode)+1
-                  
-!!     test if i is a frozen atom
-                  
-!                  lfrzi=(lstfrz(i).ne.0)
-                  
-!                  if(ic.eq.jc) j=link(i)
-!                  if(j.gt.0)then
-                    
-!                    do while(j.ne.0)
-                      
-!                      jneu=lstneu(j)
-                      
-!!     swop tests for switching of group indices,
-!!     ldo for 'doing' interaction
-                      
-!                      swop=.false.
-!                      ldo=(ik.gt.0)
-!                      jneua=jneu
-!                      ineua=ineu
-!                      ika=ik
-                      
-!!     keep only Brode-Ahlrichs pairs
-                      
-!                      if(jneua.ge.ineua)then
-                        
-!                        if(jneua-ineua.gt.nneut/2)then 
-                          
-!                          swop=(mod(jneu-1,mxnode).eq.idnode)
-!                          if(swop)then 
-!                            ldo=((nneut+ineua-jneua).le.(nneut-1)/2)
-!                          else
-!                            ldo=.false.
-!                          endif
-                          
-!                        endif
-                        
-!                      elseif(nneut+jneua-ineua.gt.(nneut-1)/2)then
-                        
-!                        swop=(mod(jneu-1,mxnode).eq.idnode)
-!                        if(swop)then
-!                          ldo=((ineua-jneua).le.nneut/2)
-!                        else
-!                          ldo=.false.
-!                        endif
-                        
-!                      endif
-                      
-!                      if(swop.and.ldo)then
-!                        jneua=ineu
-!                        ineua=jneu
-!                        ika=((jneu-1)/mxnode)+1
-!                      endif
-                      
-!!     test of frozen atom pairs
-                      
-!                      if(lfrzi.and.ldo)ldo=(lstfrz(j).eq.0)
-                      
-!!     check we haven't already included this group in the list ...
-                      
-!                      jneua1=0
-!                      do while(ldo.and.jneua1.lt.min(lentry(ika),mxlist))
-                        
-!                        jneua1=jneua1+1
-!                        if(list(ika,jneua1).eq.jneua) ldo=.false.
-                        
-!                      enddo
-                      
-!                      if(ldo)then
-                        
-!!     distance in real space : minimum image applied
-                        
-!                        sxd=uxx(j)-uxx(i)+cx
-!                        syd=uyy(j)-uyy(i)+cy
-!                        szd=uzz(j)-uzz(i)+cz
-                        
-!                        xd=cell(1)*sxd+cell(4)*syd+cell(7)*szd
-!                        yd=cell(2)*sxd+cell(5)*syd+cell(8)*szd
-!                        zd=cell(3)*sxd+cell(6)*syd+cell(9)*szd
-                        
-!                        rsq=xd*xd+yd*yd+zd*zd
-                        
-!!     test of distance
-                        
-!                        if(rsq.lt.rcsq)then
-                          
-!                          lentry(ika)=lentry(ika)+1
-!                          if(lentry(ika).gt.mxlist)then
-                            
-!                            ibig=max(ibig,lentry(ika))
-!                            lchk=.false.
-                            
-!                          else
-                            
-!                            list(ika,lentry(ika))=jneua
-                            
-!                          endif
-                          
-!                        endif
-                        
-!                      endif
-                      
-!                      j=link(j)
-                      
-!                    enddo
-                    
-!                  endif
-                  
-!                  j=lct(jc)
-!                  i=link(i)
-                  
-!                enddo
-                
-!              endif
-              
-!            enddo
-            
-!          endif
-          
-!          ix=ix+1
-!          if(ix.gt.ilx)then
-            
-!            ix=1
-!            iy=iy+1
-            
-!            if(iy.gt.ily)then
-              
-!              iy=1
-!              iz=iz+1
-              
-!            endif
-            
-!          endif
-          
-!        enddo
-        
-!!     terminate job if neighbour list array exceeded
-        
-!        if(mxnode.gt.1) call gstate(lchk)
-        
-!        if(.not.lchk)then
-          
-!          call max_world_iarr(ibig,1)
-!          if(idnode.eq.0)then
-!            write(nrite,*)'mxlist must be at least ',ibig
-!            write(nrite,*)'mxlist is currently ',mxlist
-!          endif
-!          call error(107)
-          
-!        endif
-        
-!!     sort list into order ..
-!!     use link as a work array
-        
-!        ik=0
-!        do i=1+idnode,nneut,mxnode
-          
-!          ik=ik+1
-!          do j=1,lentry(ik)
-            
-!            link(j)=list(ik,j)
-            
-!          enddo
-!          call shellsort(lentry(ik),link)
-          
-!!     ensure Brode-Ahlrichs ordering
-          
-!          i1=lentry(ik)+1
-!          j1=0
-!          do j=1,lentry(ik)
-            
-!            if(link(j).ge.i)then
-              
-!              j1=j1+1
-!              list(ik,j1)=link(j)
-!              i1=min(i1,j)
-              
-!            endif
-            
-!          enddo
-          
-!          do j=1,i1-1
-            
-!            j1=j1+1
-!            list(ik,j1)=link(j)
-            
-!          enddo
-          
-!        enddo
-        
-!      endif
-      
-!!     deallocate work arrays 
-      
-!      deallocate (uxx,uyy,uzz,stat=fail)
-      
-!  return
-  
-! end subroutine parlinkneu
+!  reduced space coordinates
+   forall(i=1:natms)
+     xdf(i)=rcell(1)*(xxx(i)-minx-HALF)
+     ydf(i)=rcell(5)*(yyy(i)-miny-HALF)
+     zdf(i)=rcell(9)*(zzz(i)-minz-HALF)
+   end forall
+   
+!  fill up linklist
+   nlinklist(1:ncellsmax)=0
+   loutbound=.false.
+   do i=1,natms
+     ix=min(int(xdc*xdf(i)),ilx-1)
+     iy=min(int(ydc*ydf(i)),ily-1)
+     iz=min(int(zdc*zdf(i)),ilz-1)
+     icell=1+ix+ilx*(iy+ily*iz)
+     nlinklist(icell)=nlinklist(icell)+1
+     if(nlinklist(icell)>mslistcell)then
+       loutbound=.true.
+       exit
+     else
+       linklist(icell,nlinklist(icell))=i
+     endif
+   enddo
+   
+   call or_world_larr(loutbound,1)
+   if(loutbound(1))then
+     call warning(22,real(mslistcell,kind=PRC))
+     call warning(15,densvar)
+     call error(23)
+   endif
+   
+   return
+   
+  end subroutine map_linkcell
  
  subroutine pbc_images_centered(imcons,natmssub,cells,cx,cy,cz,xxs,yys,zzs)
       

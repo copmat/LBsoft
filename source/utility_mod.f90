@@ -24,6 +24,7 @@
  integer, public, save :: nlbuffservice=0
  integer, public, save :: nibuffservice=0
  integer, public, save :: nbuffservice=0
+ integer, public, save :: nbdf=0
  integer, public, save, protected :: nbuffservice3d=0
  integer, public, save :: nbuffservice_x=0
  integer, public, save :: nbuffservice_y=0
@@ -33,6 +34,7 @@
  logical, public, allocatable, save :: lbuffservice(:)
  integer, public, allocatable, save :: ibuffservice(:)
  real(kind=PRC), public, allocatable, save :: buffservice(:)
+ real(kind=PRC), public, allocatable, save :: xdf(:),ydf(:),zdf(:)
  real(kind=PRC), public, allocatable, save :: buffservice3d(:,:,:)
   
  real(kind=PRC), public, parameter :: & 
@@ -41,6 +43,7 @@
  public :: allocate_array_lbuffservice
  public :: allocate_array_ibuffservice
  public :: allocate_array_buffservice
+ public :: allocate_array_bdf
  public :: allocate_array_buffservice3d
  public :: init_random_seed
  public :: gauss
@@ -52,6 +55,8 @@
  public :: get_prntime
  public :: rand_noseeded
  public :: gauss_noseeded
+ public :: dcell
+ public :: invert
  
  contains
  
@@ -153,6 +158,38 @@
   return
   
  end subroutine allocate_array_buffservice
+ 
+ subroutine allocate_array_bdf(imiomax)
+
+!***********************************************************************
+!     
+!     LBsoft subroutine for reallocating the service array buff 
+!     which is used outside this module for particles
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: imiomax
+  
+  if(nbdf/=0)then
+    if(imiomax>nbdf)then
+      deallocate(xdf,ydf,zdf)
+      nbdf=imiomax+100
+      allocate(xdf(1:nbdf),ydf(1:nbdf),zdf(1:nbdf))
+    endif
+  else
+    nbdf=imiomax+100
+    allocate(xdf(1:nbdf),ydf(1:nbdf),zdf(1:nbdf))
+  endif
+  
+  return
+  
+ end subroutine allocate_array_bdf
  
  subroutine allocate_array_buffservice3d(imiomin_x,imiomax_x,imiomin_y, &
   imiomax_y,imiomin_z,imiomax_z)
@@ -625,6 +662,117 @@
   return
   
  end subroutine get_prntime
+ 
+ subroutine dcell(aaa,bbb)
+      
+!***********************************************************************
+!     
+!     LBsoft subroutine to calculate the dimensional properties of
+!     a simulation cell specified by the input matrix aaa.
+!     the results are returned in the array bbb, with :
+!     
+!     bbb(1 to 3) - lengths of cell vectors
+!     bbb(4 to 6) - cosines of cell angles
+!     bbb(7 to 9) - perpendicular cell widths
+!     bbb(10)     - cell volume
+!     
+!     modified from DL Protein
+!     original copyright - daresbury laboratory 1992
+!     original author    - w. smith       april 1992
+!     
+!***********************************************************************
+      
+  real(kind=PRC), intent(in) :: aaa(9)
+  real(kind=PRC), intent(out) :: bbb(10)
+  real(kind=PRC) :: axb1,axb2,axb3,bxc1,bxc2,bxc3,cxa1,cxa2,cxa3
+      
+! calculate lengths of cell vectors
+      
+  bbb(1)=sqrt(aaa(1)*aaa(1)+aaa(2)*aaa(2)+aaa(3)*aaa(3))
+  bbb(2)=sqrt(aaa(4)*aaa(4)+aaa(5)*aaa(5)+aaa(6)*aaa(6))
+  bbb(3)=sqrt(aaa(7)*aaa(7)+aaa(8)*aaa(8)+aaa(9)*aaa(9))
+      
+! calculate cosines of cell angles
+      
+  bbb(4)=(aaa(1)*aaa(4)+aaa(2)*aaa(5)+aaa(3)*aaa(6))/(bbb(1)*bbb(2))
+  bbb(5)=(aaa(1)*aaa(7)+aaa(2)*aaa(8)+aaa(3)*aaa(9))/(bbb(1)*bbb(3))
+  bbb(6)=(aaa(4)*aaa(7)+aaa(5)*aaa(8)+aaa(6)*aaa(9))/(bbb(2)*bbb(3))
+      
+! calculate vector products of cell vectors
+      
+  axb1=aaa(2)*aaa(6)-aaa(3)*aaa(5)
+  axb2=aaa(3)*aaa(4)-aaa(1)*aaa(6)
+  axb3=aaa(1)*aaa(5)-aaa(2)*aaa(4)
+  bxc1=aaa(5)*aaa(9)-aaa(6)*aaa(8)
+  bxc2=aaa(6)*aaa(7)-aaa(4)*aaa(9)
+  bxc3=aaa(4)*aaa(8)-aaa(5)*aaa(7)
+  cxa1=aaa(8)*aaa(3)-aaa(2)*aaa(9)
+  cxa2=aaa(1)*aaa(9)-aaa(3)*aaa(7)
+  cxa3=aaa(2)*aaa(7)-aaa(1)*aaa(8)
+      
+! calculate volume of cell
+      
+  bbb(10)=abs(aaa(1)*bxc1+aaa(2)*bxc2+aaa(3)*bxc3)
+      
+!  calculate cell perpendicular widths
+  bbb(7)=bbb(10)/sqrt(bxc1*bxc1+bxc2*bxc2+bxc3*bxc3)
+  bbb(8)=bbb(10)/sqrt(cxa1*cxa1+cxa2*cxa2+cxa3*cxa3)
+  bbb(9)=bbb(10)/sqrt(axb1*axb1+axb2*axb2+axb3*axb3)
+      
+  return
+   
+ end subroutine dcell
+   
+ subroutine invert(a,b,d)
+
+!***********************************************************************
+!     
+!     LBsoft subroutine to invert a 3 * 3 matrix using cofactors
+!     
+!     modified from DL Protein
+!     original copyright - daresbury laboratory 1992
+!     original author    - w. smith       april 1992
+!     
+!***********************************************************************
+
+  implicit none
+  
+  real(kind=PRC), intent(in) :: a(9)
+
+  real(kind=PRC), intent(out) :: b(9),d
+  real(kind=PRC) :: r
+
+
+! calculate adjoint matrix
+  b(1)=a(5)*a(9)-a(6)*a(8)
+  b(2)=a(3)*a(8)-a(2)*a(9)
+  b(3)=a(2)*a(6)-a(3)*a(5)
+  b(4)=a(6)*a(7)-a(4)*a(9)
+  b(5)=a(1)*a(9)-a(3)*a(7)
+  b(6)=a(3)*a(4)-a(1)*a(6)
+  b(7)=a(4)*a(8)-a(5)*a(7)
+  b(8)=a(2)*a(7)-a(1)*a(8)
+  b(9)=a(1)*a(5)-a(2)*a(4)
+
+! calculate determinant
+  d=a(1)*b(1)+a(4)*b(2)+a(7)*b(3)
+  r=ZERO
+  if(abs(d).gt.ZERO)r=ONE/d
+
+! complete inverse matrix
+  b(1)=r*b(1)
+  b(2)=r*b(2)
+  b(3)=r*b(3)
+  b(4)=r*b(4)
+  b(5)=r*b(5)
+  b(6)=r*b(6)
+  b(7)=r*b(7)
+  b(8)=r*b(8)
+  b(9)=r*b(9)
+
+  return
+      
+ end subroutine invert
  
  end module utility_mod
 

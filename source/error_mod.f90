@@ -96,6 +96,10 @@
         write(outp,outf)'ERROR - bad allocation in subroutine allocate_particles.'
       case (21)
         write(outp,outf)'ERROR - densvar is too low. Increase it in input file.'
+      case (22)
+        write(outp,outf)'ERROR - the quaternion check exits with error.'
+      case (23)
+        write(outp,outf)'ERROR - densvar is too low.'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select
@@ -269,15 +273,23 @@
       "WARNING - * tzy                  * particle rotational matrix z term along y             *"
       write(outp,'(a)') &
       "WARNING - * tzz                  * particle rotational matrix z term along z             *"
+      write(outp,'(a)') &
+      "WARNING - * qa                   * real part of quaternions                              *"
+      write(outp,'(a)') &
+      "WARNING - * qb                   * imaginary i part of quaternions                       *"
+      write(outp,'(a)') &
+      "WARNING - * qc                   * imaginary j part of quaternions                       *"
+      write(outp,'(a)') &
+      "WARNING - * qd                   * imaginary k part of quaternions                       *"
       write(outp,'(a,/)') &
       "WARNING - ********************************************************************************"
     case (14)
-      write (r_char,'(g10.6)')ddata
+      write (r_char,'(f10.5)')ddata
       write(outp,'(/,a)')"WARNING - densvar should equal or greater than 1."
        write(outp,'(2a,/)')"WARNING - the actual value of densvar is : ", &
        trim(adjustl(r_char))
     case (15)
-      write (r_char,'(g10.6)')ddata
+      write (r_char,'(f10.5)')ddata
       write(outp,'(/,a)')"WARNING - densvar is too low."
        write(outp,'(2a,/)')"WARNING - the actual value of densvar is : ", &
        trim(adjustl(r_char))
@@ -295,6 +307,18 @@
       "input file"
       write(outp,'(2a,/)')"an uniform random orientation has been set ", &
       "for each particle"
+    case (20)
+      write(outp,'(/,a)')"WARNING - 'read list' is not correctly specified"
+      write(outp,'(a)')"WARNING - 'read list' both quaternions and rotation matrices"
+      write(outp,'(a,/)')"WARNING -  only one of two can be used in input"
+    case (21)
+      write(outp,'(/,a)')"WARNING - link cell algorithm cannot be used"
+      write(outp,'(a,/)')"WARNING - the sub cell size is too small compared to rcut"
+    case (22)
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,a)')"WARNING - mslistcell is too small"
+      write(outp,'(2a,/)')"WARNING - the actual value of mslistcell is : ", &
+       trim(adjustl(r_char))
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

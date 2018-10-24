@@ -1771,6 +1771,18 @@
   elseif(findstring('tzz',temps,inumchar,lenstring))then
     printcodsub(iarg)=21
     lfound=.true.
+  elseif(findstring('qa',temps,inumchar,lenstring))then
+    printcodsub(iarg)=22
+    lfound=.true.
+  elseif(findstring('qb',temps,inumchar,lenstring))then
+    printcodsub(iarg)=23
+    lfound=.true.
+  elseif(findstring('qc',temps,inumchar,lenstring))then
+    printcodsub(iarg)=24
+    lfound=.true.
+  elseif(findstring('qd',temps,inumchar,lenstring))then
+    printcodsub(iarg)=25
+    lfound=.true.
   else
     lfound=.false.
   endif
@@ -1844,6 +1856,14 @@
     legendobs_xyz='tzy  =  particle rotational matrix z term along y '
   elseif(xyzcod(iarg)==21)then
     legendobs_xyz='tzz  =  particle rotational matrix z term along z '
+  elseif(xyzcod(iarg)==22)then
+    legendobs_xyz='qa   =  real part of quaternions                  '
+  elseif(xyzcod(iarg)==23)then
+    legendobs_xyz='qb   =  imaginary i part of quaternions           '
+  elseif(xyzcod(iarg)==24)then
+    legendobs_xyz='qc   =  imaginary j part of quaternions           '
+  elseif(xyzcod(iarg)==25)then
+    legendobs_xyz='qd   =  imaginary k part of quaternions           '
   endif
   legendobs_xyz=adjustl(legendobs_xyz)
   
@@ -1974,7 +1994,8 @@
   character(len=maxlen) ,allocatable :: outwords(:),outwords2(:)
   logical :: lerror1,lerror2,lerror3,lerror4,safe,lexists
   integer :: temp_natms_tot
-  logical :: lxyzlisterror,lfoundprintxyz,lxyzlist,lxyzlist1,lxyzlist2
+  logical :: lxyzlisterror,lfoundprintxyz,lxyzlist,lxyzlist1,lxyzlist2, &
+   lqinput,ltinput,lerror5
   
   character(len=*),parameter :: of='(a)'
   integer, parameter :: natmname=4
@@ -1986,6 +2007,7 @@
   lerror2=.false.
   lerror3=.false.
   lerror4=.false.
+  lerror5=.false.
   lxyzlist1=.false.
   lxyzlist2=.false.
   lxyzlisterror=.false.
@@ -2074,6 +2096,8 @@
         endif
       enddo
       call print_legend_xyz(6)
+      lqinput=.false.
+      ltinput=.false.
       do i=1,nxyzlist
         if(xyzlist(i)>=3 .and. xyzlist(i)<=5)then
           if(lspherical)then
@@ -2083,7 +2107,15 @@
             goto 120
           endif
         endif
+        if(xyzlist(i)>=22)lqinput=.true.
+        if(xyzlist(i)>=13 .and. xyzlist(i)<=21)ltinput=.true.
       enddo
+      if(lqinput .and. ltinput)then
+        lerror5=.true.
+        call warning(11,dble(iline))
+        call warning(20)
+        goto 120
+      endif
     endif
     if(allocated(xxs))deallocate(xxs)
     if(allocated(yys))deallocate(yys)
@@ -2138,12 +2170,14 @@
   call bcast_world_l(lerror2)
   call bcast_world_l(lerror3)
   call bcast_world_l(lerror4)
+  call bcast_world_l(lerror5)
   call bcast_world_l(lxyzlisterror)
   
   if(lerror1)call error(17)
   if(lerror2)call error(18)
   if(lerror3)call error(19)
   if(lerror4)call error(19)
+  if(lerror5)call error(19)
   if(lxyzlisterror)call error(19)
   
   call bcast_world_i(nxyzlist)
