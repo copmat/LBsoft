@@ -60,7 +60,7 @@
                         driver_initialiaze_manage_bc_selfcomm
   use particles_mod,   only : allocate_particles, &
                         initialize_map_particles
-  use write_output_mod,only : write_test_map,lvtkfile
+  use write_output_mod,only : write_test_map,lvtkfile, initoutput, writePVD
   use integrator_mod,  only : initime,endtime,tstep,set_nstep, &
                         update_nstep,nstep,driver_integrator,nstepmax
   use statistic_mod,   only : statistic_driver
@@ -102,7 +102,9 @@
   
 ! setup domain decomposition
   call setupcom(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
-   miny,maxy,minz,maxz,lsingle_fluid)  
+   miny,maxy,minz,maxz,lsingle_fluid)
+
+   call initoutput()
    
 ! set the seed
   call init_random_seed(init_seed)
@@ -130,6 +132,8 @@
 ! prepare list for neighbour comm of hydrodynamic variables
   call create_findneigh_list_hvar(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc, &
    izpbc,minx,maxx,miny,maxy,minz,maxz)
+
+   call writePVD(0)
   
 ! allocate service array
 #ifdef ALLAMAX

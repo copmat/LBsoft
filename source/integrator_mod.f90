@@ -25,7 +25,7 @@
                         driver_streaming_fluids,aoptpR,test_fake_pops,&
                         probe_pops_in_node,ex,ey,ez,isfluid, &
                         driver_bc_velocities
- use write_output_mod, only : write_vtk_frame
+ use write_output_mod, only : write_vtk_frame, writePVD
  
  implicit none
 
@@ -171,7 +171,7 @@
   if(ldiagnostic)call end_timing2("LB","compute_omega")
   
   if(ldiagnostic)call start_timing2("IO","write_vtk_frame")
-  call write_vtk_frame(nstep)
+  call writePVD(nstep)
   if(ldiagnostic)call end_timing2("IO","write_vtk_frame")
   
   if(ldiagnostic)call start_timing2("LB","collision_fluids")

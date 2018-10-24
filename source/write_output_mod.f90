@@ -22,17 +22,159 @@
   
   private
   
+  integer, parameter :: iotest=180
   character(len=*), parameter :: filenamevtk='output'
   integer, save, public, protected :: ivtkevery=50
   logical, save, public, protected :: lvtkfile=.false.
   logical, save, public, protected :: lvtkownern=.true.
   
-  public :: write_vtk_frame
+  public :: write_vtk_frame, initoutput,writePVD
   public :: set_value_ivtkevery
   public :: write_test_map
   
  contains
  
+   subroutine initoutput()
+    implicit none
+    character(len=255) :: path,makedirectory
+    logical :: lexist
+    character :: delimiter
+
+
+
+    path = repeat(' ',255)
+    call getcwd(path)
+    !call get_environment_variable('DELIMITER',delimiter)
+    path = trim(path)
+    delimiter = path(1:1)
+    if (delimiter==' ') delimiter='/'
+
+
+    makedirectory = 'output'
+#ifdef INTEL
+    inquire(directory=trim(makedirectory),exist=lexist)
+#else
+    inquire(file=trim(makedirectory),exist=lexist)
+#endif
+
+    if(.not. lexist)then
+        if (idrank==0) then
+            makedirectory=repeat(' ',255)
+            makedirectory = 'mkdir output'
+            call system(makedirectory)
+        endif
+    endif
+    call get_sync_world()
+
+
+  end subroutine initoutput
+
+
+  subroutine writeImageDataVTI(fname)
+ implicit none
+  character(len=120),intent(in) :: fname
+  character(len=120) :: fnameFull,extent
+  integer i,j,k
+
+ fnameFull = 'output/' // trim(fname) // '_' // trim(write_fmtnumb(idrank)) //'.vti'
+ open(unit=iotest,file=trim(fnameFull),status='replace',action='write')
+
+ extent =  trim(write_fmtnumb(minx)) // ' ' // trim(write_fmtnumb(maxx+1)) // ' ' &
+        // trim(write_fmtnumb(miny)) // ' ' // trim(write_fmtnumb(maxy+1)) // ' ' &
+        // trim(write_fmtnumb(minz)) // ' ' // trim(write_fmtnumb(maxz+1))
+
+ write(iotest,*) '<VTKFile type="ImageData" version="1.0">'
+ write(iotest,*) ' <ImageData WholeExtent="' // trim(extent) // '" >'
+ write(iotest,*) ' <Piece Extent="' // trim(extent) // '">'
+ write(iotest,*) '   <CellData>'
+ write(iotest,*) '    <DataArray type="Float32" Name="rho" format="ascii" >'
+
+ do k=minz,maxz
+    do j=miny,maxy
+      do i=minx,maxx
+        write(iotest,fmt='("     ", F15.8)') rhoR(i,j,k)
+      enddo
+    enddo
+ enddo
+
+ write(iotest,*) '    </DataArray>'
+ write(iotest,*) '   </CellData>'
+ write(iotest,*) ' </Piece>'
+ write(iotest,*) ' </ImageData>'
+ write(iotest,*) '</VTKFile >'
+ close(iotest)
+
+ end subroutine writeImageDataVTI
+
+
+ subroutine writeImageDataPVTI(fname)
+  implicit none
+  character(len=120),intent(in) :: fname
+  character(len=120) :: fnameFull,extent
+  integer i
+
+ fnameFull = 'output/' // trim(fname) // '.pvti'
+ open(unit=iotest,file=trim(fnameFull),status='replace',action='write')
+
+ extent =  '1 ' // trim(write_fmtnumb(nx+1)) // ' ' &
+        // '1 ' // trim(write_fmtnumb(ny+1)) // ' ' &
+        // '1 ' // trim(write_fmtnumb(nz+1))
+
+ write(iotest,*) '<VTKFile type="PImageData" version="1.0">'
+ write(iotest,*) '  <PImageData WholeExtent="' // trim(extent) // '">'
+ write(iotest,*) '   <PCellData>'
+ write(iotest,*) '    <PDataArray type="Float32" Name="rho" />'
+ write(iotest,*) '   </PCellData>'
+
+ do i=0,mxrank-1
+  extent =  trim(write_fmtnumb(gminx(i))) // ' ' // trim(write_fmtnumb(gmaxx(i)+1)) // ' ' &
+        // trim(write_fmtnumb(gminy(i))) // ' ' // trim(write_fmtnumb(gmaxy(i)+1)) // ' ' &
+        // trim(write_fmtnumb(gminz(i))) // ' ' // trim(write_fmtnumb(gmaxz(i)+1))
+  write(iotest,*) '    <Piece Extent="' // trim(extent) // '" Source="' // &
+    trim(fname) // '_' // trim(write_fmtnumb(i)) //'.vti" />'
+ enddo
+
+ write(iotest,*) '  </PImageData>'
+ write(iotest,*) '</VTKFile>'
+ close(iotest)
+ end subroutine writeImageDataPVTI
+
+
+ subroutine writeImageDataPVD(fname)
+  implicit none
+  character(len=120),intent(in) :: fname
+
+ character(len=120) :: fnameFull
+
+ fnameFull = trim(fname) // '.pvd'
+
+ open(unit=iotest,file=trim(fnameFull),status='replace',action='write')
+
+ write(iotest,*) '<VTKFile type="Collection" version="1.0">'
+ write(iotest,*) '  <Collection>'
+ write(iotest,*) '   <DataSet part="0" file="output/' // trim(fname) // '.pvti"/>'
+ write(iotest,*) '  </Collection>'
+ write(iotest,*) '</VTKFile>'
+ close(iotest)
+ end subroutine writeImageDataPVD
+
+
+ subroutine writePVD(nstepsub)
+ implicit none
+ integer, intent(in) :: nstepsub
+ character(len=120) :: fname
+
+ if(mod(nstepsub,ivtkevery)/=0)return
+
+ fname = 'fabPVD' // trim(write_fmtnumb(nstepsub))
+
+ if(idrank==0)then
+    !! call writeImageDataPVD(fname)
+    call writeImageDataPVTI(fname)
+ endif
+ call writeImageDataVTI(fname)
+ end subroutine writePVD
+
  subroutine set_value_ivtkevery(ltemp,itemp)
  
 !***********************************************************************
