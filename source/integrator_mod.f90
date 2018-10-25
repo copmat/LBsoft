@@ -14,7 +14,7 @@
 
  use version_mod,     only : idrank,finalize_world
  use error_mod
- use profiling_mod,  only : start_timing2,end_timing2, &
+ use profiling_mod,   only : start_timing2,end_timing2, &
                        ldiagnostic
  use lbempi_mod,      only : i4back,ownern
  use fluids_mod,      only : initialize_fluid_force,compute_fluid_force_sc, &
@@ -25,6 +25,9 @@
                         driver_streaming_fluids,aoptpR,test_fake_pops,&
                         probe_pops_in_node,ex,ey,ez,isfluid, &
                         driver_bc_velocities
+ use particles_mod,    only : driver_neighborhood_list,lparticles, &
+                        vertest,initialize_particle_force, &
+                        driver_inter_force
  use write_output_mod, only : write_vtk_frame, writePVD
  
  implicit none
@@ -135,6 +138,9 @@
   logical :: ltest
   integer :: itemp,jtemp,ktemp,l
   integer(kind=IPRC) :: i4
+  logical :: newlst
+  
+  
   
   new_time = real(nstep,kind=PRC)*tstep
   
@@ -164,6 +170,23 @@
     if(ldiagnostic)call start_timing2("LB","compute_force_sc")
     call compute_fluid_force_sc
     if(ldiagnostic)call end_timing2("LB","compute_force_sc")
+  endif
+  
+  if(lparticles)then
+    newlst=.false.
+    if(ldiagnostic)call start_timing2("MD","vertest")
+    call vertest(newlst,tstep)
+    if(ldiagnostic)call end_timing2("MD","vertest")
+    
+    if(ldiagnostic)call start_timing2("MD","driver_nlist")
+    call driver_neighborhood_list(newlst,nstep)
+    if(ldiagnostic)call end_timing2("MD","driver_nlist")
+    
+    if(ldiagnostic)call start_timing2("MD","driver_inter_f")
+    call initialize_particle_force
+    call driver_inter_force
+    if(ldiagnostic)call end_timing2("MD","driver_inter_f")
+    
   endif
   
   if(ldiagnostic)call start_timing2("LB","compute_omega")

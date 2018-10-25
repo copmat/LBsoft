@@ -7,7 +7,7 @@
 !     LBsoft module containing variable and subroutines of the
 !     particle managing
 !
-!     few variable names and subroutines are inspired from
+!     few variable names and subroutines are inspired to
 !     DL POLY CLASSICS distributed under BSD licence from
 !     the daresbury laboratory (in primis we like to acknowledge 
 !     prof. w. smith)
@@ -21,7 +21,7 @@
  use version_mod, only : idrank,mxrank,or_world_larr,finalize_world, &
                    get_sync_world,isend_world_farr,bcast_world_iarr, &
                    waitall_world,irecv_world_farr,isend_world_iarr, &
-                   irecv_world_iarr
+                   irecv_world_iarr,max_world_iarr,sum_world_iarr
  use error_mod
  use aop_mod
  use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
@@ -59,7 +59,10 @@
  integer, public, protected, save :: mxatms=0
  
  !expected number of particles in each neighborhood list
- integer, public, protected, save :: mslist=0
+ integer, public, protected, save :: mxlist=0
+ 
+ !expected local size of the neighborhood list
+ integer, public, protected, save :: msatms=0
  
  !expected number of particles in each neighborhood listcell
  integer, public, protected, save :: mslistcell=0
@@ -67,8 +70,26 @@
  !number of subdomains in parallel decomposition
  integer, public, protected, save :: nbig_cells=0
  
+ !max number of parameters for pair force fields
+ integer, public, parameter :: mxpvdw=2
+ 
+ !max number of pair force fields
+ integer, public, parameter :: mxvdw=1
+ 
+ !number of pair force fields defined in input
+ integer, public, protected, save :: ntpvdw=0
+ 
  !activate particle part
  logical, public, protected, save :: lparticles=.false.
+ 
+ !set unique mass
+ logical, public, protected, save :: lumass=.false.
+ 
+ !time step of the lagrangian integrator
+ real(kind=PRC), public, protected, save :: tstepatm=ONE
+ 
+ !value of unique mass
+ real(kind=PRC), public, protected, save :: umass=ONE
  
  !cell vectors
  real(kind=PRC), dimension(9), public, protected, save :: cell
@@ -79,13 +100,22 @@
  real(kind=PRC), public, protected, save :: cy=ZERO
  real(kind=PRC), public, protected, save :: cz=ZERO
  
+ !kinetic energy
+ real(kind=PRC), public, protected, save :: engke
+ 
+ !rotational kinetic energy
+ real(kind=PRC), public, protected, save :: engrot
+ 
+ !configurational energy
+ real(kind=PRC), public, protected, save :: engcfg
+ 
  !Potential cut-off
  real(kind=PRC), public, protected, save :: rcut=ZERO
  !Verlet neighbour list shell width
  real(kind=PRC), public, protected, save :: delr=ZERO
  
  !key for activate the body rotation
- logical, public, protected, save :: lrotate=.true.
+ logical, public, protected, save :: lrotate=.false.
  
  !key for activate the body rotation
  logical, public, protected, save :: lspherical=.true.
@@ -109,6 +139,13 @@
  
  !global maximum number of link cell within the same process
  integer, save :: ncellsmax=0
+ 
+ !verlet list
+ integer, allocatable, save :: lentry(:)
+ integer, allocatable, save :: list(:,:)
+ 
+ !store the type of pair force field
+ integer, allocatable, public, protected, save :: ltpvdw(:)
  
  !position of particles
  real(kind=PRC), allocatable, public, protected, save :: xxx(:)
@@ -146,14 +183,26 @@
  real(kind=PRC), allocatable, public, protected, save :: tqy(:)
  real(kind=PRC), allocatable, public, protected, save :: tqz(:)
  
+ !parameters of all the pair force fields
+ real(kind=PRC), allocatable, public, protected, save :: prmvdw(:,:)
+ 
  public :: allocate_particles
  public :: set_natms_tot
  public :: set_lparticles
  public :: set_densvar
  public :: set_rcut
  public :: set_delr
+ public :: set_lrotate
  public :: initialize_map_particles
  public :: rotmat_2_quat
+ public :: driver_neighborhood_list
+ public :: set_ntpvdw
+ public :: allocate_field_array
+ public :: set_field_array
+ public :: vertest
+ public :: set_umass
+ public :: initialize_particle_force
+ public :: driver_inter_force
  
  contains
  
@@ -267,7 +316,137 @@
   
  end subroutine set_delr
  
- subroutine allocate_particles(ibctype)
+ subroutine set_lrotate(ltemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the lrotate protected variable
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  logical, intent(in) :: ltemp
+  
+  lrotate=ltemp
+  
+  return
+  
+ end subroutine set_lrotate
+ 
+ subroutine set_umass(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the ntpvdw protected variable
+!     ntpvdw denotes the total number of pair force fields 
+!     defined in input
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp
+  
+  lumass=.true.
+  umass=dtemp
+  
+  return
+  
+ end subroutine set_umass
+ 
+ subroutine set_ntpvdw(itemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the ntpvdw protected variable
+!     ntpvdw denotes the total number of pair force fields 
+!     defined in input
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: itemp
+  
+  ntpvdw=itemp
+  
+  return
+  
+ end subroutine set_ntpvdw
+ 
+ subroutine allocate_field_array
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for allocate the prmvdw protected variable
+!     prmvdw stores all the parameters of the pair force fields 
+!     defined in input
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: fail(2)
+  
+  allocate(prmvdw(mxpvdw,ntpvdw),stat=fail(1))
+  allocate(ltpvdw(ntpvdw),stat=fail(2))
+  
+  call sum_world_iarr(fail,2)
+  if(any(fail.ne.0))call error(26)
+  
+  return
+  
+ end subroutine allocate_field_array
+ 
+ subroutine set_field_array(iarr1,iarr2,itemp1,dtemp2)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for allocate the prmvdw protected variable
+!     prmvdw stores all the parameters of the pair force fields 
+!     defined in input
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iarr1,iarr2
+  integer, dimension(iarr1), intent(in) :: itemp1
+  real(kind=PRC), dimension(iarr2,iarr1), intent(in) :: dtemp2
+  
+  integer :: i
+  
+  do i=1,iarr1
+    ltpvdw(i)=itemp1(i)
+    prmvdw(1:iarr2,i)=dtemp2(1:iarr2,i)
+  enddo
+  
+  return
+  
+ end subroutine set_field_array
+ 
+ subroutine allocate_particles(ibctype,tstep)
  
 !***********************************************************************
 !     
@@ -282,20 +461,29 @@
   implicit none
   
   integer, intent(in) :: ibctype
+  real(kind=PRC), intent(in) :: tstep
   
   integer :: i
   integer, parameter :: nistatmax=100
   integer, dimension(nistatmax) :: istat
-  real(kind=PRC) :: cellx,celly,cellz
+  real(kind=PRC) :: cellx,celly,cellz,volm,dens,ratio
   logical :: ltest(1)
   integer :: ilx,ily,ilz
   
   if(.not. lparticles)return
   
+  tstepatm=tstep
+  
   imcon=ibctype
   
   mxatms=ceiling(real(natms_tot,kind=PRC)*densvar)
-  mslist=(mxatms/mxrank+1)*((mxatms-1)/mxrank+1)
+  volm=real(nx+1,kind=PRC)*real(nx+1,kind=PRC)*real(nx+1,kind=PRC)
+  dens=dble(mxatms)/volm
+  ratio=(ONE+HALF)*dens*(FOUR*pi/THREE)*(rcut+delr)**THREE
+  mxlist=min(nint(ratio),(mxatms+1)/2)
+  mxlist=max(mxlist,4)
+  
+  msatms=ceiling(real(natms_tot/mxrank,kind=PRC)*densvar)
   
   cellx=huge(ONE)
   celly=huge(ONE)
@@ -323,7 +511,7 @@
     mslistcell=max(((mxatms/mxrank)/ncellsmin+1),12)
   endif
   
-#if 1
+#if 0
   if(.not. lnolink)then
     lnolink=.true.
     if(idrank==0)then
@@ -402,9 +590,31 @@
   allocate(tqy(mxatms),stat=istat(21))
   allocate(tqz(mxatms),stat=istat(22))
   
+#if 1
+  if(mxrank>1)then
+    if(idrank==0)write(6,'(a)')'ATTENTION: MD in parallel is under developing!'
+    call error(-1)
+  endif
+  
+  if(lrotate)then
+    if(idrank==0)write(6,'(a)')'ATTENTION: MD rotation integrator is under developing!'
+    call error(-1)
+  endif
+  
+  !at the moment only verlet list
   if(.not. lnolink)then
+    if(idrank==0)write(6,'(a)')'ATTENTION: at the moment link cell is not implemente!'
+    if(idrank==0)write(6,'(a)')'ATTENTION: automatic switch to Verlet list mode!'
+    lnolink=.true.
+  endif
+#endif
+  
+  if(lnolink)then
+    allocate(lentry(msatms),stat=istat(23))
+    allocate(list(mxlist,msatms),stat=istat(24))
+  else
     allocate(nlinklist(ncellsmax),stat=istat(23))
-    allocate(linklist(ncellsmax,mslistcell),stat=istat(24))
+    allocate(linklist(mslistcell,ncellsmax),stat=istat(24))
   endif
   
   ltest=.false.
@@ -456,9 +666,12 @@
   tqy(1:mxatms)=ZERO
   tqz(1:mxatms)=ZERO
   
-  if(.not. lnolink)then
+  if(lnolink)then
+    lentry(1:msatms)=0
+    list(1:mxlist,1:msatms)=0
+  else
     nlinklist(1:ncellsmax)=0
-    linklist(1:ncellsmax,1:mslistcell)=0
+    linklist(1:mslistcell,1:ncellsmax)=0
   endif
   
   return
@@ -887,7 +1100,7 @@
     do j=1,nxyzlist_sub
       k=xyzlist_sub(j)
       if(k>=13 .and. k<=21)ltinput=.true.
-      if(xyzlist_sub(j)>=22)lqinput=.true.
+      if(k>=22)lqinput=.true.
     enddo
   endif
 
@@ -960,15 +1173,367 @@
     call error(22)
   endif
 #endif
-
-  call map_linkcell
-  
-  if(idrank==0)write(6,'(a)')'ATTENTION: MD is under developing!'
-  call error(-1)
   
   return
   
  end subroutine initialize_map_particles
+ 
+ subroutine driver_neighborhood_list(newlst,nstepsub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the neighborhood list construction
+!
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  logical, intent(in) :: newlst
+  integer, intent(in) :: nstepsub
+  
+  if(newlst)write(6,*)'newlst=.true. ',nstepsub
+  
+  if(lnolink)then
+    call parlst(newlst)
+  else
+    call map_linkcell
+  endif
+  
+ end subroutine driver_neighborhood_list
+ 
+ subroutine vertest(newlst,tstep)
+      
+!***********************************************************************
+!     
+!     LBsoft subroutine to test for updating of Verlet list
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(out) :: newlst
+  
+  logical, save :: newjob=.true.
+  integer :: i,j,k,moved(1),ibuff
+  integer :: fail=0
+  real(kind=PRC) :: rmax,dr,tstep
+      
+  real(kind=PRC), allocatable, save :: xold(:),yold(:),zold(:)
+  
+  if((natms+mxrank-1)/mxrank.gt.msatms)call error(24)
+      
+  if(newjob)then
+!   set up initial arrays 
+    allocate (xold(msatms),yold(msatms),zold(msatms),stat=fail)
+    if(fail.ne.0)call error(25)
+    forall(i=1:natms)
+      xold(i)=ZERO
+      yold(i)=ZERO
+      zold(i)=ZERO
+    end forall
+    newjob=.false.
+    newlst=.true.
+  else
+    
+!   integrate velocities 
+    forall(i=1:natms)
+      xold(i)=xold(i)+vxx(i)
+      yold(i)=yold(i)+vyy(i)
+      zold(i)=zold(i)+vzz(i)
+    end forall
+    
+!   maximum displacement 
+    rmax=(delr/TWO)**TWO
+    
+!   test atomic displacements
+    moved(1)=0
+    do i=1,natms
+      dr=tstep**2*(xold(i)**2+yold(i)**2+zold(i)**2)
+      if(dr.gt.rmax)moved(1)=moved(1)+1
+    enddo
+        
+!   global sum of moved atoms
+    call sum_world_iarr(moved,1)
+        
+!   test for new verlet list
+    newlst=(moved(1).ge.2)
+        
+!     update stored positions
+    if(newlst)then
+      forall(i=1:natms)
+        xold(i)=ZERO
+        yold(i)=ZERO
+        zold(i)=ZERO
+      end forall
+    endif
+  endif
+      
+  return
+  
+ end subroutine vertest
+ 
+ subroutine parlst(newlst)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute Verlet Nlist
+!
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+
+! Arguments
+      
+  logical,intent(in) :: newlst
+  
+! separation vectors and powers thereof
+  
+  real(kind=PRC) :: rsq,xm,ym,zm,rsqcut
+  
+! Loop counters
+  integer :: iatm,ii,i
+  integer :: k,jatm
+  integer :: itype,ilentry
+
+  logical :: lchk(1)
+  integer :: ibig(1),idum
+
+  if(newlst)then
+
+    lchk=.false.
+    ibig=0
+    
+    rsqcut = (rcut+delr)**TWO
+    
+    call allocate_array_bdf(natms)
+    
+    lentry(1:msatms)=0
+    
+    ii = 0
+    do iatm = 1,natms
+      ii=iatm
+      k=0
+      do jatm = 1,natms
+        if(jatm<=iatm)cycle
+        k=k+1
+        xdf(k)=xxx(jatm)-xxx(iatm)
+        ydf(k)=yyy(jatm)-yyy(iatm)
+        zdf(k)=zzz(jatm)-zzz(iatm)
+      enddo
+      
+      call pbc_images(imcon,k,cell,xdf,ydf,zdf)
+      
+      k=0
+      ilentry=0
+      do jatm = 1,natms
+        if(jatm<=iatm)cycle
+        k=k+1
+        rsq=xdf(k)**TWO+ydf(k)**TWO+zdf(k)**TWO
+        if(rsq<=rsqcut) then
+          ilentry=ilentry+1
+          if(ilentry.gt.mxlist)then
+            lchk=.true.
+            ibig(1)=max(ilentry,ibig(1))
+            write(6,*)iatm,jatm,ilentry,rsq,rsqcut
+            exit
+          else
+            list(ilentry,ii)=jatm
+          endif
+        endif
+        lentry(ii)=ilentry
+      enddo
+      
+    enddo
+  
+    
+!   terminate job if neighbour list array exceeded
+    call or_world_larr(lchk,1)
+    if(lchk(1))then
+      call max_world_iarr(ibig,1)
+      call warning(23,real(ibig(1),kind=PRC))
+      call error(21)
+    endif
+  endif
+
+  return
+
+ end subroutine parlst
+ 
+ subroutine initialize_particle_force
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to initialize the force array
+!
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+
+  implicit none
+  
+  integer :: i
+  
+  forall(i=1:natms)
+    fxx(i)=ZERO
+    fyy(i)=ZERO
+    fzz(i)=ZERO
+  end forall
+  
+  return
+  
+ end subroutine initialize_particle_force
+ 
+ subroutine driver_inter_force
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to drive the inter-particle force computation
+!
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+
+  implicit none
+  
+  engcfg=ZERO
+  
+  call compute_inter_force(lentry,list)
+  
+  return
+  
+ end subroutine driver_inter_force
+ 
+ subroutine compute_inter_force(lentrysub,listsub)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the inter-particle force
+!
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+
+  integer, allocatable, dimension(:), intent(in) :: lentrysub
+  integer, allocatable, dimension(:,:), intent(in) :: listsub
+  
+! separation vectors and powers thereof
+  
+  real(kind=PRC) :: rsq,xm,ym,zm,rsqcut,rrr,eps,sig,vvv,ggg,rmin,vmin
+  
+! Loop counters
+  integer :: iatm,ii,i,ivdw
+  integer :: k,jatm
+  integer :: itype,ilentry
+  
+  real(kind=PRC), parameter :: s2rmin=TWO**(ONE/SIX)
+  
+  call allocate_array_bdf(natms)
+  
+  select case(ltpvdw(1))
+  case (1)
+  
+  ivdw=1
+  eps=prmvdw(1,ivdw)
+  sig=prmvdw(2,ivdw)
+  rmin=s2rmin*sig
+  rsqcut = (rmin)**TWO
+  vmin=FOUR*eps*(sig/rmin)**SIX*((sig/rmin)**SIX-ONE)
+  
+  ii = 0
+  do iatm = 1,natms
+    ii=iatm
+    do k = 1,lentrysub(ii)
+      jatm=listsub(k,ii)
+      xdf(k)=xxx(jatm)-xxx(iatm)
+      ydf(k)=yyy(jatm)-yyy(iatm)
+      zdf(k)=zzz(jatm)-zzz(iatm)
+    enddo
+      
+    call pbc_images(imcon,lentrysub(ii),cell,xdf,ydf,zdf)
+    
+    do k = 1,lentrysub(ii)
+      jatm=listsub(k,ii)
+      rsq=xdf(k)**TWO+ydf(k)**TWO+zdf(k)**TWO
+      if(rsq<=rsqcut) then
+        rrr=sqrt(rsq)
+        vvv=FOUR*eps*(sig/rrr)**SIX*((sig/rrr)**SIX-ONE)+vmin
+        ggg=TWENTYFOUR*eps/rrr*(sig/rrr)**SIX*(TWO*(sig/rrr)**SIX-ONE)
+        engcfg=engcfg+vvv
+        fxx(iatm)=fxx(iatm)+ggg*xdf(k)/rrr
+        fxx(jatm)=fxx(jatm)-ggg*xdf(k)/rrr
+        fyy(iatm)=fyy(iatm)+ggg*ydf(k)/rrr
+        fyy(jatm)=fyy(jatm)-ggg*ydf(k)/rrr
+        fzz(iatm)=fzz(iatm)+ggg*zdf(k)/rrr
+        fzz(jatm)=fzz(jatm)-ggg*zdf(k)/rrr
+      endif
+    enddo
+  enddo
+  
+  case (2)
+  
+    ivdw=1
+    eps=prmvdw(1,ivdw)
+    sig=prmvdw(2,ivdw)
+    
+    rsqcut = (rcut)**TWO
+    
+    ii = 0
+    do iatm = 1,natms
+      ii=iatm
+      do k = 1,lentrysub(ii)
+        jatm=listsub(k,ii)
+        xdf(k)=xxx(jatm)-xxx(iatm)
+        ydf(k)=yyy(jatm)-yyy(iatm)
+        zdf(k)=zzz(jatm)-zzz(iatm)
+      enddo
+        
+      call pbc_images(imcon,lentrysub(ii),cell,xdf,ydf,zdf)
+      
+      do k = 1,lentrysub(ii)
+        jatm=listsub(k,ii)
+        rsq=xdf(k)**TWO+ydf(k)**TWO+zdf(k)**TWO
+        if(rsq<=rsqcut) then
+          rrr=sqrt(rsq)
+          vvv=FOUR*eps*(sig/rrr)**SIX*((sig/rrr)**SIX-ONE)
+          ggg=TWENTYFOUR*eps/rrr*(sig/rrr)**SIX*(TWO*(sig/rrr)**SIX-ONE)
+          engcfg=engcfg+vvv
+          fxx(iatm)=fxx(iatm)+ggg*xdf(k)/rrr
+          fxx(jatm)=fxx(jatm)-ggg*xdf(k)/rrr
+          fyy(iatm)=fyy(iatm)+ggg*ydf(k)/rrr
+          fyy(jatm)=fyy(jatm)-ggg*ydf(k)/rrr
+          fzz(iatm)=fzz(iatm)+ggg*zdf(k)/rrr
+          fzz(jatm)=fzz(jatm)-ggg*zdf(k)/rrr
+        endif
+      enddo
+    enddo
+  
+  case default
+    call error(27)
+  end select
+  
+  return
+
+ end subroutine compute_inter_force
  
  subroutine rotmat_2_quat(rot,q0s,q1s,q2s,q3s)
  

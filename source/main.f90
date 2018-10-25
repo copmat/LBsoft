@@ -148,7 +148,7 @@
   call read_input_atom(700,'input.xyz',x_inp,y_inp,z_inp,o_inp)
   
 ! allocate particle arrays
-  call allocate_particles(ibctype)
+  call allocate_particles(ibctype,tstep)
   
   call initialize_map_particles(nxyzlist,xyzlist,x_inp,y_inp,z_inp,o_inp)
 

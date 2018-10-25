@@ -40,7 +40,9 @@
   set_LBintegrator_type,lbc_halfway,set_lbc_halfway
  use particles_mod,         only : set_natms_tot,natms_tot,lparticles, &
   set_lparticles,set_densvar,densvar,lspherical,set_rcut,rcut,delr, &
-  set_delr,rotmat_2_quat
+  set_delr,rotmat_2_quat,lrotate,set_lrotate,allocate_field_array, &
+  set_ntpvdw,ntpvdw,set_field_array,mxpvdw,mxvdw,ltpvdw,prmvdw, &
+  set_umass,umass,lumass
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery,lvtkfile
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
  use statistic_mod,         only : reprinttime,compute_statistic, &
@@ -313,6 +315,7 @@
   integer :: temp_nprocx=1
   integer :: temp_nprocy=1
   integer :: temp_nprocz=1
+  integer :: ifield_pair=0
   logical :: temp_ibc=.false.
   logical :: temp_lpair_SC=.false.
   logical :: temp_ldomdec=.false.
@@ -338,6 +341,9 @@
   logical :: temp_densvar=.false.
   logical :: temp_rcut=.false.
   logical :: temp_delr=.false.
+  logical :: temp_lrotate=.false.
+  logical :: temp_field_pair=.false.
+  logical :: temp_lumass=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -397,9 +403,15 @@
   real(kind=PRC) :: dtemp_rcut= ZERO
   real(kind=PRC) :: dtemp_delr= ZERO
   
+  real(kind=PRC) :: dtemp_umass= ZERO
+  
+  integer, dimension(mxvdw) :: temp_ltpvdw
+  real(kind=PRC), dimension(mxpvdw,mxvdw) :: dtemp_prmvdw
+  
   integer, parameter :: dimprint=36
   integer, parameter :: dimprint2=12
   character(len=dimprint) :: mystring
+  character(len=dimprint) :: mystring36
   character(len=dimprint2) :: mystring12
     
 ! initialize parameters  
@@ -799,6 +811,52 @@
             elseif(findstring('delr',directive,inumchar,maxlen))then
               dtemp_delr=dblstr(directive,maxlen,inumchar)
               temp_delr=.true.
+            elseif(findstring('rotat',directive,inumchar,maxlen))then
+              if(findstring('yes',directive,inumchar,maxlen))then
+                temp_lrotate=.true.
+              elseif(findstring('no',directive,inumchar,maxlen))then
+                temp_lrotate=.false.
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
+              endif
+            elseif(findstring('mass',directive,inumchar,maxlen))then
+              dtemp_umass=dblstr(directive,maxlen,inumchar)
+              temp_lumass=.true.
+            elseif(findstring('field',directive,inumchar,maxlen))then
+              if(findstring('pair',directive,inumchar,maxlen))then
+                if(findstring('wca',directive,inumchar,maxlen))then
+                  temp_field_pair=.true.
+                  ifield_pair=ifield_pair+1
+                  if(ifield_pair>mxvdw)then
+                    call warning(24,dble(mxvdw))
+                    call warning(1,dble(iline),redstring)
+                    lerror5=.true.
+                  else
+                    temp_ltpvdw(ifield_pair)=1
+                    dtemp_prmvdw(1,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                    dtemp_prmvdw(2,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                  endif
+                elseif(findstring('lj',directive,inumchar,maxlen))then
+                  temp_field_pair=.true.
+                  ifield_pair=ifield_pair+1
+                  if(ifield_pair>mxvdw)then
+                    call warning(24,dble(mxvdw))
+                    call warning(1,dble(iline),redstring)
+                    lerror5=.true.
+                  else
+                    temp_ltpvdw(ifield_pair)=2
+                    dtemp_prmvdw(1,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                    dtemp_prmvdw(2,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                  endif
+                else
+                  call warning(1,dble(iline),redstring)
+                  lerror6=.true.
+                endif
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
+              endif
             elseif(findstring('[end room',directive,inumchar,maxlen))then
               lredo2=.false.
             elseif(findstring('[end',directive,inumchar,maxlen))then
@@ -1400,6 +1458,23 @@
       write(6,'(3a)')mystring,": ",mystring12
     endif
     
+    call bcast_world_l(temp_lrotate)
+    if(temp_lrotate)then
+      call set_lrotate(temp_lrotate)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='rotation'
+        mystring12=repeat(' ',dimprint2)
+        if(lrotate)then
+          mystring12='yes'
+        else
+          mystring12='no'
+        endif
+        mystring12=adjustr(mystring12)
+        write(6,'(3a)')mystring,": ",mystring12
+      endif
+    endif
+    
     call bcast_world_l(temp_rcut)
     if(temp_rcut)then
       call bcast_world_f(dtemp_rcut)
@@ -1412,6 +1487,56 @@
     else
       call warning(17)
       call error(7)
+    endif
+    
+    call bcast_world_l(temp_lumass)
+    if(temp_lumass)then
+      call bcast_world_f(dtemp_umass)
+      call set_umass(dtemp_umass)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='unique mass'
+        write(6,'(2a,f12.6)')mystring,": ",umass
+      endif
+    endif
+    
+    call bcast_world_l(temp_field_pair)
+    if(temp_field_pair)then
+      call bcast_world_i(ifield_pair)
+      call set_ntpvdw(ifield_pair)
+      call allocate_field_array
+      call bcast_world_iarr(temp_ltpvdw,mxvdw)
+      call bcast_world_farr(dtemp_prmvdw,mxpvdw*mxvdw)
+      call set_field_array(ntpvdw,mxpvdw,temp_ltpvdw,dtemp_prmvdw)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='number of field pairs'
+        write(6,'(2a,i12)')mystring,": ",ntpvdw
+        mystring=repeat(' ',dimprint)
+        mystring='list of force fields'
+        write(6,'(2a)')mystring,": "
+        do i=1,ntpvdw
+          mystring=repeat(' ',dimprint)
+          write(mystring,'(i2)')i
+          mystring=adjustr(mystring)
+          mystring=mystring(35:36)//'° type of force field'
+          mystring36=repeat(' ',dimprint)
+          select case(ltpvdw(i))
+          case(1)
+            mystring36='Weeks-Chandler-Andersen'
+          case(2)
+            mystring36='Lennard-Jones'
+          end select
+          mystring36=adjustl(mystring36)
+          write(6,'(3a)')mystring," : ",mystring36
+          mystring=repeat(' ',dimprint)
+          mystring='    epsilon'
+          write(6,'(2a,f12.6)')mystring,": ",prmvdw(1,i)
+          mystring=repeat(' ',dimprint)
+          mystring='    sigma'
+          write(6,'(2a,f12.6)')mystring,": ",prmvdw(2,i)
+        enddo
+      endif
     endif
     
     call bcast_world_l(temp_delr)
@@ -1995,7 +2120,7 @@
   logical :: lerror1,lerror2,lerror3,lerror4,safe,lexists
   integer :: temp_natms_tot
   logical :: lxyzlisterror,lfoundprintxyz,lxyzlist,lxyzlist1,lxyzlist2, &
-   lqinput,ltinput,lerror5
+   lqinput,ltinput,lerror5,lmass
   
   character(len=*),parameter :: of='(a)'
   integer, parameter :: natmname=4
@@ -2098,6 +2223,7 @@
       call print_legend_xyz(6)
       lqinput=.false.
       ltinput=.false.
+      lmass=.false.
       do i=1,nxyzlist
         if(xyzlist(i)>=3 .and. xyzlist(i)<=5)then
           if(lspherical)then
@@ -2109,11 +2235,18 @@
         endif
         if(xyzlist(i)>=22)lqinput=.true.
         if(xyzlist(i)>=13 .and. xyzlist(i)<=21)ltinput=.true.
+        if(xyzlist(i)==2)lmass=.true.
       enddo
       if(lqinput .and. ltinput)then
         lerror5=.true.
         call warning(11,dble(iline))
         call warning(20)
+        goto 120
+      endif
+      if((.not. lumass).and.(.not. lmass))then
+        lerror5=.true.
+        call warning(11,dble(iline))
+        call warning(25)
         goto 120
       endif
     endif

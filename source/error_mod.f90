@@ -100,6 +100,14 @@
         write(outp,outf)'ERROR - the quaternion check exits with error.'
       case (23)
         write(outp,outf)'ERROR - densvar is too low.'
+      case (24)
+        write(outp,outf)'ERROR - vertest array too small.'
+      case (25)
+        write(outp,outf)'ERROR - fail in allocate the vertest array.'
+      case (26)
+        write(outp,outf)'ERROR - fail in allocate the prmvdw array.'
+      case (27)
+        write(outp,outf)'ERROR - wrong ltpvdw in compute_inter_force'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select
@@ -319,6 +327,19 @@
       write(outp,'(/,a)')"WARNING - mslistcell is too small"
       write(outp,'(2a,/)')"WARNING - the actual value of mslistcell is : ", &
        trim(adjustl(r_char))
+    case (23)
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,a)')"WARNING - mxlist is too small"
+      write(outp,'(2a,/)')"WARNING - the actual value of mxlist is : ", &
+       trim(adjustl(r_char))
+    case (24)
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,3a,/)')"WARNING - only ",trim(adjustl(r_char)), &
+       " field pair types can be specified in input"
+    case (25)
+      write(outp,'(/,a)')"WARNING - 'read list' is not correctly specified"
+      write(outp,'(2a,/)')"WARNING - particle masses not specified neither ", &
+       "in input nor xyz files"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select
