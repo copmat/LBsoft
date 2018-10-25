@@ -1535,6 +1535,128 @@
 
  end subroutine compute_inter_force
  
+ subroutine nve_lf(safe)
+
+!***********************************************************************
+!     
+!     LBsoft subroutine for integrating newtonian EOM by Verlet leapfrog
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+
+  implicit none
+
+  logical safe
+  integer :: fail(7)
+  integer :: i,k
+  
+  
+  real(kind=PRC), allocatable :: uxx(:),uyy(:),uzz(:)    
+  real(kind=PRC), allocatable :: xxo(:),yyo(:),zzo(:)
+  real(kind=PRC), allocatable :: vxo(:),vyo(:),vzo(:)
+      
+! allocate working arrays
+  do i=1,7
+    fail(i)=0
+  enddo
+  
+  allocate (uxx(mxatms),uyy(mxatms),uzz(mxatms),stat=fail(3))
+  allocate (xxo(msatms),yyo(msatms),zzo(msatms),stat=fail(6))
+  allocate (vxo(msatms),vyo(msatms),vzo(msatms),stat=fail(7))
+  do i=1,7
+    if(fail(i).ne.0)call error(-1)
+  enddo
+
+  safe=.false.
+
+! store initial values of position and velocity    
+  forall(i=1:natms)
+    xxo(i)=xxx(i)
+    yyo(i)=yyy(i)
+    zzo(i)=zzz(i)
+    vxo(i)=vxx(i)
+    vyo(i)=vyy(i)
+    vzo(i)=vzz(i)
+  end forall
+      
+! move atoms by leapfrog algorithm    
+  forall(i=1:natms)
+!   update velocities       
+    uxx(i)=vxx(i)+tstepatm/weight(i)*fxx(i)
+    uyy(i)=vyy(i)+tstepatm/weight(i)*fyy(i)
+    uzz(i)=vzz(i)+tstepatm/weight(i)*fzz(i)
+!   update positions
+    xxx(i)=xxo(i)+tstepatm*uxx(i)
+    yyy(i)=yyo(i)+tstepatm*uyy(i)
+    zzz(i)=zzo(i)+tstepatm*uzz(i)    
+  end forall
+
+! calculate full timestep velocity
+  forall(i=1:natms)
+    vxx(i)=HALF*(vxx(i)+uxx(i))
+    vyy(i)=HALF*(vyy(i)+uyy(i))
+    vzz(i)=HALF*(vzz(i)+uzz(i))
+  end forall
+      
+! calculate kinetic energy    
+  call getkin(engke)
+    
+! periodic boundary condition
+  call pbc_images_centered(imcon,natms,cell,cx,cy,cz,xxx,yyy,zzz)
+      
+! updated velocity     
+  forall(i=1:natms)
+    vxx(i)=uxx(i)
+    vyy(i)=uyy(i)
+    vzz(i)=uzz(i)
+  end forall
+  
+
+! deallocate work arrays
+  deallocate (uxx,uyy,uzz,stat=fail(2))
+  deallocate (xxo,yyo,zzo,stat=fail(3))
+  deallocate (vxo,vyo,vzo,stat=fail(4))
+      
+  return
+      
+ end subroutine nve_lf
+ 
+ subroutine getkin(engkes)
+
+!***********************************************************************
+!
+!     LBsoft subroutine to calculate system kinetic energy
+!
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC), intent(out) :: engkes
+  
+  integer :: i
+  real(kind=PRC) :: engke(1)
+  
+  engke(1)=ZERO
+  
+  do i=1,natms
+    engke(1)=engke(1)+weight(i)*(vxx(i)**TWO+vyy(i)**TWO+vzz(i)**TWO)
+  enddo
+
+  call sum_world_farr(engke,1)
+  
+  engkes=HALF*engke(1)
+
+  return
+  
+ end subroutine getkin
+ 
  subroutine rotmat_2_quat(rot,q0s,q1s,q2s,q3s)
  
 !***********************************************************************
