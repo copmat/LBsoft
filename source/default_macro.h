@@ -32,6 +32,7 @@
 #define FIVE      5.e0
 #define SIX       6.e0
 #define EIGHT     8.e0
+#define NINE      9.e0
 #define TEN      10.e0
 #define ELEVEN   11.e0
 #define TWELVE   12.e0
@@ -57,6 +58,7 @@
 #define FIVE      5.d0
 #define SIX       6.d0
 #define EIGHT     8.d0
+#define NINE      9.d0
 #define TEN      10.d0
 #define ELEVEN   11.d0
 #define TWELVE   12.d0

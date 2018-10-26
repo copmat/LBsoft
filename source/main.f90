@@ -58,9 +58,12 @@
                         miny,maxy,minz,maxz,nbuff,lsingle_fluid, &
                         isfluid,initialize_fluids, &
                         driver_initialiaze_manage_bc_selfcomm
-  use particles_mod,   only : allocate_particles, &
-                        initialize_map_particles
-  use write_output_mod,only : write_test_map,lvtkfile, initoutput, writePVD
+  use particles_mod,   only : allocate_particles,lparticles,vertest, &
+                        initialize_map_particles,driver_inter_force, &
+                        initialize_lf,initialize_particle_force, &
+                        driver_neighborhood_list
+  use write_output_mod,only : write_test_map,lvtkfile,init_output, &
+                        write_vtk_frame,write_xyz_close
   use integrator_mod,  only : initime,endtime,tstep,set_nstep, &
                         update_nstep,nstep,driver_integrator,nstepmax
   use statistic_mod,   only : statistic_driver
@@ -78,7 +81,7 @@
   real(kind=PRC), allocatable, dimension(:) :: x_inp,y_inp,z_inp
   real(kind=PRC), allocatable, dimension(:,:) :: o_inp
   
-  logical :: ladd,lrem,lremdat,ldorefinment,lrecycle
+  logical :: lnewlst,lrem,lremdat,ldorefinment,lrecycle
   
   integer :: i,j,k,atype
   
@@ -104,7 +107,8 @@
   call setupcom(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
    miny,maxy,minz,maxz,lsingle_fluid)
 
-   call initoutput()
+! initialize output files
+  call init_output()
    
 ! set the seed
   call init_random_seed(init_seed)
@@ -132,8 +136,6 @@
 ! prepare list for neighbour comm of hydrodynamic variables
   call create_findneigh_list_hvar(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc, &
    izpbc,minx,maxx,miny,maxy,minz,maxz)
-
-   call writePVD(0)
   
 ! allocate service array
 #ifdef ALLAMAX
@@ -186,6 +188,17 @@
   if(ldiagnostic)then
     call print_timing_partial(1,1,itime_start,IOOUT)
     call reset_timing_partial()
+  endif
+  
+  call write_vtk_frame(0)
+  
+! interpolate the particle velocity at half timestep back to apply lf
+  if(lparticles)then
+    call vertest(lnewlst,tstep)
+    call driver_neighborhood_list(lnewlst,nstep)
+    call initialize_particle_force
+    call driver_inter_force
+    call initialize_lf
   endif
   
 ! initialize lrecycle 
@@ -271,6 +284,8 @@
   endif
   
   call write_test_map
+  
+  call write_xyz_close
   
   if(idrank==0)write(6,'(a)')'Programm exit correctly'
   

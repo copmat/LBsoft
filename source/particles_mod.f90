@@ -21,7 +21,8 @@
  use version_mod, only : idrank,mxrank,or_world_larr,finalize_world, &
                    get_sync_world,isend_world_farr,bcast_world_iarr, &
                    waitall_world,irecv_world_farr,isend_world_iarr, &
-                   irecv_world_iarr,max_world_iarr,sum_world_iarr
+                   irecv_world_iarr,max_world_iarr,sum_world_iarr, &
+                   sum_world_farr
  use error_mod
  use aop_mod
  use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
@@ -203,6 +204,8 @@
  public :: set_umass
  public :: initialize_particle_force
  public :: driver_inter_force
+ public :: initialize_lf
+ public :: nve_lf
  
  contains
  
@@ -541,15 +544,15 @@
   cy=real(ny+1,kind=PRC)*HALF
   cz=real(nz+1,kind=PRC)*HALF
   
-  cell(1)=real(nx+1,kind=PRC)
+  cell(1)=real(nx,kind=PRC)
   cell(2)=ZERO
   cell(3)=ZERO
   cell(4)=ZERO
-  cell(5)=real(ny+1,kind=PRC)
+  cell(5)=real(ny,kind=PRC)
   cell(6)=ZERO
   cell(7)=ZERO
   cell(8)=ZERO
-  cell(9)=real(nz+1,kind=PRC)
+  cell(9)=real(nz,kind=PRC)
   
   istat(1:nistatmax)=0
   
@@ -1173,6 +1176,12 @@
     call error(22)
   endif
 #endif
+
+  if(lumass)then
+    forall(i=1:natms)
+      weight(i)=umass
+    end forall
+  endif
   
   return
   
@@ -1194,8 +1203,6 @@
   
   logical, intent(in) :: newlst
   integer, intent(in) :: nstepsub
-  
-  if(newlst)write(6,*)'newlst=.true. ',nstepsub
   
   if(lnolink)then
     call parlst(newlst)
@@ -1410,6 +1417,8 @@
 !***********************************************************************
 
   implicit none
+  real(kind=PRC), parameter :: tol=real(1.d-4,kind=PRC)
+  integer :: i
   
   engcfg=ZERO
   
@@ -1438,7 +1447,8 @@
   
 ! separation vectors and powers thereof
   
-  real(kind=PRC) :: rsq,xm,ym,zm,rsqcut,rrr,eps,sig,vvv,ggg,rmin,vmin
+  real(kind=PRC) :: rsq,xm,ym,zm,rsqcut,rrr,eps,sig,vvv,ggg,rmin,vmin, &
+   kappa,rlimit,gmin
   
 ! Loop counters
   integer :: iatm,ii,i,ivdw
@@ -1450,6 +1460,8 @@
   call allocate_array_bdf(natms)
   
   select case(ltpvdw(1))
+  case (0)
+    return
   case (1)
   
   ivdw=1
@@ -1526,7 +1538,52 @@
         endif
       enddo
     enddo
+    
+  case (3)
   
+    ivdw=1
+    kappa=prmvdw(1,ivdw)
+    rmin=prmvdw(2,ivdw)
+    rlimit=rmin-NINE/TEN
+    rsqcut = (rmin)**TWO
+    vmin=kappa*(rmin-rlimit)**(FIVE*HALF)
+    gmin=FIVE*HALF*kappa*(rmin-rlimit)**(THREE*HALF)
+    
+  ii = 0
+  do iatm = 1,natms
+    ii=iatm
+    do k = 1,lentrysub(ii)
+      jatm=listsub(k,ii)
+      xdf(k)=xxx(jatm)-xxx(iatm)
+      ydf(k)=yyy(jatm)-yyy(iatm)
+      zdf(k)=zzz(jatm)-zzz(iatm)
+    enddo
+      
+    call pbc_images(imcon,lentrysub(ii),cell,xdf,ydf,zdf)
+    
+    do k = 1,lentrysub(ii)
+      jatm=listsub(k,ii)
+      rsq=xdf(k)**TWO+ydf(k)**TWO+zdf(k)**TWO
+      if(rsq<=rsqcut) then
+        rrr=sqrt(rsq)
+        if(rrr<=rlimit)then
+          vvv=vmin
+          ggg=gmin
+        else
+          vvv=kappa*(rmin-rrr)**(FIVE*HALF)
+          ggg=FIVE*HALF*kappa*(rmin-rrr)**(THREE*HALF)
+        endif
+        engcfg=engcfg+vvv
+        fxx(iatm)=fxx(iatm)+ggg*xdf(k)/rrr
+        fxx(jatm)=fxx(jatm)-ggg*xdf(k)/rrr
+        fyy(iatm)=fyy(iatm)+ggg*ydf(k)/rrr
+        fyy(jatm)=fyy(jatm)-ggg*ydf(k)/rrr
+        fzz(iatm)=fzz(iatm)+ggg*zdf(k)/rrr
+        fzz(jatm)=fzz(jatm)-ggg*zdf(k)/rrr
+      endif
+    enddo
+  enddo
+    
   case default
     call error(27)
   end select
@@ -1535,7 +1592,35 @@
 
  end subroutine compute_inter_force
  
- subroutine nve_lf(safe)
+ subroutine initialize_lf()
+
+!***********************************************************************
+!     
+!     LBsoft subroutine to initialize the velocity at half timestep
+!     back in order to apply the verlet leapfrog integrator
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+
+  implicit none
+  
+  integer :: i
+  
+! report the atoms velocity to half timestep back 
+  forall(i=1:natms)      
+    vxx(i)=vxx(i)-HALF*tstepatm/weight(i)*fxx(i)
+    vyy(i)=vyy(i)-HALF*tstepatm/weight(i)*fyy(i)
+    vzz(i)=vzz(i)-HALF*tstepatm/weight(i)*fzz(i)
+  end forall
+  
+  return
+      
+ end subroutine initialize_lf
+ 
+ subroutine nve_lf()
 
 !***********************************************************************
 !     
@@ -1549,28 +1634,39 @@
 
   implicit none
 
-  logical safe
-  integer :: fail(7)
+  integer, parameter :: nfailmax=10
+  integer, dimension(nfailmax) :: fail
   integer :: i,k
-  
+  logical :: ltest(1)
   
   real(kind=PRC), allocatable :: uxx(:),uyy(:),uzz(:)    
   real(kind=PRC), allocatable :: xxo(:),yyo(:),zzo(:)
   real(kind=PRC), allocatable :: vxo(:),vyo(:),vzo(:)
       
 ! allocate working arrays
-  do i=1,7
-    fail(i)=0
-  enddo
+  fail(1:nfailmax)=0
   
-  allocate (uxx(mxatms),uyy(mxatms),uzz(mxatms),stat=fail(3))
-  allocate (xxo(msatms),yyo(msatms),zzo(msatms),stat=fail(6))
-  allocate (vxo(msatms),vyo(msatms),vzo(msatms),stat=fail(7))
-  do i=1,7
-    if(fail(i).ne.0)call error(-1)
-  enddo
+  allocate(uxx(mxatms),stat=fail(1))
+  allocate(uyy(mxatms),stat=fail(2))
+  allocate(uzz(mxatms),stat=fail(3))
+  allocate(xxo(mxatms),stat=fail(4))
+  allocate(yyo(mxatms),stat=fail(5))
+  allocate(zzo(mxatms),stat=fail(6))
+  allocate(vxo(mxatms),stat=fail(7))
+  allocate(vyo(mxatms),stat=fail(8))
+  allocate(vzo(mxatms),stat=fail(9))
+  
+  ltest=.false.
+  if(any(fail.ne.0))then
+    do i=1,nfailmax
+      if(fail(i).ne.0)exit
+    enddo
+    call warning(2,dble(i))
+    ltest=.true.
+  endif
 
-  safe=.false.
+  call or_world_larr(ltest,1)
+  if(ltest(1))call error(28)
 
 ! store initial values of position and velocity    
   forall(i=1:natms)
@@ -1593,7 +1689,16 @@
     yyy(i)=yyo(i)+tstepatm*uyy(i)
     zzz(i)=zzo(i)+tstepatm*uzz(i)    
   end forall
-
+  
+#if 1
+  do i=1,natms
+    if(abs(uxx(i))>ONE .or. abs(uyy(i))>ONE .or. abs(uzz(i))>ONE )then
+      write(6,*)'ERROR - numerical instability'
+      call error(-1)
+    endif
+  enddo
+#endif
+  
 ! calculate full timestep velocity
   forall(i=1:natms)
     vxx(i)=HALF*(vxx(i)+uxx(i))
@@ -1606,7 +1711,7 @@
     
 ! periodic boundary condition
   call pbc_images_centered(imcon,natms,cell,cx,cy,cz,xxx,yyy,zzz)
-      
+    
 ! updated velocity     
   forall(i=1:natms)
     vxx(i)=uxx(i)

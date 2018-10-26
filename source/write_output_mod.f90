@@ -12,168 +12,451 @@
 !     
 !***********************************************************************
   
- use version_mod,    only : idrank,mxrank,get_sync_world
+ use version_mod,    only : idrank,mxrank,get_sync_world,finalize_world
  use lbempi_mod,     only : gminx,gmaxx,gminy,gmaxy,gminz,gmaxz,ownern,&
   i4back
  use error_mod
  use utility_mod,    only : write_fmtnumb,ltest_mode
  use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w,lsingle_fluid, &
   minx, maxx, miny, maxy, minz, maxz
-  
+ use particles_mod,  only : natms,xxx,yyy,zzz,lparticles,cell
+ 
   private
   
   integer, parameter :: iotest=180
-  character(len=*), parameter :: filenamevtk='output'
+  integer, parameter :: ioxyz=190
+  integer, parameter :: mxln=120
+  character(len=*), parameter :: filenamevtk='out'
   integer, save, public, protected :: ivtkevery=50
   logical, save, public, protected :: lvtkfile=.false.
-  logical, save, public, protected :: lvtkownern=.true.
+  logical, save, public, protected :: lvtkownern=.false.
+  integer, save, public, protected :: ixyzevery=50
+  logical, save, public, protected :: lxyzfile=.false.
+  character(len=mxln), save :: dir_out
+  character(len=mxln), save :: dir_out_rank
+  character(len=mxln), allocatable, save :: dir_out_grank(:)
   
-  public :: write_vtk_frame, initoutput,writePVD
+  character, save :: delimiter
+  
+  public :: write_vtk_frame
+  public :: init_output
   public :: set_value_ivtkevery
   public :: write_test_map
+  public :: write_xyz
+  public :: write_xyz_close
+  public :: set_value_ixyzevery
   
  contains
  
-   subroutine initoutput()
-    implicit none
-    character(len=255) :: path,makedirectory
-    logical :: lexist
-    character :: delimiter
-
-
-
-    path = repeat(' ',255)
-    call getcwd(path)
-    !call get_environment_variable('DELIMITER',delimiter)
-    path = trim(path)
-    delimiter = path(1:1)
-    if (delimiter==' ') delimiter='/'
-
-
-    makedirectory = 'output'
+ subroutine init_output()
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for creating the folders containing the files
+!     in image VTK legacy binary format in parallel IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  
+  character(len=255) :: path,makedirectory
+  logical :: lexist
+  
+  integer :: i
+  
+  if((.not. lvtkfile).and.(.not. lxyzfile))return
+  
+  path = repeat(' ',255)
+  call getcwd(path)
+  
+  !call get_environment_variable('DELIMITER',delimiter)
+  path = trim(path)
+  delimiter = path(1:1)
+  if (delimiter==' ') delimiter='/'
+  
+  makedirectory=repeat(' ',255)
+  makedirectory = 'output'//delimiter
+  dir_out=trim(makedirectory)
 #ifdef INTEL
-    inquire(directory=trim(makedirectory),exist=lexist)
+  inquire(directory=trim(makedirectory),exist=lexist)
 #else
-    inquire(file=trim(makedirectory),exist=lexist)
+  inquire(file=trim(makedirectory),exist=lexist)
 #endif
-
-    if(.not. lexist)then
-        if (idrank==0) then
-            makedirectory=repeat(' ',255)
-            makedirectory = 'mkdir output'
-            call system(makedirectory)
-        endif
+  
+  if(.not. lexist)then
+    if(idrank==0) then
+      makedirectory=repeat(' ',255)
+      makedirectory = 'mkdir output'
+      call system(makedirectory)
     endif
-    call get_sync_world()
+  endif
+  
+  call get_sync_world()
+  
+  call write_xyz_open(trim(dir_out)//'output.xyz')
+  
+  if(.not. lvtkfile)return
+  
+  makedirectory=repeat(' ',255)
+  makedirectory=trim(path)//delimiter//'output'//delimiter
+  
 
+  call chdir(makedirectory)
+  
+  if(idrank==0)then
+    allocate(dir_out_grank(0:mxrank-1))
+    do i=0,mxrank-1
+      makedirectory=repeat(' ',255)
+      makedirectory = 'rank'//trim(write_fmtnumb(i))//delimiter
+      dir_out_grank(i)=trim(dir_out)//trim(makedirectory)
+    enddo
+  endif
+  
+  makedirectory=repeat(' ',255)
+  makedirectory = 'rank'//trim(write_fmtnumb(idrank))//delimiter
+  dir_out_rank=trim(dir_out)//trim(makedirectory)
+#ifdef INTEL
+  inquire(directory=trim(makedirectory),exist=lexist)
+#else
+  inquire(file=trim(makedirectory),exist=lexist)
+#endif
+  if(.not. lexist)then
+    makedirectory=repeat(' ',255)
+    makedirectory = 'mkdir rank'//trim(write_fmtnumb(idrank))
+    call system(makedirectory)
+  endif
+  
+  call chdir(path)
+  
+  call get_sync_world
+  
+  return
 
-  end subroutine initoutput
+ end subroutine init_output
 
-
-  subroutine writeImageDataVTI(fname)
- implicit none
+ subroutine writeImageDataVTI(fname)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the hydrodynamic variables
+!     in image VTK legacy binary format
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: F. Bonaccorso
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
   character(len=120),intent(in) :: fname
   character(len=120) :: fnameFull,extent
   integer i,j,k
+  
+1000 format ("     ", f15.8)
+1001 format (f20.8)
+1003 format (3f20.8)
+  
+  fnameFull = trim(dir_out_rank)// trim(fname) // '_' // trim(write_fmtnumb(idrank)) //'.vti'
+  open(unit=iotest,file=trim(fnameFull),status='replace',action='write')
 
- fnameFull = 'output/' // trim(fname) // '_' // trim(write_fmtnumb(idrank)) //'.vti'
- open(unit=iotest,file=trim(fnameFull),status='replace',action='write')
-
- extent =  trim(write_fmtnumb(minx)) // ' ' // trim(write_fmtnumb(maxx+1)) // ' ' &
+  extent =  trim(write_fmtnumb(minx)) // ' ' // trim(write_fmtnumb(maxx+1)) // ' ' &
         // trim(write_fmtnumb(miny)) // ' ' // trim(write_fmtnumb(maxy+1)) // ' ' &
         // trim(write_fmtnumb(minz)) // ' ' // trim(write_fmtnumb(maxz+1))
 
- write(iotest,*) '<VTKFile type="ImageData" version="1.0">'
- write(iotest,*) ' <ImageData WholeExtent="' // trim(extent) // '" >'
- write(iotest,*) ' <Piece Extent="' // trim(extent) // '">'
- write(iotest,*) '   <CellData>'
- write(iotest,*) '    <DataArray type="Float32" Name="rho" format="ascii" >'
+  write(iotest,'(a)') '<VTKFile type="ImageData" version="1.0">'
+  write(iotest,'(a)') ' <ImageData WholeExtent="' // trim(extent) // '" >'
+  write(iotest,'(a)') ' <Piece Extent="' // trim(extent) // '">'
+  write(iotest,'(a)') '   <CellData>'
+  write(iotest,'(a)') '    <DataArray type="Float32" Name="density1" format="ascii" >'
 
- do k=minz,maxz
-    do j=miny,maxy
-      do i=minx,maxx
-        write(iotest,fmt='("     ", F15.8)') rhoR(i,j,k)
-      enddo
-    enddo
- enddo
+  do k=minz,maxz
+     do j=miny,maxy
+       do i=minx,maxx
+         write(iotest,fmt=1001) rhoR(i,j,k)
+       enddo
+     enddo
+  enddo
+  write(iotest,'(a)') '    </DataArray>'
+  if(.not. lsingle_fluid)then
+  write(iotest,'(a)') '    <DataArray type="Float32" Name="density2" format="ascii" >'
 
- write(iotest,*) '    </DataArray>'
- write(iotest,*) '   </CellData>'
- write(iotest,*) ' </Piece>'
- write(iotest,*) ' </ImageData>'
- write(iotest,*) '</VTKFile >'
- close(iotest)
+  do k=minz,maxz
+     do j=miny,maxy
+       do i=minx,maxx
+         write(iotest,fmt=1001) rhoB(i,j,k)
+       enddo
+     enddo
+  enddo
+  write(iotest,'(a)') '    </DataArray>'
+  endif
+  write(iotest,'(2a)') '    <DataArray type="Float32" Name="velocity" ', &
+   'NumberOfComponents="3" format="ascii" >'
 
+  do k=minz,maxz
+     do j=miny,maxy
+       do i=minx,maxx
+         write(iotest,fmt=1003) u(i,j,k),v(i,j,k),w(i,j,k)
+       enddo
+     enddo
+  enddo
+  write(iotest,'(a)') '    </DataArray>'
+  
+  write(iotest,'(a)') '   </CellData>'
+  write(iotest,'(a)') ' </Piece>'
+  write(iotest,'(a)') ' </ImageData>'
+  write(iotest,'(a)') '</VTKFile >'
+  close(iotest)
+  
+  return
+  
  end subroutine writeImageDataVTI
 
-
  subroutine writeImageDataPVTI(fname)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the parallel driving file
+!     for image VTK legacy output
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: F. Bonaccorso
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
   implicit none
+  
   character(len=120),intent(in) :: fname
   character(len=120) :: fnameFull,extent
+  character(len=255) :: makedirectory
   integer i
+  
+  if(idrank/=0)return
+  
+  fnameFull = trim(dir_out) // trim(fname) // '.pvti'
+  open(unit=iotest,file=trim(fnameFull),status='replace',action='write')
 
- fnameFull = 'output/' // trim(fname) // '.pvti'
- open(unit=iotest,file=trim(fnameFull),status='replace',action='write')
-
- extent =  '1 ' // trim(write_fmtnumb(nx+1)) // ' ' &
+  extent =  '1 ' // trim(write_fmtnumb(nx+1)) // ' ' &
         // '1 ' // trim(write_fmtnumb(ny+1)) // ' ' &
         // '1 ' // trim(write_fmtnumb(nz+1))
 
- write(iotest,*) '<VTKFile type="PImageData" version="1.0">'
- write(iotest,*) '  <PImageData WholeExtent="' // trim(extent) // '">'
- write(iotest,*) '   <PCellData>'
- write(iotest,*) '    <PDataArray type="Float32" Name="rho" />'
- write(iotest,*) '   </PCellData>'
+  write(iotest,'(a)') '<VTKFile type="PImageData" version="1.0">'
+  write(iotest,'(a)') '  <PImageData WholeExtent="' // trim(extent) // '">'
+  write(iotest,'(a)') '   <PCellData>'
+  write(iotest,'(a)') '    <PDataArray type="Float32" Name="density1" />'
+  if(.not. lsingle_fluid)then
+  write(iotest,'(a)') '    <PDataArray type="Float32" Name="density2" />'
+  endif
+  write(iotest,'(2a)')'    <PDataArray type="Float32" Name="velocity" ', &
+   'NumberOfComponents="3"/>'
+  write(iotest,'(a)') '   </PCellData>'
 
- do i=0,mxrank-1
-  extent =  trim(write_fmtnumb(gminx(i))) // ' ' // trim(write_fmtnumb(gmaxx(i)+1)) // ' ' &
+  do i=0,mxrank-1
+   extent =  trim(write_fmtnumb(gminx(i))) // ' ' // trim(write_fmtnumb(gmaxx(i)+1)) // ' ' &
         // trim(write_fmtnumb(gminy(i))) // ' ' // trim(write_fmtnumb(gmaxy(i)+1)) // ' ' &
         // trim(write_fmtnumb(gminz(i))) // ' ' // trim(write_fmtnumb(gmaxz(i)+1))
-  write(iotest,*) '    <Piece Extent="' // trim(extent) // '" Source="' // &
-    trim(fname) // '_' // trim(write_fmtnumb(i)) //'.vti" />'
- enddo
+    makedirectory=repeat(' ',255)
+    makedirectory = 'rank'//trim(write_fmtnumb(i))//delimiter
+    write(iotest,'(a)') '    <Piece Extent="' // trim(extent) // '" Source="' // &
+    trim(makedirectory)//trim(fname) // '_' // trim(write_fmtnumb(i)) //'.vti" />'
+  enddo
 
- write(iotest,*) '  </PImageData>'
- write(iotest,*) '</VTKFile>'
- close(iotest)
+  write(iotest,'(a)') '  </PImageData>'
+  write(iotest,'(a)') '</VTKFile>'
+  close(iotest)
+ 
+  return
+ 
  end subroutine writeImageDataPVTI
 
-
  subroutine writeImageDataPVD(fname)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the collection driving PVD file
+!     for VTK legacy output
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: F. Bonaccorso
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
   implicit none
+  
   character(len=120),intent(in) :: fname
 
- character(len=120) :: fnameFull
+  character(len=120) :: fnameFull
 
- fnameFull = trim(fname) // '.pvd'
+  fnameFull = trim(fname) // '.pvd'
 
- open(unit=iotest,file=trim(fnameFull),status='replace',action='write')
+  open(unit=iotest,file=trim(fnameFull),status='replace',action='write')
 
- write(iotest,*) '<VTKFile type="Collection" version="1.0">'
- write(iotest,*) '  <Collection>'
- write(iotest,*) '   <DataSet part="0" file="output/' // trim(fname) // '.pvti"/>'
- write(iotest,*) '  </Collection>'
- write(iotest,*) '</VTKFile>'
- close(iotest)
+  write(iotest,'(a)') '<VTKFile type="Collection" version="1.0">'
+  write(iotest,'(a)') '  <Collection>'
+  write(iotest,'(a)') '   <DataSet part="0" file="output/' // trim(fname) // '.pvti"/>'
+  write(iotest,'(a)') '  </Collection>'
+  write(iotest,'(a)') '</VTKFile>'
+  close(iotest)
+  
+  return
+  
  end subroutine writeImageDataPVD
-
+ 
+ subroutine write_vtp_file(iunitsub,fnamesub,istepsub)
+ 
+  implicit none
+  
+  integer, intent(in) :: iunitsub
+  character(len=*), intent(in) :: fnamesub
+  integer, intent(in) :: istepsub
+  
+  integer :: iatm,imio,jatm
+  
+  
+  character(len=120) :: sevt
+  integer, allocatable, dimension(:,:) :: list
+  
+  double precision :: mydist
+  
+  103 format (A)
+  104 format (ES16.5)
+  105 format (A,1X,I12,I12,I12)
+  106 format (A,I12,A)
+  107 format (A,I12)
+  108 format (ES16.5,ES16.5,ES16.5)
+  109 format (I12,I12,I12)
+  110 format (I12,I12)
+  112 format (A,I12,I12)
+  
+  sevt=repeat(' ',120)
+  sevt=trim(dir_out)//trim(fnamesub)// &
+   trim(write_fmtnumb(istepsub))//'.vtk'
+   
+  
+  open(unit=iotest,file=trim(sevt),status='replace',action='write')
+  
+  
+  write(iotest,103) '# vtk DataFile Version 2.0'
+  write(iotest,103) 'Field Emission Device - Charge Density Plot'
+  write(iotest,103) 'ASCII'
+  write(iotest,103) 'DATASET POLYDATA'
+  write(iotest,106) 'POINTS ',natms,' float'
+  do iatm=1,natms
+    write(iotest,108)xxx(iatm),yyy(iatm),zzz(iatm)
+  enddo
+  
+  write(iotest,*)
+  write(iotest,107) 'POINT_DATA ', natms
+  write(iotest,103) 'SCALARS Type float 1'
+  write(iotest,103) 'LOOKUP_TABLE default'
+  
+  do iatm=1,natms
+    write(iotest,*)1 !ltype(iatm)
+  enddo
+  
+  close(iotest)
+   
+  return
+  
+ end subroutine
 
  subroutine writePVD(nstepsub)
- implicit none
- integer, intent(in) :: nstepsub
- character(len=120) :: fname
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the write of the PVD file
+!     for VTK legacy output
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: F. Bonaccorso
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: nstepsub
+  character(len=120) :: fname
 
- if(mod(nstepsub,ivtkevery)/=0)return
-
- fname = 'fabPVD' // trim(write_fmtnumb(nstepsub))
-
- if(idrank==0)then
+  if(mod(nstepsub,ivtkevery)/=0)return
+  
+  fname=repeat(' ',120)
+  fname = trim(filenamevtk) // trim(write_fmtnumb(nstepsub))
+  
+  if(lparticles)then
+    if(mxrank==1)then
+      call write_vtp_file(181,'outatm',nstepsub)
+    else
+      call error(11)
+    endif
+  endif
+  
+  if(idrank==0)then
     !! call writeImageDataPVD(fname)
     call writeImageDataPVTI(fname)
- endif
- call writeImageDataVTI(fname)
+  endif
+  
+  call writeImageDataVTI(fname)
+  
+  return
+  
  end subroutine writePVD
+ 
+ subroutine write_xyz_open(filename)
+  
+  implicit none
+  
+  character(len=*), intent(in) :: filename
+  
+  if(.not. lxyzfile)return
+  
+  open(ioxyz,file=trim(filename),status='replace',action='write')
+  
+  return
+    
+ end subroutine write_xyz_open
+ 
+ subroutine write_xyz(istepsub)
+  
+  implicit none
+  
+  integer, intent(in) :: istepsub
+  
+  integer :: j
+  character(len=8), parameter :: mystring8='C       '
+  character(len=13), parameter :: mystring13='time step    '
+  
+  if(.not. lxyzfile)return
+  if(mod(istepsub,ixyzevery)/=0)return
+
+  write(ioxyz,'(i8)') natms
+  write(ioxyz,'(a13,i12,3f16.8)')mystring13,istepsub,cell(1),cell(5),cell(9)
+  do j=1,natms
+    write(ioxyz,"(a8,3f16.6)")mystring8,xxx(j),yyy(j),zzz(j)
+  end do
+
+  return
+
+    
+ end subroutine write_xyz
+
+ subroutine write_xyz_close()
+  
+  
+  implicit none
+  
+  if(.not. lxyzfile)return
+  close(ioxyz)
+  
+  return
+    
+ end subroutine write_xyz_close
 
  subroutine set_value_ivtkevery(ltemp,itemp)
  
@@ -200,6 +483,31 @@
   
  end subroutine set_value_ivtkevery
  
+ subroutine set_value_ixyzevery(ltemp,itemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for settimg time interval value
+!     used to print the xyz file
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  logical, intent(in) :: ltemp
+  integer, intent(in) :: itemp
+  
+  lxyzfile=ltemp
+  ixyzevery=itemp
+  
+  return
+  
+ end subroutine set_value_ixyzevery
+ 
  subroutine write_vtk_frame(nstepsub)
  
 !***********************************************************************
@@ -217,12 +525,16 @@
   
   integer, intent(in) :: nstepsub
   
+#if 0
   if(mxrank==1)then
     call write_vtk_frame_serial(nstepsub)
   else
     call write_vtk_frame_parallel(nstepsub)
     !if(mxrank/=1)call error(11)
   endif
+#else
+  call writePVD(nstepsub)
+#endif
   
   return
   
@@ -257,10 +569,8 @@
   
   character(len=120) :: sevt
   integer :: l,ii,jj,kk,i,j,k,myindex
- 
- 
-  integer :: nx1,nx2,ny1,ny2,nz1,nz2,nn,nxmin,nymin,nnn
   
+  integer :: nx1,nx2,ny1,ny2,nz1,nz2,nn,nxmin,nymin,nnn
   
   logical, save :: lfirst=.true.
   
@@ -542,7 +852,7 @@
   sevt='rank'//trim(write_fmtnumb(idrank))//delimiter//trim(filenamevtk)// &
    trim(write_fmtnumb(nstepsub))//'_part'//trim(write_fmtnumb(idrank))//'.vts'
      
-  E_IO = VTK_INI_XML(cf=mf(idrank),output_format='binary', &
+  E_IO = VTK_INI_XML(cf=mf(idrank),output_format='ascii', &
    filename=trim(sevt),mesh_topology='StructuredGrid', &
    nx1=nx1_p(idrank),nx2=nx2_p(idrank),ny1=ny1_p(idrank), &
    ny2=ny2_p(idrank),nz1=nz1_p(idrank),nz2=nz2_p(idrank))

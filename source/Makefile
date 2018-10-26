@@ -72,8 +72,8 @@ intel:
 	$(MAKE) CC=icc \
 	FC=ifort \
 	CFLAGS="-O2 -I $(CURDIR) -c" \
-	FFLAGS="-O2 -cpp -I $(CURDIR) -c" \
-	LDFLAGS="-O2 -cpp -I $(CURDIR) -o" \
+	FFLAGS="-O2 -cpp -DINTEL -I $(CURDIR) -c" \
+	LDFLAGS="-O2 -cpp -DINTEL -I $(CURDIR) -o" \
 	TYPE="seq" \
 	EX=$(EX) BINROOT=$(BINROOT) seq
 	
@@ -81,8 +81,8 @@ intel-mpi:
 	$(MAKE) CC=mpiicc \
 	FC=mpiifort \
 	CFLAGS="-O2 -I $(CURDIR) -c" \
-	FFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -c" \
-	LDFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -o" \
+	FFLAGS="-O2 -cpp -DINTEL -DMPI -I $(CURDIR) -c" \
+	LDFLAGS="-O2 -cpp -DINTEL -DMPI -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi
 	
@@ -90,8 +90,8 @@ intel-mpi-skylake:
 	$(MAKE) CC=mpiicc \
 	FC=mpiifort \
 	CFLAGS="-O2 -I $(CURDIR) -xSKYLAKE-AVX512 -c" \
-	FFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -xSKYLAKE-AVX512 -c" \
-	LDFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -xSKYLAKE-AVX512 -o" \
+	FFLAGS="-O2 -cpp -DINTEL -DMPI -I $(CURDIR) -xSKYLAKE-AVX512 -c" \
+	LDFLAGS="-O2 -cpp -DINTEL -DMPI -I $(CURDIR) -xSKYLAKE-AVX512 -o" \
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi
 
@@ -125,8 +125,8 @@ intel-mpidebugger:
 	$(MAKE) CC=mpiicc \
 	FC=mpiifort \
 	CFLAGS="-O0 -g -I $(CURDIR) -c" \
-	FFLAGS="-O0 -g -check all -cpp -DMPI -I $(CURDIR) -c" \
-	LDFLAGS="-O0 -g -check all -cpp -DMPI -I $(CURDIR) -o" \
+	FFLAGS="-O0 -g -check all -cpp -DINTEL -DMPI -I $(CURDIR) -c" \
+	LDFLAGS="-O0 -g -check all -cpp -DINTEL -DMPI -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi
 	

@@ -43,7 +43,8 @@
   set_delr,rotmat_2_quat,lrotate,set_lrotate,allocate_field_array, &
   set_ntpvdw,ntpvdw,set_field_array,mxpvdw,mxvdw,ltpvdw,prmvdw, &
   set_umass,umass,lumass
- use write_output_mod,      only: set_value_ivtkevery,ivtkevery,lvtkfile
+ use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
+  lvtkfile,set_value_ixyzevery,lxyzfile,ixyzevery
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
  use statistic_mod,         only : reprinttime,compute_statistic, &
   statdata
@@ -304,6 +305,7 @@
   integer :: temp_nstepmax=0
   integer :: temp_idiagnostic=1
   integer :: temp_ivtkevery=1
+  integer :: temp_ixyzevery=1
   integer :: temp_nfluid=0
   integer :: temp_bc_type_east=0
   integer :: temp_bc_type_west=0
@@ -326,6 +328,7 @@
   logical :: lprintlisterror=.false.
   logical :: temp_ldiagnostic=.false.
   logical :: temp_lvtkfile=.false.
+  logical :: temp_lxyzfile=.false.
   logical :: lidiagnostic=.false.
   logical :: temp_lnfluid=.false.
   logical :: temp_wall_SC=.false.
@@ -541,6 +544,9 @@
               elseif(findstring('vtk',directive,inumchar,maxlen))then
                 temp_ivtkevery=intstr(directive,maxlen,inumchar)
                 temp_lvtkfile=.true.
+              elseif(findstring('xyz',directive,inumchar,maxlen))then
+                temp_ixyzevery=intstr(directive,maxlen,inumchar)
+                temp_lxyzfile=.true.
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -849,6 +855,18 @@
                     dtemp_prmvdw(1,ifield_pair)=dblstr(directive,maxlen,inumchar)
                     dtemp_prmvdw(2,ifield_pair)=dblstr(directive,maxlen,inumchar)
                   endif
+                elseif(findstring('hz',directive,inumchar,maxlen))then
+                  temp_field_pair=.true.
+                  ifield_pair=ifield_pair+1
+                  if(ifield_pair>mxvdw)then
+                    call warning(24,dble(mxvdw))
+                    call warning(1,dble(iline),redstring)
+                    lerror5=.true.
+                  else
+                    temp_ltpvdw(ifield_pair)=3
+                    dtemp_prmvdw(1,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                    dtemp_prmvdw(2,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                  endif
                 else
                   call warning(1,dble(iline),redstring)
                   lerror6=.true.
@@ -1019,6 +1037,17 @@
      mystring=repeat(' ',dimprint)
      mystring='print VTK file every'
      write(6,'(2a,i12)')mystring,": ",ivtkevery
+   endif
+  endif
+  
+  call bcast_world_l(temp_lxyzfile)
+  if(temp_lxyzfile)then
+    call bcast_world_i(temp_ixyzevery)
+    call set_value_ixyzevery(temp_lxyzfile,temp_ixyzevery)
+    if(idrank==0)then
+     mystring=repeat(' ',dimprint)
+     mystring='print xyz file every'
+     write(6,'(2a,i12)')mystring,": ",ixyzevery
    endif
   endif
   
@@ -1526,14 +1555,16 @@
             mystring36='Weeks-Chandler-Andersen'
           case(2)
             mystring36='Lennard-Jones'
+          case(3)
+            mystring36='Hertzian'
           end select
           mystring36=adjustl(mystring36)
           write(6,'(3a)')mystring," : ",mystring36
           mystring=repeat(' ',dimprint)
-          mystring='    epsilon'
+          mystring='    kappa'
           write(6,'(2a,f12.6)')mystring,": ",prmvdw(1,i)
           mystring=repeat(' ',dimprint)
-          mystring='    sigma'
+          mystring='    r min'
           write(6,'(2a,f12.6)')mystring,": ",prmvdw(2,i)
         enddo
       endif

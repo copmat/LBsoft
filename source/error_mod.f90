@@ -108,6 +108,8 @@
         write(outp,outf)'ERROR - fail in allocate the prmvdw array.'
       case (27)
         write(outp,outf)'ERROR - wrong ltpvdw in compute_inter_force'
+      case (28)
+        write(outp,outf)'ERROR - bad allocation in subroutine nve_lf.'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select

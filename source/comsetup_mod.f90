@@ -2002,7 +2002,7 @@ end subroutine
             & i_pe2recv_fluid_hvar(i),myid+findntag_hvar, &
             & MPI_COMM_WORLD,ierr)
     ENDDO
-    IF(n_pe2recv_fluid.GT.0) THEN
+    IF(n_pe2recv_fluid_hvar.GT.0) THEN
        CALL MPI_WAITALL(n_pe2send_fluid_hvar,request,status,ierr)
     ENDIF
 #endif
