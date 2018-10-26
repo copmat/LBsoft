@@ -1573,6 +1573,13 @@
     write(6,'(/,3a,/)')repeat('*',32),"end input file",repeat('*',33)
   endif
   
+  if(lparticles)then
+    if(.not. lbc_halfway)then
+      call set_lbc_halfway(.true.)
+      call warning(26)
+    endif
+  endif
+  
   endtime = tstep*REAL(nstepmax,kind=PRC)
   iprinttime=nint(printtime/tstep)
   eprinttime=nint(endtime/tstep)

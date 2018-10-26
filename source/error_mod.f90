@@ -340,6 +340,9 @@
       write(outp,'(/,a)')"WARNING - 'read list' is not correctly specified"
       write(outp,'(2a,/)')"WARNING - particle masses not specified neither ", &
        "in input nor xyz files"
+    case (26)
+      write(outp,'(/,a)')"WARNING - bounce back is automatically switched to halfway mode"
+      write(outp,'(a,/)')"WARNING - this is mandatory for the particle treatment"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select
