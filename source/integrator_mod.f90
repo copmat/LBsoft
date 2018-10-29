@@ -27,7 +27,7 @@
                         driver_bc_velocities
  use particles_mod,    only : driver_neighborhood_list,lparticles, &
                         vertest,initialize_particle_force, &
-                        driver_inter_force,nve_lf
+                        driver_inter_force,integrate_particles
  use write_output_mod, only : write_vtk_frame,write_xyz
  
  implicit none
@@ -187,9 +187,9 @@
     call driver_inter_force
     if(ldiagnostic)call end_timing2("MD","driver_inter_f")
     
-    if(ldiagnostic)call start_timing2("MD","nve_lf")
-    call nve_lf
-    if(ldiagnostic)call end_timing2("MD","nve_lf")
+    if(ldiagnostic)call start_timing2("MD","integr_particles")
+    call integrate_particles(nstep)
+    if(ldiagnostic)call end_timing2("MD","integr_particles")
     
     if(ldiagnostic)call start_timing2("IO","write_xyz")
     call write_xyz(nstep)

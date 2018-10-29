@@ -201,6 +201,12 @@
       write(outp,'(a)') &
       "WARNING - * minvz                * min fluid velocity of fluid mix along z in lb units   *"
       write(outp,'(a)') &
+      "WARNING - * engke                * min fluid velocity of fluid mix along y in lb units   *"
+      write(outp,'(a)') &
+      "WARNING - * engcf                * max fluid velocity of fluid mix along z in lb units   *"
+      write(outp,'(a)') &
+      "WARNING - * engto                * min fluid velocity of fluid mix along z in lb units   *"
+      write(outp,'(a)') &
       "WARNING - * cpu                  * time for every print interval in seconds              *"
       write(outp,'(a)') &
       "WARNING - * cpur                 * remaining time to the end in seconds                  *"
@@ -345,6 +351,11 @@
     case (26)
       write(outp,'(/,a)')"WARNING - bounce back is automatically switched to halfway mode"
       write(outp,'(a,/)')"WARNING - this is mandatory for the particle treatment"
+    case (27)
+      write(outp,'(/,2a)')"WARNING - particle velocity not specified neither ", &
+       "in input nor xyz files"
+      write(outp,'(a)')"WARNING - set 'read list vx vy vz' in xyz file "
+      write(outp,'(a,/)')"WARNING - or set init temperature in input.dat"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

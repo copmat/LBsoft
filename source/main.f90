@@ -81,7 +81,7 @@
   real(kind=PRC), allocatable, dimension(:) :: x_inp,y_inp,z_inp
   real(kind=PRC), allocatable, dimension(:,:) :: o_inp
   
-  logical :: lnewlst,lrem,lremdat,ldorefinment,lrecycle
+  logical :: lnewlst,lrem,lremdat,ldorefinment,lrecycle,lvelocity
   
   integer :: i,j,k,atype
   
@@ -147,12 +147,14 @@
 #endif
 
 ! read input xyz file if necessary
-  call read_input_atom(700,'input.xyz',x_inp,y_inp,z_inp,o_inp)
+  call read_input_atom(700,'input.xyz',x_inp,y_inp,z_inp,o_inp, &
+   lvelocity)
   
 ! allocate particle arrays
   call allocate_particles(ibctype,tstep)
   
-  call initialize_map_particles(nxyzlist,xyzlist,x_inp,y_inp,z_inp,o_inp)
+  call initialize_map_particles(nxyzlist,xyzlist,x_inp,y_inp,z_inp, &
+   o_inp,lvelocity)
 
 ! at this point you can deallocate ownern in order to release space
 #ifdef DEOWERN

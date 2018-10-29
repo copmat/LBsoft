@@ -16,12 +16,13 @@
   max_world_farr,min_world_farr,get_sync_world,finalize_world
  use fluids_mod,            only : nx,ny,nz,rhoR,rhoB,u,v,w, &
   lsingle_fluid, minx, maxx, miny, maxy, minz, maxz
+ use particles_mod,         only : lparticles,engke,engcfg,engtot
  
  implicit none
  
  private
  
- integer, public, parameter :: nmaxstatdata=16
+ integer, public, parameter :: nmaxstatdata=19
  
  real(kind=PRC), public, save, dimension(nmaxstatdata) :: statdata
  real(kind=PRC), public, save :: meancputime=0.d0
@@ -119,6 +120,9 @@
   statdata(15)=meancputime
   statdata(16)=timesub
   
+  statdata(17)=engke
+  statdata(18)=engcfg
+  statdata(19)=engtot
   
   if(mxrank>1)then
     dtemp(1)=statdata(1)
@@ -150,6 +154,8 @@
     statdata(8)=dtemp(3)
     statdata(10)=dtemp(4)
     statdata(12)=dtemp(5)
+    if(lparticles)then
+    endif
   endif
   
   statdata(1)=statdata(1)/dnorm

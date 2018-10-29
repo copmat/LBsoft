@@ -42,7 +42,7 @@
   set_lparticles,set_densvar,densvar,lspherical,set_rcut,rcut,delr, &
   set_delr,rotmat_2_quat,lrotate,set_lrotate,allocate_field_array, &
   set_ntpvdw,ntpvdw,set_field_array,mxpvdw,mxvdw,ltpvdw,prmvdw, &
-  set_umass,umass,lumass
+  set_umass,umass,lumass,linit_temp,init_temp,set_init_temp
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,set_value_ixyzevery,lxyzfile,ixyzevery
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
@@ -347,6 +347,7 @@
   logical :: temp_lrotate=.false.
   logical :: temp_field_pair=.false.
   logical :: temp_lumass=.false.
+  logical :: temp_linit_temp=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -407,6 +408,8 @@
   real(kind=PRC) :: dtemp_delr= ZERO
   
   real(kind=PRC) :: dtemp_umass= ZERO
+  
+  real(kind=PRC) :: dtemp_init_temp= ZERO
   
   integer, dimension(mxvdw) :: temp_ltpvdw
   real(kind=PRC), dimension(mxpvdw,mxvdw) :: dtemp_prmvdw
@@ -804,6 +807,14 @@
                 temp_lparticles=.true.
               elseif(findstring('no',directive,inumchar,maxlen))then
                 temp_lparticles=.false.
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
+              endif
+            elseif(findstring('init',directive,inumchar,maxlen))then
+              if(findstring('temperat',directive,inumchar,maxlen))then
+                temp_linit_temp=.true.
+                dtemp_init_temp=dblstr(directive,maxlen,inumchar)
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1487,6 +1498,17 @@
       write(6,'(3a)')mystring,": ",mystring12
     endif
     
+    call bcast_world_l(temp_linit_temp)
+    if(temp_linit_temp)then
+      call bcast_world_f(dtemp_init_temp)
+      call set_init_temp(dtemp_init_temp)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='initial temperature'
+        write(6,'(2a,f12.6)')mystring,": ",init_temp
+      endif
+    endif
+    
     call bcast_world_l(temp_lrotate)
     if(temp_lrotate)then
       call set_lrotate(temp_lrotate)
@@ -1604,13 +1626,6 @@
     write(6,'(/,3a,/)')repeat('*',32),"end input file",repeat('*',33)
   endif
   
-  if(lparticles)then
-    if(.not. lbc_halfway)then
-      call set_lbc_halfway(.true.)
-      call warning(26)
-    endif
-  endif
-  
   endtime = tstep*REAL(nstepmax,kind=PRC)
   iprinttime=nint(printtime/tstep)
   eprinttime=nint(endtime/tstep)
@@ -1680,6 +1695,12 @@
     legendobs='cpu  =  time for every print interval             '
   elseif(printcodsub(iarg)==16)then
     legendobs='t     =  unscaled time                            '
+  elseif(printcodsub(iarg)==17)then
+    legendobs='engke =  kinetic energy                           '
+  elseif(printcodsub(iarg)==18)then
+    legendobs='engcf =  configurational energy                   '
+  elseif(printcodsub(iarg)==19)then
+    legendobs='engto =  total energy                             '
   endif
   legendobs=adjustl(legendobs)
   
@@ -1753,6 +1774,15 @@
   elseif(findstring('minvz',temps,inumchar,lenstring))then
     printcodsub(iarg)=12
     lfound=.true.
+  elseif(findstring('engke',temps,inumchar,lenstring))then
+    printcodsub(iarg)=17
+    lfound=.true.
+  elseif(findstring('engcf',temps,inumchar,lenstring))then
+    printcodsub(iarg)=18
+    lfound=.true.
+  elseif(findstring('engto',temps,inumchar,lenstring))then
+    printcodsub(iarg)=19
+    lfound=.true.
   elseif(findstring('cpur',temps,inumchar,lenstring))then
     printcodsub(iarg)=13
     lfound=.true.
@@ -1765,6 +1795,7 @@
   elseif(findstring('t',temps,inumchar,lenstring))then
     printcodsub(iarg)=16
     lfound=.true.
+  
   else
     lfound=.false.
   endif
@@ -1832,6 +1863,12 @@
     printlisub(iarg)='cpu (s)'
   elseif(printcodsub(iarg)==16)then
     printlisub(iarg)='t (lu)'
+  elseif(printcodsub(iarg)==17)then
+    printlisub(iarg)='engke (lu)'
+  elseif(printcodsub(iarg)==18)then
+    printlisub(iarg)='engcf (lu)'
+  elseif(printcodsub(iarg)==19)then
+    printlisub(iarg)='engto (lu)'
   endif
   printlisub(iarg)=adjustr(printlisub(iarg))
   enddo
@@ -2131,7 +2168,8 @@
   
  end subroutine outprint_term
  
- subroutine read_input_atom(inputunit,inputname,xxs,yys,zzs,others)
+ subroutine read_input_atom(inputunit,inputname,xxs,yys,zzs,others, &
+  lvelocity)
  
 !***********************************************************************
 !     
@@ -2151,6 +2189,7 @@
   character(len=*), intent(in) :: inputname
   real(kind=PRC), allocatable, dimension(:) :: xxs,yys,zzs
   real(kind=PRC), allocatable, dimension(:,:) :: others
+  logical :: lvelocity
   
   character(len=maxlen) :: redstring,directive
   integer :: inumchar,i,j,nwords,iline,itest
@@ -2158,7 +2197,7 @@
   logical :: lerror1,lerror2,lerror3,lerror4,safe,lexists
   integer :: temp_natms_tot
   logical :: lxyzlisterror,lfoundprintxyz,lxyzlist,lxyzlist1,lxyzlist2, &
-   lqinput,ltinput,lerror5,lmass
+   lqinput,ltinput,lerror5,lmass,lvel(3)
   
   character(len=*),parameter :: of='(a)'
   integer, parameter :: natmname=4
@@ -2262,6 +2301,7 @@
       lqinput=.false.
       ltinput=.false.
       lmass=.false.
+      lvel(1:3)=.false.
       do i=1,nxyzlist
         if(xyzlist(i)>=3 .and. xyzlist(i)<=5)then
           if(lspherical)then
@@ -2274,6 +2314,9 @@
         if(xyzlist(i)>=22)lqinput=.true.
         if(xyzlist(i)>=13 .and. xyzlist(i)<=21)ltinput=.true.
         if(xyzlist(i)==2)lmass=.true.
+        if(xyzlist(i)==7)lvel(1)=.true.
+        if(xyzlist(i)==8)lvel(2)=.true.
+        if(xyzlist(i)==9)lvel(3)=.true.
       enddo
       if(lqinput .and. ltinput)then
         lerror5=.true.
@@ -2285,6 +2328,17 @@
         lerror5=.true.
         call warning(11,dble(iline))
         call warning(25)
+        goto 120
+      endif
+      if(all(lvel))then
+        lvelocity=.true.
+      else
+        lvelocity=.false.
+      endif
+      if((.not. lvelocity).and.(.not. linit_temp))then
+        lerror5=.true.
+        call warning(11,dble(iline))
+        call warning(27)
         goto 120
       endif
     endif

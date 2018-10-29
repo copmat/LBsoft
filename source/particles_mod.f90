@@ -39,7 +39,8 @@
                    commwait_vel_component,ownernfind,ownernfind_arr, &
                    ownern,gminx,gmaxx,gminy,gmaxy,gminz,gmaxz
  
- use fluids_mod,  only : nx,ny,nz,nbuff,minx,maxx,miny,maxy,minz,maxz
+ use fluids_mod,  only : nx,ny,nz,nbuff,minx,maxx,miny,maxy,minz,maxz, &
+                   set_lbc_halfway,lbc_halfway,cssq
 
  
  implicit none
@@ -48,6 +49,9 @@
  
  !key for periodic boundary conditions
  integer, public, protected, save :: imcon=0
+ 
+ !key for integrator type
+ integer, public, protected, save :: keyint=1
  
  !number of particles in the subdomain (process)
  integer, public, protected, save :: natms=0
@@ -86,8 +90,20 @@
  !set unique mass
  logical, public, protected, save :: lumass=.false.
  
+ !kbT factor
+ real(kind=PRC), public, protected, save :: tempboltz=cssq
+ 
  !time step of the lagrangian integrator
  real(kind=PRC), public, protected, save :: tstepatm=ONE
+ 
+ !total degree of freedom of the particles
+ real(kind=PRC), public, protected, save :: degfre=ZERO
+ 
+ !rotational degree of freedom of a single particle
+ real(kind=PRC), public, protected, save :: degrot=ZERO
+ 
+ !initiali particle temperature in KbT unit
+ real(kind=PRC), public, protected, save :: init_temp=ONE
  
  !value of unique mass
  real(kind=PRC), public, protected, save :: umass=ONE
@@ -102,18 +118,24 @@
  real(kind=PRC), public, protected, save :: cz=ZERO
  
  !kinetic energy
- real(kind=PRC), public, protected, save :: engke
+ real(kind=PRC), public, protected, save :: engke=ZERO
  
  !rotational kinetic energy
- real(kind=PRC), public, protected, save :: engrot
+ real(kind=PRC), public, protected, save :: engrot=ZERO
  
  !configurational energy
- real(kind=PRC), public, protected, save :: engcfg
+ real(kind=PRC), public, protected, save :: engcfg=ZERO
+ 
+ !total energy
+ real(kind=PRC), public, protected, save :: engtot=ZERO
  
  !Potential cut-off
  real(kind=PRC), public, protected, save :: rcut=ZERO
  !Verlet neighbour list shell width
  real(kind=PRC), public, protected, save :: delr=ZERO
+ 
+ !key for set initial particle temperature
+ logical, public, protected, save :: linit_temp=.false.
  
  !key for activate the body rotation
  logical, public, protected, save :: lrotate=.false.
@@ -205,7 +227,8 @@
  public :: initialize_particle_force
  public :: driver_inter_force
  public :: initialize_lf
- public :: nve_lf
+ public :: integrate_particles
+ public :: set_init_temp
  
  contains
  
@@ -365,6 +388,30 @@
   return
   
  end subroutine set_umass
+ 
+ subroutine set_init_temp(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the ntpvdw protected variable
+!     init_temp denotes the initiali particle temperature in KbT unit
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp
+  
+  linit_temp=.true.
+  init_temp=dtemp
+  
+  return
+  
+ end subroutine set_init_temp
  
  subroutine set_ntpvdw(itemp)
  
@@ -604,6 +651,11 @@
     call error(-1)
   endif
   
+  if(.not. lspherical)then
+    if(idrank==0)write(6,'(a)')'ATTENTION: non spherical particle part is under developing!'
+    call error(-1)
+  endif
+  
   !at the moment only verlet list
   if(.not. lnolink)then
     if(idrank==0)write(6,'(a)')'ATTENTION: at the moment link cell is not implemente!'
@@ -682,7 +734,7 @@
  end subroutine allocate_particles
  
  subroutine initialize_map_particles(nxyzlist_sub,xyzlist_sub, &
-  xxs,yys,zzs,ots)
+  xxs,yys,zzs,ots,lvelocity)
   
 !***********************************************************************
 !     
@@ -702,6 +754,7 @@
   integer, intent(in), allocatable, dimension(:)  :: xyzlist_sub
   real(kind=PRC), allocatable, dimension(:) :: xxs,yys,zzs
   real(kind=PRC), allocatable, dimension(:,:) :: ots
+  logical, intent(in) :: lvelocity
   
   integer :: i,j,k,ids,sub_i,idrank_sub
   logical :: ltest(1),lqinput,ltinput
@@ -1097,6 +1150,24 @@
   call print_all_particles(100,'mioprima',1)
 #endif
   
+! set the mass
+  if(lumass)then
+    forall(i=1:natms)
+      weight(i)=umass
+    end forall
+  endif
+  
+! total degree of freedom of particles
+  if(lrotate)then
+    degfre=SIX*real(natms,kind=PRC)
+  else
+    degfre=THREE*real(natms,kind=PRC)
+  endif
+  
+! initialize linear momentum if not given in xyz file
+  if(linit_temp)call init_velocity
+  
+! start the initialization of the rotation part
   lqinput=.false.
   ltinput=.false.
   if(nxyzlist_sub>0)then
@@ -1176,11 +1247,12 @@
     call error(22)
   endif
 #endif
-
-  if(lumass)then
-    forall(i=1:natms)
-      weight(i)=umass
-    end forall
+  
+  if(lparticles)then
+    if(.not. lbc_halfway)then
+      call set_lbc_halfway(.true.)
+      call warning(26)
+    endif
   endif
   
   return
@@ -1400,6 +1472,10 @@
     fzz(i)=ZERO
   end forall
   
+  engcfg=ZERO
+  engke=ZERO
+  engtot=ZERO
+  
   return
   
  end subroutine initialize_particle_force
@@ -1419,8 +1495,6 @@
   implicit none
   real(kind=PRC), parameter :: tol=real(1.d-4,kind=PRC)
   integer :: i
-  
-  engcfg=ZERO
   
   call compute_inter_force(lentry,list)
   
@@ -1567,7 +1641,7 @@
       if(rsq<=rsqcut) then
         rrr=sqrt(rsq)
         if(rrr<=rlimit)then
-          vvv=vmin
+          vvv=vmin+(rlimit-rrr)*gmin
           ggg=gmin
         else
           vvv=kappa*(rmin-rrr)**(FIVE*HALF)
@@ -1592,6 +1666,83 @@
 
  end subroutine compute_inter_force
  
+ subroutine init_velocity()
+      
+!***********************************************************************
+!     
+!     dl_poly subroutine for resetting the system velocities
+!     
+!     copyright - daresbury laboratory
+!     author    - w. smith    may 2007
+!     
+!***********************************************************************
+
+  implicit none
+  
+  integer :: i
+  real(kind=PRC) temp,tolnce,sigma
+      
+! set atomic velocities from gaussian distribution
+      
+  do i=1,natms
+    sigma=sqrt(tempboltz*init_temp/weight(i))
+    vxx(i)=sigma*gauss()
+    vyy(i)=sigma*gauss()
+    vzz(i)=sigma*gauss()
+  enddo
+  
+  call vscaleg()
+  
+  return
+  
+  end subroutine init_velocity
+  
+  subroutine vscaleg()
+
+!*********************************************************************
+!     
+!     LBsoft  subroutine for scaling the velocity arrays to the
+!     desired temperature
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+      
+  implicit none
+  
+  integer :: i
+      
+  real(kind=PRC) :: buffer(1),sumke,ratio_temp,mytemp,ratio_sigma
+  
+! compute kinetic energy
+  call getkin(sumke)
+  
+  if(mxrank>1)then
+    buffer(1)=sumke
+    call sum_world_farr(buffer(1),1)
+    sumke=buffer(1)
+  endif
+  
+  mytemp=TWO*(sumke+engrot)/(tempboltz*degfre)
+! calculate temperature ratio
+  ratio_temp=init_temp/mytemp
+  
+  write(6,*)init_temp,mytemp,ratio_temp,sumke
+  
+  
+  do i=1,natms
+     ratio_sigma=sqrt(init_temp/mytemp)
+     vxx(i)=ratio_sigma*vxx(i)
+     vyy(i)=ratio_sigma*vyy(i)
+     vzz(i)=ratio_sigma*vzz(i)
+  end do
+  
+  return
+      
+ end subroutine vscaleg
+ 
  subroutine initialize_lf()
 
 !***********************************************************************
@@ -1608,6 +1759,7 @@
   implicit none
   
   integer :: i
+  real(kind=PRC) :: fsum(2)
   
 ! report the atoms velocity to half timestep back 
   forall(i=1:natms)      
@@ -1619,6 +1771,47 @@
   return
       
  end subroutine initialize_lf
+ 
+ subroutine integrate_particles(nstepsub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the particle integratio
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: nstepsub
+  
+  real(kind=PRC) :: fsum(2)
+  
+  select case(keyint)
+  case (1) 
+    call nve_lf
+  case default
+    call nve_lf
+  end select
+  
+! all reduce sum
+  if(mxrank>1)then
+    fsum(1)=engke
+    fsum(2)=engcfg
+    call sum_world_farr(fsum,2)
+    engke=fsum(1)
+    engcfg=fsum(2)
+  endif
+  
+! calculate total energy  
+  engtot=engke+engcfg
+  
+  return
+  
+ end subroutine integrate_particles
  
  subroutine nve_lf()
 
@@ -1746,17 +1939,14 @@
   real(kind=PRC), intent(out) :: engkes
   
   integer :: i
-  real(kind=PRC) :: engke(1)
   
-  engke(1)=ZERO
+  engkes=ZERO
   
   do i=1,natms
-    engke(1)=engke(1)+weight(i)*(vxx(i)**TWO+vyy(i)**TWO+vzz(i)**TWO)
+    engkes=engkes+weight(i)*(vxx(i)**TWO+vyy(i)**TWO+vzz(i)**TWO)
   enddo
-
-  call sum_world_farr(engke,1)
   
-  engkes=HALF*engke(1)
+  engkes=HALF*engkes
 
   return
   
