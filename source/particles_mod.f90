@@ -1727,17 +1727,14 @@
   
   mytemp=TWO*(sumke+engrot)/(tempboltz*degfre)
 ! calculate temperature ratio
-  ratio_temp=init_temp/mytemp
+  ratio_temp=init_temp/mytemp  
+  ratio_sigma=sqrt(init_temp/mytemp)
   
-  write(6,*)init_temp,mytemp,ratio_temp,sumke
-  
-  
-  do i=1,natms
-     ratio_sigma=sqrt(init_temp/mytemp)
+  forall (i=1:natms)
      vxx(i)=ratio_sigma*vxx(i)
      vyy(i)=ratio_sigma*vyy(i)
      vzz(i)=ratio_sigma*vzz(i)
-  end do
+  end forall
   
   return
       
