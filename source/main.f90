@@ -60,7 +60,7 @@
                         driver_initialiaze_manage_bc_selfcomm
   use particles_mod,   only : allocate_particles,lparticles,vertest, &
                         initialize_map_particles,driver_inter_force, &
-                        initialize_lf,initialize_particle_force, &
+                        initialize_integrator_lf,initialize_particle_force, &
                         driver_neighborhood_list
   use write_output_mod,only : write_test_map,lvtkfile,init_output, &
                         write_vtk_frame,write_xyz_close
@@ -200,7 +200,7 @@
     call driver_neighborhood_list(lnewlst,nstep)
     call initialize_particle_force
     call driver_inter_force
-    call initialize_lf
+    call initialize_integrator_lf
   endif
   
 ! initialize lrecycle 

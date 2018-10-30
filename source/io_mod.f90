@@ -42,7 +42,8 @@
   set_lparticles,set_densvar,densvar,lspherical,set_rcut,rcut,delr, &
   set_delr,rotmat_2_quat,lrotate,set_lrotate,allocate_field_array, &
   set_ntpvdw,ntpvdw,set_field_array,mxpvdw,mxvdw,ltpvdw,prmvdw, &
-  set_umass,umass,lumass,linit_temp,init_temp,set_init_temp
+  set_umass,umass,lumass,linit_temp,init_temp,set_init_temp,lvv, &
+  set_lvv
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,set_value_ixyzevery,lxyzfile,ixyzevery
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
@@ -348,6 +349,7 @@
   logical :: temp_field_pair=.false.
   logical :: temp_lumass=.false.
   logical :: temp_linit_temp=.false.
+  logical :: temp_lvv=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -833,6 +835,20 @@
                 temp_lrotate=.true.
               elseif(findstring('no',directive,inumchar,maxlen))then
                 temp_lrotate=.false.
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
+              endif
+            elseif(findstring('velocity',directive,inumchar,maxlen))then
+              if(findstring('verlet',directive,inumchar,maxlen))then
+                if(findstring('yes',directive,inumchar,maxlen))then
+                  temp_lvv=.true.
+                elseif(findstring('no',directive,inumchar,maxlen))then
+                  temp_lvv=.false.
+                else
+                  call warning(1,dble(iline),redstring)
+                  lerror6=.true.
+                endif
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1517,6 +1533,23 @@
         mystring='rotation'
         mystring12=repeat(' ',dimprint2)
         if(lrotate)then
+          mystring12='yes'
+        else
+          mystring12='no'
+        endif
+        mystring12=adjustr(mystring12)
+        write(6,'(3a)')mystring,": ",mystring12
+      endif
+    endif
+    
+    call bcast_world_l(temp_lvv)
+    if(temp_lvv)then
+      call set_lvv(temp_lvv)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='velocity Verlet'
+        mystring12=repeat(' ',dimprint2)
+        if(lvv)then
           mystring12='yes'
         else
           mystring12='no'

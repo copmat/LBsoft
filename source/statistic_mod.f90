@@ -120,6 +120,7 @@
   statdata(15)=meancputime
   statdata(16)=timesub
   
+! these were already sum all reduced in particle_mod.f90 
   statdata(17)=engke
   statdata(18)=engcfg
   statdata(19)=engtot
@@ -154,8 +155,6 @@
     statdata(8)=dtemp(3)
     statdata(10)=dtemp(4)
     statdata(12)=dtemp(5)
-    if(lparticles)then
-    endif
   endif
   
   statdata(1)=statdata(1)/dnorm

@@ -8,7 +8,7 @@ decomposition dimension 1 1 1
 print list engke engcf engto maxvx maxvy maxvz cpur cpu
 print every 10
 print vtk 10
-print xyz 10
+print xyz 1
 test yes
 job time 4 d
 close time 10 s
@@ -23,12 +23,13 @@ fluid tau 1.d0 1.d0
 [END ROOM]
 [ROOM MD]
 particle yes
-initial temperature 0.9d0
+velocity verlet no
+initial temperature 0.d0
 rotate no
 densvar 1.2d0
 rcut 12.d0
 delr 1.0d0
-field pair hz 0.005d0 3.d0
+field pair hz 0.005d0 2.d0
 mass 20.d0
 [END ROOM]
 [END]

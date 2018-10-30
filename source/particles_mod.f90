@@ -137,6 +137,9 @@
  !key for set initial particle temperature
  logical, public, protected, save :: linit_temp=.false.
  
+ !key for activate the velocity Verlet
+ logical, public, protected, save :: lvv=.false.
+ 
  !key for activate the body rotation
  logical, public, protected, save :: lrotate=.false.
  
@@ -190,6 +193,8 @@
  real(kind=PRC), allocatable, public, protected, save :: rdimz(:)
  !particle mass
  real(kind=PRC), allocatable, public, protected, save :: weight(:)
+ !inverse particle mass
+ real(kind=PRC), allocatable, public, protected, save :: rmass(:)
  !rotational inertia in body fixed frame
  real(kind=PRC), allocatable, public, protected, save :: rotin(:)
  !components of angular velocity
@@ -216,6 +221,7 @@
  public :: set_rcut
  public :: set_delr
  public :: set_lrotate
+ public :: set_lvv
  public :: initialize_map_particles
  public :: rotmat_2_quat
  public :: driver_neighborhood_list
@@ -225,9 +231,12 @@
  public :: vertest
  public :: set_umass
  public :: initialize_particle_force
+ public :: initialize_particle_energy
  public :: driver_inter_force
- public :: initialize_lf
- public :: integrate_particles
+ public :: initialize_integrator_lf
+ public :: integrate_particles_lf
+ public :: integrate_particles_vv
+ public :: merge_particle_energies
  public :: set_init_temp
  
  contains
@@ -363,6 +372,28 @@
   return
   
  end subroutine set_lrotate
+ 
+ subroutine set_lvv(ltemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the lvv protected variable
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  logical, intent(in) :: ltemp
+  
+  lvv=ltemp
+  
+  return
+  
+ end subroutine set_lvv
  
  subroutine set_umass(dtemp)
  
@@ -625,6 +656,7 @@
     allocate(rdimz(mxatms),stat=istat(25))
   endif
   allocate(weight(mxatms),stat=istat(11))
+  
   allocate(rotin(mxatms),stat=istat(12))
   
   allocate(oxx(mxatms),stat=istat(13))
@@ -639,6 +671,8 @@
   allocate(tqx(mxatms),stat=istat(20))
   allocate(tqy(mxatms),stat=istat(21))
   allocate(tqz(mxatms),stat=istat(22))
+  
+  allocate(rmass(mxatms),stat=istat(23))
   
 #if 1
   if(mxrank>1)then
@@ -662,6 +696,7 @@
     if(idrank==0)write(6,'(a)')'ATTENTION: automatic switch to Verlet list mode!'
     lnolink=.true.
   endif
+  
 #endif
   
   if(lnolink)then
@@ -716,6 +751,8 @@
   q1(1:mxatms)=ZERO
   q2(1:mxatms)=ZERO
   q3(1:mxatms)=ZERO
+  
+  rmass(1:mxatms)=ZERO
   
   tqx(1:mxatms)=ZERO
   tqy(1:mxatms)=ZERO
@@ -1157,6 +1194,11 @@
     end forall
   endif
   
+! compute inverse mass
+  forall(i=1:natms)
+    rmass(i)=ONE/weight(i)
+  end forall
+  
 ! total degree of freedom of particles
   if(lrotate)then
     degfre=SIX*real(natms,kind=PRC)
@@ -1472,13 +1514,32 @@
     fzz(i)=ZERO
   end forall
   
+  return
+  
+ end subroutine initialize_particle_force
+ 
+ subroutine initialize_particle_energy
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to initialize the particle energy
+!
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+
+  implicit none
+  
+  
   engcfg=ZERO
   engke=ZERO
   engtot=ZERO
   
   return
   
- end subroutine initialize_particle_force
+ end subroutine initialize_particle_energy
  
  subroutine driver_inter_force
  
@@ -1565,12 +1626,12 @@
         vvv=FOUR*eps*(sig/rrr)**SIX*((sig/rrr)**SIX-ONE)+vmin
         ggg=TWENTYFOUR*eps/rrr*(sig/rrr)**SIX*(TWO*(sig/rrr)**SIX-ONE)
         engcfg=engcfg+vvv
-        fxx(iatm)=fxx(iatm)+ggg*xdf(k)/rrr
-        fxx(jatm)=fxx(jatm)-ggg*xdf(k)/rrr
-        fyy(iatm)=fyy(iatm)+ggg*ydf(k)/rrr
-        fyy(jatm)=fyy(jatm)-ggg*ydf(k)/rrr
-        fzz(iatm)=fzz(iatm)+ggg*zdf(k)/rrr
-        fzz(jatm)=fzz(jatm)-ggg*zdf(k)/rrr
+        fxx(iatm)=fxx(iatm)-ggg*xdf(k)/rrr
+        fxx(jatm)=fxx(jatm)+ggg*xdf(k)/rrr
+        fyy(iatm)=fyy(iatm)-ggg*ydf(k)/rrr
+        fyy(jatm)=fyy(jatm)+ggg*ydf(k)/rrr
+        fzz(iatm)=fzz(iatm)-ggg*zdf(k)/rrr
+        fzz(jatm)=fzz(jatm)+ggg*zdf(k)/rrr
       endif
     enddo
   enddo
@@ -1603,12 +1664,12 @@
           vvv=FOUR*eps*(sig/rrr)**SIX*((sig/rrr)**SIX-ONE)
           ggg=TWENTYFOUR*eps/rrr*(sig/rrr)**SIX*(TWO*(sig/rrr)**SIX-ONE)
           engcfg=engcfg+vvv
-          fxx(iatm)=fxx(iatm)+ggg*xdf(k)/rrr
-          fxx(jatm)=fxx(jatm)-ggg*xdf(k)/rrr
-          fyy(iatm)=fyy(iatm)+ggg*ydf(k)/rrr
-          fyy(jatm)=fyy(jatm)-ggg*ydf(k)/rrr
-          fzz(iatm)=fzz(iatm)+ggg*zdf(k)/rrr
-          fzz(jatm)=fzz(jatm)-ggg*zdf(k)/rrr
+          fxx(iatm)=fxx(iatm)-ggg*xdf(k)/rrr
+          fxx(jatm)=fxx(jatm)+ggg*xdf(k)/rrr
+          fyy(iatm)=fyy(iatm)-ggg*ydf(k)/rrr
+          fyy(jatm)=fyy(jatm)+ggg*ydf(k)/rrr
+          fzz(iatm)=fzz(iatm)-ggg*zdf(k)/rrr
+          fzz(jatm)=fzz(jatm)+ggg*zdf(k)/rrr
         endif
       enddo
     enddo
@@ -1648,12 +1709,12 @@
           ggg=FIVE*HALF*kappa*(rmin-rrr)**(THREE*HALF)
         endif
         engcfg=engcfg+vvv
-        fxx(iatm)=fxx(iatm)+ggg*xdf(k)/rrr
-        fxx(jatm)=fxx(jatm)-ggg*xdf(k)/rrr
-        fyy(iatm)=fyy(iatm)+ggg*ydf(k)/rrr
-        fyy(jatm)=fyy(jatm)-ggg*ydf(k)/rrr
-        fzz(iatm)=fzz(iatm)+ggg*zdf(k)/rrr
-        fzz(jatm)=fzz(jatm)-ggg*zdf(k)/rrr
+        fxx(iatm)=fxx(iatm)-ggg*xdf(k)/rrr
+        fxx(jatm)=fxx(jatm)+ggg*xdf(k)/rrr
+        fyy(iatm)=fyy(iatm)-ggg*ydf(k)/rrr
+        fyy(jatm)=fyy(jatm)+ggg*ydf(k)/rrr
+        fzz(iatm)=fzz(iatm)-ggg*zdf(k)/rrr
+        fzz(jatm)=fzz(jatm)+ggg*zdf(k)/rrr
       endif
     enddo
   enddo
@@ -1665,6 +1726,28 @@
   return
 
  end subroutine compute_inter_force
+ 
+ subroutine merge_particle_energies()
+ 
+  implicit none
+  
+  real(kind=PRC) :: fsum(2)
+  
+! all reduce sum
+  if(mxrank>1)then
+    fsum(1)=engke
+    fsum(2)=engcfg
+    call sum_world_farr(fsum,2)
+    engke=fsum(1)
+    engcfg=fsum(2)
+  endif
+  
+! calculate total energy  
+  engtot=engke+engcfg
+  
+  return
+  
+ end subroutine merge_particle_energies
  
  subroutine init_velocity()
       
@@ -1680,18 +1763,19 @@
   implicit none
   
   integer :: i
-  real(kind=PRC) temp,tolnce,sigma
+  real(kind=PRC) :: temp,tolnce,sigma
+  real(kind=PRC), parameter :: tmin=real(1.d-2,kind=PRC)
       
 ! set atomic velocities from gaussian distribution
       
   do i=1,natms
-    sigma=sqrt(tempboltz*init_temp/weight(i))
+    sigma=sqrt(tempboltz*init_temp*rmass(i))
     vxx(i)=sigma*gauss()
     vyy(i)=sigma*gauss()
     vzz(i)=sigma*gauss()
   enddo
   
-  call vscaleg()
+  if(init_temp>tmin)call vscaleg()
   
   return
   
@@ -1740,7 +1824,7 @@
       
  end subroutine vscaleg
  
- subroutine initialize_lf()
+ subroutine initialize_integrator_lf()
 
 !***********************************************************************
 !     
@@ -1756,24 +1840,31 @@
   implicit none
   
   integer :: i
-  real(kind=PRC) :: fsum(2)
   
-! report the atoms velocity to half timestep back 
-  forall(i=1:natms)      
-    vxx(i)=vxx(i)-HALF*tstepatm/weight(i)*fxx(i)
-    vyy(i)=vyy(i)-HALF*tstepatm/weight(i)*fyy(i)
-    vzz(i)=vzz(i)-HALF*tstepatm/weight(i)*fzz(i)
-  end forall
+  if(lvv)return
+  
+  select case(keyint)
+  case (1) 
+! report the atoms velocity to half timestep back for leap frog
+    forall(i=1:natms)      
+      vxx(i)=vxx(i)-HALF*tstepatm*rmass(i)*fxx(i)
+      vyy(i)=vyy(i)-HALF*tstepatm*rmass(i)*fyy(i)
+      vzz(i)=vzz(i)-HALF*tstepatm*rmass(i)*fzz(i)
+    end forall
+  case default
+    return
+  end select
   
   return
       
- end subroutine initialize_lf
+ end subroutine initialize_integrator_lf
  
- subroutine integrate_particles(nstepsub)
+ subroutine integrate_particles_lf(nstepsub)
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for driving the particle integratio
+!     LBsoft subroutine for driving the particle integration by
+!     Verlet leapfrog
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -1785,8 +1876,6 @@
   
   integer, intent(in) :: nstepsub
   
-  real(kind=PRC) :: fsum(2)
-  
   select case(keyint)
   case (1) 
     call nve_lf
@@ -1794,27 +1883,16 @@
     call nve_lf
   end select
   
-! all reduce sum
-  if(mxrank>1)then
-    fsum(1)=engke
-    fsum(2)=engcfg
-    call sum_world_farr(fsum,2)
-    engke=fsum(1)
-    engcfg=fsum(2)
-  endif
-  
-! calculate total energy  
-  engtot=engke+engcfg
-  
   return
   
- end subroutine integrate_particles
+ end subroutine integrate_particles_lf
  
  subroutine nve_lf()
 
 !***********************************************************************
 !     
-!     LBsoft subroutine for integrating newtonian EOM by Verlet leapfrog
+!     LBsoft subroutine for integrating newtonian EOM by 
+!     Verlet leapfrog
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -1871,9 +1949,9 @@
 ! move atoms by leapfrog algorithm    
   forall(i=1:natms)
 !   update velocities       
-    uxx(i)=vxx(i)+tstepatm/weight(i)*fxx(i)
-    uyy(i)=vyy(i)+tstepatm/weight(i)*fyy(i)
-    uzz(i)=vzz(i)+tstepatm/weight(i)*fzz(i)
+    uxx(i)=vxx(i)+tstepatm*rmass(i)*fxx(i)
+    uyy(i)=vyy(i)+tstepatm*rmass(i)*fyy(i)
+    uzz(i)=vzz(i)+tstepatm*rmass(i)*fzz(i)
 !   update positions
     xxx(i)=xxo(i)+tstepatm*uxx(i)
     yyy(i)=yyo(i)+tstepatm*uyy(i)
@@ -1918,6 +1996,84 @@
   return
       
  end subroutine nve_lf
+ 
+ subroutine integrate_particles_vv(isw,nstepsub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the particle integration by
+!     velocity Verlet
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: isw,nstepsub
+  
+  select case(keyint)
+  case (1) 
+    call nve_vv(isw)
+  case default
+    call nve_vv(isw)
+  end select
+  
+  return
+  
+ end subroutine integrate_particles_vv
+ 
+ subroutine nve_vv(isw)
+
+!***********************************************************************
+!     
+!     LBsoft subroutine for integrating newtonian EOM by 
+!     velocity Verlet 
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+
+  implicit none
+  
+  integer, intent(in) :: isw
+  
+  integer :: i
+  
+! update velocities for first and second stages
+  forall(i=1:natms)
+    vxx(i)=vxx(i)+HALF*tstepatm*fxx(i)*rmass(i)
+    vyy(i)=vyy(i)+HALF*tstepatm*fyy(i)*rmass(i)
+    vzz(i)=vzz(i)+HALF*tstepatm*fzz(i)*rmass(i)
+  end forall
+  
+  select case(isw)
+  case(1)
+  
+!   update positions
+    forall(i=1:natms)
+      xxx(i)=xxx(i)+tstepatm*vxx(i)
+      yyy(i)=yyy(i)+tstepatm*vyy(i)
+      zzz(i)=zzz(i)+tstepatm*vzz(i)
+    end forall
+    
+!   periodic boundary condition
+    call pbc_images_centered(imcon,natms,cell,cx,cy,cz,xxx,yyy,zzz)
+  
+  case(2)
+  
+!   calculate kinetic energy    
+    call getkin(engke)
+    
+  end select
+      
+  return
+      
+ end subroutine nve_vv
  
  subroutine getkin(engkes)
 
