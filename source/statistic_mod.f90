@@ -16,13 +16,14 @@
   max_world_farr,min_world_farr,get_sync_world,finalize_world
  use fluids_mod,            only : nx,ny,nz,rhoR,rhoB,u,v,w, &
   lsingle_fluid, minx, maxx, miny, maxy, minz, maxz
- use particles_mod,         only : lparticles,engke,engcfg,engtot
+ use particles_mod,         only : lparticles,engke,engcfg,engtot, &
+  engrot,tempboltz,degfre
  
  implicit none
  
  private
  
- integer, public, parameter :: nmaxstatdata=19
+ integer, public, parameter :: nmaxstatdata=20
  
  real(kind=PRC), public, save, dimension(nmaxstatdata) :: statdata
  real(kind=PRC), public, save :: meancputime=0.d0
@@ -124,6 +125,8 @@
   statdata(17)=engke
   statdata(18)=engcfg
   statdata(19)=engtot
+! particle temperature as ratio of KbT
+  statdata(20)=TWO*(engke+engrot)/(tempboltz*degfre)
   
   if(mxrank>1)then
     dtemp(1)=statdata(1)

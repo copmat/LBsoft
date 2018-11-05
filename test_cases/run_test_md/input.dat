@@ -5,7 +5,7 @@ diagnostic yes
 boundary condition 1 1 1
 decomposition type 7
 decomposition dimension 1 1 1
-print list engke engcf engto maxvx maxvy maxvz cpur cpu
+print list engke engcf engto tempp cpur cpu
 print every 10
 print vtk 10
 print xyz 1
@@ -23,13 +23,13 @@ fluid tau 1.d0 1.d0
 [END ROOM]
 [ROOM MD]
 particle yes
-velocity verlet no
-initial temperature 0.d0
+velocity verlet yes
+initial temperature 1.d0
 rotate no
 densvar 1.2d0
 rcut 12.d0
 delr 1.0d0
-field pair hz 0.005d0 2.d0
-mass 20.d0
+field pair hz 0.15d0 4.d0
+mass 74.d0
 [END ROOM]
 [END]

@@ -8,7 +8,7 @@
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
-!     last modification September 2017
+!     last modification October 2018
 !     
 !***********************************************************************
  
@@ -39,11 +39,11 @@
   bc_type_rear,set_fluid_wall_sc,wallR_SC,wallB_SC,LBintegrator, &
   set_LBintegrator_type,lbc_halfway,set_lbc_halfway
  use particles_mod,         only : set_natms_tot,natms_tot,lparticles, &
-  set_lparticles,set_densvar,densvar,lspherical,set_rcut,rcut,delr, &
+  set_ishape,set_densvar,densvar,ishape,set_rcut,rcut,delr, &
   set_delr,rotmat_2_quat,lrotate,set_lrotate,allocate_field_array, &
   set_ntpvdw,ntpvdw,set_field_array,mxpvdw,mxvdw,ltpvdw,prmvdw, &
   set_umass,umass,lumass,linit_temp,init_temp,set_init_temp,lvv, &
-  set_lvv
+  set_lvv,set_urdim,urdim,lurdim,set_lparticles
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,set_value_ixyzevery,lxyzfile,ixyzevery
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
@@ -319,6 +319,7 @@
   integer :: temp_nprocy=1
   integer :: temp_nprocz=1
   integer :: ifield_pair=0
+  integer :: temp_ishape=-1
   logical :: temp_ibc=.false.
   logical :: temp_lpair_SC=.false.
   logical :: temp_ldomdec=.false.
@@ -350,6 +351,7 @@
   logical :: temp_lumass=.false.
   logical :: temp_linit_temp=.false.
   logical :: temp_lvv=.false.
+  logical :: temp_lurdim=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -410,6 +412,8 @@
   real(kind=PRC) :: dtemp_delr= ZERO
   
   real(kind=PRC) :: dtemp_umass= ZERO
+  
+  real(kind=PRC) :: dtemp_urdim=ZERO
   
   real(kind=PRC) :: dtemp_init_temp= ZERO
   
@@ -809,6 +813,15 @@
                 temp_lparticles=.true.
               elseif(findstring('no',directive,inumchar,maxlen))then
                 temp_lparticles=.false.
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
+              endif
+            elseif(findstring('shape',directive,inumchar,maxlen))then
+              if(findstring('spher',directive,inumchar,maxlen))then
+                temp_ishape=0
+                temp_lurdim=.true.
+                dtemp_urdim=dblstr(directive,maxlen,inumchar)
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1514,6 +1527,35 @@
       write(6,'(3a)')mystring,": ",mystring12
     endif
     
+    call bcast_world_i(temp_ishape)
+    if(temp_ishape>=0)then
+      call set_ishape(temp_ishape)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='particle shape'
+        mystring12=repeat(' ',dimprint2)
+        select case(ishape)
+        case(0)
+          mystring12='spherical'
+        case(1)
+          mystring12='ellipsoid'
+        end select
+        mystring12=adjustr(mystring12)
+        write(6,'(3a)')mystring,": ",mystring12
+      endif
+    endif
+    
+    call bcast_world_l(temp_lurdim)
+    if(temp_lurdim)then
+      call bcast_world_f(dtemp_urdim)
+      call set_urdim(dtemp_urdim)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='unique particle radius'
+        write(6,'(2a,f12.6)')mystring,": ",urdim
+      endif
+    endif
+    
     call bcast_world_l(temp_linit_temp)
     if(temp_linit_temp)then
       call bcast_world_f(dtemp_init_temp)
@@ -1734,6 +1776,8 @@
     legendobs='engcf =  configurational energy                   '
   elseif(printcodsub(iarg)==19)then
     legendobs='engto =  total energy                             '
+  elseif(printcodsub(iarg)==20)then
+    legendobs='tempp =  particle temperature                     '
   endif
   legendobs=adjustl(legendobs)
   
@@ -1815,6 +1859,9 @@
     lfound=.true.
   elseif(findstring('engto',temps,inumchar,lenstring))then
     printcodsub(iarg)=19
+    lfound=.true.
+  elseif(findstring('tempp',temps,inumchar,lenstring))then
+    printcodsub(iarg)=20
     lfound=.true.
   elseif(findstring('cpur',temps,inumchar,lenstring))then
     printcodsub(iarg)=13
@@ -1902,6 +1949,8 @@
     printlisub(iarg)='engcf (lu)'
   elseif(printcodsub(iarg)==19)then
     printlisub(iarg)='engto (lu)'
+  elseif(printcodsub(iarg)==20)then
+    printlisub(iarg)='tempp (KbT)'
   endif
   printlisub(iarg)=adjustr(printlisub(iarg))
   enddo
@@ -2230,7 +2279,7 @@
   logical :: lerror1,lerror2,lerror3,lerror4,safe,lexists
   integer :: temp_natms_tot
   logical :: lxyzlisterror,lfoundprintxyz,lxyzlist,lxyzlist1,lxyzlist2, &
-   lqinput,ltinput,lerror5,lmass,lvel(3)
+   lqinput,ltinput,lerror5,lmass,lvel(3),lrdim
   
   character(len=*),parameter :: of='(a)'
   integer, parameter :: natmname=4
@@ -2334,10 +2383,11 @@
       lqinput=.false.
       ltinput=.false.
       lmass=.false.
+      lrdim=.false.
       lvel(1:3)=.false.
       do i=1,nxyzlist
         if(xyzlist(i)>=3 .and. xyzlist(i)<=5)then
-          if(lspherical)then
+          if(ishape==0)then
             lerror4=.true.
             call warning(11,dble(iline))
             call warning(16)
@@ -2347,6 +2397,7 @@
         if(xyzlist(i)>=22)lqinput=.true.
         if(xyzlist(i)>=13 .and. xyzlist(i)<=21)ltinput=.true.
         if(xyzlist(i)==2)lmass=.true.
+        if(xyzlist(i)==6)lrdim=.true.
         if(xyzlist(i)==7)lvel(1)=.true.
         if(xyzlist(i)==8)lvel(2)=.true.
         if(xyzlist(i)==9)lvel(3)=.true.
@@ -2362,6 +2413,14 @@
         call warning(11,dble(iline))
         call warning(25)
         goto 120
+      endif
+      if(ishape==0)then
+        if((.not. lrdim).and.(.not. lurdim))then
+          lerror5=.true.
+          call warning(11,dble(iline))
+          call warning(28)
+          goto 120
+        endif
       endif
       if(all(lvel))then
         lvelocity=.true.

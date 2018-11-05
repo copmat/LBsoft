@@ -90,6 +90,9 @@
  !set unique mass
  logical, public, protected, save :: lumass=.false.
  
+ !set unique radius
+ logical, public, protected, save :: lurdim=.false.
+ 
  !kbT factor
  real(kind=PRC), public, protected, save :: tempboltz=cssq
  
@@ -107,6 +110,9 @@
  
  !value of unique mass
  real(kind=PRC), public, protected, save :: umass=ONE
+ 
+ !value of unique radius
+ real(kind=PRC), public, protected, save :: urdim=ZERO
  
  !cell vectors
  real(kind=PRC), dimension(9), public, protected, save :: cell
@@ -143,11 +149,11 @@
  !key for activate the body rotation
  logical, public, protected, save :: lrotate=.false.
  
- !key for activate the body rotation
- logical, public, protected, save :: lspherical=.true.
- 
  !there are enough cells for the link approach within the same process?
  logical, public, protected, save :: lnolink=.false.
+ 
+ !key for particle shape
+ integer, public, protected, save :: ishape=0
  
  !book of global particle ID
  integer, allocatable, public, protected, save :: atmbook(:)
@@ -220,6 +226,7 @@
  public :: set_densvar
  public :: set_rcut
  public :: set_delr
+ public :: set_ishape
  public :: set_lrotate
  public :: set_lvv
  public :: initialize_map_particles
@@ -230,6 +237,7 @@
  public :: set_field_array
  public :: vertest
  public :: set_umass
+ public :: set_urdim
  public :: initialize_particle_force
  public :: initialize_particle_energy
  public :: driver_inter_force
@@ -351,6 +359,28 @@
   
  end subroutine set_delr
  
+ subroutine set_ishape(itemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the ishape protected variable
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: itemp
+  
+  ishape=itemp
+  
+  return
+  
+ end subroutine set_ishape
+ 
  subroutine set_lrotate(ltemp)
  
 !***********************************************************************
@@ -399,9 +429,7 @@
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for setting the ntpvdw protected variable
-!     ntpvdw denotes the total number of pair force fields 
-!     defined in input
+!     LBsoft subroutine for setting the umass protected variable
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -419,6 +447,29 @@
   return
   
  end subroutine set_umass
+ 
+ subroutine set_urdim(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the urdim protected variable
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp
+  
+  lurdim=.true.
+  urdim=dtemp
+  
+  return
+  
+ end subroutine set_urdim
  
  subroutine set_init_temp(dtemp)
  
@@ -648,9 +699,9 @@
   allocate(fyy(mxatms),stat=istat(8))
   allocate(fzz(mxatms),stat=istat(9))
   
-  if(lspherical)then
+  if(ishape==0)then
     allocate(rdim(mxatms),stat=istat(10))
-  else
+  elseif(ishape==1)then
     allocate(rdimx(mxatms),stat=istat(23))
     allocate(rdimy(mxatms),stat=istat(24))
     allocate(rdimz(mxatms),stat=istat(25))
@@ -685,7 +736,7 @@
     call error(-1)
   endif
   
-  if(.not. lspherical)then
+  if(ishape/=0)then
     if(idrank==0)write(6,'(a)')'ATTENTION: non spherical particle part is under developing!'
     call error(-1)
   endif
@@ -733,9 +784,9 @@
   fyy(1:mxatms)=ZERO
   fzz(1:mxatms)=ZERO
   
-  if(lspherical)then
+  if(ishape==0)then
     rdim(1:mxatms)=ZERO
-  else
+  elseif(ishape==1)then
     rdimx(1:mxatms)=ZERO
     rdimy(1:mxatms)=ZERO
     rdimz(1:mxatms)=ZERO
@@ -1187,11 +1238,21 @@
   call print_all_particles(100,'mioprima',1)
 #endif
   
-! set the mass
+! set the unique value of mass if given in input.dat
   if(lumass)then
     forall(i=1:natms)
       weight(i)=umass
     end forall
+  endif
+  
+! set the unique value of rdim given in input.dat
+! if particle is spherical
+  if(ishape==0)then
+    if(lurdim)then
+      forall(i=1:natms)
+        rdim(i)=urdim
+      end forall
+    endif
   endif
   
 ! compute inverse mass

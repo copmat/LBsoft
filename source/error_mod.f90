@@ -207,6 +207,8 @@
       write(outp,'(a)') &
       "WARNING - * engto                * min fluid velocity of fluid mix along z in lb units   *"
       write(outp,'(a)') &
+      "WARNING - * tempp                * particle temperature as ratio of KbT                  *"
+      write(outp,'(a)') &
       "WARNING - * cpu                  * time for every print interval in seconds              *"
       write(outp,'(a)') &
       "WARNING - * cpur                 * remaining time to the end in seconds                  *"
@@ -346,8 +348,10 @@
        " field pair types can be specified in input"
     case (25)
       write(outp,'(/,a)')"WARNING - 'read list' is not correctly specified"
-      write(outp,'(2a,/)')"WARNING - particle masses not specified neither ", &
+      write(outp,'(2a)')"WARNING - particle masses not specified neither ", &
        "in input nor xyz files"
+      write(outp,'(a)')"WARNING - set 'read list mass' in xyz file "
+      write(outp,'(a,/)')"WARNING - or set 'mass float' in input.dat file"
     case (26)
       write(outp,'(/,a)')"WARNING - bounce back is automatically switched to halfway mode"
       write(outp,'(a,/)')"WARNING - this is mandatory for the particle treatment"
@@ -356,6 +360,12 @@
        "in input nor xyz files"
       write(outp,'(a)')"WARNING - set 'read list vx vy vz' in xyz file "
       write(outp,'(a,/)')"WARNING - or set init temperature in input.dat"
+    case (28)
+      write(outp,'(/,a)')"WARNING - 'read list' is not correctly specified"
+      write(outp,'(2a)')"WARNING - spherical particle radius not specified neither ", &
+       "in input nor xyz files"
+      write(outp,'(a)')"WARNING - set 'read list rdim' in xyz file "
+      write(outp,'(a,/)')"WARNING - or set 'shape spherical float' in input.dat file"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select
