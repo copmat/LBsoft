@@ -24,7 +24,8 @@
                         lpair_SC,driver_apply_bounceback_pop, &
                         driver_streaming_fluids,aoptpR,test_fake_pops,&
                         probe_pops_in_node,ex,ey,ez,isfluid, &
-                        driver_bc_velocities
+                        driver_bc_velocities,lbc_halfway, &
+                        driver_apply_bounceback_halfway_pop
  use particles_mod,    only : driver_neighborhood_list,lparticles, &
                         vertest,initialize_particle_force, &
                         driver_inter_force,integrate_particles_lf, &
@@ -243,13 +244,21 @@
   call driver_collision_fluids
   if(ldiagnostic)call end_timing2("LB","collision_fluids")
   
+  if(lbc_halfway)then
+    if(ldiagnostic)call start_timing2("LB","apply_bback_pop_hf")
+    call driver_apply_bounceback_halfway_pop
+    if(ldiagnostic)call end_timing2("LB","apply_bback_pop_hf")
+  endif
+  
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
   call driver_streaming_fluids
   if(ldiagnostic)call end_timing2("LB","streaming_fluids")
   
-  if(ldiagnostic)call start_timing2("LB","apply_bounceback_pop")
-  call driver_apply_bounceback_pop
-  if(ldiagnostic)call end_timing2("LB","apply_bounceback_pop")
+  if(.not.lbc_halfway)then
+    if(ldiagnostic)call start_timing2("LB","apply_bback_pop")
+    call driver_apply_bounceback_pop
+    if(ldiagnostic)call end_timing2("LB","apply_bback_pop")
+  endif
   
   mytime = new_time
   

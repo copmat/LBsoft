@@ -302,6 +302,7 @@
  public :: driver_bc_pop_selfcomm
  public :: driver_initialiaze_manage_bc_selfcomm
  public :: set_lbc_halfway
+ public :: driver_apply_bounceback_halfway_pop
  
  contains
  
@@ -1239,8 +1240,6 @@
   integer :: i,j,k,l,imio3(3)
   logical :: ltestout
   character(len=32) :: itesto
-  
-  
   
 ! initialize isfluid
   
@@ -5671,6 +5670,42 @@ subroutine driver_bc_densities
   
  end subroutine driver_apply_bounceback_pop
  
+ subroutine driver_apply_bounceback_halfway_pop
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the bounce back of the fluid
+!     populations if requested from the boundary conditions 
+!     in halfway mode.
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  integer ::i,j,k,l
+  integer, save :: iter=0
+  
+  iter=iter+1
+  
+  call set_bc_variable_hvar
+  
+  call apply_bounceback_pop_halfway(bc_rhoR,bc_u,bc_v,bc_w,aoptpR)
+  
+#ifdef DIAGNSTREAM
+  if(iter==NDIAGNSTREAM)call print_all_pops(100,'miodopobounce',iter,aoptpR)
+#endif
+  
+  if(lsingle_fluid)return
+  
+  call apply_bounceback_pop_halfway(bc_rhoB,bc_u,bc_v,bc_w,aoptpB)
+
+  return
+  
+ end subroutine driver_apply_bounceback_halfway_pop
+ 
  subroutine set_bc_hvar
  
 !***********************************************************************
@@ -6986,7 +7021,506 @@ subroutine driver_bc_densities
   
   return
   
- end subroutine
+ end subroutine apply_bounceback_pop
+ 
+ subroutine apply_bounceback_pop_halfway(rho_s,u_s,v_s,w_s,aoptp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the bounceback 
+!     to fluid populations if necessary in halfway mode,
+!     page 82 of book: "the lattice boltzmann equation", S.Succi, 2001.
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification September 2018
+!     
+!***********************************************************************
+ 
+  implicit none 
+  
+  real(kind=PRC), allocatable, dimension(:)  :: rho_s,u_s,v_s,w_s
+  
+  type(REALPTR), dimension(0:links):: aoptp
+  
+  integer :: i,j,k,l,sx,sz
+  
+  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
+  real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
+  real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
+  integer, parameter :: kk = 1
+  
+  if(nbounce0>=1)then
+  forall(i=1:nbounce0)
+    
+    aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(2)%p(ibounce(1,i)+ex(1),ibounce(2,i),ibounce(3,i)), &
+     kind=PRC)
+    aoptp(2)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(1)%p(ibounce(1,i)+ex(2),ibounce(2,i),ibounce(3,i)), &
+     kind=PRC)
+    
+    aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(4)%p(ibounce(1,i),ibounce(2,i)+ey(3),ibounce(3,i)), &
+     kind=PRC)
+    aoptp(4)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(3)%p(ibounce(1,i),ibounce(2,i)+ey(4),ibounce(3,i)), &
+     kind=PRC)
+    
+    aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)+ez(5)), &
+     kind=PRC)
+    aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)+ez(6)), &
+     kind=PRC)
+    
+    aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(8)%p(ibounce(1,i)+ex(7),ibounce(2,i)+ey(7),ibounce(3,i)), &
+     kind=PRC)
+    aoptp(8)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(7)%p(ibounce(1,i)+ex(8),ibounce(2,i)+ey(8),ibounce(3,i)), &
+     kind=PRC)
+    
+    aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(10)%p(ibounce(1,i)+ex(9),ibounce(2,i)+ey(9),ibounce(3,i)), &
+     kind=PRC)
+    aoptp(10)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(9)%p(ibounce(1,i)+ex(10),ibounce(2,i)+ey(10),ibounce(3,i)), &
+     kind=PRC)
+     
+    aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(12)%p(ibounce(1,i)+ex(11),ibounce(2,i),ibounce(3,i)+ez(11)), &
+     kind=PRC)
+    aoptp(12)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(11)%p(ibounce(1,i)+ex(12),ibounce(2,i),ibounce(3,i)+ez(12)), &
+     kind=PRC)
+    
+    aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(14)%p(ibounce(1,i)+ex(13),ibounce(2,i),ibounce(3,i)+ez(13)), &
+     kind=PRC)
+    aoptp(14)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(13)%p(ibounce(1,i)+ex(14),ibounce(2,i),ibounce(3,i)+ez(14)), &
+     kind=PRC)
+    
+    aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(16)%p(ibounce(1,i),ibounce(2,i)+ey(15),ibounce(3,i)+ez(15)), &
+     kind=PRC)
+    aoptp(16)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(15)%p(ibounce(1,i),ibounce(2,i)+ey(16),ibounce(3,i)+ez(16)), &
+     kind=PRC)
+     
+    aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(18)%p(ibounce(1,i),ibounce(2,i)+ey(17),ibounce(3,i)+ez(17)), &
+     kind=PRC)
+    aoptp(18)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(17)%p(ibounce(1,i),ibounce(2,i)+ey(18),ibounce(3,i)+ez(18)), &
+     kind=PRC)
+    
+  end forall
+  
+  endif
+  if(nbounce6>=nbounce0+1)then
+  
+  forall(i=nbounce0+1:nbounce6)
+    !dirichlet condition
+    !anti-bounce-back approach
+    !from page 200 Kruger's book "the lattice boltzmann method"
+    !NOTE de[x,y,z]=zero eliminated
+    
+    aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(2)%p(ibounce(1,i)+ex(1),ibounce(2,i),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(1)*TWO*rho_s(i)* &
+     (ONE+(dex(1)*u_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(2)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(1)%p(ibounce(1,i)+ex(2),ibounce(2,i),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(2)*TWO*rho_s(i)* &
+     (ONE+(dex(2)*u_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+    
+    
+    aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(4)%p(ibounce(1,i),ibounce(2,i)+ey(3),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(3)*TWO*rho_s(i)* &
+     (ONE+(dey(3)*v_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(4)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(3)%p(ibounce(1,i),ibounce(2,i)+ey(4),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(4)*TWO*rho_s(i)* &
+     (ONE+(dey(4)*v_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+    
+    
+    aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)+ez(5)), &
+     kind=PRC)+ &
+     p(5)*TWO*rho_s(i)* &
+     (ONE+(dez(5)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)+ez(6)), &
+     kind=PRC)+ &
+     p(6)*TWO*rho_s(i)* &
+     (ONE+(dez(6)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+    
+    
+    aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(8)%p(ibounce(1,i)+ex(7),ibounce(2,i)+ey(7),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(7)*TWO*rho_s(i)* &
+     (ONE+(dex(7)*u_s(i)+ &
+     dey(7)*v_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(8)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(7)%p(ibounce(1,i)+ex(8),ibounce(2,i)+ey(8),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(8)*TWO*rho_s(i)* &
+     (ONE+(dex(8)*u_s(i)+ &
+     dey(8)*v_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+    
+    
+    aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(10)%p(ibounce(1,i)+ex(9),ibounce(2,i)+ey(9),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(9)*TWO*rho_s(i)* &
+     (ONE+(dex(9)*u_s(i)+ &
+     dey(9)*v_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(10)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(9)%p(ibounce(1,i)+ex(10),ibounce(2,i)+ey(10),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(10)*TWO*rho_s(i)* &
+     (ONE+(dex(10)*u_s(i)+ &
+     dey(10)*v_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+     
+    aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(12)%p(ibounce(1,i)+ex(11),ibounce(2,i),ibounce(3,i)+ez(11)), &
+     kind=PRC)+ &
+     p(11)*TWO*rho_s(i)* &
+     (ONE+(dex(11)*u_s(i)+ &
+     dez(11)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(12)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(11)%p(ibounce(1,i)+ex(12),ibounce(2,i),ibounce(3,i)+ez(12)), &
+     kind=PRC)+ &
+     p(12)*TWO*rho_s(i)* &
+     (ONE+(dex(12)*u_s(i)+ &
+     dez(12)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    
+    aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(14)%p(ibounce(1,i)+ex(13),ibounce(2,i),ibounce(3,i)+ez(13)), &
+     kind=PRC)+ &
+     p(13)*TWO*rho_s(i)* &
+     (ONE+(dex(13)*u_s(i)+ &
+     dez(13)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(14)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(13)%p(ibounce(1,i)+ex(14),ibounce(2,i),ibounce(3,i)+ez(14)), &
+     kind=PRC)+ &
+     p(14)*TWO*rho_s(i)* &
+     (ONE+(dex(14)*u_s(i)+ &
+     dez(14)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+    
+    
+    aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(16)%p(ibounce(1,i),ibounce(2,i)+ey(15),ibounce(3,i)+ez(15)), &
+     kind=PRC)+ &
+     p(15)*TWO*rho_s(i)* &
+     (ONE+(dey(15)*v_s(i)+ &
+     dez(15)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(16)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(15)%p(ibounce(1,i),ibounce(2,i)+ey(16),ibounce(3,i)+ez(16)), &
+     kind=PRC)+ &
+     p(16)*TWO*rho_s(i)* &
+     (ONE+(dey(16)*v_s(i)+ &
+     dez(16)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+     
+    aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(18)%p(ibounce(1,i),ibounce(2,i)+ey(17),ibounce(3,i)+ez(17)), &
+     kind=PRC)+ &
+     p(17)*TWO*rho_s(i)* &
+     (ONE+(dey(17)*v_s(i)+ &
+     dez(17)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(18)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(17)%p(ibounce(1,i),ibounce(2,i)+ey(18),ibounce(3,i)+ez(18)), &
+     kind=PRC)+ &
+     p(18)*TWO*rho_s(i)* &
+     (ONE+(dey(18)*v_s(i)+ &
+     dez(18)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+    
+  end forall
+  
+  endif
+  if(nbounce7>=nbounce6+1)then
+  
+  forall(i=nbounce6+1:nbounce7)
+    !neumann condition
+    !moving walls bounce-back approach
+    !from page 180 Kruger's book "the lattice boltzmann method"
+    !NOTE de[x,y,z]=zero eliminated
+    
+    aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(2)%p(ibounce(1,i)+ex(1),ibounce(2,i),ibounce(3,i)), &
+     kind=PRC)- &
+     p(1)*pref_bouzidi*rho_s(i)* &
+     (dex(1)*u_s(i))
+    
+    aoptp(2)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(1)%p(ibounce(1,i)+ex(2),ibounce(2,i),ibounce(3,i)), &
+     kind=PRC)- &
+     p(2)*pref_bouzidi*rho_s(i)* &
+     (dex(2)*u_s(i))
+    
+    
+    aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(4)%p(ibounce(1,i),ibounce(2,i)+ey(3),ibounce(3,i)), &
+     kind=PRC)- &
+     p(3)*pref_bouzidi*rho_s(i)* &
+     (dey(3)*v_s(i))
+    
+    aoptp(4)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(3)%p(ibounce(1,i),ibounce(2,i)+ey(4),ibounce(3,i)), &
+     kind=PRC)- &
+     p(4)*pref_bouzidi*rho_s(i)* &
+     (dey(4)*v_s(i))
+    
+    
+    aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)+ez(5)), &
+     kind=PRC)- &
+     p(5)*pref_bouzidi*rho_s(i)* &
+     (dez(5)*w_s(i))
+    
+    aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)+ez(6)), &
+     kind=PRC)- &
+     p(6)*pref_bouzidi*rho_s(i)* &
+     (dez(6)*w_s(i))
+    
+    
+    aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(8)%p(ibounce(1,i)+ex(7),ibounce(2,i)+ey(7),ibounce(3,i)), &
+     kind=PRC)- &
+     p(7)*pref_bouzidi*rho_s(i)* &
+     (dex(7)*u_s(i)+ &
+     dey(7)*v_s(i))
+    
+    aoptp(8)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(7)%p(ibounce(1,i)+ex(8),ibounce(2,i)+ey(8),ibounce(3,i)), &
+     kind=PRC)- &
+     p(8)*pref_bouzidi*rho_s(i)* &
+     (dex(8)*u_s(i)+ &
+     dey(8)*v_s(i))
+    
+    
+    aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(10)%p(ibounce(1,i)+ex(9),ibounce(2,i)+ey(9),ibounce(3,i)), &
+     kind=PRC)- &
+     p(9)*pref_bouzidi*rho_s(i)* &
+     (dex(9)*u_s(i)+ &
+     dey(9)*v_s(i))
+    
+    aoptp(10)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(9)%p(ibounce(1,i)+ex(10),ibounce(2,i)+ey(10),ibounce(3,i)), &
+     kind=PRC)- &
+     p(10)*pref_bouzidi*rho_s(i)* &
+     (dex(10)*u_s(i)+ &
+     dey(10)*v_s(i))
+    
+    
+    aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(12)%p(ibounce(1,i)+ex(11),ibounce(2,i),ibounce(3,i)+ez(11)), &
+     kind=PRC)- &
+     p(11)*pref_bouzidi*rho_s(i)* &
+     (dex(11)*u_s(i)+ &
+     dez(11)*w_s(i))
+    
+    aoptp(12)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(11)%p(ibounce(1,i)+ex(12),ibounce(2,i),ibounce(3,i)+ez(12)), &
+     kind=PRC)- &
+     p(12)*pref_bouzidi*rho_s(i)* &
+     (dex(12)*u_s(i)+ &
+     dez(12)*w_s(i))
+    
+    
+    aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(14)%p(ibounce(1,i)+ex(13),ibounce(2,i),ibounce(3,i)+ez(13)), &
+     kind=PRC)- &
+     p(13)*pref_bouzidi*rho_s(i)* &
+     (dex(13)*u_s(i)+ &
+     dez(13)*w_s(i))
+    
+    aoptp(14)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(13)%p(ibounce(1,i)+ex(14),ibounce(2,i),ibounce(3,i)+ez(14)), &
+     kind=PRC)- &
+     p(14)*pref_bouzidi*rho_s(i)* &
+     (dex(14)*u_s(i)+ &
+     dez(14)*w_s(i))
+    
+    
+    aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(16)%p(ibounce(1,i),ibounce(2,i)+ey(15),ibounce(3,i)+ez(15)), &
+     kind=PRC)- &
+     p(15)*pref_bouzidi*rho_s(i)* &
+     (dey(15)*v_s(i)+ &
+     dez(15)*w_s(i))
+    
+    aoptp(16)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(15)%p(ibounce(1,i),ibounce(2,i)+ey(16),ibounce(3,i)+ez(16)), &
+     kind=PRC)- &
+     p(16)*pref_bouzidi*rho_s(i)* &
+     (dey(16)*v_s(i)+ &
+     dez(16)*w_s(i))
+    
+    
+    aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(18)%p(ibounce(1,i),ibounce(2,i)+ey(17),ibounce(3,i)+ez(17)), &
+     kind=PRC)- &
+     p(17)*pref_bouzidi*rho_s(i)* &
+     (dey(17)*v_s(i)+ &
+     dez(17)*w_s(i))
+    
+    aoptp(18)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(17)%p(ibounce(1,i),ibounce(2,i)+ey(18),ibounce(3,i)+ez(18)), &
+     kind=PRC)- &
+     p(18)*pref_bouzidi*rho_s(i)* &
+     (dey(18)*v_s(i)+ &
+     dez(18)*w_s(i))
+    
+  end forall
+  
+  endif
+  if(nbounce8>=nbounce7+1)then
+  
+  forall(i=nbounce7+1:nbounce8)
+    !robin conditions
+    !equilibrium scheme
+    !from page 191 Kruger's book "the lattice boltzmann method"
+    aoptp(0)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop00(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop01(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(2)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop02(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop03(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(4)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop04(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop05(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop06(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop07(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(8)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop08(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop09(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(10)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop10(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop11(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(12)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop12(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop13(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(14)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop14(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop15(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(16)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop16(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop17(rho_s(i),u_s(i),v_s(i),w_s(i))
+
+    aoptp(18)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+     equil_pop18(rho_s(i),u_s(i),v_s(i),w_s(i))
+     
+  end forall
+  
+  endif
+  
+  return
+  
+ end subroutine apply_bounceback_pop_halfway
  
  pure function interpolation_order_2(arg0,arg1,arg2)
  
@@ -7045,127 +7579,57 @@ subroutine driver_bc_densities
  
   integer :: i,j,k,l, ishift, jshift, kshift
   integer :: itemp, jtemp, ktemp
-  integer, save :: iter=0
-  
+  integer, save :: iter=0, lminx, lminy, lminz, lmaxx, lmaxy, lmaxz
+  if(iter.eq.0) then
+     lmaxx=maxx+1
+     lmaxy=maxy+1
+     lmaxz=maxz+1
+     lminx=minx-1
+     lminy=miny-1
+     lminz=minz-1
+     if((ixpbc.ne.1.AND.iypbc.ne.1).OR.(ixpbc.ne.1.AND.izpbc.ne.1)) then
+        lmaxx=maxx
+        lminx=minx
+     endif
+    if((iypbc.ne.1.AND.izpbc.ne.1)) then
+        lmaxy=maxy
+        lminy=miny
+    endif
+  endif
   iter=iter+1
-#if 0
-   if(iter.eq.2) then
-   do l=1,links
-!      write((50+idrank),*)'in pop ',l
-       do i=wminx,wmaxx
-         do j=miny,maxy
-           do k=wminz,wmaxz
-               write((100*idrank)+250+l,*)i,j,k,aoptp(l)%p(i,j,k)
-           enddo
-         enddo
-        enddo
-     enddo
-   endif  
-#endif
 
   do l=1,links
     ishift=ex(l)
     jshift=ey(l)
     kshift=ez(l)
-    if(ixpbc.ne.1.AND.ishift.ne.0) then
+    if(ixpbc.ne.1) then
       do i=wminx,wmaxx,wmaxx-wminx
-        if(i.lt.1.or.i.gt.(nx)) then
           if(mod(l,2).eq.1) then
-            forall(j=miny:maxy,k=minz:maxz) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
-            forall(j=miny:maxy,k=minz:maxz) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
-            forall(j=miny:maxy,k=minz:maxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
+            forall(j=miny-1:maxy+1,k=minz-1:maxz+1) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
+            forall(j=miny-1:maxy+1,k=minz-1:maxz+1) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
+            forall(j=miny-1:maxy+1,k=minz-1:maxz+1) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
           endif
-!max          if(iypbc.ne.1.AND.jshift.ne.0) then
-          if(jshift.ne.0) then
-!max            do j=wminy,wmaxy,wmaxy-wminy
-!max              if(j.lt.1.or.j.gt.(ny)) then
-            do j=miny-1,maxy+1,2+maxy-miny
-!max              if(j.lt.1.or.j.gt.(ny)) then
-                if(mod(l,2).eq.1) then
-                  forall(k=minz:maxz) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
-                  forall(k=minz:maxz) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
-                  forall(k=minz:maxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
-                endif
-!max              endif
-            enddo
-          endif
-!max          if(izpbc.ne.1.AND.kshift.ne.0) then
-          if(kshift.ne.0) then
-            do k=wminz,wmaxz,wmaxz-wminz
-               if(k.lt.1.or.k.gt.(nz)) then
-                if(mod(l,2).eq.1) then
-                  forall(j=miny:maxy) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
-                  forall(j=miny:maxy) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
-                  forall(j=miny:maxy) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
-                endif
-               endif
-            enddo
-          endif
-        endif
       enddo
     endif
-    if(iypbc.ne.1.AND.jshift.ne.0) then
+    if(iypbc.ne.1) then      
       do j=wminy,wmaxy,wmaxy-wminy
-        if(j.lt.1.or.j.gt.(ny)) then
           if(mod(l,2).eq.1) then
-            forall(i=minx:maxx,k=minz:maxz) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
-            forall(i=minx:maxx,k=minz:maxz) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
-            forall(i=minx:maxx,k=minz:maxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
+            forall(i=lminx:lmaxx,k=minz-1:maxz+1) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
+            forall(i=lminx:lmaxx,k=minz-1:maxz+1) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
+            forall(i=lminx:lmaxx,k=minz-1:maxz+1) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
           endif
-!max          if(izpbc.ne.1.AND.kshift.ne.0) then
-          if(kshift.ne.0) then
-            do k=wminz,wmaxz,wmaxz-wminz
-              if(k.lt.1.or.k.gt.(nz)) then
-                if(mod(l,2).eq.1) then
-                  forall(i=minx:maxx) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
-                  forall(i=minx:maxx) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k) 
-                  forall(i=minx:maxx) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
-                endif
-              endif
-            enddo
-          endif
-        endif
       enddo
     endif
-    if(izpbc.ne.1.AND.kshift.ne.0) then
-      do k=wminz,wmaxz,wmaxz-wminz
-        if(k.lt.1.or.k.gt.(nz)) then
+    if(izpbc.ne.1) then
+       do k=wminz,wmaxz,wmaxz-wminz
           if(mod(l,2).eq.1) then
-            forall(i=minx:maxx,j=miny:maxy) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
-            forall(i=minx:maxx,j=miny:maxy) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
-            forall(i=minx:maxx,j=miny:maxy) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
+            forall(i=lminx:lmaxx,j=lminy:lmaxy) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
+            forall(i=lminx:lmaxx,j=lminy:lmaxy) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k)
+            forall(i=lminx:lmaxx,j=lminy:lmaxy) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
           endif
-!abc
-!abc          if(jshift.ne.0) then
-!abc            do j=wminy,wmaxy,wmaxy-wminy
-!abc              if(j.lt.1.or.j.gt.(ny)) then
-!abc                if(mod(l,2).eq.1) then
-!abc                  forall(i=minx:maxx) buffservice3d(i,j,k) = aoptp((l+1))%p(i,j,k)
-!abc                  forall(i=minx:maxx) aoptp((l+1))%p(i,j,k) = aoptp(l)%p(i,j,k) 
-!abc                  forall(i=minx:maxx) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
-!abc                endif
-!abc              endif
-!abc            enddo
-!abc         endif
-!abc
-        endif
-      enddo
+       enddo
     endif
  enddo
-#if 0
-  if(iter.eq.2) then
-  do l=1,links
-!     write(50+idrank,*)'out pop ',l
-        do i=wminx,wmaxx
-         do j=miny,maxy
-            do k=wminz,wmaxz
-               write((100*idrank)+270+l,*)i,j,k,aoptp(l)%p(i,j,k)
-           enddo
-         enddo
-        enddo
-  enddo
-  endif
-#endif
  
  return
   
