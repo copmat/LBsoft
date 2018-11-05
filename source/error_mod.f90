@@ -354,7 +354,7 @@
       write(outp,'(a,/)')"WARNING - or set 'mass float' in input.dat file"
     case (26)
       write(outp,'(/,a)')"WARNING - bounce back is automatically switched to halfway mode"
-      write(outp,'(a,/)')"WARNING - this is mandatory for the particle treatment"
+      write(outp,'(a,/)')"WARNING - this is mandatory for the particle integration"
     case (27)
       write(outp,'(/,2a)')"WARNING - particle velocity not specified neither ", &
        "in input nor xyz files"

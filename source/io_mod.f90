@@ -906,6 +906,7 @@
                     temp_ltpvdw(ifield_pair)=3
                     dtemp_prmvdw(1,ifield_pair)=dblstr(directive,maxlen,inumchar)
                     dtemp_prmvdw(2,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                    dtemp_prmvdw(3,ifield_pair)=dblstr(directive,maxlen,inumchar)
                   endif
                 else
                   call warning(1,dble(iline),redstring)
@@ -1663,6 +1664,9 @@
           mystring=repeat(' ',dimprint)
           mystring='    r min'
           write(6,'(2a,f12.6)')mystring,": ",prmvdw(2,i)
+          mystring=repeat(' ',dimprint)
+          mystring='    r cap'
+          write(6,'(2a,f12.6)')mystring,": ",prmvdw(3,i)
         enddo
       endif
     endif

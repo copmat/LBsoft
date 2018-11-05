@@ -51,7 +51,7 @@
                         print_timing_final,itime_counter,idiagnostic, &
                         ldiagnostic,start_timing2,end_timing2
   use utility_mod,     only : init_random_seed,allocate_array_buffservice3d
-  use lbempi_mod,      only : setupcom,create_findneigh_list_hvar, &
+  use lbempi_mod,      only : setupcom,create_findneigh_list_hvar_isfluid, &
                         create_findneigh_list_pops,deallocate_ownern
   use fluids_mod,      only : allocate_fluids,initialize_isfluid_bcfluid, &
                         nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
@@ -63,7 +63,8 @@
                         initialize_integrator_lf,initialize_particle_force, &
                         driver_neighborhood_list
   use write_output_mod,only : write_test_map,lvtkfile,init_output, &
-                        write_vtk_frame,write_xyz_close
+                        write_vtk_frame,write_xyz_close, &
+                        write_particle_xyz
   use integrator_mod,  only : initime,endtime,tstep,set_nstep, &
                         update_nstep,nstep,driver_integrator,nstepmax
   use statistic_mod,   only : statistic_driver
@@ -121,6 +122,10 @@
    
 ! allocate fluid arrays
   call allocate_fluids  
+  
+! prepare list for neighbour comm of hydrodynamic variables (also ISFLUID)
+  call create_findneigh_list_hvar_isfluid(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc, &
+   izpbc,minx,maxx,miny,maxy,minz,maxz)
    
 ! initialize isfluid and bcfluid (type of node and bc adopted)
   call initialize_isfluid_bcfluid(lvtkfile)
@@ -132,10 +137,6 @@
 ! prepare list for neighbour comm of fluid pops
   call create_findneigh_list_pops(nx,ny,nz,nbuff,ibctype,isfluid, &
    ixpbc,iypbc,izpbc,minx,maxx,miny,maxy,minz,maxz)
-  
-! prepare list for neighbour comm of hydrodynamic variables
-  call create_findneigh_list_hvar(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc, &
-   izpbc,minx,maxx,miny,maxy,minz,maxz)
   
 ! allocate service array
 #ifdef ALLAMAX
@@ -263,6 +264,9 @@
   call get_memory(mymemory)
   call print_memory_registration(6,'memory occupied at the end', &
    mymemory)
+  
+! print final particle coordinates
+  call write_particle_xyz
   
 ! print last record on terminal and close the output 'statdat.dat' file
   !call finish_print(nstep,mytime,itime,ftime)

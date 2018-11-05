@@ -76,7 +76,7 @@
  integer, public, protected, save :: nbig_cells=0
  
  !max number of parameters for pair force fields
- integer, public, parameter :: mxpvdw=2
+ integer, public, parameter :: mxpvdw=3
  
  !max number of pair force fields
  integer, public, parameter :: mxvdw=1
@@ -613,7 +613,7 @@
   dens=dble(mxatms)/volm
   ratio=(ONE+HALF)*dens*(FOUR*pi/THREE)*(rcut+delr)**THREE
   mxlist=min(nint(ratio),(mxatms+1)/2)
-  mxlist=max(mxlist,4)
+  mxlist=max(mxlist,6)
   
   msatms=ceiling(real(natms_tot/mxrank,kind=PRC)*densvar)
   
@@ -1507,8 +1507,7 @@
     do iatm = 1,natms
       ii=iatm
       k=0
-      do jatm = 1,natms
-        if(jatm<=iatm)cycle
+      do jatm = iatm+1,natms
         k=k+1
         xdf(k)=xxx(jatm)-xxx(iatm)
         ydf(k)=yyy(jatm)-yyy(iatm)
@@ -1519,8 +1518,7 @@
       
       k=0
       ilentry=0
-      do jatm = 1,natms
-        if(jatm<=iatm)cycle
+      do jatm = iatm+1,natms
         k=k+1
         rsq=xdf(k)**TWO+ydf(k)**TWO+zdf(k)**TWO
         if(rsq<=rsqcut) then
@@ -1740,7 +1738,7 @@
     ivdw=1
     kappa=prmvdw(1,ivdw)
     rmin=prmvdw(2,ivdw)
-    rlimit=rmin-NINE/TEN
+    rlimit=prmvdw(3,ivdw)
     rsqcut = (rmin)**TWO
     vmin=kappa*(rmin-rlimit)**(FIVE*HALF)
     gmin=FIVE*HALF*kappa*(rmin-rlimit)**(THREE*HALF)
@@ -2171,7 +2169,7 @@
 !***********************************************************************
 !     
 !     LBsoft subroutine for determining the quaternion associated
-!     to a rotational matrix
+!     to a rotational matrix within a given tollerance value
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella

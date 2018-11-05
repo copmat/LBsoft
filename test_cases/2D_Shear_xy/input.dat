@@ -4,7 +4,7 @@ steps 500
 diagnostic yes
 boundary condition 1 0 1
 decomposition type  7
-decomposition dimension    2   2   2
+decomposition dimension    1   1   1
 print list maxd1 mind1 maxvx maxvy maxvz cpue cpur cpu
 print every 10
 test yes

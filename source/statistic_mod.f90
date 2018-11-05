@@ -121,12 +121,14 @@
   statdata(15)=meancputime
   statdata(16)=timesub
   
-! these were already sum all reduced in particle_mod.f90 
-  statdata(17)=engke
-  statdata(18)=engcfg
-  statdata(19)=engtot
-! particle temperature as ratio of KbT
-  statdata(20)=TWO*(engke+engrot)/(tempboltz*degfre)
+  if(lparticles)then
+!   these were already sum all reduced in particle_mod.f90 
+    statdata(17)=engke
+    statdata(18)=engcfg
+    statdata(19)=engtot
+!   particle temperature as ratio of KbT
+    statdata(20)=TWO*(engke+engrot)/(tempboltz*degfre)
+  endif
   
   if(mxrank>1)then
     dtemp(1)=statdata(1)

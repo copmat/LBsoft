@@ -5,6 +5,10 @@
 
 #define D3Q19
 
+#define NDIAGNSTREAM 1
+
+
+
 
 
 #define IOOUT 6

@@ -723,11 +723,14 @@
   
   logical, intent(in) :: lvtkfilesub
   
-  integer :: i,j,k,l,idir
+  integer :: i,j,k,l,idir,ishift,jshift,kshift,ll
   
   logical :: ltest(1)
   integer, parameter :: nistatmax=10
   integer, dimension(nistatmax) :: istat
+  
+  integer, parameter, dimension(3) :: myc=(/0,0,8/)
+  real(8) :: dsum1,isum
  
   isfluid(:,:,:)=3
   bcfluid(:,:,:)=0
@@ -1237,6 +1240,8 @@
   logical :: ltestout
   character(len=32) :: itesto
   
+  
+  
 ! initialize isfluid
   
   select case(idistselect)
@@ -1252,6 +1257,10 @@
   
   call set_initial_vel_fluids
   
+#ifdef DIAGNINIT
+  call print_all_hvar(100,'inithvar_prima',0,rhoR,u,v,w)
+#endif
+  
 #ifdef MPI
   call commexch_dens(rhoR,rhoB)
 #endif
@@ -1263,8 +1272,16 @@
   call commwait_dens(rhoR,rhoB)
 #endif
   
+#ifdef DIAGNINIT
+  call print_all_hvar(100,'inithvar_dopo',0,rhoR,u,v,w)
+#endif
+  
   call initialize_copy_densities_wall
   call driver_copy_densities_wall
+  
+#ifdef DIAGNINIT
+  call print_all_hvar(100,'inithvar_fine',0,rhoR,u,v,w)
+#endif
   
   if(idistselect==3)then
     !perform a fake test with the density set as the real(i4) value
@@ -1287,6 +1304,10 @@
   if(lunique_omega)call set_unique_omega
   
   if(lShanChen)lexch_dens=.true.
+  
+#ifdef DIAGNINIT
+  call print_all_pops(100,'initpop',0,aoptpR)
+#endif
   
   !restart to be added
   
@@ -2928,7 +2949,7 @@
 #ifdef ALLAMAX
    
 #ifdef DIAGNSTREAM
-  if(iter.eq.1)call print_all_pops(100,'mioprima',iter,aoptpR)
+  if(iter.eq.NDIAGNSTREAM)call print_all_pops(100,'mioprima',iter,aoptpR)
 #endif
   
   call streaming_fluids(f00R,f01R,f02R,f03R,f04R, &
@@ -2936,7 +2957,7 @@
    f14R,f15R,f16R,f17R,f18R,aoptpR)
    
 #ifdef DIAGNSTREAM
-  if(iter.eq.1)call print_all_pops(300,'miodopo',iter,aoptpR)
+  if(iter.eq.NDIAGNSTREAM)call print_all_pops(300,'miodopo',iter,aoptpR)
 #endif
    
   if(lsingle_fluid)return
@@ -2948,7 +2969,7 @@
 #else
 
 #ifdef DIAGNSTREAM
-   if(iter.eq.1) then
+   if(iter.eq.NDIAGNSTREAM) then
      if(allocated(ownern))then
        call print_all_pops(100,'mioprima',iter,aoptpR)
      endif
@@ -2978,7 +2999,7 @@
 #endif
 
 #ifdef DIAGNSTREAM
-  if(iter.eq.1) then
+  if(iter.eq.NDIAGNSTREAM) then
     if(allocated(ownern))then
        call print_all_pops(300,'miodopo',iter,aoptpR)
     endif
@@ -5623,7 +5644,7 @@ subroutine driver_bc_densities
    call bounceback_pop(aoptpR)
    
 #ifdef DIAGNSTREAM
-  if(iter==1)call print_all_pops(100,'miodopobounce',iter,aoptpR)
+  if(iter==NDIAGNSTREAM)call print_all_pops(100,'miodopobounce',iter,aoptpR)
 #endif
    
    if(lsingle_fluid)return
@@ -5637,7 +5658,7 @@ subroutine driver_bc_densities
   call apply_bounceback_pop(bc_rhoR,bc_u,bc_v,bc_w,aoptpR)
   
 #ifdef DIAGNSTREAM
-  if(iter==1)call print_all_pops(100,'miodopobounce',iter,aoptpR)
+  if(iter==NDIAGNSTREAM)call print_all_pops(100,'miodopobounce',iter,aoptpR)
 #endif
   
   if(lsingle_fluid)return
@@ -7216,7 +7237,7 @@ subroutine driver_bc_densities
   REAL(kind=PRC) :: isum
   
   
-#if 0
+#if 1
    
    if(lsingle_fluid)then
      do k=minz-1,maxz+1
@@ -7648,9 +7669,9 @@ subroutine driver_bc_densities
     open(unit=iosub*idrank+23,file=trim(mynamefile),status='replace')
     close(iosub*idrank+23)
   endif
-  do k=0,nz
-    do j=0,ny
-      do i=0,nx
+  do k=0,nz+1
+    do j=0,ny+1
+      do i=0,nx+1
         if(ownern(i4back(i,j,k))==idrank)then
           open(unit=iosub*idrank+23,file=trim(mynamefile),status='old',position='append')
           do l=1,links
@@ -7666,5 +7687,63 @@ subroutine driver_bc_densities
   return
   
  end subroutine print_all_pops
+ 
+ subroutine print_all_hvar(iosub,filenam,itersub,rhosub,usub,vsub, &
+   wsub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the hvars in ASCII format 
+!     for diagnostic purposes always ordered also in parallel
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iosub,itersub
+  character(len=*), intent(in) :: filenam
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub,usub,vsub, &
+   wsub
+  
+  character(len=120) :: mynamefile
+  integer :: i,j,k,l
+  
+  !ownern array is mandatory
+  if(.not. allocated(ownern))then
+    if(idrank==0)then
+      write(6,*)'Error in print_all_hvar'
+      write(6,*)'ownern not allocated'
+    endif
+    call error(-1)
+  endif
+  
+  mynamefile=repeat(' ',120)
+  mynamefile=trim(filenam)//write_fmtnumb(itersub)//'.dat'
+  
+  if(idrank==0) then
+    open(unit=iosub*idrank+23,file=trim(mynamefile),status='replace')
+    close(iosub*idrank+23)
+  endif
+  do k=0,nz+1
+    do j=0,ny+1
+      do i=0,nx+1
+        if(ownern(i4back(i,j,k))==idrank)then
+          open(unit=iosub*idrank+23,file=trim(mynamefile),status='old',position='append')
+          write(iosub*idrank+23,*)i,j,k,rhosub(i,j,k),usub(i,j,k), &
+           vsub(i,j,k),wsub(i,j,k)
+          close(iosub*idrank+23)
+        endif
+        call get_sync_world
+      enddo
+    enddo
+  enddo
+  
+  return
+  
+ end subroutine print_all_hvar
  
  end module fluids_mod

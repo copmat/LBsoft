@@ -124,7 +124,7 @@ MODULE lbempi_mod
   public :: commexch_dens
   public :: commwait_dens
   public :: comm_init_isfluid
-  public :: create_findneigh_list_hvar
+  public :: create_findneigh_list_hvar_isfluid
   public :: create_findneigh_list_pops
   public :: commexch_vel_component
   public :: commwait_vel_component
@@ -327,8 +327,8 @@ CONTAINS
 END SUBROUTINE setupcom
 
 
-subroutine create_findneigh_list_hvar(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
-   miny,maxy,minz,maxz)
+subroutine create_findneigh_list_hvar_isfluid(nx,ny,nz,nbuff,ibctype, &
+   ixpbc,iypbc,izpbc,minx,maxx,miny,maxy,minz,maxz)
 
   implicit none
  
@@ -337,12 +337,12 @@ subroutine create_findneigh_list_hvar(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,m
    minz,maxz
   
 
-  call findneigh_hvar(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
-   miny,maxy,minz,maxz)
+  call findneigh_hvar_isfluid(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc, &
+   minx,maxx,miny,maxy,minz,maxz)
    
   return
   
-end subroutine
+end subroutine create_findneigh_list_hvar_isfluid
 
 subroutine create_findneigh_list_pops(nx,ny,nz,nbuff,ibctype,isfluid,ixpbc,iypbc,izpbc,minx,maxx, &
    miny,maxy,minz,maxz)
@@ -512,8 +512,8 @@ end subroutine
   
  end subroutine setupcom
  
- subroutine create_findneigh_list_hvar(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
-   miny,maxy,minz,maxz)
+ subroutine create_findneigh_list_hvar_isfluid(nx,ny,nz,nbuff,ibctype, &
+   ixpbc,iypbc,izpbc,minx,maxx,miny,maxy,minz,maxz)
 
   implicit none
  
@@ -525,7 +525,7 @@ end subroutine
    
   return
   
-end subroutine
+end subroutine create_findneigh_list_hvar_isfluid
 
  subroutine create_findneigh_list_pops(nx,ny,nz,nbuff,ibctype,isfluid,ixpbc,iypbc,izpbc,minx,maxx, &
    miny,maxy,minz,maxz)
@@ -1578,8 +1578,8 @@ end subroutine
   
 
   
-  SUBROUTINE findneigh_hvar(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
-   miny,maxy,minz,maxz)
+  SUBROUTINE findneigh_hvar_isfluid(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc, &
+   minx,maxx,miny,maxy,minz,maxz)
 
     IMPLICIT NONE
 
@@ -2050,7 +2050,7 @@ end subroutine
     
     
 
-  END SUBROUTINE findneigh_hvar
+  END SUBROUTINE findneigh_hvar_isfluid
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #if defined(MPI)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

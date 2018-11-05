@@ -243,6 +243,11 @@
         call execute_command_line('./rm.sh',wait=.true.)
         deallocate(dmio1)
         deallocate(dmio2)
+        if(ltest(i))then
+          write(6,'(3a)')'test ',labeltest(i),' : OK'
+        else
+          write(6,'(3a)')'test ',labeltest(i),' : NO'
+        endif
         cycle
  100    ltest(i)=.false.
         close(orig_io)
@@ -260,6 +265,11 @@
         call execute_command_line('./rm.sh',wait=.true.)
         deallocate(dmio1)
         deallocate(dmio2)
+        if(ltest(i))then
+          write(6,'(3a)')'test ',labeltest(i),' : OK'
+        else
+          write(6,'(3a)')'test ',labeltest(i),' : NO'
+        endif
         cycle
       elseif(iselect1==5)then
         
@@ -332,6 +342,11 @@
         call execute_command_line('./rm.sh',wait=.true.)
         deallocate(dmio1)
         deallocate(dmio2)
+        if(ltest(i))then
+          write(6,'(3a)')'test ',labeltest(i),' : OK'
+        else
+          write(6,'(3a)')'test ',labeltest(i),' : NO'
+        endif
         cycle
  110    ltest(i)=.false.
         close(orig_io)
@@ -349,6 +364,11 @@
         call execute_command_line('./rm.sh',wait=.true.)
         deallocate(dmio1)
         deallocate(dmio2)
+        if(ltest(i))then
+          write(6,'(3a)')'test ',labeltest(i),' : OK'
+        else
+          write(6,'(3a)')'test ',labeltest(i),' : NO'
+        endif
         cycle
       else
         write(6,*)'error test',iselect1,iselect2

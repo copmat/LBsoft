@@ -19,7 +19,8 @@
  use utility_mod,    only : write_fmtnumb,ltest_mode
  use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w,lsingle_fluid, &
   minx, maxx, miny, maxy, minz, maxz
- use particles_mod,  only : natms,xxx,yyy,zzz,lparticles,cell
+ use particles_mod,  only : natms,xxx,yyy,zzz,lparticles,cell, &
+  ishape,lrotate,natms,natms_tot,q0,q1,q2,q3,vxx,vyy,vzz
  
   private
   
@@ -45,6 +46,7 @@
   public :: write_xyz
   public :: write_xyz_close
   public :: set_value_ixyzevery
+  public :: write_particle_xyz
   
  contains
  
@@ -525,6 +527,8 @@
   
   integer, intent(in) :: nstepsub
   
+  if((.not. lvtkfile).and.(.not. lxyzfile))return
+  
 #if 0
   if(mxrank==1)then
     call write_vtk_frame_serial(nstepsub)
@@ -979,5 +983,63 @@
   close(iomap+l)
   
  end subroutine write_test_map
+ 
+ subroutine write_particle_xyz()
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the particle variables
+!     in xyz format for diagnostic purposes
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+
+  implicit none
+  
+  integer :: i,j
+  
+  integer, parameter :: ioxyz=280
+  
+  character(len=8), parameter :: mystring8='C       '
+  
+  if(.not.lparticles)return
+  
+  if(idrank==0)then 
+    open(ioxyz,file='restart.xyz',status='replace',action='write')
+    write(ioxyz,'(i10)')natms_tot
+    if(lrotate)then
+      write(ioxyz,'(a)')'read list vxx vyy vzz qa qb qc qd '
+    else
+      write(ioxyz,'(a)')'read list vxx vyy vzz '
+    endif
+    close(ioxyz)
+  endif
+  
+  do j=0,mxrank-1
+    if(j==idrank)then
+      open(ioxyz,file='restart.xyz',status='old',action='write', &
+       position='append')
+      if(lrotate)then
+        do i=1,natms
+          write(ioxyz,'(a8,10g16.8)')mystring8,xxx(i),yyy(i),zzz(i), &
+           vxx(i),vyy(i),vzz(i),q0(i),q1(i),q2(i),q3(i)
+        enddo
+      else
+        do i=1,natms
+          write(ioxyz,'(a8,6g16.8)')mystring8,xxx(i),yyy(i),zzz(i), &
+           vxx(i),vyy(i),vzz(i)
+        enddo
+      endif
+      close(ioxyz)
+    endif
+    call get_sync_world
+  enddo
+  
+  return
+  
+ end subroutine write_particle_xyz
  
  end module write_output_mod
