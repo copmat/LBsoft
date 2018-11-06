@@ -37,7 +37,8 @@
   bc_type_south,bc_rhoR_front,bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front,&
   bc_type_front,bc_rhoR_rear,bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear,&
   bc_type_rear,set_fluid_wall_sc,wallR_SC,wallB_SC,LBintegrator, &
-  set_LBintegrator_type,lbc_halfway,set_lbc_halfway
+  set_LBintegrator_type,lbc_halfway,set_lbc_halfway,set_lbc_fullway, &
+  lbc_fullway
  use particles_mod,         only : set_natms_tot,natms_tot,lparticles, &
   set_ishape,set_densvar,densvar,ishape,set_rcut,rcut,delr, &
   set_delr,rotmat_2_quat,lrotate,set_lrotate,allocate_field_array, &
@@ -45,7 +46,7 @@
   set_umass,umass,lumass,linit_temp,init_temp,set_init_temp,lvv, &
   set_lvv,set_urdim,urdim,lurdim,set_lparticles
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
-  lvtkfile,set_value_ixyzevery,lxyzfile,ixyzevery
+  lvtkfile,lvtkstruct,set_value_ixyzevery,lxyzfile,ixyzevery
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
  use statistic_mod,         only : reprinttime,compute_statistic, &
   statdata
@@ -330,11 +331,13 @@
   logical :: lprintlisterror=.false.
   logical :: temp_ldiagnostic=.false.
   logical :: temp_lvtkfile=.false.
+  logical :: temp_lvtkstruct=.false.
   logical :: temp_lxyzfile=.false.
   logical :: lidiagnostic=.false.
   logical :: temp_lnfluid=.false.
   logical :: temp_wall_SC=.false.
   logical :: temp_lbc_halfway=.false.
+  logical :: temp_lbc_fullway=.false.
   logical :: temp_lparticles=.false.
   logical :: lerror1=.false.
   logical :: lerror2=.false.
@@ -551,8 +554,14 @@
                 printtime=real(intstr(directive,maxlen,inumchar),kind=PRC)
                 lprinttime=.true.
               elseif(findstring('vtk',directive,inumchar,maxlen))then
-                temp_ivtkevery=intstr(directive,maxlen,inumchar)
-                temp_lvtkfile=.true.
+                if(findstring('struct',directive,inumchar,maxlen))then
+                  temp_lvtkfile=.true.
+                  temp_ivtkevery=intstr(directive,maxlen,inumchar)
+                  temp_lvtkstruct=.true.
+                else
+                  temp_ivtkevery=intstr(directive,maxlen,inumchar)
+                  temp_lvtkfile=.true.
+                endif
               elseif(findstring('xyz',directive,inumchar,maxlen))then
                 temp_ixyzevery=intstr(directive,maxlen,inumchar)
                 temp_lxyzfile=.true.
@@ -625,7 +634,23 @@
               temp_lnfluid=.true.
             elseif(findstring('bounc',directive,inumchar,maxlen))then
               if(findstring('half',directive,inumchar,maxlen))then
-                temp_lbc_halfway=.true.
+                if(findstring('yes',directive,inumchar,maxlen))then
+                  temp_lbc_halfway=.true.
+                elseif(findstring('no',directive,inumchar,maxlen))then
+                  temp_lbc_halfway=.false.
+                else
+                  call warning(1,dble(iline),redstring)
+                  lerror6=.true.
+                endif
+              elseif(findstring('full',directive,inumchar,maxlen))then
+                if(findstring('yes',directive,inumchar,maxlen))then
+                  temp_lbc_fullway=.true.
+                elseif(findstring('no',directive,inumchar,maxlen))then
+                  temp_lbc_fullway=.false.
+                else
+                  call warning(1,dble(iline),redstring)
+                  lerror6=.true.
+                endif
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1073,11 +1098,19 @@
   call bcast_world_l(temp_lvtkfile)
   if(temp_lvtkfile)then
     call bcast_world_i(temp_ivtkevery)
-    call set_value_ivtkevery(temp_lvtkfile,temp_ivtkevery)
+    call bcast_world_l(temp_lvtkstruct)
+    call set_value_ivtkevery(temp_lvtkfile,temp_lvtkstruct, &
+     temp_ivtkevery)
     if(idrank==0)then
-     mystring=repeat(' ',dimprint)
-     mystring='print VTK file every'
-     write(6,'(2a,i12)')mystring,": ",ivtkevery
+      if(lvtkstruct)then
+        mystring=repeat(' ',dimprint)
+        mystring='print structured VTK file every'
+        write(6,'(2a,i12)')mystring,": ",ivtkevery
+      else
+        mystring=repeat(' ',dimprint)
+        mystring='print VTK file every'
+        write(6,'(2a,i12)')mystring,": ",ivtkevery
+      endif
    endif
   endif
   
@@ -1183,6 +1216,24 @@
   endif
   
   call bcast_world_l(temp_lbc_halfway)
+  call bcast_world_l(temp_lbc_fullway)
+  if(temp_lbc_halfway.and.temp_lbc_fullway)then
+    call warning(29)
+    call error(5)
+  endif
+  
+  if(temp_lbc_fullway)then
+    call set_lbc_fullway(temp_lbc_fullway)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='fullway bounce back'
+      mystring12=repeat(' ',dimprint2)
+      mystring12='yes'
+      mystring12=adjustr(mystring12)
+      write(6,'(3a)')mystring,": ",mystring12
+    endif
+  endif
+  
   if(temp_lbc_halfway)then
     call set_lbc_halfway(temp_lbc_halfway)
     if(idrank==0)then

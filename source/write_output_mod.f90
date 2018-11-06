@@ -30,6 +30,7 @@
   character(len=*), parameter :: filenamevtk='out'
   integer, save, public, protected :: ivtkevery=50
   logical, save, public, protected :: lvtkfile=.false.
+  logical, save, public, protected :: lvtkstruct=.false.
   logical, save, public, protected :: lvtkownern=.false.
   integer, save, public, protected :: ixyzevery=50
   logical, save, public, protected :: lxyzfile=.false.
@@ -391,14 +392,6 @@
   fname=repeat(' ',120)
   fname = trim(filenamevtk) // trim(write_fmtnumb(nstepsub))
   
-  if(lparticles)then
-    if(mxrank==1)then
-      call write_vtp_file(181,'outatm',nstepsub)
-    else
-      call error(11)
-    endif
-  endif
-  
   if(idrank==0)then
     !! call writeImageDataPVD(fname)
     call writeImageDataPVTI(fname)
@@ -411,6 +404,16 @@
  end subroutine writePVD
  
  subroutine write_xyz_open(filename)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for opening the file in xyz format
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
   
   implicit none
   
@@ -425,6 +428,16 @@
  end subroutine write_xyz_open
  
  subroutine write_xyz(istepsub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a frame in the xyz file
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
   
   implicit none
   
@@ -450,6 +463,15 @@
 
  subroutine write_xyz_close()
   
+!***********************************************************************
+!     
+!     LBsoft subroutine for closing the file in xyz format
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
   
   implicit none
   
@@ -460,7 +482,7 @@
     
  end subroutine write_xyz_close
 
- subroutine set_value_ivtkevery(ltemp,itemp)
+ subroutine set_value_ivtkevery(ltemp,ltemp2,itemp)
  
 !***********************************************************************
 !     
@@ -475,10 +497,11 @@
  
   implicit none
   
-  logical, intent(in) :: ltemp
+  logical, intent(in) :: ltemp,ltemp2
   integer, intent(in) :: itemp
   
   lvtkfile=ltemp
+  lvtkstruct=ltemp2
   ivtkevery=itemp
   
   return
@@ -529,16 +552,23 @@
   
   if((.not. lvtkfile).and.(.not. lxyzfile))return
   
-#if 0
-  if(mxrank==1)then
-    call write_vtk_frame_serial(nstepsub)
-  else
-    call write_vtk_frame_parallel(nstepsub)
-    !if(mxrank/=1)call error(11)
+  if(lparticles)then
+    if(mxrank==1)then
+      call write_vtp_file(181,'outatm',nstepsub)
+    else
+      call error(11)
+    endif
   endif
-#else
-  call writePVD(nstepsub)
-#endif
+  
+  if(lvtkstruct)then
+    if(mxrank==1)then
+      call write_vtk_frame_serial(nstepsub)
+    else
+      call write_vtk_frame_parallel(nstepsub)
+    endif
+  else
+    call writePVD(nstepsub)
+  endif
   
   return
   
@@ -613,10 +643,12 @@
   endif
   
   sevt=repeat(' ',120)
-  sevt=trim(filenamevtk)// &
-   trim(write_fmtnumb(nstepsub))//'.vts'
+  !sevt=trim(filenamevtk)// &
+  ! trim(write_fmtnumb(nstepsub))//'.vts'
+  sevt = trim(dir_out) // trim(filenamevtk)// &
+   trim(write_fmtnumb(nstepsub)) // '.vts'
  
-  E_IO = VTK_INI_XML(output_format='binary', &
+  E_IO = VTK_INI_XML(output_format='raw', &
    filename=trim(sevt),mesh_topology='StructuredGrid', &
    nx1=nx1,nx2=nx2,ny1=ny1, &
    ny2=ny2,nz1=nz1,nz2=nz2)
@@ -757,7 +789,7 @@
     delimiter=sevt(1:1)
     if(delimiter==' ')delimiter='/'
     lfirstdel=.false.
-    call initialize_vtk
+    !call initialize_vtk
    endif
   
   if(.not. lvtkfile)return
@@ -798,15 +830,19 @@
   
   if(idrank==0)then
     sevt=repeat(' ',120)
-    sevt=trim(filenamevtk)//trim(write_fmtnumb(nstepsub))//'.pvts'
+    !sevt=trim(filenamevtk)//trim(write_fmtnumb(nstepsub))//'.pvts'
+    sevt=trim(dir_out)//trim(filenamevtk)//trim(write_fmtnumb(nstepsub)) &
+     // '.pvts'
     ! pvts
     E_IO = PVTK_INI_XML(filename = trim(sevt), &
      mesh_topology = 'PStructuredGrid', &
      nx1=nx1,nx2=nx2,ny1=ny1,ny2=ny2,nz1=nz1,nz2=nz2, tp='Float32')
     do i=0,mxrank-1
       sevt=repeat(' ',120)
+      !sevt='rank'//trim(write_fmtnumb(i))//delimiter//trim(filenamevtk)// &
+      ! trim(write_fmtnumb(nstepsub))//'_part'//trim(write_fmtnumb(i))//'.vts'
       sevt='rank'//trim(write_fmtnumb(i))//delimiter//trim(filenamevtk)// &
-       trim(write_fmtnumb(nstepsub))//'_part'//trim(write_fmtnumb(i))//'.vts'
+       trim(write_fmtnumb(nstepsub))//'_'//trim(write_fmtnumb(i))//'.vts'
       E_IO = PVTK_GEO_XML(nx1=nx1_p(i),nx2=nx2_p(i),ny1=ny1_p(i), &
         ny2=ny2_p(i),nz1=nz1_p(i),nz2=nz2_p(i),source=trim(sevt))
     enddo
@@ -853,10 +889,12 @@
   endif
   
   sevt=repeat(' ',120)
-  sevt='rank'//trim(write_fmtnumb(idrank))//delimiter//trim(filenamevtk)// &
-   trim(write_fmtnumb(nstepsub))//'_part'//trim(write_fmtnumb(idrank))//'.vts'
+  !sevt='rank'//trim(write_fmtnumb(idrank))//delimiter//trim(filenamevtk)// &
+  ! trim(write_fmtnumb(nstepsub))//'_part'//trim(write_fmtnumb(idrank))//'.vts'
+  sevt=trim(dir_out_rank)//trim(filenamevtk)//trim(write_fmtnumb(nstepsub)) &
+   // '_' // trim(write_fmtnumb(idrank)) //'.vts'
      
-  E_IO = VTK_INI_XML(cf=mf(idrank),output_format='ascii', &
+  E_IO = VTK_INI_XML(cf=mf(idrank),output_format='raw', &
    filename=trim(sevt),mesh_topology='StructuredGrid', &
    nx1=nx1_p(idrank),nx2=nx2_p(idrank),ny1=ny1_p(idrank), &
    ny2=ny2_p(idrank),nz1=nz1_p(idrank),nz2=nz2_p(idrank))

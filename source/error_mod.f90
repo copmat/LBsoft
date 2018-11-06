@@ -366,6 +366,11 @@
        "in input nor xyz files"
       write(outp,'(a)')"WARNING - set 'read list rdim' in xyz file "
       write(outp,'(a,/)')"WARNING - or set 'shape spherical float' in input.dat file"
+    case (29)
+      write(outp,'(/,2a)')"WARNING - 'bounceback' cannot be fullway and halfway ", &
+       "at the same time"
+      write(outp,'(a)')"WARNING - set 'bounceback fullway yes' or  "
+      write(outp,'(a,/)')"WARNING - 'bounceback halfway yes', not both"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

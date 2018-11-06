@@ -95,7 +95,9 @@
  logical, save, protected, public :: lexch_v=.false.
  logical, save, protected, public :: lexch_w=.false.
  
- logical, save, protected, public :: lbc_halfway=.false.
+ !bounceback default is halfway
+ logical, save, protected, public :: lbc_halfway=.true.
+ logical, save, protected, public :: lbc_fullway=.false.
  
  real(kind=PRC), save, protected, public :: t_LB = ONE
  
@@ -302,6 +304,7 @@
  public :: driver_bc_pop_selfcomm
  public :: driver_initialiaze_manage_bc_selfcomm
  public :: set_lbc_halfway
+ public :: set_lbc_fullway
  public :: driver_apply_bounceback_halfway_pop
  
  contains
@@ -2113,10 +2116,35 @@
   logical, intent(in) :: ltemp1
   
   lbc_halfway=ltemp1
+  lbc_fullway=(.not.ltemp1)
   
   return
   
  end subroutine set_lbc_halfway
+ 
+ subroutine set_lbc_fullway(ltemp1)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the value of lbc_fullway for select 
+!     the fullway bounce back mode
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(in) :: ltemp1
+  
+  lbc_fullway=ltemp1
+  lbc_halfway=(.not.ltemp1)
+  
+  return
+  
+ end subroutine set_lbc_fullway
  
  subroutine set_lsingle_fluid(ltemp1)
  
@@ -5711,11 +5739,11 @@ subroutine driver_bc_densities
 !***********************************************************************
 !     
 !     LBsoft subroutine for setting the bc value of the hydrodynamic 
-!     variable if requested
+!     variable if requested at halfway grid point
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
-!     last modification September 2018
+!     last modification November 2018
 !     
 !***********************************************************************
  
@@ -5753,7 +5781,7 @@ subroutine driver_bc_densities
     if(inits>ends)cycle
     if(idir==1 .or. idir==2)then
       forall(i=inits:ends)
-        bc_u(i)=interpolation_order_2(u(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_u(i)=interpolation_order_2_hf(u(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          u(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          u(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
       end forall
@@ -5765,7 +5793,7 @@ subroutine driver_bc_densities
     endif
     if(idir==3 .or. idir==4)then
       forall(i=inits:ends)
-        bc_v(i)=interpolation_order_2(v(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_v(i)=interpolation_order_2_hf(v(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          v(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          v(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
       end forall
@@ -5777,7 +5805,7 @@ subroutine driver_bc_densities
     endif
     if(idir==5 .or.idir==6)then
       forall(i=inits:ends)
-        bc_w(i)=interpolation_order_2(w(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_w(i)=interpolation_order_2_hf(w(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          w(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          w(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
       end forall
@@ -5803,16 +5831,16 @@ subroutine driver_bc_densities
     if(inits>ends)cycle
     if(lsingle_fluid)then
       forall(i=inits:ends)
-        bc_rhoR(i)=interpolation_order_2(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_rhoR(i)=interpolation_order_2_hf(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
       end forall
     else
       forall(i=inits:ends)
-        bc_rhoR(i)=interpolation_order_2(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_rhoR(i)=interpolation_order_2_hf(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
-        bc_rhoB(i)=interpolation_order_2(rhoB(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_rhoB(i)=interpolation_order_2_hf(rhoB(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
       end forall
@@ -6429,11 +6457,11 @@ subroutine driver_bc_densities
 !     
 !     LBsoft subroutine for setting the variable bc value of the        
 !     hydrodynamic variable if requested (variable = can be change      
-!     along the run)
+!     along the run) at halfway grid point
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
-!     last modification September 2018
+!     last modification November 2018
 !     
 !***********************************************************************
  
@@ -6456,7 +6484,7 @@ subroutine driver_bc_densities
     if(inits>ends)cycle
     if(idir==1 .or. idir==2)then
       forall(i=inits:ends)
-        bc_u(i)=interpolation_order_2(u(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_u(i)=interpolation_order_2_hf(u(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          u(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          u(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
       end forall
@@ -6468,7 +6496,7 @@ subroutine driver_bc_densities
     endif
     if(idir==3 .or. idir==4)then
       forall(i=inits:ends)
-        bc_v(i)=interpolation_order_2(v(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_v(i)=interpolation_order_2_hf(v(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          v(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          v(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
       end forall
@@ -6480,7 +6508,7 @@ subroutine driver_bc_densities
     endif
     if(idir==5 .or.idir==6)then
       forall(i=inits:ends)
-        bc_w(i)=interpolation_order_2(w(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_w(i)=interpolation_order_2_hf(w(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          w(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          w(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
       end forall
@@ -6506,16 +6534,16 @@ subroutine driver_bc_densities
     if(inits>ends)cycle
     if(lsingle_fluid)then
       forall(i=inits:ends)
-        bc_rhoR(i)=interpolation_order_2(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_rhoR(i)=interpolation_order_2_hf(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
       end forall
     else
       forall(i=inits:ends)
-        bc_rhoR(i)=interpolation_order_2(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_rhoR(i)=interpolation_order_2_hf(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
-        bc_rhoB(i)=interpolation_order_2(rhoB(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_rhoB(i)=interpolation_order_2_hf(rhoB(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
       end forall
@@ -7528,6 +7556,7 @@ subroutine driver_bc_densities
 !     
 !     LBsoft function for applying the Maclaurin 2° order using  
 !     the forward finite difference coeff for the derivatives
+!     at fullway grid point
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -7544,8 +7573,8 @@ subroutine driver_bc_densities
   !forward finite difference coeff 
   !(2° order first derivative)
   !(1° order second derivative)
-  real(kind=PRC), parameter, dimension(0:2) :: coeff1=(/-THREE*HALF,TWO,-HALF/)*HALF
-  real(kind=PRC), parameter, dimension(0:2) :: coeff2=(/ONE,-TWO,ONE/)*ONE/EIGHT
+  real(kind=PRC), parameter, dimension(0:2) :: coeff1=(/-THREE*HALF,TWO,-HALF/)
+  real(kind=PRC), parameter, dimension(0:2) :: coeff2=(/ONE,-TWO,ONE/)*HALF
   
   !derivates
 !  der1=coeff1(0)*arg0+coeff1(1)*arg1+coeff1(2)*arg2
@@ -7559,6 +7588,45 @@ subroutine driver_bc_densities
   return
   
  end function interpolation_order_2
+ 
+ pure function interpolation_order_2_hf(arg0,arg1,arg2)
+ 
+!***********************************************************************
+!     
+!     LBsoft function for applying the Maclaurin 2° order using  
+!     the forward finite difference coeff for the derivatives
+!     at halfway grid point
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in) :: arg0,arg1,arg2
+  
+  real(kind=PRC) :: interpolation_order_2_hf
+  
+  !forward finite difference coeff 
+  !(2° order first derivative)
+  !(1° order second derivative)
+  real(kind=PRC), parameter, dimension(0:2) :: coeff1=(/-THREE*HALF,TWO,-HALF/)*HALF
+  real(kind=PRC), parameter, dimension(0:2) :: coeff2=(/ONE,-TWO,ONE/)*ONE/EIGHT
+  
+  !derivates
+!  der1=coeff1(0)*arg0+coeff1(1)*arg1+coeff1(2)*arg2
+!  der2=coeff2(0)*arg0+coeff2(1)*arg1+coeff2(2)*arg2
+  
+  !apply Maclaurin 2° order
+  interpolation_order_2_hf=arg0- &
+   (coeff1(0)*arg0+coeff1(1)*arg1+coeff1(2)*arg2)+ &
+   (coeff2(0)*arg0+coeff2(1)*arg1+coeff2(2)*arg2)
+  
+  return
+  
+ end function interpolation_order_2_hf
  
  subroutine bounceback_pop(aoptp)
  

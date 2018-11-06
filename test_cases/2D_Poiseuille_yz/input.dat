@@ -13,6 +13,7 @@ close time 10 s
 [END ROOM]
 [ROOM LB]
 components 1
+bounceback fullway yes
 density gaussian
 density mean 1.0 1.0
 density stdev 1.d-4 1.d-4
