@@ -847,6 +847,11 @@
                 temp_ishape=0
                 temp_lurdim=.true.
                 dtemp_urdim=dblstr(directive,maxlen,inumchar)
+                if(mod(dtemp_urdim-HALF,ONE)/=ZERO)then
+                  call warning(30)
+                  call warning(31,dble(iline),redstring)
+                  lerror5=.true.
+                endif
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1579,21 +1584,26 @@
       write(6,'(3a)')mystring,": ",mystring12
     endif
     
-    call bcast_world_i(temp_ishape)
-    if(temp_ishape>=0)then
-      call set_ishape(temp_ishape)
-      if(idrank==0)then
-        mystring=repeat(' ',dimprint)
-        mystring='particle shape'
-        mystring12=repeat(' ',dimprint2)
-        select case(ishape)
-        case(0)
-          mystring12='spherical'
-        case(1)
-          mystring12='ellipsoid'
-        end select
-        mystring12=adjustr(mystring12)
-        write(6,'(3a)')mystring,": ",mystring12
+    if(lparticles)then
+      call bcast_world_i(temp_ishape)
+      if(temp_ishape>=0)then
+        call set_ishape(temp_ishape)
+        if(idrank==0)then
+          mystring=repeat(' ',dimprint)
+          mystring='particle shape'
+          mystring12=repeat(' ',dimprint2)
+          select case(ishape)
+          case(0)
+            mystring12='spherical'
+          case(1)
+            mystring12='ellipsoid'
+          end select
+          mystring12=adjustr(mystring12)
+          write(6,'(3a)')mystring,": ",mystring12
+        endif
+      else
+        call warning(34)
+        call error(7)
       endif
     endif
     
@@ -1675,6 +1685,11 @@
         mystring=repeat(' ',dimprint)
         mystring='unique mass'
         write(6,'(2a,f12.6)')mystring,": ",umass
+      endif
+    else
+      if(lparticles)then
+        call warning(35)
+        call error(7)
       endif
     endif
     
@@ -2514,6 +2529,13 @@
         zzs(i)=dblstr(directive,maxlen,inumchar)
         do j=1,nxyzlist
           others(j,i)=dblstr(directive,maxlen,inumchar)
+          if(xyzlist(j)==6)then
+            if(mod(others(j,i)-HALF,ONE)/=ZERO)then
+              call warning(32)
+              call warning(11,dble(iline))
+              lerror3=.true.
+            endif
+          endif
         enddo
       enddo
     else

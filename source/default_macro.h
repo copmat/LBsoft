@@ -7,9 +7,7 @@
 
 #define NDIAGNSTREAM 1
 
-
-
-
+#define NDIAGNHVAR 100
 
 #define IOOUT 6
 

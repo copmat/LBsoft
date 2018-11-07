@@ -154,6 +154,7 @@
 ! allocate particle arrays
   call allocate_particles(ibctype,tstep)
   
+! initialize and decompose the particle domain
   call initialize_map_particles(nxyzlist,xyzlist,x_inp,y_inp,z_inp, &
    o_inp,lvelocity)
 

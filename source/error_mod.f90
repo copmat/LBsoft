@@ -110,6 +110,8 @@
         write(outp,outf)'ERROR - wrong ltpvdw in compute_inter_force'
       case (28)
         write(outp,outf)'ERROR - bad allocation in subroutine nve_lf.'
+      case (29)
+        write(outp,outf)'ERROR - error in subroutine spherical_template.'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select
@@ -371,6 +373,31 @@
        "at the same time"
       write(outp,'(a)')"WARNING - set 'bounceback fullway yes' or  "
       write(outp,'(a,/)')"WARNING - 'bounceback halfway yes', not both"
+    case (30)
+      write(outp,'(/,2a)')"WARNING - all the spherical radius should be a ", &
+      "multiple of one plus 0.5"
+      write(outp,'(a,/)')"WARNING - for instance 1.5, 2.5, 3.5, etc."
+    case (31)
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,3a)')"WARNING - there is an error at line ", &
+       trim(adjustl(r_char))," in the input file:"
+      write(outp,'(3a,/)')"'",trim(wstring),"'"
+    case (32)
+      write(outp,'(/,a)')"WARNING - 'read list' is not correctly specified"
+      write(outp,'(2a)')"WARNING - spherical particle radius should be a ", &
+       "multiple of one plus 0.5"
+      write(outp,'(a,/)')"WARNING - for instance 1.5, 2.5, 3.5, etc."
+    case (33)
+      write(outp,'(/,2a)')"WARNING - an argument of the 'read list' ", &
+       "in the xyz file will be ignored"
+      write(outp,'(3a)')"WARNING - the argument is '",trim(wstring),"'"
+      write(outp,'(a,/)')"WARNING - set it in the input file"
+    case (34)
+      write(outp,'(/,2a,/)')"WARNING - 'particle shape' is not defined in ", &
+      "input file"
+    case (35)
+      write(outp,'(/,2a,/)')"WARNING - 'mass' is not defined in ", &
+      "input file"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

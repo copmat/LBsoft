@@ -40,7 +40,7 @@
                    ownern,gminx,gmaxx,gminy,gmaxy,gminz,gmaxz
  
  use fluids_mod,  only : nx,ny,nz,nbuff,minx,maxx,miny,maxy,minz,maxz, &
-                   set_lbc_halfway,lbc_halfway,cssq
+                   set_lbc_halfway,lbc_halfway,cssq,links,ex,ey,ez
 
  
  implicit none
@@ -171,6 +171,24 @@
  
  !global maximum number of link cell within the same process
  integer, save :: ncellsmax=0
+ 
+ !number of reflecting nodes in the spherical particle
+ integer, save :: nsphere
+ 
+ !coordinate list of reflecting nodes in the spherical particle
+ integer, allocatable, dimension(:,:), save :: spherelist
+ 
+ !radial distance list of reflecting nodes in the spherical particle
+ real(kind=PRC), allocatable, dimension(:), save :: spheredist
+ 
+ !number of dead nodes in the spherical particle
+ integer, save :: nspheredead
+ 
+ !coordinate list of dead nodes in the spherical particle
+ integer, allocatable, dimension(:,:), save :: spherelistdead
+ 
+ !radial distance list of dead nodes in the spherical particle
+ real(kind=PRC), allocatable, dimension(:), save :: spheredistdead
  
  !verlet list
  integer, allocatable, save :: lentry(:)
@@ -898,6 +916,26 @@
     call error(21)
   endif
   
+  if(nxyzlist_sub>0)then
+    do j=1,nxyzlist_sub
+      k=xyzlist_sub(j)
+      select case(k)
+      case(2)
+        call warning(33,ZERO,'mass')
+        lumass=.true.
+      case(3)
+        call warning(33,ZERO,'radx')
+      case(4)
+        call warning(33,ZERO,'rady')
+      case(5)
+        call warning(33,ZERO,'radz')
+      case(6)
+        call warning(33,ZERO,'rad')
+        lurdim=.true.
+      end select
+    enddo
+  endif
+  
   call bcast_world_iarr(isend_nparticle,mxrank)
   
   natms=isend_nparticle(idrank)
@@ -924,16 +962,6 @@
             do j=1,nxyzlist_sub
               k=xyzlist_sub(j)
               select case(k)
-              case(2)
-                weight(sub_i)=ots(j,i)
-              case(3)
-                rdimx(sub_i)=ots(j,i)
-              case(4)
-                rdimy(sub_i)=ots(j,i)
-              case(5)
-                rdimz(sub_i)=ots(j,i)
-              case(6)
-                rdim(sub_i)=ots(j,i)
               case(7)
                 vxx(sub_i)=ots(j,i)
               case(8)
@@ -988,21 +1016,6 @@
       do j=1,nxyzlist_sub
         k=xyzlist_sub(j)
         select case(k)
-        case(2)
-          call isend_world_farr(weight,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(3)
-          call isend_world_farr(rdimx,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(4)
-          call isend_world_farr(rdimy,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(5)
-          call isend_world_farr(rdimz,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(6)
-          call isend_world_farr(rdim,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
         case(7)
           call isend_world_farr(vxx,isend_nparticle(idrank_sub),idrank_sub, &
            120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
@@ -1084,16 +1097,6 @@
           do j=1,nxyzlist_sub
             k=xyzlist_sub(j)
             select case(k)
-            case(2)
-              weight(sub_i)=ots(j,i)
-            case(3)
-              rdimx(sub_i)=ots(j,i)
-            case(4)
-              rdimy(sub_i)=ots(j,i)
-            case(5)
-              rdimz(sub_i)=ots(j,i)
-            case(6)
-              rdim(sub_i)=ots(j,i)
             case(7)
               vxx(sub_i)=ots(j,i)
             case(8)
@@ -1149,21 +1152,6 @@
     do j=1,nxyzlist_sub
       k=xyzlist_sub(j)
       select case(k)
-      case(2)
-        call irecv_world_farr(weight,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(3)
-        call irecv_world_farr(rdimx,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(4)
-        call irecv_world_farr(rdimy,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(5)
-        call irecv_world_farr(rdimz,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(6)
-        call irecv_world_farr(rdim,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
       case(7)
         call irecv_world_farr(vxx,isend_nparticle(idrank),0, &
          120+idrank+4+j,irequest_recv(4+j))
@@ -1357,6 +1345,40 @@
       call warning(26)
     endif
   endif
+  
+#if 0
+  call spherical_template(urdim,nsphere,spherelist,spheredist, &
+   nspheredead,spherelistdead)
+  k=floor(urdim)
+  write(6,*)nsphere
+  do i=1,nsphere
+    write(6,*)i,spherelist(1:3,i),spheredist(i)
+    if(spherelist(1,i)>k .or. spherelist(2,i)>k .or. spherelist(3,i)>k)then
+      write(6,*)'error'
+      exit
+    endif
+    if(spherelist(1,i)<-k .or. spherelist(2,i)<-k .or. spherelist(3,i)<-k)then
+      write(6,*)'error'
+      exit
+    endif
+  enddo
+  
+  write(6,*)nspheredead
+  do i=1,nspheredead
+    write(6,*)i,spherelistdead(1:3,i)
+    if(spherelistdead(1,i)>k .or. spherelistdead(2,i)>k .or. spherelistdead(3,i)>k)then
+      write(6,*)'error'
+      exit
+    endif
+    if(spherelistdead(1,i)<-k .or. spherelistdead(2,i)<-k .or. spherelistdead(3,i)<-k)then
+      write(6,*)'error'
+      exit
+    endif
+  enddo
+  
+  call finalize_world
+  stop
+#endif
   
   return
   
@@ -2705,5 +2727,140 @@
   return
   
  end subroutine print_all_particles
+ 
+ subroutine spherical_template(rdimsub,outnum,outlist,outdist, &
+  outnumdead,outlistdead)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing all the particles in ASCII format 
+!     for diagnostic purposes always ordered also in parallel
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in) :: rdimsub
+  integer, intent(out) :: outnum,outnumdead
+  integer, allocatable, dimension(:,:) :: outlist,outlistdead
+  real(kind=PRC), allocatable, dimension(:) :: outdist
+  
+  integer :: i,j,k,l,rmax,rmin
+  
+  real(kind=PRC) :: vec(3),rdist,sqrcut
+  integer, allocatable, dimension(:,:,:) :: issub
+  
+  sqrcut=rdimsub**TWO
+  
+  rmax=floor(rdimsub)+1
+  rmin=floor(rdimsub)
+  allocate(issub(-rmax:rmax,-rmax:rmax,-rmax:rmax))
+  issub(-rmax:rmax,-rmax:rmax,-rmax:rmax)=1
+  
+  do k=-rmax,rmax
+    vec(3)=real(k,kind=PRC)
+    do j=-rmax,rmax
+      vec(2)=real(j,kind=PRC)
+      do i=-rmax,rmax
+        vec(1)=real(i,kind=PRC)
+        rdist=vec(1)**TWO+vec(2)**TWO+vec(3)**TWO
+        if(rdist<=sqrcut)then
+          issub(i,j,k)=3
+          if(i>rmin .or. i<-rmin .or. &
+           j>rmin .or. j<-rmin .or. &
+           k>rmin .or. k<-rmin)then
+            call error(29)
+          endif
+        endif
+      enddo
+    enddo
+  enddo
+  
+  do k=-rmin,rmin
+    do j=-rmin,rmin
+      do i=-rmin,rmin
+        if(issub(i,j,k)==3)then
+          do l=1,links
+            if(issub(i+ex(l),j+ey(l),k+ez(l))==1)then
+              issub(i,j,k)=2
+              exit
+            endif
+          enddo
+        endif
+      enddo
+    enddo
+  enddo
+  
+  l=0
+  do k=-rmax,rmax
+    do j=-rmax,rmax
+      do i=-rmax,rmax
+        if(issub(i,j,k)==2)then
+          l=l+1
+        endif
+      enddo
+    enddo
+  enddo
+  
+  outnum=l
+  if(allocated(outlist))deallocate(outlist)
+  allocate(outlist(3,outnum))
+  if(allocated(outdist))deallocate(outdist)
+  allocate(outdist(outnum))
+  l=0
+  do k=-rmax,rmax
+    vec(3)=real(k,kind=PRC)
+    do j=-rmax,rmax
+      vec(2)=real(j,kind=PRC)
+      do i=-rmax,rmax
+        vec(1)=real(i,kind=PRC)
+        if(issub(i,j,k)==2)then
+          rdist=vec(1)**TWO+vec(2)**TWO+vec(3)**TWO
+          l=l+1
+          outlist(1,l)=i
+          outlist(2,l)=j
+          outlist(3,l)=k
+          outdist(l)=sqrt(rdist)
+        endif
+      enddo
+    enddo
+  enddo
+  
+  l=0
+  do k=-rmax,rmax
+    do j=-rmax,rmax
+      do i=-rmax,rmax
+        if(issub(i,j,k)==3)then
+          l=l+1
+        endif
+      enddo
+    enddo
+  enddo
+  
+  outnumdead=l
+  if(allocated(outlistdead))deallocate(outlistdead)
+  allocate(outlistdead(3,outnumdead))
+  
+  l=0
+  do k=-rmax,rmax
+    do j=-rmax,rmax
+      do i=-rmax,rmax
+        if(issub(i,j,k)==3)then
+          l=l+1
+          outlistdead(1,l)=i
+          outlistdead(2,l)=j
+          outlistdead(3,l)=k
+        endif
+      enddo
+    enddo
+  enddo
+  
+  return
+  
+ end subroutine spherical_template
  
  end module particles_mod

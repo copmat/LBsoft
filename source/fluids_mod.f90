@@ -306,6 +306,7 @@
  public :: set_lbc_halfway
  public :: set_lbc_fullway
  public :: driver_apply_bounceback_halfway_pop
+ public :: print_all_hvar
  
  contains
  
@@ -2588,6 +2589,15 @@
 !***********************************************************************
   
   implicit none
+  
+  integer, save :: iter=0
+  
+  iter=iter+1
+  
+#ifdef DIAGNHVAR
+  if(iter.eq.NDIAGNHVAR)call print_all_hvar(1320,'testhvar',iter, &
+   rhoR,u,v,w)
+#endif
   
   select case(LBintegrator)
   case (0)

@@ -29,8 +29,8 @@ rotate no
 densvar 1.4d0
 rcut 12.d0
 delr 1.0d0
-shape spherical 4.d0
-field pair hz 0.15d0 8.d0 7.1d0
-mass 74.d0
+shape spherical 4.5d0
+field pair hz 0.15d0 9.d0 8.1d0
+mass 472.d0
 [END ROOM]
 [END]
