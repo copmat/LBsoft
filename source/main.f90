@@ -61,7 +61,8 @@
   use particles_mod,   only : allocate_particles,lparticles,vertest, &
                         initialize_map_particles,driver_inter_force, &
                         initialize_integrator_lf,initialize_particle_force, &
-                        driver_neighborhood_list
+                        driver_neighborhood_list, &
+                        init_particles_fluid_interaction
   use write_output_mod,only : write_test_map,lvtkfile,init_output, &
                         write_vtk_frame,write_xyz_close, &
                         write_particle_xyz
@@ -174,6 +175,9 @@
   
 ! initialize and read the restart file if requested
   call initialize_fluids
+  
+! initialize particle fluid interaction if requested
+  call init_particles_fluid_interaction
   
 ! print memory
   call get_memory(mymemory)

@@ -190,9 +190,9 @@
  real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_v
  real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_w
  
- integer, allocatable :: ibounce(:,:)
- integer :: nbounce0,nbounce6,nbounce7,nbounce8
- integer, dimension(0:nbcdir) :: nbounce6dir,nbounce7dir,nbounce8dir
+ integer, allocatable, save :: ibounce(:,:)
+ integer, save :: nbounce0,nbounce6,nbounce7,nbounce8
+ integer, dimension(0:nbcdir), save :: nbounce6dir,nbounce7dir,nbounce8dir
  
 #if LATTICE==319
  
@@ -307,6 +307,8 @@
  public :: set_lbc_fullway
  public :: driver_apply_bounceback_halfway_pop
  public :: print_all_hvar
+ public :: init_particle_2_isfluid
+ public :: push_comm_isfluid
  
  contains
  
@@ -1317,6 +1319,27 @@
   return
   
  end subroutine initialize_fluids
+ 
+ subroutine push_comm_isfluid()
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for pushing the isfluid communication
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  !communicate isfluid over the processes applying the bc if necessary
+  call comm_init_isfluid(isfluid)
+  
+  return
+ 
+ end subroutine push_comm_isfluid
  
  subroutine initialize_fluid_force
  
@@ -7873,6 +7896,362 @@ subroutine driver_bc_densities
  end subroutine driver_copy_densities_wall
  
 !*******************END PART TO MANAGE THE COPY WALL********************
+
+!*********START PART TO MANAGE THE INTERACTION WITH PARTICLES***********
+
+ subroutine init_particle_2_isfluid(isub,jsub,ksub,nspheres, &
+  spherelists,spheredists,nspheredeads,spherelistdeads)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine to initialize isfluid and hydrodynamic
+!     variables according to the particle presence
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: isub,jsub,ksub,nspheres,nspheredeads
+  integer, allocatable, dimension(:,:), intent(in) :: spherelists
+  integer, allocatable, dimension(:,:), intent(in) :: spherelistdeads
+  real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
+  
+  integer :: i,j,k,l
+  integer :: imin,imax,jmin,jmax,kmin,kmax
+  
+  imin=minx-nbuff
+  imax=maxx+nbuff
+  jmin=miny-nbuff
+  jmax=maxy+nbuff
+  kmin=minz-nbuff
+  kmax=maxz+nbuff
+  
+  do l=1,nspheres
+    i=isub+spherelists(1,l)
+    j=jsub+spherelists(2,l)
+    k=ksub+spherelists(3,l)
+    !apply periodic conditions if necessary
+    if(ixpbc.eq.1) then
+      if(i<1) then
+        i=i+nx
+      endif
+      if(i>nx) then
+        i=i-nx
+      endif
+    endif
+    if(iypbc.eq.1) then
+      if(j<1) then
+        j=j+ny
+      endif
+      if(j>ny) then
+         j=j-ny
+      endif
+    endif
+    if(izpbc.eq.1) then
+      if(k<1) then
+        k=k+nz
+      endif
+      if(k>nz) then
+        k=k-nz
+      endif
+    endif
+    if(i<imin .or. i>imax)cycle
+    if(j<jmin .or. j>jmax)cycle
+    if(k<kmin .or. k>kmax)cycle
+    isfluid(i,j,k)=2
+  enddo
+  
+  if(lsingle_fluid)then
+    do l=1,nspheredeads
+      i=isub+spherelistdeads(1,l)
+      j=jsub+spherelistdeads(2,l)
+      k=ksub+spherelistdeads(3,l)
+      !apply periodic conditions if necessary
+      if(ixpbc.eq.1) then
+        if(i<1) then
+          i=i+nx
+        endif
+        if(i>nx) then
+          i=i-nx
+        endif
+      endif
+      if(iypbc.eq.1) then
+        if(j<1) then
+          j=j+ny
+        endif
+        if(j>ny) then
+           j=j-ny
+        endif
+      endif
+      if(izpbc.eq.1) then
+        if(k<1) then
+          k=k+nz
+        endif
+        if(k>nz) then
+          k=k-nz
+        endif
+      endif
+      if(i<imin .or. i>imax)cycle
+      if(j<jmin .or. j>jmax)cycle
+      if(k<kmin .or. k>kmax)cycle
+      isfluid(i,j,k)=4
+      rhoR(i,j,k)=ZERO
+      u(i,j,k)=ZERO
+      v(i,j,k)=ZERO
+      w(i,j,k)=ZERO
+    enddo
+  else
+    do l=1,nspheredeads
+      i=isub+spherelistdeads(1,l)
+      j=jsub+spherelistdeads(2,l)
+      k=ksub+spherelistdeads(3,l)
+      !apply periodic conditions if necessary
+      if(ixpbc.eq.1) then
+        if(i<1) then
+          i=i+nx
+        endif
+        if(i>nx) then
+          i=i-nx
+        endif
+      endif
+      if(iypbc.eq.1) then
+        if(j<1) then
+          j=j+ny
+        endif
+        if(j>ny) then
+           j=j-ny
+        endif
+      endif
+      if(izpbc.eq.1) then
+        if(k<1) then
+          k=k+nz
+        endif
+        if(k>nz) then
+          k=k-nz
+        endif
+      endif
+      if(i<imin .or. i>imax)cycle
+      if(j<jmin .or. j>jmax)cycle
+      if(k<kmin .or. k>kmax)cycle
+      isfluid(i,j,k)=4
+      rhoR(i,j,k)=ZERO
+      u(i,j,k)=ZERO
+      v(i,j,k)=ZERO
+      w(i,j,k)=ZERO
+      rhoB(i,j,k)=ZERO  !also the second component
+    enddo
+  endif
+  
+  isfluid(isub,jsub,ksub)=5
+  
+  return
+  
+ end subroutine init_particle_2_isfluid
+ 
+ subroutine particle_bounce_back(isub,jsub,ksub,nspheres, &
+  spherelists,spheredists,new_isfluid)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine to initialize isfluid and hydrodynamic
+!     variables according to the particle presence
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: isub,jsub,ksub,nspheres
+  integer, allocatable, dimension(:,:), intent(in) :: spherelists
+  integer, allocatable, dimension(:,:,:), intent(inout) :: new_isfluid
+  real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
+  
+  integer :: i,j,k,l
+  integer, save :: imin,imax,jmin,jmax,kmin,kmax
+  logical, save :: lfirst=.true.
+  
+  if(lfirst)then
+    lfirst=.false.
+    imin=minx-1
+    imax=maxx+1
+    jmin=miny-1
+    jmax=maxy+1
+    kmin=minz-1
+    kmax=maxz+1
+  endif
+  
+  if(lsingle_fluid)then
+    do l=1,nspheres
+      i=isub+spherelists(1,l)
+      j=jsub+spherelists(2,l)
+      k=ksub+spherelists(3,l)
+      !apply periodic conditions if necessary
+      if(ixpbc.eq.1) then
+        if(i<1) then
+          i=i+nx
+        endif
+        if(i>nx) then
+          i=i-nx
+        endif
+      endif
+      if(iypbc.eq.1) then
+        if(j<1) then
+          j=j+ny  
+        endif
+        if(j>ny) then
+           j=j-ny
+        endif
+      endif
+      if(izpbc.eq.1) then
+        if(k<1) then
+          k=k+nz
+        endif
+        if(k>nz) then
+          k=k-nz
+        endif
+      endif
+      if(i<imin .or. i>imax)cycle
+      if(j<jmin .or. j>jmax)cycle
+      if(k<kmin .or. k>kmax)cycle
+      new_isfluid(i,j,k)=2
+      call particle_node_bounce_back(i,j,k,aoptpR)
+    enddo
+  else
+    do l=1,nspheres
+      i=isub+spherelists(1,l)
+      j=jsub+spherelists(2,l)
+      k=ksub+spherelists(3,l)
+      !apply periodic conditions if necessary
+      if(ixpbc.eq.1) then
+        if(i<1) then
+          i=i+nx
+        endif
+        if(i>nx) then
+          i=i-nx
+        endif
+      endif
+      if(iypbc.eq.1) then
+        if(j<1) then
+          j=j+ny  
+        endif
+        if(j>ny) then
+           j=j-ny
+        endif
+      endif
+      if(izpbc.eq.1) then
+        if(k<1) then
+          k=k+nz
+        endif
+        if(k>nz) then
+          k=k-nz
+        endif
+      endif
+      if(i<imin .or. i>imax)cycle
+      if(j<jmin .or. j>jmax)cycle
+      if(k<kmin .or. k>kmax)cycle
+      new_isfluid(i,j,k)=2
+      call particle_node_bounce_back(i,j,k,aoptpR)
+      call particle_node_bounce_back(i,j,k,aoptpB)
+    enddo
+  endif
+  
+  return
+  
+ end subroutine particle_bounce_back
+ 
+ subroutine particle_node_bounce_back(i,j,k,aoptp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to apply the bounce back on a particle surface
+!     node on the fluid
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: i,j,k
+  type(REALPTR), dimension(0:links):: aoptp
+  
+  aoptp(1)%p(i,j,k) = &
+   real(aoptp(2)%p(i+ex(1),j,k), &
+   kind=PRC)
+  aoptp(2)%p(i,j,k) = &
+   real(aoptp(1)%p(i+ex(2),j,k), &
+   kind=PRC)
+  
+  aoptp(3)%p(i,j,k) = &
+   real(aoptp(4)%p(i,j+ey(3),k), &
+   kind=PRC)
+  aoptp(4)%p(i,j,k) = &
+   real(aoptp(3)%p(i,j+ey(4),k), &
+   kind=PRC)
+  
+  aoptp(5)%p(i,j,k) = &
+   real(aoptp(6)%p(i,j,k+ez(5)), &
+   kind=PRC)
+  aoptp(6)%p(i,j,k) = &
+   real(aoptp(5)%p(i,j,k+ez(6)), &
+   kind=PRC)
+  
+  aoptp(7)%p(i,j,k) = &
+   real(aoptp(8)%p(i+ex(7),j+ey(7),k), &
+   kind=PRC)
+  aoptp(8)%p(i,j,k) = &
+   real(aoptp(7)%p(i+ex(8),j+ey(8),k), &
+   kind=PRC)
+  
+  aoptp(9)%p(i,j,k) = &
+   real(aoptp(10)%p(i+ex(9),j+ey(9),k), &
+   kind=PRC)
+  aoptp(10)%p(i,j,k) = &
+   real(aoptp(9)%p(i+ex(10),j+ey(10),k), &
+   kind=PRC)
+   
+  aoptp(11)%p(i,j,k) = &
+   real(aoptp(12)%p(i+ex(11),j,k+ez(11)), &
+   kind=PRC)
+  aoptp(12)%p(i,j,k) = &
+   real(aoptp(11)%p(i+ex(12),j,k+ez(12)), &
+   kind=PRC)
+  
+  aoptp(13)%p(i,j,k) = &
+   real(aoptp(14)%p(i+ex(13),j,k+ez(13)), &
+   kind=PRC)
+  aoptp(14)%p(i,j,k) = &
+   real(aoptp(13)%p(i+ex(14),j,k+ez(14)), &
+   kind=PRC)
+  
+  aoptp(15)%p(i,j,k) = &
+   real(aoptp(16)%p(i,j+ey(15),k+ez(15)), &
+   kind=PRC)
+  aoptp(16)%p(i,j,k) = &
+   real(aoptp(15)%p(i,j+ey(16),k+ez(16)), &
+   kind=PRC)
+   
+  aoptp(17)%p(i,j,k) = &
+   real(aoptp(18)%p(i,j+ey(17),k+ez(17)), &
+   kind=PRC)
+  aoptp(18)%p(i,j,k) = &
+   real(aoptp(17)%p(i,j+ey(18),k+ez(18)), &
+   kind=PRC)
+   
+  return
+  
+  end subroutine
+ 
+!***********END PART TO MANAGE THE INTERACTION WITH PARTICLES***********
 
  subroutine write_test_map_pop(aoptp)
   

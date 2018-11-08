@@ -40,7 +40,9 @@
                    ownern,gminx,gmaxx,gminy,gmaxy,gminz,gmaxz
  
  use fluids_mod,  only : nx,ny,nz,nbuff,minx,maxx,miny,maxy,minz,maxz, &
-                   set_lbc_halfway,lbc_halfway,cssq,links,ex,ey,ez
+                   set_lbc_halfway,lbc_halfway,cssq,links,ex,ey,ez, &
+                   init_particle_2_isfluid,push_comm_isfluid, &
+                   ixpbc,iypbc,izpbc,isfluid
 
  
  implicit none
@@ -181,6 +183,9 @@
  !radial distance list of reflecting nodes in the spherical particle
  real(kind=PRC), allocatable, dimension(:), save :: spheredist
  
+ !unit vector list of reflecting nodes in the spherical particle
+ real(kind=PRC), allocatable, dimension(:,:), save :: sphereuvec
+ 
  !number of dead nodes in the spherical particle
  integer, save :: nspheredead
  
@@ -196,6 +201,9 @@
  
  !store the type of pair force field
  integer, allocatable, public, protected, save :: ltpvdw(:)
+ 
+ !flag for particle moving grid overlap
+ logical(kind=1), allocatable, public, protected, save :: lmove(:)
  
  !position of particles
  real(kind=PRC), allocatable, public, protected, save :: xxx(:)
@@ -264,6 +272,7 @@
  public :: integrate_particles_vv
  public :: merge_particle_energies
  public :: set_init_temp
+ public :: init_particles_fluid_interaction
  
  contains
  
@@ -703,7 +712,9 @@
   
   istat(1:nistatmax)=0
   
+  allocate(lmove(mxatms),stat=istat(99))
   allocate(atmbook(mxatms),stat=istat(100))
+  
   
   allocate(xxx(mxatms),stat=istat(1))
   allocate(yyy(mxatms),stat=istat(2))
@@ -788,6 +799,7 @@
   call or_world_larr(ltest,1)
   if(ltest(1))call error(20)
   
+  lmove(1:mxatms)=.false.
   atmbook(1:mxatms)=0
   
   xxx(1:mxatms)=ZERO
@@ -850,7 +862,7 @@
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
-!     last modification October 2018
+!     last modification November 2018
 !     
 !***********************************************************************
  
@@ -862,7 +874,7 @@
   real(kind=PRC), allocatable, dimension(:,:) :: ots
   logical, intent(in) :: lvelocity
   
-  integer :: i,j,k,ids,sub_i,idrank_sub
+  integer :: i,j,k,l,iatm,ids,sub_i,idrank_sub
   logical :: ltest(1),lqinput,ltinput
   integer, dimension(0:mxrank-1) :: isend_nparticle
   integer :: isend_nvar
@@ -1346,9 +1358,45 @@
     endif
   endif
   
-#if 0
+  return
+  
+ end subroutine initialize_map_particles
+ 
+ subroutine init_particles_fluid_interaction
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine to initialize particle templates
+!     and particle fluid interactions
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: iatm,i,j,k,l
+  
+  if(.not. lparticles)return
+  
   call spherical_template(urdim,nsphere,spherelist,spheredist, &
    nspheredead,spherelistdead)
+ 
+ ! initialize isfluid according to the particle presence
+  do iatm=1,natms
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    call init_particle_2_isfluid(i,j,k,nsphere,spherelist,spheredist, &
+     nspheredead,spherelistdead)
+  enddo
+  
+ !push the isfluid communication if necessary
+  call push_comm_isfluid
+  
+#if 0
   k=floor(urdim)
   write(6,*)nsphere
   do i=1,nsphere
@@ -1382,7 +1430,76 @@
   
   return
   
- end subroutine initialize_map_particles
+ end subroutine init_particles_fluid_interaction
+ 
+ subroutine check_moving_particles
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine to initialize particle templates
+!     and particle fluid interactions
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: iatm,i,j,k,l,imin,imax,jmin,jmax,kmin,kmax
+  
+  if(.not. lparticles)return
+  
+  imin=minx-nbuff
+  imax=maxx+nbuff
+  jmin=miny-nbuff
+  jmax=maxy+nbuff
+  kmin=minz-nbuff
+  kmax=maxz+nbuff
+  
+  lmove(1:mxatms)=.false.
+  
+  ! check all the particle center with respect to previous step (given by isfluid==5)
+  !ATTENTION: if the halo will be only between natms+1:natms_ext
+  !the pbc part is useless
+  do iatm=1,natms
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    if(ixpbc.eq.1) then
+      if(i<1) then
+        i=i+nx
+      endif
+      if(i>nx) then
+        i=i-nx
+      endif
+    endif
+    if(iypbc.eq.1) then
+      if(j<1) then
+        j=j+ny
+      endif
+      if(j>ny) then
+         j=j-ny
+      endif
+    endif
+    if(izpbc.eq.1) then
+      if(k<1) then
+        k=k+nz
+      endif
+      if(k>nz) then
+        k=k-nz
+      endif
+    endif
+    if(i<imin .or. i>imax)cycle
+    if(j<jmin .or. j>jmax)cycle
+    if(k<kmin .or. k>kmax)cycle
+    if(isfluid(i,j,k)/=5)lmove(iatm)=.true.
+  enddo  
+  
+  return
+  
+ end subroutine check_moving_particles
  
  subroutine driver_neighborhood_list(newlst,nstepsub)
  

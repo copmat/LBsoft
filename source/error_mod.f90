@@ -112,6 +112,9 @@
         write(outp,outf)'ERROR - bad allocation in subroutine nve_lf.'
       case (29)
         write(outp,outf)'ERROR - error in subroutine spherical_template.'
+      case (30)
+        write(outp,outf2)'ERROR - bad allocation in subroutine ', &
+         'allocate_particle_fluids_bc.'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select
