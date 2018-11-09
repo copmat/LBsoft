@@ -882,20 +882,20 @@
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
               endif
-            elseif(findstring('velocity',directive,inumchar,maxlen))then
-              if(findstring('verlet',directive,inumchar,maxlen))then
-                if(findstring('yes',directive,inumchar,maxlen))then
-                  temp_lvv=.true.
-                elseif(findstring('no',directive,inumchar,maxlen))then
-                  temp_lvv=.false.
-                else
-                  call warning(1,dble(iline),redstring)
-                  lerror6=.true.
-                endif
-              else
-                call warning(1,dble(iline),redstring)
-                lerror6=.true.
-              endif
+!            elseif(findstring('velocity',directive,inumchar,maxlen))then
+!              if(findstring('verlet',directive,inumchar,maxlen))then
+!                if(findstring('yes',directive,inumchar,maxlen))then
+!                  temp_lvv=.true.
+!                elseif(findstring('no',directive,inumchar,maxlen))then
+!                  temp_lvv=.false.
+!                else
+!                  call warning(1,dble(iline),redstring)
+!                  lerror6=.true.
+!                endif
+!              else
+!                call warning(1,dble(iline),redstring)
+!                lerror6=.true.
+!              endif
             elseif(findstring('mass',directive,inumchar,maxlen))then
               dtemp_umass=dblstr(directive,maxlen,inumchar)
               temp_lumass=.true.

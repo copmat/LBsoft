@@ -42,7 +42,7 @@
  use fluids_mod,  only : nx,ny,nz,nbuff,minx,maxx,miny,maxy,minz,maxz, &
                    set_lbc_halfway,lbc_halfway,cssq,links,ex,ey,ez, &
                    init_particle_2_isfluid,push_comm_isfluid, &
-                   ixpbc,iypbc,izpbc,isfluid
+                   ixpbc,iypbc,izpbc,isfluid,particle_bounce_back
 
  
  implicit none
@@ -205,14 +205,29 @@
  !flag for particle moving grid overlap
  logical(kind=1), allocatable, public, protected, save :: lmove(:)
  
+ !flag for particle leaving the subdomain (for parallel version)
+ logical(kind=1), allocatable, public, protected, save :: lmove_dom(:)
+ 
  !position of particles
  real(kind=PRC), allocatable, public, protected, save :: xxx(:)
  real(kind=PRC), allocatable, public, protected, save :: yyy(:)
  real(kind=PRC), allocatable, public, protected, save :: zzz(:)
+ 
+ !old position of particles
+ real(kind=PRC), allocatable, public, protected, save :: xxo(:)
+ real(kind=PRC), allocatable, public, protected, save :: yyo(:)
+ real(kind=PRC), allocatable, public, protected, save :: zzo(:)
+ 
  !components of angular velocity
  real(kind=PRC), allocatable, public, protected, save :: vxx(:)
  real(kind=PRC), allocatable, public, protected, save :: vyy(:)
  real(kind=PRC), allocatable, public, protected, save :: vzz(:)
+ 
+ !old components of angular velocity
+ real(kind=PRC), allocatable, public, protected, save :: vxo(:)
+ real(kind=PRC), allocatable, public, protected, save :: vyo(:)
+ real(kind=PRC), allocatable, public, protected, save :: vzo(:)
+ 
  !components of force
  real(kind=PRC), allocatable, public, protected, save :: fxx(:)
  real(kind=PRC), allocatable, public, protected, save :: fyy(:)
@@ -273,6 +288,9 @@
  public :: merge_particle_energies
  public :: set_init_temp
  public :: init_particles_fluid_interaction
+ public :: apply_particle_bounce_back
+ public :: store_old_pos_vel_part
+ public :: check_moving_particles
  
  contains
  
@@ -712,6 +730,7 @@
   
   istat(1:nistatmax)=0
   
+  allocate(lmove_dom(mxatms),stat=istat(98))
   allocate(lmove(mxatms),stat=istat(99))
   allocate(atmbook(mxatms),stat=istat(100))
   
@@ -753,6 +772,14 @@
   allocate(tqz(mxatms),stat=istat(22))
   
   allocate(rmass(mxatms),stat=istat(23))
+  
+  allocate(xxo(mxatms),stat=istat(26))
+  allocate(yyo(mxatms),stat=istat(27))
+  allocate(zzo(mxatms),stat=istat(28))
+  
+  allocate(vxo(mxatms),stat=istat(29))
+  allocate(vyo(mxatms),stat=istat(31))
+  allocate(vzo(mxatms),stat=istat(31))
   
 #if 1
   if(mxrank>1)then
@@ -1358,6 +1385,9 @@
     endif
   endif
   
+! ATTENTION DOMAIN DECOMPOSITION SHOULD BE ADDED HERE AND natms_ext PROPERLY SET  
+  natms_ext=natms
+  
   return
   
  end subroutine initialize_map_particles
@@ -1432,6 +1462,36 @@
   
  end subroutine init_particles_fluid_interaction
  
+ subroutine apply_particle_bounce_back()
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to apply the particle bounce back on
+!     fluids
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: iatm,i,j,k
+  
+  do iatm=1,natms
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    call particle_bounce_back(i,j,k,nsphere, &
+     spherelist,spheredist,vxx(iatm),vyy(iatm),vzz(iatm), &
+     fxx(iatm),fyy(iatm),fzz(iatm))
+  enddo
+  
+  return
+  
+ end subroutine apply_particle_bounce_back
+  
  subroutine check_moving_particles
   
 !***********************************************************************
@@ -1447,7 +1507,7 @@
  
   implicit none
   
-  integer :: iatm,i,j,k,l,imin,imax,jmin,jmax,kmin,kmax
+  integer :: iatm,i,j,k,io,jo,ko,l,imin,imax,jmin,jmax,kmin,kmax
   
   if(.not. lparticles)return
   
@@ -1458,44 +1518,24 @@
   kmin=minz-nbuff
   kmax=maxz+nbuff
   
-  lmove(1:mxatms)=.false.
+  ! check all the particle centers if they are moved
   
-  ! check all the particle center with respect to previous step (given by isfluid==5)
-  !ATTENTION: if the halo will be only between natms+1:natms_ext
-  !the pbc part is useless
-  do iatm=1,natms
-    i=nint(xxx(iatm))
-    j=nint(yyy(iatm))
-    k=nint(zzz(iatm))
-    if(ixpbc.eq.1) then
-      if(i<1) then
-        i=i+nx
-      endif
-      if(i>nx) then
-        i=i-nx
-      endif
-    endif
-    if(iypbc.eq.1) then
-      if(j<1) then
-        j=j+ny
-      endif
-      if(j>ny) then
-         j=j-ny
-      endif
-    endif
-    if(izpbc.eq.1) then
-      if(k<1) then
-        k=k+nz
-      endif
-      if(k>nz) then
-        k=k-nz
-      endif
-    endif
-    if(i<imin .or. i>imax)cycle
-    if(j<jmin .or. j>jmax)cycle
-    if(k<kmin .or. k>kmax)cycle
-    if(isfluid(i,j,k)/=5)lmove(iatm)=.true.
-  enddo  
+  where(nint(xxx(1:natms_ext))/=nint(xxo(1:natms_ext)).or. &
+   nint(yyy(1:natms_ext))/=nint(yyo(1:natms_ext)) .or. &
+   nint(zzz(1:natms_ext))/=nint(zzo(1:natms_ext)))
+    lmove(1:natms_ext)=.true.
+  elsewhere
+    lmove(1:natms_ext)=.false.
+  end where
+  
+  if(mxrank>1)then
+    !check if the particle is leaving the sub domain
+    forall(i=1:natms,lmove(i))
+      lmove_dom(i)=(nint(xxx(i))<minx .or. nint(xxx(i))>maxx .or. &
+       nint(yyy(i))<miny .or. nint(yyy(i))>maxy .or. &
+       nint(zzz(i))<minz .or. nint(zzz(i))>maxz)
+    end forall
+  endif
   
   return
   
@@ -1979,11 +2019,41 @@
   
   end subroutine init_velocity
   
-  subroutine vscaleg()
+  
+ subroutine store_old_pos_vel_part
+ 
+!*********************************************************************
+!     
+!     LBsoft subroutine for storing the old position and 
+!     velocity arrays of particles
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  integer :: i
+  
+  ! store initial values of position and velocity    
+  forall(i=1:natms_ext)
+    xxo(i)=xxx(i)
+    yyo(i)=yyy(i)
+    zzo(i)=zzz(i)
+    vxo(i)=vxx(i)
+    vyo(i)=vyy(i)
+    vzo(i)=vzz(i)
+  end forall
+  
+  return
+  
+ end subroutine store_old_pos_vel_part
+  
+ subroutine vscaleg()
 
 !*********************************************************************
 !     
-!     LBsoft  subroutine for scaling the velocity arrays to the
+!     LBsoft subroutine for scaling the velocity arrays to the
 !     desired temperature
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
@@ -2105,9 +2175,9 @@
   integer :: i,k
   logical :: ltest(1)
   
+! working arrays
   real(kind=PRC), allocatable :: uxx(:),uyy(:),uzz(:)    
-  real(kind=PRC), allocatable :: xxo(:),yyo(:),zzo(:)
-  real(kind=PRC), allocatable :: vxo(:),vyo(:),vzo(:)
+  
       
 ! allocate working arrays
   fail(1:nfailmax)=0
@@ -2115,12 +2185,6 @@
   allocate(uxx(mxatms),stat=fail(1))
   allocate(uyy(mxatms),stat=fail(2))
   allocate(uzz(mxatms),stat=fail(3))
-  allocate(xxo(mxatms),stat=fail(4))
-  allocate(yyo(mxatms),stat=fail(5))
-  allocate(zzo(mxatms),stat=fail(6))
-  allocate(vxo(mxatms),stat=fail(7))
-  allocate(vyo(mxatms),stat=fail(8))
-  allocate(vzo(mxatms),stat=fail(9))
   
   ltest=.false.
   if(any(fail.ne.0))then
@@ -2133,16 +2197,6 @@
 
   call or_world_larr(ltest,1)
   if(ltest(1))call error(28)
-
-! store initial values of position and velocity    
-  forall(i=1:natms)
-    xxo(i)=xxx(i)
-    yyo(i)=yyy(i)
-    zzo(i)=zzz(i)
-    vxo(i)=vxx(i)
-    vyo(i)=vyy(i)
-    vzo(i)=vzz(i)
-  end forall
       
 ! move atoms by leapfrog algorithm    
   forall(i=1:natms)
@@ -2188,8 +2242,6 @@
 
 ! deallocate work arrays
   deallocate (uxx,uyy,uzz,stat=fail(2))
-  deallocate (xxo,yyo,zzo,stat=fail(3))
-  deallocate (vxo,vyo,vzo,stat=fail(4))
       
   return
       

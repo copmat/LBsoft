@@ -62,7 +62,8 @@
                         initialize_map_particles,driver_inter_force, &
                         initialize_integrator_lf,initialize_particle_force, &
                         driver_neighborhood_list, &
-                        init_particles_fluid_interaction
+                        init_particles_fluid_interaction, &
+                        store_old_pos_vel_part
   use write_output_mod,only : write_test_map,lvtkfile,init_output, &
                         write_vtk_frame,write_xyz_close, &
                         write_particle_xyz
@@ -207,6 +208,7 @@
     call initialize_particle_force
     call driver_inter_force
     call initialize_integrator_lf
+    call store_old_pos_vel_part
   endif
   
 ! initialize lrecycle 

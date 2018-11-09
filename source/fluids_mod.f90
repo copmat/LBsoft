@@ -161,6 +161,7 @@
  real(kind=PRC), save, protected, public :: wallB_SC = ONE
  
  integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: isfluid
+ integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: new_isfluid
  integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: bcfluid
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:) :: wwfluid
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:,:),target :: rhoR
@@ -309,6 +310,7 @@
  public :: print_all_hvar
  public :: init_particle_2_isfluid
  public :: push_comm_isfluid
+ public :: particle_bounce_back
  
  contains
  
@@ -8053,7 +8055,7 @@ subroutine driver_bc_densities
  end subroutine init_particle_2_isfluid
  
  subroutine particle_bounce_back(isub,jsub,ksub,nspheres, &
-  spherelists,spheredists,new_isfluid)
+  spherelists,spheredists,vx,vy,vz,fx,fy,fz)
   
 !***********************************************************************
 !     
@@ -8070,8 +8072,9 @@ subroutine driver_bc_densities
   
   integer, intent(in) :: isub,jsub,ksub,nspheres
   integer, allocatable, dimension(:,:), intent(in) :: spherelists
-  integer, allocatable, dimension(:,:,:), intent(inout) :: new_isfluid
   real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
+  real(kind=PRC), intent(in) :: vx,vy,vz
+  real(kind=PRC), intent(inout) :: fx,fy,fz
   
   integer :: i,j,k,l
   integer, save :: imin,imax,jmin,jmax,kmin,kmax
@@ -8121,7 +8124,8 @@ subroutine driver_bc_densities
       if(j<jmin .or. j>jmax)cycle
       if(k<kmin .or. k>kmax)cycle
       new_isfluid(i,j,k)=2
-      call particle_node_bounce_back(i,j,k,aoptpR)
+      call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+       rhoR,aoptpR)
     enddo
   else
     do l=1,nspheres
@@ -8157,8 +8161,10 @@ subroutine driver_bc_densities
       if(j<jmin .or. j>jmax)cycle
       if(k<kmin .or. k>kmax)cycle
       new_isfluid(i,j,k)=2
-      call particle_node_bounce_back(i,j,k,aoptpR)
-      call particle_node_bounce_back(i,j,k,aoptpB)
+      call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+       rhoR,aoptpR)
+      call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+       rhoB,aoptpB)
     enddo
   endif
   
@@ -8166,7 +8172,8 @@ subroutine driver_bc_densities
   
  end subroutine particle_bounce_back
  
- subroutine particle_node_bounce_back(i,j,k,aoptp)
+ subroutine particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+  rhosub,aoptp)
  
 !***********************************************************************
 !     
@@ -8182,70 +8189,127 @@ subroutine driver_bc_densities
   implicit none
   
   integer, intent(in) :: i,j,k
+  real(kind=PRC), intent(in) :: vx,vy,vz
+  real(kind=PRC), intent(inout) :: fx,fy,fz
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub
   type(REALPTR), dimension(0:links):: aoptp
+  
+  real(kind=PRC), parameter :: onesixth=ONE/SIX
+  real(kind=PRC) :: f2p
+  
+  !formula taken from eq. 16 of PRE 83, 046707 (2011) force on fluid
+  !formula taken from eq. 17 of PRE 83, 046707 (2011) force on particle fx fy fz
   
   aoptp(1)%p(i,j,k) = &
    real(aoptp(2)%p(i+ex(1),j,k), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i+ex(1),j,k)*(vx*dex(2))
+  f2p=rhosub(i+ex(1),j,k)*(TWO-onesixth*(vx*dex(2)))
+  fx=fx+f2p*dex(2)
   aoptp(2)%p(i,j,k) = &
    real(aoptp(1)%p(i+ex(2),j,k), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i+ex(2),j,k)*(vx*dex(1))
+  f2p=rhosub(i+ex(2),j,k)*(TWO-onesixth*(vx*dex(1)))
+  fx=fx+f2p*dex(1)
   
   aoptp(3)%p(i,j,k) = &
    real(aoptp(4)%p(i,j+ey(3),k), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i,j+ey(3),k)*(vy*dey(4))
+  f2p=rhosub(i,j+ey(3),k)*(TWO-onesixth*(vy*dey(4)))
+  fy=fy+f2p*dey(4)
   aoptp(4)%p(i,j,k) = &
    real(aoptp(3)%p(i,j+ey(4),k), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i,j+ey(4),k)*(vy*dey(3))
+  f2p=rhosub(i,j+ey(4),k)*(TWO-onesixth*(vy*dey(3)))
+  fy=fy+f2p*dey(3)
   
   aoptp(5)%p(i,j,k) = &
    real(aoptp(6)%p(i,j,k+ez(5)), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i,j,k+ez(5))*(vz*dez(6))
+  f2p=rhosub(i,j,k+ez(5))*(TWO-onesixth*(vz*dez(6)))
+  fz=fz+f2p*dez(6)
   aoptp(6)%p(i,j,k) = &
    real(aoptp(5)%p(i,j,k+ez(6)), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i,j,k+ez(6))*(vz*dez(5))
+  f2p=rhosub(i,j,k+ez(6))*(TWO-onesixth*(vz*dez(5)))
+  fz=fz+f2p*dez(5)
   
   aoptp(7)%p(i,j,k) = &
    real(aoptp(8)%p(i+ex(7),j+ey(7),k), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i+ex(7),j+ey(7),k)*(vx*dex(8)+vy*dey(8))
+  f2p=rhosub(i+ex(7),j+ey(7),k)*(TWO-onesixth*(vx*dex(8)+vy*dey(8)))
+  fx=fx+f2p*dex(8)
+  fy=fy+f2p*dey(8)
   aoptp(8)%p(i,j,k) = &
    real(aoptp(7)%p(i+ex(8),j+ey(8),k), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i+ex(8),j+ey(8),k)*(vx*dex(7)+vy*dey(7))
+  f2p=rhosub(i+ex(8),j+ey(8),k)*(TWO-onesixth*(vx*dex(7)+vy*dey(7)))
+  fx=fx+f2p*dex(7)
+  fy=fy+f2p*dey(7)
   
   aoptp(9)%p(i,j,k) = &
    real(aoptp(10)%p(i+ex(9),j+ey(9),k), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i+ex(9),j+ey(9),k)*(vx*dex(10)+vy*dey(10))
+  f2p=rhosub(i+ex(9),j+ey(9),k)*(TWO-onesixth*(vx*dex(10)+vy*dey(10)))
+  fx=fx+f2p*dex(10)
+  fy=fy+f2p*dey(10)
   aoptp(10)%p(i,j,k) = &
    real(aoptp(9)%p(i+ex(10),j+ey(10),k), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i+ex(10),j+ey(10),k)*(vx*dex(9)+vy*dey(9))
+  f2p=rhosub(i+ex(10),j+ey(10),k)*(TWO-onesixth*(vx*dex(9)+vy*dey(9)))
+  fx=fx+f2p*dex(9)
+  fy=fy+f2p*dey(9)
    
   aoptp(11)%p(i,j,k) = &
    real(aoptp(12)%p(i+ex(11),j,k+ez(11)), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i+ex(11),j,k+ez(11))*(vx*dex(12)+vz*dez(12))
+  f2p=rhosub(i+ex(11),j,k+ez(11))*(TWO-onesixth*(vx*dex(12)+vz*dez(12)))
+  fx=fx+f2p*dex(12)
+  fz=fz+f2p*dez(12)
   aoptp(12)%p(i,j,k) = &
    real(aoptp(11)%p(i+ex(12),j,k+ez(12)), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i+ex(12),j,k+ez(12))*(vx*dex(11)+vz*dez(11))
+  f2p=rhosub(i+ex(12),j,k+ez(12))*(TWO-onesixth*(vx*dex(11)+vz*dez(11)))
+  fx=fx+f2p*dex(11)
+  fz=fz+f2p*dez(11)
   
   aoptp(13)%p(i,j,k) = &
    real(aoptp(14)%p(i+ex(13),j,k+ez(13)), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i+ex(13),j,k+ez(13))*(vx*dex(14)+vz*dez(14))
+  f2p=rhosub(i+ex(13),j,k+ez(13))*(TWO-onesixth*(vx*dex(14)+vz*dez(14)))
+  fx=fx+f2p*dex(14)
+  fz=fz+f2p*dez(14)
   aoptp(14)%p(i,j,k) = &
    real(aoptp(13)%p(i+ex(14),j,k+ez(14)), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i+ex(14),j,k+ez(14))*(vx*dex(13)+vz*dez(13))
+  f2p=rhosub(i+ex(14),j,k+ez(14))*(TWO-onesixth*(vx*dex(13)+vz*dez(13)))
+  fx=fx+f2p*dex(13)
+  fz=fz+f2p*dez(13)
   
   aoptp(15)%p(i,j,k) = &
    real(aoptp(16)%p(i,j+ey(15),k+ez(15)), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i,j+ey(15),k+ez(15))*(vy*dey(16)+vz*dez(16))
+  f2p=rhosub(i,j+ey(15),k+ez(15))*(TWO-onesixth*(vy*dey(16)+vz*dez(16)))
+  fy=fy+f2p*dey(16)
+  fz=fz+f2p*dez(16)
   aoptp(16)%p(i,j,k) = &
    real(aoptp(15)%p(i,j+ey(16),k+ez(16)), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i,j+ey(16),k+ez(16))*(vy*dey(15)+vz*dez(15))
+  f2p=rhosub(i,j+ey(16),k+ez(16))*(TWO-onesixth*(vy*dey(15)+vz*dez(15)))
+  fy=fy+f2p*dey(15)
+  fz=fz+f2p*dez(15)
    
   aoptp(17)%p(i,j,k) = &
    real(aoptp(18)%p(i,j+ey(17),k+ez(17)), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i,j+ey(17),k+ez(17))*(vy*dey(18)+vz*dez(18))
+  f2p=rhosub(i,j+ey(17),k+ez(17))*(TWO-onesixth*(vy*dey(18)+vz*dez(18)))
+  fy=fy+f2p*dey(18)
+  fz=fz+f2p*dez(18)
   aoptp(18)%p(i,j,k) = &
    real(aoptp(17)%p(i,j+ey(18),k+ez(18)), &
-   kind=PRC)
+   kind=PRC)-onesixth*rhosub(i,j+ey(18),k+ez(18))*(vy*dey(17)+vz*dez(17))
+  f2p=rhosub(i,j+ey(18),k+ez(18))*(TWO-onesixth*(vy*dey(17)+vz*dez(17)))
+  fy=fy+f2p*dey(17)
+  fz=fz+f2p*dez(17)
    
   return
   
