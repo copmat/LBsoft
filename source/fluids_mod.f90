@@ -8256,6 +8256,8 @@
       i=pimage(ixpbc,i,nx)
       j=pimage(iypbc,j,ny)
       k=pimage(izpbc,k,nz)
+#if 0
+      !maybe this is useless since the pbc are trated directly in the streaming step
       if(i==ii.and.j==jj.and.k==kk)then
         if(i<imin .or. i>imax)cycle
         if(j<jmin .or. j>jmax)cycle
@@ -8274,6 +8276,13 @@
            rhoR,aoptpR)
         endif
       endif
+#else
+      if(i<imin .or. i>imax)cycle
+      if(j<jmin .or. j>jmax)cycle
+      if(k<kmin .or. k>kmax)cycle
+      call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+       rhoR,aoptpR)
+#endif
     enddo
   else
     do l=1,nspheres
@@ -8287,6 +8296,8 @@
       i=pimage(ixpbc,i,nx)
       j=pimage(iypbc,j,ny)
       k=pimage(izpbc,k,nz)
+#if 0
+      !maybe this is useless since the pbc are trated directly in the streaming step
       if(i==ii.and.j==jj.and.k==kk)then
         if(i<imin .or. i>imax)cycle
         if(j<jmin .or. j>jmax)cycle
@@ -8311,6 +8322,15 @@
            rhoB,aoptpB)
         endif
       endif
+#else
+      if(i<imin .or. i>imax)cycle
+      if(j<jmin .or. j>jmax)cycle
+      if(k<kmin .or. k>kmax)cycle
+      call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+       rhoR,aoptpR)
+      call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+       rhoB,aoptpB)
+#endif
     enddo
   endif
   
