@@ -48,6 +48,8 @@
 #define HALF      0.5e0
 #define FOURTH    0.25e0
 
+#define MINDENS   1.e-8
+
 #elif PRC==8
 
 #define C_MYFLOAT c_double
@@ -73,6 +75,8 @@
 #define FIFTY     50.d0
 #define HALF      0.5d0
 #define FOURTH    0.25d0
+
+#define MINDENS   1.d-8
 
 #else
 

@@ -123,7 +123,7 @@
   endif
    
 ! allocate fluid arrays
-  call allocate_fluids  
+  call allocate_fluids(lparticles)
   
 ! prepare list for neighbour comm of hydrodynamic variables (also ISFLUID)
   call create_findneigh_list_hvar_isfluid(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc, &
@@ -230,7 +230,6 @@
     
 !   integrate the system
     call driver_integrator(mytime)
-    
     
 !   compute statistical quanities
     call statistic_driver(nstep,mytime)

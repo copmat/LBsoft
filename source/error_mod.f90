@@ -115,6 +115,8 @@
       case (30)
         write(outp,outf2)'ERROR - bad allocation in subroutine ', &
          'allocate_particle_fluids_bc.'
+      case (31)
+        write(outp,outf)'ERROR - a particle is moving too fast!'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select
@@ -401,6 +403,10 @@
     case (35)
       write(outp,'(/,2a,/)')"WARNING - 'mass' is not defined in ", &
       "input file"
+    case (36)
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,3a,/)')"WARNING - the particle number", &
+       trim(adjustl(r_char))," is moving too fast!"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

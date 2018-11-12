@@ -26,7 +26,8 @@
  use lbempi_mod,  only : commspop, commrpop, i4find, i4back, &
                    ownern,deallocate_ownern,commexch_dens, &
                    commwait_dens,comm_init_isfluid,commexch_vel_component, &
-                   commwait_vel_component
+                   commwait_vel_component,commexch_isfluid, &
+                   commwait_isfluid
 
  
  implicit none
@@ -195,6 +196,9 @@
  integer, save :: nbounce0,nbounce6,nbounce7,nbounce8
  integer, dimension(0:nbcdir), save :: nbounce6dir,nbounce7dir,nbounce8dir
  
+ integer, allocatable, save :: isguards(:,:)
+ integer, save :: nguards
+ 
 #if LATTICE==319
  
  character(len=6), parameter, public :: latt_name="d3q19 "
@@ -210,6 +214,11 @@
  real(kind=PRC), parameter :: p2 = ( ONE / THIRTYSIX )
  real(kind=PRC), dimension(0:links), parameter, public :: &
   p = (/p0,p1,p1,p1,p1,p1,p1,p2,p2,p2,p2,p2,p2,p2,p2,p2,p2,p2,p2/)
+  
+ real(kind=PRC), dimension(0:links), parameter, public :: &
+  a = (/ZERO,p1/cssq,p1/cssq,p1/cssq,p1/cssq,p1/cssq,p1/cssq,p2/cssq, &
+  p2/cssq,p2/cssq,p2/cssq,p2/cssq,p2/cssq,p2/cssq,p2/cssq,p2/cssq, &
+  p2/cssq,p2/cssq,p2/cssq/)
  
  !lattice vectors
  integer, dimension(0:links), parameter, public :: &
@@ -251,8 +260,16 @@
   p2d3q27,p2d3q27,p2d3q27,p2d3q27,p2d3q27,p2d3q27,p2d3q27,p2d3q27, &
   p2d3q27,p2d3q27,p2d3q27,p2d3q27,p3d3q27,p3d3q27,p3d3q27,p3d3q27, &
   p3d3q27,p3d3q27,p3d3q27,p3d3q27/)
+  
+ real(kind=PRC), dimension(0:linksd3q27), parameter, public :: &
+  ad3q27 = (/ZERO,p1d3q27/cssq,p1d3q27/cssq,p1d3q27/cssq, &
+  p1d3q27/cssq,p1d3q27/cssq,p1d3q27/cssq, &
+  p2d3q27/cssq,p2d3q27/cssq,p2d3q27/cssq,p2d3q27/cssq,p2d3q27/cssq, &
+  p2d3q27/cssq,p2d3q27/cssq,p2d3q27/cssq, &
+  p2d3q27/cssq,p2d3q27/cssq,p2d3q27/cssq,p2d3q27/cssq,p3d3q27/cssq, &
+  p3d3q27/cssq,p3d3q27/cssq,p3d3q27/cssq, &
+  p3d3q27/cssq,p3d3q27/cssq,p3d3q27/cssq,p3d3q27/cssq/)
  
-
  real(kind=PRC), save, public, allocatable, target, dimension(:,:,:) :: & 
   f00R,f01R,f02R,f03R,f04R,f05R,f06R,f07R,f08R
  real(kind=PRC), save, protected, public, allocatable, target, dimension(:,:,:) :: &
@@ -311,23 +328,29 @@
  public :: init_particle_2_isfluid
  public :: push_comm_isfluid
  public :: particle_bounce_back
+ public :: particle_moving_fluids
+ public :: initialize_new_isfluid
+ public :: update_isfluid
+ public :: driver_bc_isfluid
  
  contains
  
-   subroutine allocate_fluids
+ subroutine allocate_fluids(lparticles)
 
-     !***********************************************************************
-     !     
-     !     LBsoft subroutine for allocating arrays which 
-     !     describe the fluids
-     !     
-     !     licensed under Open Software License v. 3.0 (OSL-3.0)
-     !     author: M. Lauricella
-     !     last modification July 2018
-     !     
-     !***********************************************************************
+!***********************************************************************
+!     
+!     LBsoft subroutine for allocating arrays which 
+!     describe the fluids
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
 
      implicit none
+     
+     logical, intent(in) :: lparticles
 
      integer, parameter :: nistatmax=100
      integer, dimension(nistatmax) :: istat
@@ -349,6 +372,11 @@
      istat=0
      
      allocate(isfluid(ix:mynx,iy:myny,iz:mynz),stat=istat(1))
+     
+     if(lparticles)then
+       allocate(new_isfluid(ix:mynx,iy:myny,iz:mynz),stat=istat(98))
+     endif
+     
      allocate(bcfluid(ix:mynx,iy:myny,iz:mynz),stat=istat(99))
      allocate(rhoR(ix:mynx,iy:myny,iz:mynz),stat=istat(2))
 
@@ -1037,11 +1065,14 @@
   !communicate bcfluid over the processes applying the bc if necessary
   call comm_init_isfluid(bcfluid)
   
-  !apply the bc if necessary within the same process
-  call initialiaze_manage_bc_isfluid_selfcomm(isfluid)
+  !initialize the bc if necessary within the same process
+  call initialiaze_manage_bc_isfluid_selfcomm
   
   !apply the bc if necessary within the same process
-  call initialiaze_manage_bc_isfluid_selfcomm(bcfluid)
+  call manage_bc_isfluid_selfcomm(isfluid)
+  
+  !apply the bc if necessary within the same process
+  call manage_bc_isfluid_selfcomm(bcfluid)
   
   ltest=.false.
   do k=minz-1,maxz+1
@@ -5163,7 +5194,36 @@
 
 !*****************START PART TO MANAGE THE PERIODIC BC******************
 
-subroutine driver_bc_densities
+ subroutine driver_bc_isfluid
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the boundary conditions
+!     to isfluid array
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+#ifdef MPI
+    call commexch_isfluid(isfluid)
+#endif
+    call manage_bc_isfluid_selfcomm(isfluid)
+    
+#ifdef MPI
+    call commwait_isfluid(isfluid)
+#endif
+  
+  
+  return
+  
+ end subroutine driver_bc_isfluid
+
+ subroutine driver_bc_densities
  
 !***********************************************************************
 !     
@@ -5196,7 +5256,7 @@ subroutine driver_bc_densities
   
  end subroutine driver_bc_densities
  
- subroutine initialiaze_manage_bc_isfluid_selfcomm(istemp)
+ subroutine initialiaze_manage_bc_isfluid_selfcomm()
  
 !***********************************************************************
 !     
@@ -5205,16 +5265,19 @@ subroutine driver_bc_densities
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
-!     last modification July 2018
+!     last modification November 2018
 !     
 !***********************************************************************
  
   implicit none
   
-  integer(kind=1), dimension(:,:,:), allocatable :: istemp
-  
   integer :: i,j,k,l,itemp,jtemp,ktemp,itemp2,jtemp2,ktemp2
   integer(kind=IPRC) :: i4orig,i4
+  
+  logical, parameter :: lverbose=.false.
+  
+  nguards=0
+  if(ixpbc.eq.0 .and. iypbc.eq.0 .and. izpbc.eq.0)return
   
   do k=minz-nbuff,maxz+nbuff
     do j=miny-nbuff,maxy+nbuff
@@ -5255,7 +5318,64 @@ subroutine driver_bc_densities
           i4=i4back(itemp,jtemp,ktemp) 
           i4orig=i4back(itemp2,jtemp2,ktemp2) 
           if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
-            istemp(itemp2,jtemp2,ktemp2)=istemp(itemp,jtemp,ktemp)
+            nguards=nguards+1
+          endif
+        endif
+      enddo
+    enddo
+  enddo
+  
+  if(lverbose)write(6,*)'id=',idrank,'nguards=',nguards
+  
+  allocate(isguards(6,nguards))
+  
+  nguards=0
+  do k=minz-nbuff,maxz+nbuff
+    do j=miny-nbuff,maxy+nbuff
+      do i=minx-nbuff,maxx+nbuff
+        if(i<minx.or.j<miny.or.k<minz.or.i>maxx.or.j>maxy.or.k>maxz)then
+          if(ixpbc.eq.0 .and. iypbc.eq.0 .and. izpbc.eq.0)cycle
+          itemp=i
+          jtemp=j
+          ktemp=k
+          itemp2=i
+          jtemp2=j
+          ktemp2=k
+          !apply periodic conditions if necessary
+          if(ixpbc.eq.1) then
+            if(itemp<1) then
+              itemp=itemp+nx
+            endif
+            if(itemp>nx) then
+              itemp=itemp-nx
+            endif
+          endif
+          if(iypbc.eq.1) then
+            if(jtemp<1) then
+              jtemp=jtemp+ny
+            endif
+           if(jtemp>ny) then
+              jtemp=jtemp-ny
+            endif
+          endif
+          if(izpbc.eq.1) then
+            if(ktemp<1) then
+              ktemp=ktemp+nz
+            endif
+            if(ktemp>nz) then
+              ktemp=ktemp-nz
+            endif
+          endif
+          i4=i4back(itemp,jtemp,ktemp) 
+          i4orig=i4back(itemp2,jtemp2,ktemp2) 
+          if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
+            nguards=nguards+1
+            isguards(1,nguards)=itemp
+            isguards(2,nguards)=jtemp
+            isguards(3,nguards)=ktemp
+            isguards(4,nguards)=itemp2
+            isguards(5,nguards)=jtemp2
+            isguards(6,nguards)=ktemp2
           endif
         endif
       enddo
@@ -5265,6 +5385,37 @@ subroutine driver_bc_densities
   return
    
  end subroutine initialiaze_manage_bc_isfluid_selfcomm
+ 
+ subroutine manage_bc_isfluid_selfcomm(istemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to manage the buffer of isfluid nodes
+!     within the same process for applying the boundary conditions
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer(kind=1), dimension(:,:,:), allocatable :: istemp
+  
+  integer :: i,j,k,l,itemp,jtemp,ktemp,itemp2,jtemp2,ktemp2
+  integer(kind=IPRC) :: i4orig,i4
+  
+  if(nguards>=1)then
+    forall(i=1:nguards)
+      istemp(isguards(4,i),isguards(5,i),isguards(6,i))= &
+       istemp(isguards(1,i),isguards(2,i),isguards(3,i))
+    end forall
+  endif
+   
+  return
+   
+ end subroutine manage_bc_isfluid_selfcomm
  
  subroutine initialiaze_manage_bc_hvar_selfcomm
  
@@ -5677,6 +5828,38 @@ subroutine driver_bc_densities
   return
    
  end subroutine manage_bc_pop_selfcomm
+ 
+ function pimage(ipbcsub,i,nssub)
+ 
+!***********************************************************************
+!     
+!     LBsoft sfunction to impose the pbc 
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: ipbcsub,i,nssub
+  integer :: pimage
+  
+  pimage=i
+  
+  if(ipbcsub==1)then
+    if(i<1) then
+      pimage=i+nssub
+    endif
+    if(i>nssub) then
+      pimage=i-nssub
+    endif
+  endif
+  
+  return
+  
+ end function pimage
  
 !******************END PART TO MANAGE THE PERIODIC BC*******************
  
@@ -7932,123 +8115,94 @@ subroutine driver_bc_densities
   kmin=minz-nbuff
   kmax=maxz+nbuff
   
-  do l=1,nspheres
-    i=isub+spherelists(1,l)
-    j=jsub+spherelists(2,l)
-    k=ksub+spherelists(3,l)
-    !apply periodic conditions if necessary
-    if(ixpbc.eq.1) then
-      if(i<1) then
-        i=i+nx
-      endif
-      if(i>nx) then
-        i=i-nx
-      endif
-    endif
-    if(iypbc.eq.1) then
-      if(j<1) then
-        j=j+ny
-      endif
-      if(j>ny) then
-         j=j-ny
-      endif
-    endif
-    if(izpbc.eq.1) then
-      if(k<1) then
-        k=k+nz
-      endif
-      if(k>nz) then
-        k=k-nz
-      endif
-    endif
-    if(i<imin .or. i>imax)cycle
-    if(j<jmin .or. j>jmax)cycle
-    if(k<kmin .or. k>kmax)cycle
-    isfluid(i,j,k)=2
-  enddo
+  
   
   if(lsingle_fluid)then
+    do l=1,nspheres
+      i=isub+spherelists(1,l)
+      j=jsub+spherelists(2,l)
+      k=ksub+spherelists(3,l)
+      !apply periodic conditions if necessary
+      i=pimage(ixpbc,i,nx)
+      j=pimage(iypbc,j,ny)
+      k=pimage(izpbc,k,nz)
+      if(i<imin .or. i>imax)cycle
+      if(j<jmin .or. j>jmax)cycle
+      if(k<kmin .or. k>kmax)cycle
+      isfluid(i,j,k)=2
+      rhoR(i,j,k)=MINDENS
+      u(i,j,k)=ZERO
+      v(i,j,k)=ZERO
+      w(i,j,k)=ZERO
+    enddo
     do l=1,nspheredeads
       i=isub+spherelistdeads(1,l)
       j=jsub+spherelistdeads(2,l)
       k=ksub+spherelistdeads(3,l)
       !apply periodic conditions if necessary
-      if(ixpbc.eq.1) then
-        if(i<1) then
-          i=i+nx
-        endif
-        if(i>nx) then
-          i=i-nx
-        endif
-      endif
-      if(iypbc.eq.1) then
-        if(j<1) then
-          j=j+ny
-        endif
-        if(j>ny) then
-           j=j-ny
-        endif
-      endif
-      if(izpbc.eq.1) then
-        if(k<1) then
-          k=k+nz
-        endif
-        if(k>nz) then
-          k=k-nz
-        endif
-      endif
+      i=pimage(ixpbc,i,nx)
+      j=pimage(iypbc,j,ny)
+      k=pimage(izpbc,k,nz)
       if(i<imin .or. i>imax)cycle
       if(j<jmin .or. j>jmax)cycle
       if(k<kmin .or. k>kmax)cycle
       isfluid(i,j,k)=4
-      rhoR(i,j,k)=ZERO
+      rhoR(i,j,k)=MINDENS
       u(i,j,k)=ZERO
       v(i,j,k)=ZERO
       w(i,j,k)=ZERO
     enddo
+    isfluid(isub,jsub,ksub)=5
+    rhoR(isub,jsub,ksub)=MINDENS
+    u(isub,jsub,ksub)=ZERO
+    v(isub,jsub,ksub)=ZERO
+    w(isub,jsub,ksub)=ZERO
   else
+    do l=1,nspheres
+      i=isub+spherelists(1,l)
+      j=jsub+spherelists(2,l)
+      k=ksub+spherelists(3,l)
+      !apply periodic conditions if necessary
+      i=pimage(ixpbc,i,nx)
+      j=pimage(iypbc,j,ny)
+      k=pimage(izpbc,k,nz)
+      if(i<imin .or. i>imax)cycle
+      if(j<jmin .or. j>jmax)cycle
+      if(k<kmin .or. k>kmax)cycle
+      isfluid(i,j,k)=2
+      rhoR(i,j,k)=MINDENS
+      rhoB(i,j,k)=MINDENS
+      u(i,j,k)=ZERO
+      v(i,j,k)=ZERO
+      w(i,j,k)=ZERO
+    enddo
     do l=1,nspheredeads
       i=isub+spherelistdeads(1,l)
       j=jsub+spherelistdeads(2,l)
       k=ksub+spherelistdeads(3,l)
       !apply periodic conditions if necessary
-      if(ixpbc.eq.1) then
-        if(i<1) then
-          i=i+nx
-        endif
-        if(i>nx) then
-          i=i-nx
-        endif
-      endif
-      if(iypbc.eq.1) then
-        if(j<1) then
-          j=j+ny
-        endif
-        if(j>ny) then
-           j=j-ny
-        endif
-      endif
-      if(izpbc.eq.1) then
-        if(k<1) then
-          k=k+nz
-        endif
-        if(k>nz) then
-          k=k-nz
-        endif
-      endif
+      i=pimage(ixpbc,i,nx)
+      j=pimage(iypbc,j,ny)
+      k=pimage(izpbc,k,nz)
       if(i<imin .or. i>imax)cycle
       if(j<jmin .or. j>jmax)cycle
       if(k<kmin .or. k>kmax)cycle
       isfluid(i,j,k)=4
-      rhoR(i,j,k)=ZERO
+      rhoR(i,j,k)=MINDENS
+      rhoB(i,j,k)=MINDENS
       u(i,j,k)=ZERO
       v(i,j,k)=ZERO
       w(i,j,k)=ZERO
-      rhoB(i,j,k)=ZERO  !also the second component
     enddo
+    isfluid(isub,jsub,ksub)=5
+    rhoR(isub,jsub,ksub)=MINDENS
+    rhoB(isub,jsub,ksub)=MINDENS
+    u(isub,jsub,ksub)=ZERO
+    v(isub,jsub,ksub)=ZERO
+    w(isub,jsub,ksub)=ZERO
   endif
   
-  isfluid(isub,jsub,ksub)=5
+  
   
   return
   
@@ -8076,7 +8230,7 @@ subroutine driver_bc_densities
   real(kind=PRC), intent(in) :: vx,vy,vz
   real(kind=PRC), intent(inout) :: fx,fy,fz
   
-  integer :: i,j,k,l
+  integer :: i,j,k,l,ii,jj,kk
   integer, save :: imin,imax,jmin,jmax,kmin,kmax
   logical, save :: lfirst=.true.
   
@@ -8095,76 +8249,68 @@ subroutine driver_bc_densities
       i=isub+spherelists(1,l)
       j=jsub+spherelists(2,l)
       k=ksub+spherelists(3,l)
+      ii=i
+      jj=j
+      kk=k
       !apply periodic conditions if necessary
-      if(ixpbc.eq.1) then
-        if(i<1) then
-          i=i+nx
+      i=pimage(ixpbc,i,nx)
+      j=pimage(iypbc,j,ny)
+      k=pimage(izpbc,k,nz)
+      if(i==ii.and.j==jj.and.k==kk)then
+        if(i<imin .or. i>imax)cycle
+        if(j<jmin .or. j>jmax)cycle
+        if(k<kmin .or. k>kmax)cycle
+        call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+         rhoR,aoptpR)
+      else
+        if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
+         k>=kmin .and. k<=kmax)then
+          call particle_only_node_bounce_back(i,j,k,vx,vy,vz, &
+           rhoR,aoptpR)
         endif
-        if(i>nx) then
-          i=i-nx
-        endif
-      endif
-      if(iypbc.eq.1) then
-        if(j<1) then
-          j=j+ny  
-        endif
-        if(j>ny) then
-           j=j-ny
-        endif
-      endif
-      if(izpbc.eq.1) then
-        if(k<1) then
-          k=k+nz
-        endif
-        if(k>nz) then
-          k=k-nz
+        if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
+         kk>=kmin .and. kk<=kmax)then
+          call particle_only_node_bounce_back(ii,jj,kk,vx,vy,vz, &
+           rhoR,aoptpR)
         endif
       endif
-      if(i<imin .or. i>imax)cycle
-      if(j<jmin .or. j>jmax)cycle
-      if(k<kmin .or. k>kmax)cycle
-      new_isfluid(i,j,k)=2
-      call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
-       rhoR,aoptpR)
     enddo
   else
     do l=1,nspheres
       i=isub+spherelists(1,l)
       j=jsub+spherelists(2,l)
       k=ksub+spherelists(3,l)
+      ii=i
+      jj=j
+      kk=k
       !apply periodic conditions if necessary
-      if(ixpbc.eq.1) then
-        if(i<1) then
-          i=i+nx
+      i=pimage(ixpbc,i,nx)
+      j=pimage(iypbc,j,ny)
+      k=pimage(izpbc,k,nz)
+      if(i==ii.and.j==jj.and.k==kk)then
+        if(i<imin .or. i>imax)cycle
+        if(j<jmin .or. j>jmax)cycle
+        if(k<kmin .or. k>kmax)cycle
+        call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+         rhoR,aoptpR)
+        call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+         rhoB,aoptpB)
+      else
+        if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
+         k>=kmin .and. k<=kmax)then
+          call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+           rhoR,aoptpR)
+          call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+           rhoB,aoptpB)
         endif
-        if(i>nx) then
-          i=i-nx
+        if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
+         kk>=kmin .and. kk<=kmax)then
+          call particle_only_node_bounce_back(ii,jj,kk,vx,vy,vz, &
+           rhoR,aoptpR)
+          call particle_only_node_bounce_back(ii,jj,kk,vx,vy,vz, &
+           rhoB,aoptpB)
         endif
       endif
-      if(iypbc.eq.1) then
-        if(j<1) then
-          j=j+ny  
-        endif
-        if(j>ny) then
-           j=j-ny
-        endif
-      endif
-      if(izpbc.eq.1) then
-        if(k<1) then
-          k=k+nz
-        endif
-        if(k>nz) then
-          k=k-nz
-        endif
-      endif
-      if(i<imin .or. i>imax)cycle
-      if(j<jmin .or. j>jmax)cycle
-      if(k<kmin .or. k>kmax)cycle
-      new_isfluid(i,j,k)=2
-      call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
-       rhoR,aoptpR)
-      call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
-       rhoB,aoptpB)
     enddo
   endif
   
@@ -8313,7 +8459,583 @@ subroutine driver_bc_densities
    
   return
   
-  end subroutine
+  end subroutine particle_node_bounce_back
+  
+  subroutine particle_only_node_bounce_back(i,j,k,vx,vy,vz, &
+  rhosub,aoptp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to apply the bounce back on a particle surface
+!     node on the fluid (ONLY FLUID PART)
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: i,j,k
+  real(kind=PRC), intent(in) :: vx,vy,vz
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub
+  type(REALPTR), dimension(0:links):: aoptp
+  
+  real(kind=PRC), parameter :: onesixth=ONE/SIX
+  
+  !formula taken from eq. 16 of PRE 83, 046707 (2011) force on fluid
+  
+  aoptp(1)%p(i,j,k) = &
+   real(aoptp(2)%p(i+ex(1),j,k), &
+   kind=PRC)-onesixth*rhosub(i+ex(1),j,k)*(vx*dex(2))
+  
+  aoptp(2)%p(i,j,k) = &
+   real(aoptp(1)%p(i+ex(2),j,k), &
+   kind=PRC)-onesixth*rhosub(i+ex(2),j,k)*(vx*dex(1))
+  
+  
+  aoptp(3)%p(i,j,k) = &
+   real(aoptp(4)%p(i,j+ey(3),k), &
+   kind=PRC)-onesixth*rhosub(i,j+ey(3),k)*(vy*dey(4))
+  
+  aoptp(4)%p(i,j,k) = &
+   real(aoptp(3)%p(i,j+ey(4),k), &
+   kind=PRC)-onesixth*rhosub(i,j+ey(4),k)*(vy*dey(3))
+  
+  
+  aoptp(5)%p(i,j,k) = &
+   real(aoptp(6)%p(i,j,k+ez(5)), &
+   kind=PRC)-onesixth*rhosub(i,j,k+ez(5))*(vz*dez(6))
+  
+  aoptp(6)%p(i,j,k) = &
+   real(aoptp(5)%p(i,j,k+ez(6)), &
+   kind=PRC)-onesixth*rhosub(i,j,k+ez(6))*(vz*dez(5))
+  
+  
+  aoptp(7)%p(i,j,k) = &
+   real(aoptp(8)%p(i+ex(7),j+ey(7),k), &
+   kind=PRC)-onesixth*rhosub(i+ex(7),j+ey(7),k)*(vx*dex(8)+vy*dey(8))
+  
+  aoptp(8)%p(i,j,k) = &
+   real(aoptp(7)%p(i+ex(8),j+ey(8),k), &
+   kind=PRC)-onesixth*rhosub(i+ex(8),j+ey(8),k)*(vx*dex(7)+vy*dey(7))
+  
+  
+  aoptp(9)%p(i,j,k) = &
+   real(aoptp(10)%p(i+ex(9),j+ey(9),k), &
+   kind=PRC)-onesixth*rhosub(i+ex(9),j+ey(9),k)*(vx*dex(10)+vy*dey(10))
+  
+  aoptp(10)%p(i,j,k) = &
+   real(aoptp(9)%p(i+ex(10),j+ey(10),k), &
+   kind=PRC)-onesixth*rhosub(i+ex(10),j+ey(10),k)*(vx*dex(9)+vy*dey(9))
+  
+   
+  aoptp(11)%p(i,j,k) = &
+   real(aoptp(12)%p(i+ex(11),j,k+ez(11)), &
+   kind=PRC)-onesixth*rhosub(i+ex(11),j,k+ez(11))*(vx*dex(12)+vz*dez(12))
+  
+  aoptp(12)%p(i,j,k) = &
+   real(aoptp(11)%p(i+ex(12),j,k+ez(12)), &
+   kind=PRC)-onesixth*rhosub(i+ex(12),j,k+ez(12))*(vx*dex(11)+vz*dez(11))
+  
+  
+  aoptp(13)%p(i,j,k) = &
+   real(aoptp(14)%p(i+ex(13),j,k+ez(13)), &
+   kind=PRC)-onesixth*rhosub(i+ex(13),j,k+ez(13))*(vx*dex(14)+vz*dez(14))
+  
+  aoptp(14)%p(i,j,k) = &
+   real(aoptp(13)%p(i+ex(14),j,k+ez(14)), &
+   kind=PRC)-onesixth*rhosub(i+ex(14),j,k+ez(14))*(vx*dex(13)+vz*dez(13))
+  
+  
+  aoptp(15)%p(i,j,k) = &
+   real(aoptp(16)%p(i,j+ey(15),k+ez(15)), &
+   kind=PRC)-onesixth*rhosub(i,j+ey(15),k+ez(15))*(vy*dey(16)+vz*dez(16))
+  
+  aoptp(16)%p(i,j,k) = &
+   real(aoptp(15)%p(i,j+ey(16),k+ez(16)), &
+   kind=PRC)-onesixth*rhosub(i,j+ey(16),k+ez(16))*(vy*dey(15)+vz*dez(15))
+  
+   
+  aoptp(17)%p(i,j,k) = &
+   real(aoptp(18)%p(i,j+ey(17),k+ez(17)), &
+   kind=PRC)-onesixth*rhosub(i,j+ey(17),k+ez(17))*(vy*dey(18)+vz*dez(18))
+  
+  aoptp(18)%p(i,j,k) = &
+   real(aoptp(17)%p(i,j+ey(18),k+ez(18)), &
+   kind=PRC)-onesixth*rhosub(i,j+ey(18),k+ez(18))*(vy*dey(17)+vz*dez(17))
+  
+   
+  return
+  
+  end subroutine particle_only_node_bounce_back
+  
+  subroutine particle_moving_fluids(natmssub,nspheres,spherelists, &
+   spheredists,nspheredeads,spherelistdeads,lmoved,xx,yy,zz, &
+   vx,vy,vz,fx,fy,fz)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine to initialize isfluid and hydrodynamic
+!     variables according to the particle presence
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: natmssub,nspheres,nspheredeads
+  integer, allocatable, dimension(:,:), intent(in) :: spherelists, &
+   spherelistdeads
+  real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
+  logical(kind=1), allocatable, dimension(:), intent(in) :: lmoved
+  real(kind=PRC), allocatable, dimension(:), intent(in) :: xx,yy,zz
+  real(kind=PRC), allocatable, dimension(:), intent(in) :: vx,vy,vz
+  real(kind=PRC), allocatable, dimension(:), intent(inout) :: fx,fy,fz
+  
+  integer :: i,j,k,l,m,isub,jsub,ksub,iatm,io,jo,ko,ishift,jshift,kshift
+  integer, save :: imin,imax,jmin,jmax,kmin,kmax
+  logical, save :: lfirst=.true.
+  logical :: lfind,ltest(1)
+  real(kind=PRC) :: Rsum,Bsum,Dsum,myu,myv,myw
+  
+  if(lfirst)then
+    lfirst=.false.
+    imin=minx-1
+    imax=maxx+1
+    jmin=miny-1
+    jmax=maxy+1
+    kmin=minz-1
+    kmax=maxz+1
+  endif
+  
+  do iatm=1,natmssub
+    isub=nint(xx(iatm))
+    jsub=nint(yy(iatm))
+    ksub=nint(zz(iatm))
+    if(.not. lmoved(iatm))then
+      do l=1,nspheres
+        i=isub+spherelists(1,l)
+        j=jsub+spherelists(2,l)
+        k=ksub+spherelists(3,l)
+        !apply periodic conditions if necessary
+        i=pimage(ixpbc,i,nx)
+        j=pimage(iypbc,j,ny)
+        k=pimage(izpbc,k,nz)
+        if(i<imin .or. i>imax)cycle
+        if(j<jmin .or. j>jmax)cycle
+        if(k<kmin .or. k>kmax)cycle
+        new_isfluid(i,j,k)= isfluid(i,j,k)
+      enddo
+      do l=1,nspheredeads
+        i=isub+spherelistdeads(1,l)
+        j=jsub+spherelistdeads(2,l)
+        k=ksub+spherelistdeads(3,l)
+        !apply periodic conditions if necessary
+        i=pimage(ixpbc,i,nx)
+        j=pimage(iypbc,j,ny)
+        k=pimage(izpbc,k,nz)
+        if(i<imin .or. i>imax)cycle
+        if(j<jmin .or. j>jmax)cycle
+        if(k<kmin .or. k>kmax)cycle
+        new_isfluid(i,j,k)= isfluid(i,j,k)
+      enddo
+    else
+      if(lsingle_fluid)then
+        do l=1,nspheres
+          i=isub+spherelists(1,l)
+          j=jsub+spherelists(2,l)
+          k=ksub+spherelists(3,l)
+         !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(i<imin .or. i>imax)cycle
+          if(j<jmin .or. j>jmax)cycle
+          if(k<kmin .or. k>kmax)cycle
+          new_isfluid(i,j,k)=2
+          rhoR(i,j,k)=MINDENS
+          u(i,j,k)=ZERO
+          v(i,j,k)=ZERO
+          w(i,j,k)=ZERO
+          if(isfluid(i,j,k)==1)then
+            !fluid node is trasformed to solid
+            !formula taken from eq. 18 of PRE 83, 046707 (2011)
+            fx(iatm)=fx(iatm)-rhoR(i,j,k)*u(i,j,k)
+            fy(iatm)=fy(iatm)-rhoR(i,j,k)*v(i,j,k)
+            fz(iatm)=fz(iatm)-rhoR(i,j,k)*w(i,j,k)
+          endif
+        enddo
+        do l=1,nspheredeads
+          i=isub+spherelistdeads(1,l)
+          j=jsub+spherelistdeads(2,l)
+          k=ksub+spherelistdeads(3,l)
+          !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(i<imin .or. i>imax)cycle
+          if(j<jmin .or. j>jmax)cycle
+          if(k<kmin .or. k>kmax)cycle
+          new_isfluid(i,j,k)=4
+          rhoR(i,j,k)=MINDENS
+          u(i,j,k)=ZERO
+          v(i,j,k)=ZERO
+          w(i,j,k)=ZERO
+        enddo
+        isfluid(isub,jsub,ksub)=5
+        rhoR(isub,jsub,ksub)=MINDENS
+        u(isub,jsub,ksub)=ZERO
+        v(isub,jsub,ksub)=ZERO
+        w(isub,jsub,ksub)=ZERO
+      else
+        do l=1,nspheres
+          i=isub+spherelists(1,l)
+          j=jsub+spherelists(2,l)
+          k=ksub+spherelists(3,l)
+          !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(i<imin .or. i>imax)cycle
+          if(j<jmin .or. j>jmax)cycle
+          if(k<kmin .or. k>kmax)cycle
+          new_isfluid(i,j,k)=2
+          rhoR(i,j,k)=MINDENS
+          rhoB(i,j,k)=MINDENS
+          u(i,j,k)=ZERO
+          v(i,j,k)=ZERO
+          w(i,j,k)=ZERO
+          if(isfluid(i,j,k)==1)then
+            !fluid node is trasformed to solid node
+            !formula taken from eq. 18 of PRE 83, 046707 (2011)
+            fx(iatm)=fx(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
+            fy(iatm)=fy(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
+            fz(iatm)=fz(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
+          endif
+        enddo
+        do l=1,nspheredeads
+          i=isub+spherelistdeads(1,l)
+          j=jsub+spherelistdeads(2,l)
+          k=ksub+spherelistdeads(3,l)
+          !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(i<imin .or. i>imax)cycle
+          if(j<jmin .or. j>jmax)cycle
+          if(k<kmin .or. k>kmax)cycle
+          new_isfluid(i,j,k)=4
+          rhoR(i,j,k)=MINDENS
+          rhoB(i,j,k)=MINDENS
+          u(i,j,k)=ZERO
+          v(i,j,k)=ZERO
+          w(i,j,k)=ZERO
+        enddo
+        isfluid(isub,jsub,ksub)=5
+        rhoR(isub,jsub,ksub)=MINDENS
+        rhoB(isub,jsub,ksub)=MINDENS
+        u(isub,jsub,ksub)=ZERO
+        v(isub,jsub,ksub)=ZERO
+        w(isub,jsub,ksub)=ZERO
+      endif
+    endif
+  enddo
+  
+  
+  ltest(1)=.false.
+  do iatm=1,natmssub
+    if(.not. lmoved(iatm))cycle
+    isub=nint(xx(iatm))
+    jsub=nint(yy(iatm))
+    ksub=nint(zz(iatm))
+    lfind=.false.
+    !looking for the old center of mass
+    do l=1,linksd3q27
+      i=isub+exd3q27(l)
+      j=jsub+eyd3q27(l)
+      k=ksub+ezd3q27(l)
+      if(isfluid(i,j,k)==5)then
+        io=i
+        jo=j
+        ko=k
+        lfind=.true.
+        exit
+      endif
+    enddo
+    if(.not. lfind)then
+      ltest(1)=.true.
+      call warning(36,real(iatm,kind=PRC))
+      goto 311
+    endif
+    if(lsingle_fluid)then
+      do m=1,nspheres
+        i=io+spherelists(1,m)
+        j=jo+spherelists(2,m)
+        k=ko+spherelists(3,m)
+       !apply periodic conditions if necessary
+        i=pimage(ixpbc,i,nx)
+        j=pimage(iypbc,j,ny)
+        k=pimage(izpbc,k,nz)
+        if(i<imin .or. i>imax)cycle
+        if(j<jmin .or. j>jmax)cycle
+        if(k<kmin .or. k>kmax)cycle
+        if(new_isfluid(i,j,k)==1)then
+          !solid node is trasformed to fluid node
+          Rsum=ZERO
+          Dsum=ZERO
+          !compute mean density value eq. 23 of PRE 83, 046707 (2011)
+          do l=1,linksd3q27
+            ishift=i+exd3q27(l)
+            jshift=j+eyd3q27(l)
+            kshift=k+ezd3q27(l)
+            if(isfluid(ishift,jshift,kshift)==1 .and. &
+             new_isfluid(ishift,jshift,kshift)==1)then
+              Rsum=Rsum+pd3q27(l)*rhoR(ishift,jshift,kshift)
+              Dsum=Dsum+pd3q27(l)
+            endif
+          enddo
+          Rsum=Rsum/Dsum
+          myu=vx(iatm)
+          myv=vy(iatm)
+          myw=vz(iatm)
+          !formula taken from eq. 25 of PRE 83, 046707 (2011)
+          call initialize_newnode_fluid(i,j,k,Rsum,myu,myv,myw,aoptpR)
+          !formula taken from eq. 26 of PRE 83, 046707 (2011)
+          fx(iatm)=fx(iatm)+Rsum*myu
+          fy(iatm)=fy(iatm)+Rsum*myv
+          fz(iatm)=fz(iatm)+Rsum*myw
+        endif
+      enddo
+    else
+      do m=1,nspheres
+        i=io+spherelists(1,m)
+        j=jo+spherelists(2,m)
+        k=ko+spherelists(3,m)
+       !apply periodic conditions if necessary
+        i=pimage(ixpbc,i,nx)
+        j=pimage(iypbc,j,ny)
+        k=pimage(izpbc,k,nz)
+        if(i<imin .or. i>imax)cycle
+        if(j<jmin .or. j>jmax)cycle
+        if(k<kmin .or. k>kmax)cycle
+        if(new_isfluid(i,j,k)==1)then
+          !solid node is trasformed to fluid node
+          Rsum=ZERO
+          Bsum=ZERO
+          Dsum=ZERO
+          !compute mean density value 
+          do l=1,linksd3q27
+            ishift=i+exd3q27(l)
+            jshift=j+eyd3q27(l)
+            kshift=k+ezd3q27(l)
+            if(isfluid(ishift,jshift,kshift)==1 .and. &
+             new_isfluid(ishift,jshift,kshift)==1)then
+              Rsum=Rsum+pd3q27(l)*rhoR(ishift,jshift,kshift)
+              Bsum=Bsum+pd3q27(l)*rhoB(ishift,jshift,kshift)
+              Dsum=Dsum+pd3q27(l)
+            endif
+          enddo
+          Rsum=Rsum/Dsum
+          Bsum=Bsum/Dsum
+          myu=vx(iatm)
+          myv=vy(iatm)
+          myw=vz(iatm)
+          !formula taken from eq. 25 of PRE 83, 046707 (2011)
+          call initialize_newnode_fluid(i,j,k,Rsum,myu,myv,myw,aoptpR)
+          call initialize_newnode_fluid(i,j,k,Bsum,myu,myv,myw,aoptpB)
+          !formula taken from eq. 26 of PRE 83, 046707 (2011)
+          fx(iatm)=fx(iatm)+(Rsum+Bsum)*myu
+          fy(iatm)=fy(iatm)+(Rsum+Bsum)*myv
+          fz(iatm)=fz(iatm)+(Rsum+Bsum)*myw
+        endif
+      enddo
+    endif
+  enddo
+  
+311 continue
+  
+  call or_world_larr(ltest,1)
+  if(ltest(1))then
+    call error(31)
+  endif
+  
+  
+  return
+  
+ end subroutine particle_moving_fluids
+ 
+ subroutine initialize_new_isfluid()
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for initialize the new_isfluid
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  where(isfluid(minx-nbuff:maxx+nbuff,miny-nbuff:maxy+nbuff,minz-nbuff:maxz+nbuff)==2 &
+   .or. isfluid(minx-nbuff:maxx+nbuff,miny-nbuff:maxy+nbuff,minz-nbuff:maxz+nbuff)==4 &
+   .or. isfluid(minx-nbuff:maxx+nbuff,miny-nbuff:maxy+nbuff,minz-nbuff:maxz+nbuff)==5)
+    new_isfluid(minx-nbuff:maxx+nbuff,miny-nbuff:maxy+nbuff,minz-nbuff:maxz+nbuff)=1
+  elsewhere
+    new_isfluid(minx-nbuff:maxx+nbuff,miny-nbuff:maxy+nbuff,minz-nbuff:maxz+nbuff)= &
+     isfluid(minx-nbuff:maxx+nbuff,miny-nbuff:maxy+nbuff,minz-nbuff:maxz+nbuff)
+  end where
+  
+  return
+  
+ end subroutine initialize_new_isfluid
+ 
+ subroutine update_isfluid()
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for update isfluid from new_isfluid
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  
+  forall(i=minx-nbuff:maxx+nbuff,j=miny-nbuff:maxy+nbuff,k=minz-nbuff:maxz+nbuff)
+    isfluid(i,j,k)=new_isfluid(i,j,k)
+  end forall
+  
+  return
+  
+ end subroutine update_isfluid
+ 
+ subroutine initialize_newnode_fluid(i,j,k,rhosub,usub,vsub,wsub,aoptp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for initialize the new fluid node
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: i,j,k
+  real(kind=PRC), intent(in) :: rhosub,usub,vsub,wsub
+  type(REALPTR), dimension(0:links):: aoptp
+  
+  !formula taken from eq. 19 of PRE 83, 046707 (2011)
+    aoptp(0)%p(i,j,k)=rhosub*equil_pop00(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(1)%p(i,j,k)=rhosub*equil_pop01(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(2)%p(i,j,k)=rhosub*equil_pop02(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(3)%p(i,j,k)=rhosub*equil_pop03(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(4)%p(i,j,k)=rhosub*equil_pop04(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(5)%p(i,j,k)=rhosub*equil_pop05(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(6)%p(i,j,k)=rhosub*equil_pop06(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(7)%p(i,j,k)=rhosub*equil_pop07(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(8)%p(i,j,k)=rhosub*equil_pop08(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(9)%p(i,j,k)=rhosub*equil_pop09(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(10)%p(i,j,k)=rhosub*equil_pop10(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(11)%p(i,j,k)=rhosub*equil_pop11(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(12)%p(i,j,k)=rhosub*equil_pop12(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(13)%p(i,j,k)=rhosub*equil_pop13(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(14)%p(i,j,k)=rhosub*equil_pop14(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(15)%p(i,j,k)=rhosub*equil_pop15(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(16)%p(i,j,k)=rhosub*equil_pop16(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(17)%p(i,j,k)=rhosub*equil_pop17(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  
+    aoptp(18)%p(i,j,k)=rhosub*equil_pop18(rhosub,usub,vsub, &
+     wsub)
+  
+  
+  return
+  
+ end subroutine initialize_newnode_fluid
  
 !***********END PART TO MANAGE THE INTERACTION WITH PARTICLES***********
 

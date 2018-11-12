@@ -66,7 +66,8 @@ MODULE lbempi_mod
        requestw(0:maxneigh-1), requesti(0:maxneigh-1), requesto(0:maxneigh-1), &
        requesth(0:maxneigh-1), requesth_wall(0:maxneigh-1), requests(0:maxneigh-1), &
        request_hvar(0:maxneigh-1),requestm_hvar(0:maxneigh-1), &
-       request_hvar2(0:maxneigh-1),requestm_hvar2(0:maxneigh-1)
+       request_hvar2(0:maxneigh-1),requestm_hvar2(0:maxneigh-1), &
+       request_isfluid(0:maxneigh-1),requestm_isfluid(0:maxneigh-1)
   LOGICAL :: firstmove=.true.
   
   LOGICAL :: allpbc
@@ -123,6 +124,8 @@ MODULE lbempi_mod
   public :: deallocate_ownern
   public :: commexch_dens
   public :: commwait_dens
+  public :: commexch_isfluid
+  public :: commwait_isfluid
   public :: comm_init_isfluid
   public :: create_findneigh_list_hvar_isfluid
   public :: create_findneigh_list_pops
@@ -2150,6 +2153,80 @@ end subroutine
 
    END SUBROUTINE commrpop
    
+  SUBROUTINE commexch_isfluid(temp)
+ 
+ 
+  INTEGER(kind=1), dimension(:,:,:), allocatable :: temp
+  
+  INTEGER :: status(MPI_STATUS_SIZE,0:maxneigh-1)
+  INTEGER :: i,j,mym(3)
+  INTEGER(kind=IPRC) :: i4, itemp, jtemp, ktemp
+
+  
+  if(numprocs==1)return
+  
+  do i=0, n_pe2recv_fluid_hvar-1
+    CALL MPI_IRECV(buffr_isfluid(0,i),n_var2recv_fluid(i),MYINT1, &
+      &  i_pe2recv_fluid_hvar(i),i_pe2recv_fluid_hvar(i)+tag_isfluid, &
+        MPI_COMM_WORLD,requestm_isfluid(i),ierr)
+  enddo
+  
+  
+   do i=0, n_pe2send_fluid_hvar-1
+      do j=0,n_var2send_fluid(i)-1
+         i4=i_var2send_fluid(0,j,i)
+         mym=i4find(i4)
+         ktemp = mym(3)
+         jtemp = mym(2)
+         itemp = mym(1)
+         buffs_isfluid(j,i)=temp(itemp,jtemp,ktemp)
+      enddo
+
+      CALL MPI_ISEND(buffs_isfluid(0,i),n_var2send_fluid(i),MYINT1, &
+       & i_pe2send_fluid_hvar(i),myid+tag_isfluid,MPI_COMM_WORLD,request_isfluid(i),ierr)
+     
+
+   enddo
+
+ 
+   
+   END SUBROUTINE commexch_isfluid
+   
+  SUBROUTINE commwait_isfluid(temp)
+   
+  INTEGER(kind=1), dimension(:,:,:), allocatable :: temp
+  
+  INTEGER :: status(MPI_STATUS_SIZE,0:maxneigh-1)
+  INTEGER :: i,j,mym(3)
+  INTEGER(kind=IPRC) :: i4, itemp, jtemp, ktemp
+  
+  if(numprocs==1)return
+
+   if(n_pe2recv_fluid_hvar.gt.0) then
+      CALL MPI_WAITALL(n_pe2recv_fluid_hvar,requestm_isfluid,status,ierr)
+   endif
+   do i=0, n_pe2recv_fluid_hvar-1
+      do j=0,n_var2recv_fluid(i)-1
+         i4=i_var2recv_fluid(1,j,i)
+         !ktemp = i4/INT(nxy2,KIND=IPRC)
+         !jtemp = (i4 - ktemp*INT(nxy2,KIND=IPRC))/INT(nx2,KIND=IPRC)
+         !itemp = i4 - ktemp*INT(nxy2,KIND=IPRC) - jtemp*INT(nx2,KIND=IPRC)
+         mym=i4find(i4)
+         ktemp = mym(3)
+         jtemp = mym(2)
+         itemp = mym(1)
+         !pop_ptr(i_pop2recv_fluid(0,j,i))%p(itemp,jtemp,ktemp)=buffpopr(j,i)
+         temp(itemp,jtemp,ktemp)=buffr_isfluid(j,i)
+      enddo
+   enddo
+   
+   if(n_pe2send_fluid_hvar.gt.0) then
+      CALL MPI_WAITALL(n_pe2send_fluid_hvar,request_isfluid,status,ierr)
+   endif
+   
+
+   END SUBROUTINE commwait_isfluid
+   
    SUBROUTINE commexch_dens(dtemp,dtemp2)
 
   IMPLICIT NONE
@@ -2159,7 +2236,6 @@ end subroutine
   !max REAL(KIND=PRC) :: pop_ptr(0:,0:)
   REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp,dtemp2
 !max  REAL(KIND=PRC) :: pop_ptr(0:npop-1,0:*)
-  INTEGER :: request(0:maxneigh-1)
   INTEGER :: status(MPI_STATUS_SIZE,0:maxneigh-1)
   INTEGER :: i,j,mym(3)
   INTEGER(kind=IPRC) :: i4, itemp, jtemp, ktemp
@@ -2235,7 +2311,6 @@ end subroutine
   !max REAL(KIND=PRC) :: pop_ptr(0:,0:)
   REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp
 !max  REAL(KIND=PRC) :: pop_ptr(0:npop-1,0:*)
-  INTEGER :: request(0:maxneigh-1)
   INTEGER :: status(MPI_STATUS_SIZE,0:maxneigh-1)
   INTEGER :: i,j,mym(3)
   INTEGER(kind=IPRC) :: i4, itemp, jtemp, ktemp
@@ -2499,6 +2574,26 @@ end subroutine
    return
    
    END SUBROUTINE comm_hvar
+   
+   SUBROUTINE commexch_isfluid(temp)
+   
+   IMPLICIT NONE
+   
+   INTEGER(kind=1), dimension(:,:,:), allocatable :: temp
+   
+   return
+   
+   END SUBROUTINE commexch_isfluid
+   
+    SUBROUTINE commwait_isfluid(temp)
+   
+   IMPLICIT NONE
+   
+   INTEGER(kind=1), dimension(:,:,:), allocatable :: temp
+   
+   return
+   
+   END SUBROUTINE commwait_isfluid
    
    SUBROUTINE commexch_dens(dtemp)
    

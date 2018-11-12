@@ -42,7 +42,9 @@
  use fluids_mod,  only : nx,ny,nz,nbuff,minx,maxx,miny,maxy,minz,maxz, &
                    set_lbc_halfway,lbc_halfway,cssq,links,ex,ey,ez, &
                    init_particle_2_isfluid,push_comm_isfluid, &
-                   ixpbc,iypbc,izpbc,isfluid,particle_bounce_back
+                   ixpbc,iypbc,izpbc,isfluid,particle_bounce_back, &
+                   particle_moving_fluids,initialize_new_isfluid, &
+                   update_isfluid,driver_bc_isfluid
 
  
  implicit none
@@ -192,9 +194,6 @@
  !coordinate list of dead nodes in the spherical particle
  integer, allocatable, dimension(:,:), save :: spherelistdead
  
- !radial distance list of dead nodes in the spherical particle
- real(kind=PRC), allocatable, dimension(:), save :: spheredistdead
- 
  !verlet list
  integer, allocatable, save :: lentry(:)
  integer, allocatable, save :: list(:,:)
@@ -290,7 +289,7 @@
  public :: init_particles_fluid_interaction
  public :: apply_particle_bounce_back
  public :: store_old_pos_vel_part
- public :: check_moving_particles
+ public :: inter_part_and_grid
  
  contains
  
@@ -1519,7 +1518,6 @@
   kmax=maxz+nbuff
   
   ! check all the particle centers if they are moved
-  
   where(nint(xxx(1:natms_ext))/=nint(xxo(1:natms_ext)).or. &
    nint(yyy(1:natms_ext))/=nint(yyo(1:natms_ext)) .or. &
    nint(zzz(1:natms_ext))/=nint(zzo(1:natms_ext)))
@@ -1535,11 +1533,57 @@
        nint(yyy(i))<miny .or. nint(yyy(i))>maxy .or. &
        nint(zzz(i))<minz .or. nint(zzz(i))>maxz)
     end forall
+    
+    !check if the particle is entering in the sub domain
+    !NOTE: particle in the halo are from natms+1 up to natms_ext
+    if(natms_ext>=natms+1)then
+      forall(i=natms+1:natms_ext,lmove(i))
+        lmove_dom(i)=(nint(xxx(i))>=minx .and. nint(xxx(i))<=maxx .and. &
+         nint(yyy(i))>=miny .and. nint(yyy(i))<=maxy .and. &
+         nint(zzz(i))>=minz .and. nint(zzz(i))<=maxz)
+      end forall
+    endif
+    
   endif
   
   return
   
  end subroutine check_moving_particles
+ 
+ subroutine inter_part_and_grid
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine to manage moving particle effects
+!     to fluid nodes and viceversa
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k,iatm
+  
+  if(.not. lparticles)return
+  
+  call initialize_new_isfluid
+    
+  call check_moving_particles
+  
+  call particle_moving_fluids(natms,nsphere, &
+     spherelist,spheredist,nspheredead,spherelistdead,lmove, &
+     xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz)
+  
+  call update_isfluid
+  
+  call driver_bc_isfluid
+  
+  return
+  
+ end subroutine inter_part_and_grid
  
  subroutine driver_neighborhood_list(newlst,nstepsub)
  
