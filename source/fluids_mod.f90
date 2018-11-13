@@ -71,10 +71,6 @@
  type(REALPTR_S), allocatable, dimension(:,:) :: v_managebc
  type(REALPTR_S), allocatable, dimension(:,:) :: w_managebc
  
- integer, save :: npop_managebc=0
- type(REALPTR_S), allocatable, dimension(:,:) :: popR_managebc
- type(REALPTR_S), allocatable, dimension(:,:) :: popB_managebc
- 
  logical, save, protected, public :: lalloc_hvars=.false.
  logical, save, protected, public :: lalloc_pops=.false.
  
@@ -197,7 +193,16 @@
  integer, dimension(0:nbcdir), save :: nbounce6dir,nbounce7dir,nbounce8dir
  
  integer, allocatable, save :: isguards(:,:)
- integer, save :: nguards
+ integer, save :: nguards=0
+
+ integer(kind=1), allocatable, save :: ipoplistbc(:)
+ integer, allocatable, save :: poplistbc(:,:)
+ integer, save :: npoplistbc=0
+
+ integer, save :: npop_managebc=0
+ type(REALPTR_S), allocatable, dimension(:,:) :: popR_managebc
+ type(REALPTR_S), allocatable, dimension(:,:) :: popB_managebc
+
  
 #if LATTICE==319
  
@@ -718,7 +723,7 @@
   
  end subroutine set_boundary_conditions_type
  
- subroutine driver_initialiaze_manage_bc_selfcomm
+ subroutine driver_initialiaze_manage_bc_selfcomm(lparticles)
  
 !***********************************************************************
 !     
@@ -733,11 +738,13 @@
 !***********************************************************************
   
   implicit none
+  
+  logical, intent(in) :: lparticles
  
   call initialiaze_manage_bc_hvar_selfcomm
   
 #ifndef ALLAMAX
-  call initialiaze_manage_bc_pop_selfcomm
+  call initialiaze_manage_bc_pop_selfcomm(lparticles)
 #endif
   
   return
@@ -3008,13 +3015,20 @@
 !***********************************************************************
 
   implicit none
+#ifdef NOBCPOINTER
+  call manage_bc_pop_selfcomm_NOP(aoptpR)
   
+  if(lsingle_fluid)return
+  
+  call manage_bc_pop_selfcomm_NOP(aoptpB)
+#else
   call manage_bc_pop_selfcomm(popR_managebc)
   
   if(lsingle_fluid)return
   
   call manage_bc_pop_selfcomm(popB_managebc)
-  
+#endif
+ 
  end subroutine driver_bc_pop_selfcomm
  
  subroutine driver_streaming_fluids(lparticles)
@@ -3085,9 +3099,12 @@
         aoptpR(l)%p(i,j,k) = buffservice3d(i,j,k)
     end forall
   enddo
-  
+#ifdef NOBCPOINTER
+  call manage_bc_pop_selfcomm_NOP(aoptpR)
+#else
   call manage_bc_pop_selfcomm(popR_managebc)
-  
+#endif
+
 #ifdef MPI
   call commrpop(aoptpR,lparticles,isfluid)
 #endif
@@ -3118,7 +3135,11 @@
     end forall
   enddo
   
+#ifdef NOBCPOINTER
+  call manage_bc_pop_selfcomm_NOP(aoptpB)
+#else
   call manage_bc_pop_selfcomm(popB_managebc)
+#endif
   
 #ifdef MPI
   call commrpop(aoptpB,lparticles,isfluid)
@@ -5652,7 +5673,7 @@
   
  end subroutine driver_bc_velocities
  
- subroutine initialiaze_manage_bc_pop_selfcomm
+ subroutine initialiaze_manage_bc_pop_selfcomm(lparticles)
  
 !***********************************************************************
 !     
@@ -5668,15 +5689,19 @@
  
   implicit none
   
+  logical, intent(in) :: lparticles
+  
   integer :: i,j,k,l,itemp,jtemp,ktemp,itemp2,jtemp2,ktemp2
   integer :: ishift,jshift,kshift
   integer(kind=IPRC) :: i4orig,i4
   
   logical, parameter :: lverbose=.false.
   
-  
-  
+#ifdef NOBCPOINTER
+  npoplistbc=0
+#else
   npop_managebc=0
+#endif
   if(ixpbc.eq.0 .and. iypbc.eq.0 .and. izpbc.eq.0)return
   
   do l=1,links
@@ -5724,7 +5749,12 @@
               i4orig=i4back(itemp2,jtemp2,ktemp2)
               if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank &
                .AND. isfluid(i,j,k)/=3) THEN
+#ifdef NOBCPOINTER
+                npoplistbc=npoplistbc+1
+#else
                 npop_managebc=npop_managebc+1
+#endif
+                
               endif
             endif
           endif
@@ -5733,11 +5763,18 @@
     enddo
   enddo
   if(lverbose)write(6,*)'id=',idrank,'npop_managebc=',npop_managebc
-   
-  allocate(popR_managebc(2,npop_managebc))
-  if(.not. lsingle_fluid)allocate(popB_managebc(2,npop_managebc))
   
-  npop_managebc=0
+#ifdef NOBCPOINTER
+    if(allocated(poplistbc))deallocate(poplistbc)
+    allocate(poplistbc(6,npoplistbc))
+    allocate(ipoplistbc(npoplistbc))
+    npoplistbc=0
+#else
+    allocate(popR_managebc(2,npop_managebc))
+    if(.not. lsingle_fluid)allocate(popB_managebc(2,npop_managebc))
+    npop_managebc=0
+#endif
+  
   do l=1,links
     ishift=ex(l)
     jshift=ey(l)
@@ -5783,13 +5820,24 @@
               i4orig=i4back(itemp2,jtemp2,ktemp2)
               if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank &
                .AND. isfluid(i,j,k)/=3) THEN
-                npop_managebc=npop_managebc+1
-                popR_managebc(2,npop_managebc)%p=>aoptpR(l)%p(itemp2,jtemp2,ktemp2)
-                popR_managebc(1,npop_managebc)%p=>aoptpR(l)%p(itemp,jtemp,ktemp)   !who must recevice is one
-                if(.not. lsingle_fluid)then
-                  popB_managebc(2,npop_managebc)%p=>aoptpB(l)%p(itemp2,jtemp2,ktemp2)
-                  popB_managebc(1,npop_managebc)%p=>aoptpB(l)%p(itemp,jtemp,ktemp) !who must recevice is one
-                endif
+#ifdef NOBCPOINTER
+                  npoplistbc=npoplistbc+1
+                  ipoplistbc(npoplistbc)=l
+                  poplistbc(1,npoplistbc)=itemp
+                  poplistbc(2,npoplistbc)=jtemp
+                  poplistbc(3,npoplistbc)=ktemp
+                  poplistbc(4,npoplistbc)=itemp2
+                  poplistbc(5,npoplistbc)=jtemp2
+                  poplistbc(6,npoplistbc)=ktemp2
+#else
+                  npop_managebc=npop_managebc+1
+                  popR_managebc(2,npop_managebc)%p=>aoptpR(l)%p(itemp2,jtemp2,ktemp2)
+                  popR_managebc(1,npop_managebc)%p=>aoptpR(l)%p(itemp,jtemp,ktemp)   !who must recevice is one
+                  if(.not. lsingle_fluid)then
+                    popB_managebc(2,npop_managebc)%p=>aoptpB(l)%p(itemp2,jtemp2,ktemp2)
+                    popB_managebc(1,npop_managebc)%p=>aoptpB(l)%p(itemp,jtemp,ktemp) !who must recevice is one
+                  endif
+#endif
               endif
             endif
           endif
@@ -5826,10 +5874,40 @@
   forall(i=1:npop_managebc)
     dtemp(1,i)%p=real(dtemp(2,i)%p,kind=PRC)
   end forall
-   
+  
   return
    
  end subroutine manage_bc_pop_selfcomm
+ 
+ subroutine manage_bc_pop_selfcomm_NOP(aoptp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to manage the population buffer fluid nodes
+!     within the same process for applying the boundary conditions
+!     using the node list created in subroutine
+!     initialiaze_manage_bc_pop_selfcomm
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  type(REALPTR), dimension(0:links):: aoptp
+  
+  integer :: i
+  
+  forall(i=1:npoplistbc)
+    aoptp(ipoplistbc(i))%p(poplistbc(1,i),poplistbc(2,i),poplistbc(3,i))= &
+     real(aoptp(ipoplistbc(i))%p(poplistbc(4,i),poplistbc(5,i),poplistbc(6,i)),kind=PRC)
+  end forall
+  
+  return
+   
+ end subroutine manage_bc_pop_selfcomm_NOP
  
  pure function pimage(ipbcsub,i,nssub)
  

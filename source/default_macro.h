@@ -5,6 +5,8 @@
 
 #define D3Q19
 
+#define NOBCPOINTER
+
 #define NDIAGNSTREAM 1
 
 #define NDIAGNHVAR 100
