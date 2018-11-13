@@ -134,7 +134,7 @@
   
 ! allocate pointers for managing bc hvar and pops within the same process 
 ! ONLY if it is necessary
-  call driver_initialiaze_manage_bc_selfcomm(lparticles)
+  call driver_initialiaze_manage_bc_selfcomm
   
 ! prepare list for neighbour comm of fluid pops
   call create_findneigh_list_pops(nx,ny,nz,nbuff,ibctype,isfluid, &

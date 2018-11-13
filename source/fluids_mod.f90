@@ -719,7 +719,7 @@
   
  end subroutine set_boundary_conditions_type
  
- subroutine driver_initialiaze_manage_bc_selfcomm(lparticles)
+ subroutine driver_initialiaze_manage_bc_selfcomm()
  
 !***********************************************************************
 !     
@@ -735,12 +735,11 @@
   
   implicit none
   
-  logical, intent(in) :: lparticles
  
   call initialiaze_manage_bc_hvar_selfcomm
   
 #ifndef ALLAMAX
-  call initialiaze_manage_bc_pop_selfcomm(lparticles)
+  call initialiaze_manage_bc_pop_selfcomm
 #endif
   
   return
@@ -2997,7 +2996,7 @@
   
  end subroutine compute_omega
  
- subroutine driver_bc_pop_selfcomm
+ subroutine driver_bc_pop_selfcomm(lparticles)
  
 !***********************************************************************
 !     
@@ -3012,11 +3011,13 @@
 
   implicit none
   
-  call manage_bc_pop_selfcomm_NOP(aoptpR)
+  logical, intent(in) :: lparticles
+  
+  call manage_bc_pop_selfcomm(aoptpR,lparticles)
   
   if(lsingle_fluid)return
   
-  call manage_bc_pop_selfcomm_NOP(aoptpB)
+  call manage_bc_pop_selfcomm(aoptpB,lparticles)
  
  end subroutine driver_bc_pop_selfcomm
  
@@ -3089,7 +3090,7 @@
     end forall
   enddo
   
-  call manage_bc_pop_selfcomm_NOP(aoptpR)
+  call manage_bc_pop_selfcomm(aoptpR,lparticles)
 
 #ifdef MPI
   call commrpop(aoptpR,lparticles,isfluid)
@@ -3122,7 +3123,7 @@
   enddo
   
   
-  call manage_bc_pop_selfcomm_NOP(aoptpB)
+  call manage_bc_pop_selfcomm(aoptpB,lparticles)
 
   
 #ifdef MPI
@@ -5657,7 +5658,7 @@
   
  end subroutine driver_bc_velocities
  
- subroutine initialiaze_manage_bc_pop_selfcomm(lparticles)
+ subroutine initialiaze_manage_bc_pop_selfcomm()
  
 !***********************************************************************
 !     
@@ -5672,8 +5673,6 @@
 !***********************************************************************
  
   implicit none
-  
-  logical, intent(in) :: lparticles
   
   integer :: i,j,k,l,itemp,jtemp,ktemp,itemp2,jtemp2,ktemp2
   integer :: ishift,jshift,kshift
@@ -5811,7 +5810,7 @@
    
  end subroutine initialiaze_manage_bc_pop_selfcomm
  
- subroutine manage_bc_pop_selfcomm_NOP(aoptp)
+ subroutine manage_bc_pop_selfcomm(aoptp,lparticles)
  
 !***********************************************************************
 !     
@@ -5828,18 +5827,37 @@
  
   implicit none
   
+  logical, intent(in) :: lparticles
+  
   type(REALPTR), dimension(0:links):: aoptp
   
-  integer :: i
+  integer :: i,itemp,jtemp,ktemp,itemp2,jtemp2,ktemp2,idir,iopp
   
-  forall(i=1:npoplistbc)
-    aoptp(ipoplistbc(i))%p(poplistbc(1,i),poplistbc(2,i),poplistbc(3,i))= &
-     real(aoptp(ipoplistbc(i))%p(poplistbc(4,i),poplistbc(5,i),poplistbc(6,i)),kind=PRC)
-  end forall
+  if(lparticles)then
+    do i=1,npoplistbc
+      itemp = poplistbc(1,i)
+      jtemp = poplistbc(2,i)
+      ktemp = poplistbc(3,i)
+      itemp2 = poplistbc(4,i)
+      jtemp2 = poplistbc(5,i)
+      ktemp2 = poplistbc(6,i)
+      idir=ipoplistbc(i)
+      iopp=opp(idir)
+      if(isfluid(itemp+ex(iopp),jtemp+ey(iopp),ktemp+ez(iopp))<2 .or. &
+       isfluid(itemp+ex(iopp),jtemp+ey(iopp),ktemp+ez(iopp))>5)then
+        aoptp(idir)%p(itemp,jtemp,ktemp)=aoptp(idir)%p(itemp2,jtemp2,ktemp2)
+      endif
+    enddo
+  else
+    forall(i=1:npoplistbc)
+      aoptp(ipoplistbc(i))%p(poplistbc(1,i),poplistbc(2,i),poplistbc(3,i))= &
+      real(aoptp(ipoplistbc(i))%p(poplistbc(4,i),poplistbc(5,i),poplistbc(6,i)),kind=PRC)
+    end forall
+  endif
   
   return
    
- end subroutine manage_bc_pop_selfcomm_NOP
+ end subroutine manage_bc_pop_selfcomm
  
  pure function pimage(ipbcsub,i,nssub)
  
