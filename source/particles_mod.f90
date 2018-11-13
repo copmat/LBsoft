@@ -1482,7 +1482,16 @@
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
-    call particle_bounce_back(i,j,k,nsphere, &
+    call particle_bounce_back(.true.,i,j,k,nsphere, &
+     spherelist,spheredist,vxx(iatm),vyy(iatm),vzz(iatm), &
+     fxx(iatm),fyy(iatm),fzz(iatm))
+  enddo
+  
+  do iatm=natms+1,natms_ext
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    call particle_bounce_back(.false.,i,j,k,nsphere, &
      spherelist,spheredist,vxx(iatm),vyy(iatm),vzz(iatm), &
      fxx(iatm),fyy(iatm),fzz(iatm))
   enddo

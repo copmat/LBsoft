@@ -3017,7 +3017,7 @@
   
  end subroutine driver_bc_pop_selfcomm
  
- subroutine driver_streaming_fluids
+ subroutine driver_streaming_fluids(lparticles)
  
 !***********************************************************************
 !     
@@ -3032,6 +3032,7 @@
   
   implicit none
   
+  logical, intent(in) :: lparticles
   integer :: i,j,k,l,ishift,jshift,kshift
   integer, save :: iter=0
   
@@ -3045,7 +3046,7 @@
   if(iter.eq.NDIAGNSTREAM)call print_all_pops(100,'mioprima',iter,aoptpR)
 #endif
   
-  call streaming_fluids(f00R,f01R,f02R,f03R,f04R, &
+  call streaming_fluids(lparticles,f00R,f01R,f02R,f03R,f04R, &
    f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
    f14R,f15R,f16R,f17R,f18R,aoptpR)
    
@@ -3055,7 +3056,7 @@
    
   if(lsingle_fluid)return
   
-  call streaming_fluids(f00B,f01B,f02B,f03B,f04B, &
+  call streaming_fluids(lparticles,f00B,f01B,f02B,f03B,f04B, &
    f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B, &
    f14B,f15B,f16B,f17B,f18B,aoptpB)
    
@@ -3088,7 +3089,7 @@
   call manage_bc_pop_selfcomm(popR_managebc)
   
 #ifdef MPI
-  call commrpop(aoptpR)
+  call commrpop(aoptpR,lparticles,isfluid)
 #endif
 
 #ifdef DIAGNSTREAM
@@ -3120,7 +3121,7 @@
   call manage_bc_pop_selfcomm(popB_managebc)
   
 #ifdef MPI
-  call commrpop(aoptpB)
+  call commrpop(aoptpB,lparticles,isfluid)
 #endif
   
   
@@ -3131,7 +3132,7 @@
   
  end subroutine driver_streaming_fluids
  
- subroutine streaming_fluids(f00sub,f01sub,f02sub,f03sub,f04sub, &
+ subroutine streaming_fluids(lparticles,f00sub,f01sub,f02sub,f03sub,f04sub, &
    f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
    f14sub,f15sub,f16sub,f17sub,f18sub,aoptp)
  
@@ -3148,6 +3149,7 @@
   
   implicit none
   
+  logical, intent(in) :: lparticles
   real(kind=PRC), allocatable, dimension(:,:,:)  :: f00sub,f01sub, &
    f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
    f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
@@ -3399,7 +3401,7 @@
 !max   forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
        forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
    enddo
-   call commrpop(aoptp)
+   call commrpop(aoptp,lparticles,isfluid)
 
 #if 0
   if(iter.eq.1) then
@@ -5829,7 +5831,7 @@
    
  end subroutine manage_bc_pop_selfcomm
  
- function pimage(ipbcsub,i,nssub)
+ pure function pimage(ipbcsub,i,nssub)
  
 !***********************************************************************
 !     
@@ -8208,7 +8210,7 @@
   
  end subroutine init_particle_2_isfluid
  
- subroutine particle_bounce_back(isub,jsub,ksub,nspheres, &
+ subroutine particle_bounce_back(lown,isub,jsub,ksub,nspheres, &
   spherelists,spheredists,vx,vy,vz,fx,fy,fz)
   
 !***********************************************************************
@@ -8224,6 +8226,7 @@
   
   implicit none
   
+  logical, intent(in) :: lown
   integer, intent(in) :: isub,jsub,ksub,nspheres
   integer, allocatable, dimension(:,:), intent(in) :: spherelists
   real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
@@ -8256,23 +8259,28 @@
       i=pimage(ixpbc,i,nx)
       j=pimage(iypbc,j,ny)
       k=pimage(izpbc,k,nz)
-#if 0
-      !maybe this is useless since the pbc are trated directly in the streaming step
+      if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. &
+         k>=minz .and. k<=maxz)then
+        call node_to_particle_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+         rhoR)
+      endif
+#if 1
+      !the fluid bounce back is local so I have to do it
       if(i==ii.and.j==jj.and.k==kk)then
         if(i<imin .or. i>imax)cycle
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle
-        call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
-         rhoR,aoptpR)
+        call particle_to_node_bounce_back(i,j,k,vx,vy,vz, &
+           rhoR,aoptpR)
       else
         if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
          k>=kmin .and. k<=kmax)then
-          call particle_only_node_bounce_back(i,j,k,vx,vy,vz, &
+          call particle_to_node_bounce_back(i,j,k,vx,vy,vz, &
            rhoR,aoptpR)
         endif
         if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
          kk>=kmin .and. kk<=kmax)then
-          call particle_only_node_bounce_back(ii,jj,kk,vx,vy,vz, &
+          call particle_to_node_bounce_back(ii,jj,kk,vx,vy,vz, &
            rhoR,aoptpR)
         endif
       endif
@@ -8280,7 +8288,7 @@
       if(i<imin .or. i>imax)cycle
       if(j<jmin .or. j>jmax)cycle
       if(k<kmin .or. k>kmax)cycle
-      call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+      call particle_to_node_bounce_back(i,j,k,vx,vy,vz, &
        rhoR,aoptpR)
 #endif
     enddo
@@ -8296,29 +8304,36 @@
       i=pimage(ixpbc,i,nx)
       j=pimage(iypbc,j,ny)
       k=pimage(izpbc,k,nz)
-#if 0
-      !maybe this is useless since the pbc are trated directly in the streaming step
+      if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. &
+         k>=minz .and. k<=maxz)then
+        call node_to_particle_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+         rhoR)
+        call node_to_particle_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+         rhoB)
+      endif
+#if 1
+      !the fluid bounce back is local so I have to do it
       if(i==ii.and.j==jj.and.k==kk)then
         if(i<imin .or. i>imax)cycle
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle
-        call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+        call particle_to_node_bounce_back(i,j,k,vx,vy,vz, &
          rhoR,aoptpR)
-        call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+        call particle_to_node_bounce_back(i,j,k,vx,vy,vz, &
          rhoB,aoptpB)
       else
         if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
          k>=kmin .and. k<=kmax)then
-          call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+          call particle_to_node_bounce_back(i,j,k,vx,vy,vz, &
            rhoR,aoptpR)
-          call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+          call particle_to_node_bounce_back(i,j,k,vx,vy,vz, &
            rhoB,aoptpB)
         endif
         if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
          kk>=kmin .and. kk<=kmax)then
-          call particle_only_node_bounce_back(ii,jj,kk,vx,vy,vz, &
+          call particle_to_node_bounce_back(ii,jj,kk,vx,vy,vz, &
            rhoR,aoptpR)
-          call particle_only_node_bounce_back(ii,jj,kk,vx,vy,vz, &
+          call particle_to_node_bounce_back(ii,jj,kk,vx,vy,vz, &
            rhoB,aoptpB)
         endif
       endif
@@ -8326,9 +8341,9 @@
       if(i<imin .or. i>imax)cycle
       if(j<jmin .or. j>jmax)cycle
       if(k<kmin .or. k>kmax)cycle
-      call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+      call particle_to_node_bounce_back(i,j,k,vx,vy,vz, &
        rhoR,aoptpR)
-      call particle_node_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+      call particle_to_node_bounce_back(i,j,k,vx,vy,vz, &
        rhoB,aoptpB)
 #endif
     enddo
@@ -8344,7 +8359,7 @@
 !***********************************************************************
 !     
 !     LBsoft subroutine to apply the bounce back on a particle surface
-!     node on the fluid
+!     node and on the fluid
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -8481,13 +8496,119 @@
   
   end subroutine particle_node_bounce_back
   
-  subroutine particle_only_node_bounce_back(i,j,k,vx,vy,vz, &
+  subroutine node_to_particle_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+  rhosub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to apply the bounce back of the fluid 
+!     on a particle surface node
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: i,j,k
+  real(kind=PRC), intent(in) :: vx,vy,vz
+  real(kind=PRC), intent(inout) :: fx,fy,fz
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub
+  
+  real(kind=PRC), parameter :: onesixth=ONE/SIX
+  real(kind=PRC) :: f2p
+  
+  
+  !formula taken from eq. 17 of PRE 83, 046707 (2011) force on particle fx fy fz
+  
+  
+  f2p=rhosub(i+ex(1),j,k)*(TWO-onesixth*(vx*dex(2)))
+  fx=fx+f2p*dex(2)
+  
+  f2p=rhosub(i+ex(2),j,k)*(TWO-onesixth*(vx*dex(1)))
+  fx=fx+f2p*dex(1)
+  
+  
+  f2p=rhosub(i,j+ey(3),k)*(TWO-onesixth*(vy*dey(4)))
+  fy=fy+f2p*dey(4)
+  
+  f2p=rhosub(i,j+ey(4),k)*(TWO-onesixth*(vy*dey(3)))
+  fy=fy+f2p*dey(3)
+  
+  
+  f2p=rhosub(i,j,k+ez(5))*(TWO-onesixth*(vz*dez(6)))
+  fz=fz+f2p*dez(6)
+  
+  f2p=rhosub(i,j,k+ez(6))*(TWO-onesixth*(vz*dez(5)))
+  fz=fz+f2p*dez(5)
+  
+  
+  f2p=rhosub(i+ex(7),j+ey(7),k)*(TWO-onesixth*(vx*dex(8)+vy*dey(8)))
+  fx=fx+f2p*dex(8)
+  fy=fy+f2p*dey(8)
+  
+  f2p=rhosub(i+ex(8),j+ey(8),k)*(TWO-onesixth*(vx*dex(7)+vy*dey(7)))
+  fx=fx+f2p*dex(7)
+  fy=fy+f2p*dey(7)
+  
+  
+  f2p=rhosub(i+ex(9),j+ey(9),k)*(TWO-onesixth*(vx*dex(10)+vy*dey(10)))
+  fx=fx+f2p*dex(10)
+  fy=fy+f2p*dey(10)
+  
+  f2p=rhosub(i+ex(10),j+ey(10),k)*(TWO-onesixth*(vx*dex(9)+vy*dey(9)))
+  fx=fx+f2p*dex(9)
+  fy=fy+f2p*dey(9)
+   
+  
+  f2p=rhosub(i+ex(11),j,k+ez(11))*(TWO-onesixth*(vx*dex(12)+vz*dez(12)))
+  fx=fx+f2p*dex(12)
+  fz=fz+f2p*dez(12)
+  
+  f2p=rhosub(i+ex(12),j,k+ez(12))*(TWO-onesixth*(vx*dex(11)+vz*dez(11)))
+  fx=fx+f2p*dex(11)
+  fz=fz+f2p*dez(11)
+  
+  
+  f2p=rhosub(i+ex(13),j,k+ez(13))*(TWO-onesixth*(vx*dex(14)+vz*dez(14)))
+  fx=fx+f2p*dex(14)
+  fz=fz+f2p*dez(14)
+  
+  f2p=rhosub(i+ex(14),j,k+ez(14))*(TWO-onesixth*(vx*dex(13)+vz*dez(13)))
+  fx=fx+f2p*dex(13)
+  fz=fz+f2p*dez(13)
+  
+  
+  f2p=rhosub(i,j+ey(15),k+ez(15))*(TWO-onesixth*(vy*dey(16)+vz*dez(16)))
+  fy=fy+f2p*dey(16)
+  fz=fz+f2p*dez(16)
+  
+  f2p=rhosub(i,j+ey(16),k+ez(16))*(TWO-onesixth*(vy*dey(15)+vz*dez(15)))
+  fy=fy+f2p*dey(15)
+  fz=fz+f2p*dez(15)
+   
+  
+  f2p=rhosub(i,j+ey(17),k+ez(17))*(TWO-onesixth*(vy*dey(18)+vz*dez(18)))
+  fy=fy+f2p*dey(18)
+  fz=fz+f2p*dez(18)
+  
+  f2p=rhosub(i,j+ey(18),k+ez(18))*(TWO-onesixth*(vy*dey(17)+vz*dez(17)))
+  fy=fy+f2p*dey(17)
+  fz=fz+f2p*dez(17)
+   
+  return
+  
+  end subroutine node_to_particle_bounce_back
+  
+  subroutine particle_to_node_bounce_back(i,j,k,vx,vy,vz, &
   rhosub,aoptp)
  
 !***********************************************************************
 !     
-!     LBsoft subroutine to apply the bounce back on a particle surface
-!     node on the fluid (ONLY FLUID PART)
+!     LBsoft subroutine to apply the bounce back of the fluid due to 
+!     the particle surface
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -8589,7 +8710,7 @@
    
   return
   
-  end subroutine particle_only_node_bounce_back
+  end subroutine particle_to_node_bounce_back
   
   subroutine particle_moving_fluids(natmssub,nspheres,spherelists, &
    spheredists,nspheredeads,spherelistdeads,lmoved,xx,yy,zz, &

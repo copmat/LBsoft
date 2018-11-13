@@ -245,7 +245,7 @@
   endif
   
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
-  call driver_streaming_fluids
+  call driver_streaming_fluids(lparticles)
   if(ldiagnostic)call end_timing2("LB","streaming_fluids")
   
   if(.not.lbc_halfway)then

@@ -28,6 +28,8 @@ MODULE lbempi_mod
   ey = (/ 0, 0, 0, 1,-1, 0, 0, 1,-1, 1,-1, 0, 0, 0, 0, 1,-1,-1, 1/)
  integer, dimension(0:links), parameter, private :: &
   ez = (/ 0, 0, 0, 0, 0, 1,-1, 0, 0, 0, 0, 1,-1, 1,-1, 1,-1, 1,-1/)
+ integer, dimension(0:links), parameter, public :: &
+  opp =(/ 0, 2, 1, 4, 3, 6, 5, 8, 7,10, 9,12,11,14,13,16,15,18,17/)
 #endif
 
 
@@ -2107,7 +2109,7 @@ end subroutine
 
    END SUBROUTINE commspop
  
-   SUBROUTINE commrpop(pop_ptr)
+   SUBROUTINE commrpop(pop_ptr,lparticles,isfluid)
 
   IMPLICIT NONE
 
@@ -2115,10 +2117,12 @@ end subroutine
   ! REAL(KIND=PRC) :: pop_ptr(0:,0:)
   !max REAL(KIND=PRC) :: pop_ptr(0:,0:)
   TYPE(REALPTR), dimension(0:links):: pop_ptr
+  logical, intent(in) :: lparticles
+  integer(kind=1), allocatable, dimension(:,:,:), intent(in) :: isfluid
 !max  REAL(KIND=PRC) :: pop_ptr(0:npop-1,0:*)
   INTEGER :: request(0:maxneigh-1)
   INTEGER :: status(MPI_STATUS_SIZE,0:maxneigh-1)
-  INTEGER :: i,j,mym(3)
+  INTEGER :: i,j,mym(3),idir,iopp
   INTEGER(kind=IPRC) :: i4, itemp, jtemp, ktemp
   
   
@@ -2127,20 +2131,35 @@ end subroutine
    if(n_pe2recv_fluid.gt.0) then
       CALL MPI_WAITALL(n_pe2recv_fluid,requestm,status,ierr)
    endif
-   do i=0, n_pe2recv_fluid-1
-      do j=0,n_pop2recv_fluid(i)-1
-         i4=i_pop2recv_fluid(1,j,i)
-         !ktemp = i4/INT(nxy2,KIND=IPRC)
-         !jtemp = (i4 - ktemp*INT(nxy2,KIND=IPRC))/INT(nx2,KIND=IPRC)
-         !itemp = i4 - ktemp*INT(nxy2,KIND=IPRC) - jtemp*INT(nx2,KIND=IPRC)
-         mym=i4find(i4)
-         ktemp = mym(3)
-         jtemp = mym(2)
-         itemp = mym(1)
-         pop_ptr(i_pop2recv_fluid(0,j,i))%p(itemp,jtemp,ktemp)=buffpopr(j,i)
-      enddo
-   enddo
-
+   if(lparticles)then
+     do i=0, n_pe2recv_fluid-1
+        do j=0,n_pop2recv_fluid(i)-1
+          i4=i_pop2recv_fluid(1,j,i)
+          mym=i4find(i4)
+          ktemp = mym(3)
+          jtemp = mym(2)
+          itemp = mym(1)
+          idir=i_pop2recv_fluid(0,j,i)
+          iopp=opp(idir)
+          if(isfluid(itemp+ex(iopp),jtemp+ey(iopp),ktemp+ez(iopp))<2 .or. &
+           isfluid(itemp+ex(iopp),jtemp+ey(iopp),ktemp+ez(iopp))>5)then
+            pop_ptr(idir)%p(itemp,jtemp,ktemp)=buffpopr(j,i)
+          endif
+        enddo
+     enddo
+   else
+     do i=0, n_pe2recv_fluid-1
+        do j=0,n_pop2recv_fluid(i)-1
+          i4=i_pop2recv_fluid(1,j,i)
+          mym=i4find(i4)
+          ktemp = mym(3)
+          jtemp = mym(2)
+          itemp = mym(1)
+          pop_ptr(i_pop2recv_fluid(0,j,i))%p(itemp,jtemp,ktemp)=buffpopr(j,i)
+        enddo
+     enddo
+   endif
+   
    do i=0, n_pe2recv_fluid-1
       CALL MPI_IRECV(buffpopr(0,i),n_pop2recv_fluid(i),MYFLOAT, &
                    & i_pe2recv_fluid(i),i_pe2recv_fluid(i)+movetag, &
