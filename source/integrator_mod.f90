@@ -33,7 +33,8 @@
                         initialize_particle_energy,lvv, &
                         apply_particle_bounce_back, &
                         store_old_pos_vel_part, &
-                        inter_part_and_grid
+                        inter_part_and_grid,force_particle_bounce_back,&
+                        merge_particle_force
  use write_output_mod, only : write_vtk_frame,write_xyz
  
  implicit none
@@ -226,6 +227,10 @@
     call apply_particle_bounce_back
     if(ldiagnostic)call end_timing2("LB","apply_part_bback")
     
+    call merge_particle_force
+    
+    call force_particle_bounce_back
+    call initialize_particle_force
     call store_old_pos_vel_part
     if(lvv)then
       if(ldiagnostic)call start_timing2("MD","integrate_vv")

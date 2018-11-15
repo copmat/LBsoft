@@ -14,16 +14,16 @@
  
  use version_mod,           only : time_world,idrank,mxrank,sum_world_farr, &
   max_world_farr,min_world_farr,get_sync_world,finalize_world
- use fluids_mod,            only : nx,ny,nz,rhoR,rhoB,u,v,w, &
+ use fluids_mod,            only : nx,ny,nz,isfluid,rhoR,rhoB,u,v,w, &
   lsingle_fluid, minx, maxx, miny, maxy, minz, maxz
  use particles_mod,         only : lparticles,engke,engcfg,engtot, &
-  engrot,tempboltz,degfre
+  engrot,tempboltz,degfre,natms,vxx,vyy,vzz
  
  implicit none
  
  private
  
- integer, public, parameter :: nmaxstatdata=20
+ integer, public, parameter :: nmaxstatdata=21
  
  real(kind=PRC), public, save, dimension(nmaxstatdata) :: statdata
  real(kind=PRC), public, save :: meancputime=0.d0
@@ -81,30 +81,47 @@
   integer, intent(in) :: nstepsub
   
   integer, save :: icount=0
-  integer :: i
+  integer :: i,j,k
   
   integer, save :: nstepsubold=0
   integer, save :: nmulstepdoneold=0
   
-  real(kind=PRC) :: dnorm,dsum,dtemp(10)
+  real(kind=PRC) :: dnorm(1),dsum,dtemp(10)
   
   
   call compute_elapsed_cpu_time()
   call compute_cpu_time()
   
-  dnorm=real(nx*ny*nz,kind=PRC)
-  
   forall(i=1:nmaxstatdata)statdata(i)=ZERO
   
 ! store all the observables in the statdata array to be printed
-  
-  statdata(1)=sum(rhoR(minx:maxx,miny:maxy,minz:maxz))
+  statdata(1)=ZERO
+  dnorm(1)=ZERO
+  do k=minz,maxz
+    do j=miny,maxy
+      do i=minx,maxx
+        if(isfluid(i,j,k)==1)then
+          statdata(1)=statdata(1)+rhoR(i,j,k)
+          dnorm(1)=dnorm(1)+ONE
+        endif
+      enddo
+    enddo
+  enddo
   
   statdata(3)=maxval(rhoR(minx:maxx,miny:maxy,minz:maxz))
   statdata(5)=minval(rhoR(minx:maxx,miny:maxy,minz:maxz))
   
   if(.not. lsingle_fluid)then
-    statdata(2)=sum(rhoB(minx:maxx,miny:maxy,minz:maxz))
+    statdata(2)=ZERO
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          if(isfluid(i,j,k)==1)then
+            statdata(2)=statdata(2)+rhoB(i,j,k)
+          endif
+        enddo
+      enddo
+    enddo
     statdata(4)=maxval(rhoB(minx:maxx,miny:maxy,minz:maxz))
     statdata(6)=minval(rhoB(minx:maxx,miny:maxy,minz:maxz))
   endif
@@ -128,9 +145,18 @@
     statdata(19)=engtot
 !   particle temperature as ratio of KbT
     statdata(20)=TWO*(engke+engrot)/(tempboltz*degfre)
+    dtemp(1)=ZERO
+    do i=1,natms
+      dtemp(1)=max(dtemp(1),vxx(i)**TWO+vyy(i)**TWO+vzz(i)**TWO)
+    enddo
+    if(mxrank>1)call max_world_farr(dtemp,1)
+    statdata(21)=sqrt(dtemp(1))
   endif
   
   if(mxrank>1)then
+    
+    call sum_world_farr(dnorm,1)
+    
     dtemp(1)=statdata(1)
     dtemp(2)=statdata(2)
     call sum_world_farr(dtemp,2)
@@ -162,8 +188,8 @@
     statdata(12)=dtemp(5)
   endif
   
-  statdata(1)=statdata(1)/dnorm
-  if(.not. lsingle_fluid)statdata(2)=statdata(2)/dnorm
+  statdata(1)=statdata(1)/dnorm(1)
+  if(.not. lsingle_fluid)statdata(2)=statdata(2)/dnorm(1)
   
 ! update the counter
   icount=icount+1

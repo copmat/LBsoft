@@ -1848,6 +1848,8 @@
     legendobs='engto =  total energy                             '
   elseif(printcodsub(iarg)==20)then
     legendobs='tempp =  particle temperature                     '
+  elseif(printcodsub(iarg)==21)then
+    legendobs='maxv  =  max particle velocity                    '
   endif
   legendobs=adjustl(legendobs)
   
@@ -1932,6 +1934,9 @@
     lfound=.true.
   elseif(findstring('tempp',temps,inumchar,lenstring))then
     printcodsub(iarg)=20
+    lfound=.true.
+  elseif(findstring('maxv',temps,inumchar,lenstring))then
+    printcodsub(iarg)=21
     lfound=.true.
   elseif(findstring('cpur',temps,inumchar,lenstring))then
     printcodsub(iarg)=13
@@ -2021,6 +2026,8 @@
     printlisub(iarg)='engto (lu)'
   elseif(printcodsub(iarg)==20)then
     printlisub(iarg)='tempp (KbT)'
+  elseif(printcodsub(iarg)==21)then
+    printlisub(iarg)='maxv (lu)'
   endif
   printlisub(iarg)=adjustr(printlisub(iarg))
   enddo

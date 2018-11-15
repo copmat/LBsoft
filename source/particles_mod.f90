@@ -217,12 +217,12 @@
  real(kind=PRC), allocatable, public, protected, save :: yyo(:)
  real(kind=PRC), allocatable, public, protected, save :: zzo(:)
  
- !components of angular velocity
+ !components of linear velocity
  real(kind=PRC), allocatable, public, protected, save :: vxx(:)
  real(kind=PRC), allocatable, public, protected, save :: vyy(:)
  real(kind=PRC), allocatable, public, protected, save :: vzz(:)
  
- !old components of angular velocity
+ !old components of linear velocity
  real(kind=PRC), allocatable, public, protected, save :: vxo(:)
  real(kind=PRC), allocatable, public, protected, save :: vyo(:)
  real(kind=PRC), allocatable, public, protected, save :: vzo(:)
@@ -231,6 +231,17 @@
  real(kind=PRC), allocatable, public, protected, save :: fxx(:)
  real(kind=PRC), allocatable, public, protected, save :: fyy(:)
  real(kind=PRC), allocatable, public, protected, save :: fzz(:)
+ 
+ !components of linear force due to bounce back
+ real(kind=PRC), allocatable, public, protected, save :: fxb(:)
+ real(kind=PRC), allocatable, public, protected, save :: fyb(:)
+ real(kind=PRC), allocatable, public, protected, save :: fzb(:)
+ 
+ !old components of linear force due to bounce back
+ real(kind=PRC), allocatable, public, protected, save :: fxbo(:)
+ real(kind=PRC), allocatable, public, protected, save :: fybo(:)
+ real(kind=PRC), allocatable, public, protected, save :: fzbo(:)
+ 
  !radius of particles
  real(kind=PRC), allocatable, public, protected, save :: rdim(:)
  !radius of particles
@@ -290,6 +301,8 @@
  public :: apply_particle_bounce_back
  public :: store_old_pos_vel_part
  public :: inter_part_and_grid
+ public :: force_particle_bounce_back
+ public :: merge_particle_force
  
  contains
  
@@ -777,8 +790,16 @@
   allocate(zzo(mxatms),stat=istat(28))
   
   allocate(vxo(mxatms),stat=istat(29))
-  allocate(vyo(mxatms),stat=istat(31))
+  allocate(vyo(mxatms),stat=istat(30))
   allocate(vzo(mxatms),stat=istat(31))
+  
+  allocate(fxb(mxatms),stat=istat(32))
+  allocate(fyb(mxatms),stat=istat(33))
+  allocate(fzb(mxatms),stat=istat(34))
+  
+  allocate(fxbo(mxatms),stat=istat(32))
+  allocate(fybo(mxatms),stat=istat(33))
+  allocate(fzbo(mxatms),stat=istat(34))
   
 #if 1
   if(mxrank>1)then
@@ -1478,13 +1499,22 @@
   
   integer :: iatm,i,j,k
   
+  forall(iatm=1:natms_ext)
+    fxb(iatm)=ZERO
+    fyb(iatm)=ZERO
+    fzb(iatm)=ZERO
+  end forall
+  
   do iatm=1,natms
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
+    vxx(iatm)=ZERO
+    vyy(iatm)=ZERO
+    vzz(iatm)=ZERO
     call particle_bounce_back(.true.,i,j,k,nsphere, &
      spherelist,spheredist,vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxx(iatm),fyy(iatm),fzz(iatm))
+     fxb(iatm),fyb(iatm),fzb(iatm))
   enddo
   
   do iatm=natms+1,natms_ext
@@ -1493,12 +1523,66 @@
     k=nint(zzz(iatm))
     call particle_bounce_back(.false.,i,j,k,nsphere, &
      spherelist,spheredist,vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxx(iatm),fyy(iatm),fzz(iatm))
+     fxb(iatm),fyb(iatm),fzb(iatm))
   enddo
   
   return
   
  end subroutine apply_particle_bounce_back
+ 
+ subroutine force_particle_bounce_back()
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the force of bounceback acting
+!     on the particles at time t (bounce force is computed at t+1/2)
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: iatm
+  
+  !f(t) = (f(t+1/2)+f(t-1/2))/2
+  forall(iatm=1:natms)
+    fxx(iatm)=fxx(iatm)+(fxb(iatm)+fxbo(iatm))*HALF
+    fyy(iatm)=fyy(iatm)+(fyb(iatm)+fybo(iatm))*HALF
+    fzz(iatm)=fzz(iatm)+(fzb(iatm)+fzbo(iatm))*HALF
+  end forall
+  
+  forall(iatm=1:natms)
+    fxbo(iatm)=fxb(iatm)
+    fybo(iatm)=fyb(iatm)
+    fzbo(iatm)=fzb(iatm)
+  end forall
+  
+  return
+  
+ end subroutine force_particle_bounce_back
+ 
+ subroutine merge_particle_force()
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to merge all the particle forces
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  !SHOULD BE ADDED FOR MPI
+  
+  return
+  
+ end subroutine merge_particle_force
   
  subroutine check_moving_particles
   
@@ -1584,7 +1668,7 @@
   
   call particle_moving_fluids(natms,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove, &
-     xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz)
+     xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,xxo,yyo,zzo)
   
   call update_isfluid
   

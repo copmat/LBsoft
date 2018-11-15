@@ -216,6 +216,8 @@
       write(outp,'(a)') &
       "WARNING - * tempp                * particle temperature as ratio of KbT                  *"
       write(outp,'(a)') &
+      "WARNING - * maxv                 * max particle velocity in lb units                     *"
+      write(outp,'(a)') &
       "WARNING - * cpu                  * time for every print interval in seconds              *"
       write(outp,'(a)') &
       "WARNING - * cpur                 * remaining time to the end in seconds                  *"

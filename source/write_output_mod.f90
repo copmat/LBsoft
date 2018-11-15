@@ -18,7 +18,7 @@
  use error_mod
  use utility_mod,    only : write_fmtnumb,ltest_mode
  use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w,lsingle_fluid, &
-  minx, maxx, miny, maxy, minz, maxz
+  minx, maxx, miny, maxy, minz, maxz,isfluid
  use particles_mod,  only : natms,xxx,yyy,zzz,lparticles,cell, &
   ishape,lrotate,natms,natms_tot,q0,q1,q2,q3,vxx,vyy,vzz
  
@@ -681,6 +681,10 @@
    varX=reshape(service1,(/nn/)), &
    varY=reshape(service2,(/nn/)), &
    varZ=reshape(service3,(/nn/)))
+   
+  service1(nx1:nx2,ny1:ny2,nz1:nz2)=real(isfluid(1:nx,1:ny,1:nz),kind=R4P)
+  E_IO = VTK_VAR_XML(NC_NN=nn,varname ='isfluid', &
+   var=reshape(service1,(/nn/))) 
    
   E_IO = VTK_DAT_XML(var_location = 'node', &
    var_block_action = 'close')
