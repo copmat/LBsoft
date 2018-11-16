@@ -116,7 +116,7 @@
         write(outp,outf2)'ERROR - bad allocation in subroutine ', &
          'allocate_particle_fluids_bc.'
       case (31)
-        write(outp,outf)'ERROR - a particle is moving too fast!'
+        write(outp,outf)'ERROR - error in subroutine particle_moving_fluids.'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select
@@ -216,7 +216,13 @@
       write(outp,'(a)') &
       "WARNING - * tempp                * particle temperature as ratio of KbT                  *"
       write(outp,'(a)') &
-      "WARNING - * maxv                 * max particle velocity in lb units                     *"
+      "WARNING - * maxpv                * max particle velocity in lb units                     *"
+      write(outp,'(a)') &
+      "WARNING - * pvx                  * mean particle velocity along x in lb units            *"
+      write(outp,'(a)') &
+      "WARNING - * pvy                  * mean particle velocity along y in lb units            *"
+      write(outp,'(a)') &
+      "WARNING - * pvz                  * mean particle velocity along z in lb units            *"
       write(outp,'(a)') &
       "WARNING - * cpu                  * time for every print interval in seconds              *"
       write(outp,'(a)') &

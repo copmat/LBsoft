@@ -44,7 +44,7 @@
                    init_particle_2_isfluid,push_comm_isfluid, &
                    ixpbc,iypbc,izpbc,isfluid,particle_bounce_back, &
                    particle_moving_fluids,initialize_new_isfluid, &
-                   update_isfluid,driver_bc_isfluid
+                   update_isfluid,driver_bc_isfluid,mapping_new_isfluid
 
  
  implicit none
@@ -303,6 +303,7 @@
  public :: inter_part_and_grid
  public :: force_particle_bounce_back
  public :: merge_particle_force
+ public :: build_new_isfluid
  
  contains
  
@@ -1643,6 +1644,39 @@
   
  end subroutine check_moving_particles
  
+ subroutine build_new_isfluid
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine to build the new_isfluid array and create
+!     fluid nodes if necessary
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+ 
+  if(.not. lparticles)return
+  
+  call initialize_new_isfluid
+    
+  call check_moving_particles
+  
+  call mapping_new_isfluid(natms,nsphere, &
+     spherelist,spheredist,nspheredead,spherelistdead,lmove, &
+     xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,xxo,yyo,zzo)
+  
+  call particle_moving_fluids(1,natms,nsphere, &
+     spherelist,spheredist,nspheredead,spherelistdead,lmove, &
+     xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,xxo,yyo,zzo)
+  
+  return
+  
+ end subroutine build_new_isfluid
+ 
  subroutine inter_part_and_grid
   
 !***********************************************************************
@@ -1658,15 +1692,9 @@
  
   implicit none
   
-  integer :: i,j,k,iatm
-  
   if(.not. lparticles)return
   
-  call initialize_new_isfluid
-    
-  call check_moving_particles
-  
-  call particle_moving_fluids(natms,nsphere, &
+  call particle_moving_fluids(2,natms,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove, &
      xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,xxo,yyo,zzo)
   

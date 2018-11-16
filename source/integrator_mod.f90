@@ -34,7 +34,7 @@
                         apply_particle_bounce_back, &
                         store_old_pos_vel_part, &
                         inter_part_and_grid,force_particle_bounce_back,&
-                        merge_particle_force
+                        merge_particle_force,build_new_isfluid
  use write_output_mod, only : write_vtk_frame,write_xyz
  
  implicit none
@@ -172,7 +172,6 @@
     
     if(ldiagnostic)call start_timing2("MD","driver_inter_f")
     call initialize_particle_energy
-    call initialize_particle_force
     call driver_inter_force
     if(ldiagnostic)call end_timing2("MD","driver_inter_f")
     
@@ -219,6 +218,7 @@
   endif
   
   if(lparticles)then
+    
     if(ldiagnostic)call start_timing2("IO","write_xyz")
     call write_xyz(nstep)
     if(ldiagnostic)call end_timing2("IO","write_xyz")
@@ -230,7 +230,7 @@
     call merge_particle_force
     
     call force_particle_bounce_back
-    call initialize_particle_force
+    !call initialize_particle_force
     call store_old_pos_vel_part
     if(lvv)then
       if(ldiagnostic)call start_timing2("MD","integrate_vv")
@@ -247,6 +247,12 @@
       call merge_particle_energies
       if(ldiagnostic)call end_timing2("MD","integrate_lf")
     endif
+    
+    if(ldiagnostic)call start_timing2("LB","build_new_isfluid")
+    call initialize_particle_force
+    call build_new_isfluid
+    if(ldiagnostic)call end_timing2("LB","build_new_isfluid")
+    
   endif
   
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")

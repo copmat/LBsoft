@@ -682,9 +682,11 @@
    varY=reshape(service2,(/nn/)), &
    varZ=reshape(service3,(/nn/)))
    
+#if 0
   service1(nx1:nx2,ny1:ny2,nz1:nz2)=real(isfluid(1:nx,1:ny,1:nz),kind=R4P)
   E_IO = VTK_VAR_XML(NC_NN=nn,varname ='isfluid', &
    var=reshape(service1,(/nn/))) 
+#endif
    
   E_IO = VTK_DAT_XML(var_location = 'node', &
    var_block_action = 'close')

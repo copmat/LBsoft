@@ -1,14 +1,14 @@
 [ROOM SYSTEM]
 box 64 64 64
-steps 1000
+steps 10000
 diagnostic yes
 boundary condition 1 1 1
 decomposition type 7
 decomposition dimension 1 1 1
-print list engke engcf engto tempp dens1 maxvx maxvy maxvz maxv
+print list engke engcf dens1 maxvx maxvy maxvz pvx pvy pvz
 print every 10
-print vtk structured 10
-print xyz 1
+print vtk structured 50
+print xyz 50
 test yes
 job time 4 d
 close time 10 s
@@ -20,7 +20,7 @@ density mean 1.d0 1.d0
 density stdev 1.d-4 0.d-4
 velocity mean 0.d0 0.d0 0.d0
 fluid tau 1.d0 1.d0
-force external 0.d-5 1.d-5 0.d0
+force external 5.d-5 0.d-5 0.d0
 [END ROOM]
 [ROOM MD]
 particle yes

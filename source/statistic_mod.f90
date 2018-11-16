@@ -23,7 +23,7 @@
  
  private
  
- integer, public, parameter :: nmaxstatdata=21
+ integer, public, parameter :: nmaxstatdata=24
  
  real(kind=PRC), public, save, dimension(nmaxstatdata) :: statdata
  real(kind=PRC), public, save :: meancputime=0.d0
@@ -86,7 +86,7 @@
   integer, save :: nstepsubold=0
   integer, save :: nmulstepdoneold=0
   
-  real(kind=PRC) :: dnorm(1),dsum,dtemp(10)
+  real(kind=PRC) :: dnorm(1),dsum,dtemp(10),dnorm2(1)
   
   
   call compute_elapsed_cpu_time()
@@ -151,6 +151,19 @@
     enddo
     if(mxrank>1)call max_world_farr(dtemp,1)
     statdata(21)=sqrt(dtemp(1))
+    dtemp(1:3)=ZERO
+    dnorm2(1)=ZERO
+    do i=1,natms
+      dtemp(1)=dtemp(1)+vxx(i)
+      dtemp(2)=dtemp(2)+vyy(i)
+      dtemp(3)=dtemp(3)+vzz(i)
+      dnorm2(1)=dnorm2(1)+ONE
+    enddo
+    if(mxrank>1)then
+      call sum_world_farr(dnorm2,1)
+      call sum_world_farr(dtemp,3)
+    endif
+    statdata(22:24)=dtemp(1:3)/dnorm2(1)
   endif
   
   if(mxrank>1)then

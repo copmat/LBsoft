@@ -333,6 +333,7 @@
  public :: initialize_new_isfluid
  public :: update_isfluid
  public :: driver_bc_isfluid
+ public :: mapping_new_isfluid
  
  contains
  
@@ -8159,7 +8160,7 @@
       if(i<imin .or. i>imax)cycle
       if(j<jmin .or. j>jmax)cycle
       if(k<kmin .or. k>kmax)cycle
-      isfluid(i,j,k)=2
+      if(isfluid(i,j,k)/=4)isfluid(i,j,k)=2
       rhoR(i,j,k)=MINDENS
       u(i,j,k)=ZERO
       v(i,j,k)=ZERO
@@ -8199,7 +8200,7 @@
       if(i<imin .or. i>imax)cycle
       if(j<jmin .or. j>jmax)cycle
       if(k<kmin .or. k>kmax)cycle
-      isfluid(i,j,k)=2
+      if(isfluid(i,j,k)/=4)isfluid(i,j,k)=2
       rhoR(i,j,k)=MINDENS
       rhoB(i,j,k)=MINDENS
       u(i,j,k)=ZERO
@@ -8798,7 +8799,7 @@
   
   end subroutine particle_to_node_bounce_back
   
-  subroutine particle_moving_fluids(natmssub,nspheres,spherelists, &
+  subroutine particle_moving_fluids(isec,natmssub,nspheres,spherelists, &
    spheredists,nspheredeads,spherelistdeads,lmoved,xx,yy,zz, &
    vx,vy,vz,fx,fy,fz,xo,yo,zo)
   
@@ -8815,7 +8816,7 @@
   
   implicit none
   
-  integer, intent(in) :: natmssub,nspheres,nspheredeads
+  integer, intent(in) :: isec,natmssub,nspheres,nspheredeads
   integer, allocatable, dimension(:,:), intent(in) :: spherelists, &
    spherelistdeads
   real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
@@ -8841,200 +8842,10 @@
     kmax=maxz+1
   endif
   
-  !delete fluid 
-  do iatm=1,natmssub
-    isub=nint(xx(iatm))
-    jsub=nint(yy(iatm))
-    ksub=nint(zz(iatm))
-    if(.not. lmoved(iatm))then
-      if(lsingle_fluid)then
-        do l=1,nspheres
-          i=isub+spherelists(1,l)
-          j=jsub+spherelists(2,l)
-          k=ksub+spherelists(3,l)
-          !apply periodic conditions if necessary
-          i=pimage(ixpbc,i,nx)
-          j=pimage(iypbc,j,ny)
-          k=pimage(izpbc,k,nz)
-          if(i<imin .or. i>imax)cycle
-          if(j<jmin .or. j>jmax)cycle
-          if(k<kmin .or. k>kmax)cycle
-          new_isfluid(i,j,k)=2
-          rhoR(i,j,k)=MINDENS
-          u(i,j,k)=ZERO
-          v(i,j,k)=ZERO
-          w(i,j,k)=ZERO
-        enddo
-        do l=1,nspheredeads
-          i=isub+spherelistdeads(1,l)
-          j=jsub+spherelistdeads(2,l)
-          k=ksub+spherelistdeads(3,l)
-          !apply periodic conditions if necessary
-          i=pimage(ixpbc,i,nx)
-          j=pimage(iypbc,j,ny)
-          k=pimage(izpbc,k,nz)
-          if(i<imin .or. i>imax)cycle
-          if(j<jmin .or. j>jmax)cycle
-          if(k<kmin .or. k>kmax)cycle
-          new_isfluid(i,j,k)=4
-          rhoR(i,j,k)=MINDENS
-          u(i,j,k)=ZERO
-          v(i,j,k)=ZERO
-          w(i,j,k)=ZERO
-        enddo
-      else
-        do l=1,nspheres
-          i=isub+spherelists(1,l)
-          j=jsub+spherelists(2,l)
-          k=ksub+spherelists(3,l)
-          !apply periodic conditions if necessary
-          i=pimage(ixpbc,i,nx)
-          j=pimage(iypbc,j,ny)
-          k=pimage(izpbc,k,nz)
-          if(i<imin .or. i>imax)cycle
-          if(j<jmin .or. j>jmax)cycle
-          if(k<kmin .or. k>kmax)cycle
-          new_isfluid(i,j,k)=2
-          rhoR(i,j,k)=MINDENS
-          rhoB(i,j,k)=MINDENS
-          u(i,j,k)=ZERO
-          v(i,j,k)=ZERO
-          w(i,j,k)=ZERO
-        enddo
-        do l=1,nspheredeads
-          i=isub+spherelistdeads(1,l)
-          j=jsub+spherelistdeads(2,l)
-          k=ksub+spherelistdeads(3,l)
-          !apply periodic conditions if necessary
-          i=pimage(ixpbc,i,nx)
-          j=pimage(iypbc,j,ny)
-          k=pimage(izpbc,k,nz)
-          if(i<imin .or. i>imax)cycle
-          if(j<jmin .or. j>jmax)cycle
-          if(k<kmin .or. k>kmax)cycle
-          new_isfluid(i,j,k)=4
-          rhoR(i,j,k)=MINDENS
-          rhoB(i,j,k)=MINDENS
-          u(i,j,k)=ZERO
-          v(i,j,k)=ZERO
-          w(i,j,k)=ZERO
-        enddo
-      endif
-    else
-      if(lsingle_fluid)then
-        do l=1,nspheres
-          i=isub+spherelists(1,l)
-          j=jsub+spherelists(2,l)
-          k=ksub+spherelists(3,l)
-         !apply periodic conditions if necessary
-          i=pimage(ixpbc,i,nx)
-          j=pimage(iypbc,j,ny)
-          k=pimage(izpbc,k,nz)
-          if(i<imin .or. i>imax)cycle
-          if(j<jmin .or. j>jmax)cycle
-          if(k<kmin .or. k>kmax)cycle
-          new_isfluid(i,j,k)=2
-          rhoR(i,j,k)=MINDENS
-          u(i,j,k)=ZERO
-          v(i,j,k)=ZERO
-          w(i,j,k)=ZERO
-          if(isfluid(i,j,k)==1)then
-            !fluid node is trasformed to solid
-            !formula taken from eq. 18 of PRE 83, 046707 (2011)
-            fx(iatm)=fx(iatm)+rhoR(i,j,k)*u(i,j,k)
-            fy(iatm)=fy(iatm)+rhoR(i,j,k)*v(i,j,k)
-            fz(iatm)=fz(iatm)+rhoR(i,j,k)*w(i,j,k)
-          endif
-        enddo
-        do l=1,nspheredeads
-          i=isub+spherelistdeads(1,l)
-          j=jsub+spherelistdeads(2,l)
-          k=ksub+spherelistdeads(3,l)
-          !apply periodic conditions if necessary
-          i=pimage(ixpbc,i,nx)
-          j=pimage(iypbc,j,ny)
-          k=pimage(izpbc,k,nz)
-          if(i<imin .or. i>imax)cycle
-          if(j<jmin .or. j>jmax)cycle
-          if(k<kmin .or. k>kmax)cycle
-          new_isfluid(i,j,k)=4
-          rhoR(i,j,k)=MINDENS
-          u(i,j,k)=ZERO
-          v(i,j,k)=ZERO
-          w(i,j,k)=ZERO
-          if(isfluid(i,j,k)==1)then
-            !fluid node is trasformed to solid
-            !formula taken from eq. 18 of PRE 83, 046707 (2011)
-            fx(iatm)=fx(iatm)+rhoR(i,j,k)*u(i,j,k)
-            fy(iatm)=fy(iatm)+rhoR(i,j,k)*v(i,j,k)
-            fz(iatm)=fz(iatm)+rhoR(i,j,k)*w(i,j,k)
-          endif
-        enddo
-        new_isfluid(isub,jsub,ksub)=5
-        rhoR(isub,jsub,ksub)=MINDENS
-        u(isub,jsub,ksub)=ZERO
-        v(isub,jsub,ksub)=ZERO
-        w(isub,jsub,ksub)=ZERO
-      else
-        do l=1,nspheres
-          i=isub+spherelists(1,l)
-          j=jsub+spherelists(2,l)
-          k=ksub+spherelists(3,l)
-          !apply periodic conditions if necessary
-          i=pimage(ixpbc,i,nx)
-          j=pimage(iypbc,j,ny)
-          k=pimage(izpbc,k,nz)
-          if(i<imin .or. i>imax)cycle
-          if(j<jmin .or. j>jmax)cycle
-          if(k<kmin .or. k>kmax)cycle
-          new_isfluid(i,j,k)=2
-          rhoR(i,j,k)=MINDENS
-          rhoB(i,j,k)=MINDENS
-          u(i,j,k)=ZERO
-          v(i,j,k)=ZERO
-          w(i,j,k)=ZERO
-          if(isfluid(i,j,k)==1)then
-            !fluid node is trasformed to solid node
-            !formula taken from eq. 18 of PRE 83, 046707 (2011)
-            fx(iatm)=fx(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
-            fy(iatm)=fy(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
-            fz(iatm)=fz(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
-          endif
-        enddo
-        do l=1,nspheredeads
-          i=isub+spherelistdeads(1,l)
-          j=jsub+spherelistdeads(2,l)
-          k=ksub+spherelistdeads(3,l)
-          !apply periodic conditions if necessary
-          i=pimage(ixpbc,i,nx)
-          j=pimage(iypbc,j,ny)
-          k=pimage(izpbc,k,nz)
-          if(i<imin .or. i>imax)cycle
-          if(j<jmin .or. j>jmax)cycle
-          if(k<kmin .or. k>kmax)cycle
-          new_isfluid(i,j,k)=4
-          rhoR(i,j,k)=MINDENS
-          rhoB(i,j,k)=MINDENS
-          u(i,j,k)=ZERO
-          v(i,j,k)=ZERO
-          w(i,j,k)=ZERO
-          if(isfluid(i,j,k)==1)then
-            !fluid node is trasformed to solid node
-            !formula taken from eq. 18 of PRE 83, 046707 (2011)
-            fx(iatm)=fx(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
-            fy(iatm)=fy(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
-            fz(iatm)=fz(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
-          endif
-        enddo
-        new_isfluid(isub,jsub,ksub)=5
-        rhoR(isub,jsub,ksub)=MINDENS
-        rhoB(isub,jsub,ksub)=MINDENS
-        u(isub,jsub,ksub)=ZERO
-        v(isub,jsub,ksub)=ZERO
-        w(isub,jsub,ksub)=ZERO
-      endif
-    endif
-  enddo
+  select case(isec)
+  
+  
+  case(1)
   
   !create fluid 
   ltest(1)=.false.
@@ -9131,17 +8942,312 @@
     endif
   enddo
   
-311 continue
+  case(2)
   
-  call or_world_larr(ltest,1)
-  if(ltest(1))then
+  !delete fluid 
+  do iatm=1,natmssub
+    isub=nint(xx(iatm))
+    jsub=nint(yy(iatm))
+    ksub=nint(zz(iatm))
+    if(.not. lmoved(iatm))then
+      if(lsingle_fluid)then
+        do l=1,nspheres
+          i=isub+spherelists(1,l)
+          j=jsub+spherelists(2,l)
+          k=ksub+spherelists(3,l)
+          !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(i<imin .or. i>imax)cycle
+          if(j<jmin .or. j>jmax)cycle
+          if(k<kmin .or. k>kmax)cycle
+          rhoR(i,j,k)=MINDENS
+          u(i,j,k)=ZERO
+          v(i,j,k)=ZERO
+          w(i,j,k)=ZERO
+        enddo
+        do l=1,nspheredeads
+          i=isub+spherelistdeads(1,l)
+          j=jsub+spherelistdeads(2,l)
+          k=ksub+spherelistdeads(3,l)
+          !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(i<imin .or. i>imax)cycle
+          if(j<jmin .or. j>jmax)cycle
+          if(k<kmin .or. k>kmax)cycle
+          rhoR(i,j,k)=MINDENS
+          u(i,j,k)=ZERO
+          v(i,j,k)=ZERO
+          w(i,j,k)=ZERO
+        enddo
+      else
+        do l=1,nspheres
+          i=isub+spherelists(1,l)
+          j=jsub+spherelists(2,l)
+          k=ksub+spherelists(3,l)
+          !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(i<imin .or. i>imax)cycle
+          if(j<jmin .or. j>jmax)cycle
+          if(k<kmin .or. k>kmax)cycle
+          rhoR(i,j,k)=MINDENS
+          rhoB(i,j,k)=MINDENS
+          u(i,j,k)=ZERO
+          v(i,j,k)=ZERO
+          w(i,j,k)=ZERO
+        enddo
+        do l=1,nspheredeads
+          i=isub+spherelistdeads(1,l)
+          j=jsub+spherelistdeads(2,l)
+          k=ksub+spherelistdeads(3,l)
+          !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(i<imin .or. i>imax)cycle
+          if(j<jmin .or. j>jmax)cycle
+          if(k<kmin .or. k>kmax)cycle
+          rhoR(i,j,k)=MINDENS
+          rhoB(i,j,k)=MINDENS
+          u(i,j,k)=ZERO
+          v(i,j,k)=ZERO
+          w(i,j,k)=ZERO
+        enddo
+      endif
+    else
+      if(lsingle_fluid)then
+        do l=1,nspheres
+          i=isub+spherelists(1,l)
+          j=jsub+spherelists(2,l)
+          k=ksub+spherelists(3,l)
+         !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(i<imin .or. i>imax)cycle
+          if(j<jmin .or. j>jmax)cycle
+          if(k<kmin .or. k>kmax)cycle
+          if(isfluid(i,j,k)==1)then
+            !fluid node is trasformed to solid
+            !formula taken from eq. 18 of PRE 83, 046707 (2011)
+            fx(iatm)=fx(iatm)+rhoR(i,j,k)*u(i,j,k)
+            fy(iatm)=fy(iatm)+rhoR(i,j,k)*v(i,j,k)
+            fz(iatm)=fz(iatm)+rhoR(i,j,k)*w(i,j,k)
+          endif
+          rhoR(i,j,k)=MINDENS
+          u(i,j,k)=ZERO
+          v(i,j,k)=ZERO
+          w(i,j,k)=ZERO
+        enddo
+        do l=1,nspheredeads
+          i=isub+spherelistdeads(1,l)
+          j=jsub+spherelistdeads(2,l)
+          k=ksub+spherelistdeads(3,l)
+          !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(i<imin .or. i>imax)cycle
+          if(j<jmin .or. j>jmax)cycle
+          if(k<kmin .or. k>kmax)cycle
+          if(isfluid(i,j,k)==1)then
+            !fluid node is trasformed to solid
+            !formula taken from eq. 18 of PRE 83, 046707 (2011)
+            fx(iatm)=fx(iatm)+rhoR(i,j,k)*u(i,j,k)
+            fy(iatm)=fy(iatm)+rhoR(i,j,k)*v(i,j,k)
+            fz(iatm)=fz(iatm)+rhoR(i,j,k)*w(i,j,k)
+          endif
+          rhoR(i,j,k)=MINDENS
+          u(i,j,k)=ZERO
+          v(i,j,k)=ZERO
+          w(i,j,k)=ZERO
+        enddo
+        rhoR(isub,jsub,ksub)=MINDENS
+        u(isub,jsub,ksub)=ZERO
+        v(isub,jsub,ksub)=ZERO
+        w(isub,jsub,ksub)=ZERO
+      else
+        do l=1,nspheres
+          i=isub+spherelists(1,l)
+          j=jsub+spherelists(2,l)
+          k=ksub+spherelists(3,l)
+          !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(i<imin .or. i>imax)cycle
+          if(j<jmin .or. j>jmax)cycle
+          if(k<kmin .or. k>kmax)cycle
+          if(isfluid(i,j,k)==1)then
+            !fluid node is trasformed to solid node
+            !formula taken from eq. 18 of PRE 83, 046707 (2011)
+            fx(iatm)=fx(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
+            fy(iatm)=fy(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
+            fz(iatm)=fz(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
+          endif
+          rhoR(i,j,k)=MINDENS
+          rhoB(i,j,k)=MINDENS
+          u(i,j,k)=ZERO
+          v(i,j,k)=ZERO
+          w(i,j,k)=ZERO
+        enddo
+        do l=1,nspheredeads
+          i=isub+spherelistdeads(1,l)
+          j=jsub+spherelistdeads(2,l)
+          k=ksub+spherelistdeads(3,l)
+          !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(i<imin .or. i>imax)cycle
+          if(j<jmin .or. j>jmax)cycle
+          if(k<kmin .or. k>kmax)cycle
+          if(isfluid(i,j,k)==1)then
+            !fluid node is trasformed to solid node
+            !formula taken from eq. 18 of PRE 83, 046707 (2011)
+            fx(iatm)=fx(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
+            fy(iatm)=fy(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
+            fz(iatm)=fz(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
+          endif
+          rhoR(i,j,k)=MINDENS
+          rhoB(i,j,k)=MINDENS
+          u(i,j,k)=ZERO
+          v(i,j,k)=ZERO
+          w(i,j,k)=ZERO
+        enddo
+        rhoR(isub,jsub,ksub)=MINDENS
+        rhoB(isub,jsub,ksub)=MINDENS
+        u(isub,jsub,ksub)=ZERO
+        v(isub,jsub,ksub)=ZERO
+        w(isub,jsub,ksub)=ZERO
+      endif
+    endif
+  enddo
+  
+  case default
     call error(31)
-  endif
-  
+  end select
   
   return
   
  end subroutine particle_moving_fluids
+ 
+ subroutine mapping_new_isfluid(natmssub,nspheres,spherelists, &
+   spheredists,nspheredeads,spherelistdeads,lmoved,xx,yy,zz, &
+   vx,vy,vz,fx,fy,fz,xo,yo,zo)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine to initialize isfluid and hydrodynamic
+!     variables according to the particle presence
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: natmssub,nspheres,nspheredeads
+  integer, allocatable, dimension(:,:), intent(in) :: spherelists, &
+   spherelistdeads
+  real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
+  logical(kind=1), allocatable, dimension(:), intent(in) :: lmoved
+  real(kind=PRC), allocatable, dimension(:), intent(in) :: xx,yy,zz
+  real(kind=PRC), allocatable, dimension(:), intent(in) :: vx,vy,vz
+  real(kind=PRC), allocatable, dimension(:), intent(inout) :: fx,fy,fz
+  real(kind=PRC), allocatable, dimension(:), intent(in) :: xo,yo,zo
+  
+  integer :: i,j,k,l,m,isub,jsub,ksub,iatm,io,jo,ko,ishift,jshift,kshift
+  integer, save :: imin,imax,jmin,jmax,kmin,kmax
+  logical, save :: lfirst=.true.
+  logical :: lfind,ltest(1)
+  real(kind=PRC) :: Rsum,Bsum,Dsum,myu,myv,myw
+  
+  if(lfirst)then
+    lfirst=.false.
+    imin=minx-1
+    imax=maxx+1
+    jmin=miny-1
+    jmax=maxy+1
+    kmin=minz-1
+    kmax=maxz+1
+  endif
+  
+  !delete fluid 
+  do iatm=1,natmssub
+    isub=nint(xx(iatm))
+    jsub=nint(yy(iatm))
+    ksub=nint(zz(iatm))
+    if(.not. lmoved(iatm))then
+      do l=1,nspheres
+        i=isub+spherelists(1,l)
+        j=jsub+spherelists(2,l)
+        k=ksub+spherelists(3,l)
+        !apply periodic conditions if necessary
+        i=pimage(ixpbc,i,nx)
+        j=pimage(iypbc,j,ny)
+        k=pimage(izpbc,k,nz)
+        if(i<imin .or. i>imax)cycle
+        if(j<jmin .or. j>jmax)cycle
+        if(k<kmin .or. k>kmax)cycle
+        if(new_isfluid(i,j,k)/=4)new_isfluid(i,j,k)=2
+      enddo
+      do l=1,nspheredeads
+        i=isub+spherelistdeads(1,l)
+        j=jsub+spherelistdeads(2,l)
+        k=ksub+spherelistdeads(3,l)
+        !apply periodic conditions if necessary
+        i=pimage(ixpbc,i,nx)
+        j=pimage(iypbc,j,ny)
+        k=pimage(izpbc,k,nz)
+        if(i<imin .or. i>imax)cycle
+        if(j<jmin .or. j>jmax)cycle
+        if(k<kmin .or. k>kmax)cycle
+        new_isfluid(i,j,k)=4
+      enddo
+    else
+      do l=1,nspheres
+        i=isub+spherelists(1,l)
+        j=jsub+spherelists(2,l)
+        k=ksub+spherelists(3,l)
+       !apply periodic conditions if necessary
+        i=pimage(ixpbc,i,nx)
+        j=pimage(iypbc,j,ny)
+        k=pimage(izpbc,k,nz)
+        if(i<imin .or. i>imax)cycle
+        if(j<jmin .or. j>jmax)cycle
+        if(k<kmin .or. k>kmax)cycle
+        if(new_isfluid(i,j,k)/=4)new_isfluid(i,j,k)=2
+      enddo
+      do l=1,nspheredeads
+        i=isub+spherelistdeads(1,l)
+        j=jsub+spherelistdeads(2,l)
+        k=ksub+spherelistdeads(3,l)
+        !apply periodic conditions if necessary
+        i=pimage(ixpbc,i,nx)
+        j=pimage(iypbc,j,ny)
+        k=pimage(izpbc,k,nz)
+        if(i<imin .or. i>imax)cycle
+        if(j<jmin .or. j>jmax)cycle
+        if(k<kmin .or. k>kmax)cycle
+        new_isfluid(i,j,k)=4
+      enddo
+      new_isfluid(isub,jsub,ksub)=5
+    endif
+  enddo
+  
+ 
+  
+  return
+  
+ end subroutine mapping_new_isfluid
  
  subroutine initialize_new_isfluid()
  
