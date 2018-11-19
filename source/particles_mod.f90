@@ -79,23 +79,23 @@
  !number of subdomains in parallel decomposition
  integer, public, protected, save :: nbig_cells=0
  
+ !number of particle types with different features
+ integer, public, protected, save :: ntype=0
+ 
  !max number of parameters for pair force fields
  integer, public, parameter :: mxpvdw=3
  
  !max number of pair force fields
  integer, public, parameter :: mxvdw=1
  
+ !max number of different particle type
+ integer, public, parameter :: mxntype=4
+ 
  !number of pair force fields defined in input
  integer, public, protected, save :: ntpvdw=0
  
  !activate particle part
  logical, public, protected, save :: lparticles=.false.
- 
- !set unique mass
- logical, public, protected, save :: lumass=.false.
- 
- !set unique radius
- logical, public, protected, save :: lurdim=.false.
  
  !kbT factor
  real(kind=PRC), public, protected, save :: tempboltz=cssq
@@ -111,12 +111,6 @@
  
  !initiali particle temperature in KbT unit
  real(kind=PRC), public, protected, save :: init_temp=ONE
- 
- !value of unique mass
- real(kind=PRC), public, protected, save :: umass=ONE
- 
- !value of unique radius
- real(kind=PRC), public, protected, save :: urdim=ZERO
  
  !cell vectors
  real(kind=PRC), dimension(9), public, protected, save :: cell
@@ -155,9 +149,6 @@
  
  !there are enough cells for the link approach within the same process?
  logical, public, protected, save :: lnolink=.false.
- 
- !key for particle shape
- integer, public, protected, save :: ishape=0
  
  !book of global particle ID
  integer, allocatable, public, protected, save :: atmbook(:)
@@ -201,11 +192,29 @@
  !store the type of pair force field
  integer, allocatable, public, protected, save :: ltpvdw(:)
  
+ !mask to associated the type of pair force field to two particle types
+ integer, allocatable, public, protected, save :: mskvdw(:,:)
+ 
  !flag for particle moving grid overlap
  logical(kind=1), allocatable, public, protected, save :: lmove(:)
  
  !flag for particle leaving the subdomain (for parallel version)
  logical(kind=1), allocatable, public, protected, save :: lmove_dom(:)
+ 
+ !string denoting the particle type
+ character(len=8), allocatable, public, protected, save :: atmnamtype(:)
+ 
+ !key for particle shape
+ integer, allocatable, public, protected, save :: ishape(:)
+ 
+ !set unique mass
+ logical, allocatable, public, protected, save :: lumass(:)
+ 
+ !set unique radius
+ logical, allocatable, public, protected, save :: lurdim(:)
+ 
+ !type of particles
+ integer, allocatable, public, protected, save :: ltype(:)
  
  !position of particles
  real(kind=PRC), allocatable, public, protected, save :: xxx(:)
@@ -243,8 +252,6 @@
  real(kind=PRC), allocatable, public, protected, save :: fzbo(:)
  
  !radius of particles
- real(kind=PRC), allocatable, public, protected, save :: rdim(:)
- !radius of particles
  real(kind=PRC), allocatable, public, protected, save :: rdimx(:)
  real(kind=PRC), allocatable, public, protected, save :: rdimy(:)
  real(kind=PRC), allocatable, public, protected, save :: rdimz(:)
@@ -268,6 +275,11 @@
  real(kind=PRC), allocatable, public, protected, save :: tqy(:)
  real(kind=PRC), allocatable, public, protected, save :: tqz(:)
  
+ !rotational inertia about x, y, z
+ real(kind=PRC), allocatable, public, protected, save :: rotinx(:)
+ real(kind=PRC), allocatable, public, protected, save :: rotiny(:)
+ real(kind=PRC), allocatable, public, protected, save :: rotinz(:)
+ 
  !parameters of all the pair force fields
  real(kind=PRC), allocatable, public, protected, save :: prmvdw(:,:)
  
@@ -288,7 +300,7 @@
  public :: set_field_array
  public :: vertest
  public :: set_umass
- public :: set_urdim
+ public :: set_rdim
  public :: initialize_particle_force
  public :: initialize_particle_energy
  public :: driver_inter_force
@@ -304,6 +316,10 @@
  public :: force_particle_bounce_back
  public :: merge_particle_force
  public :: build_new_isfluid
+ public :: set_atmnamtype
+ public :: set_ntype
+ public :: find_type
+ public :: allocate_particle_features
  
  contains
  
@@ -328,6 +344,28 @@
   return
   
  end subroutine set_natms_tot
+ 
+ subroutine set_ntype(itemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the ntype of particles 
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: itemp
+  
+  ntype=itemp
+  
+  return
+  
+ end subroutine set_ntype
  
  subroutine set_lparticles(ltemp)
  
@@ -431,9 +469,13 @@
  
   implicit none
   
-  integer, intent(in) :: itemp
+  integer, intent(in), dimension(1:mxntype) :: itemp
   
-  ishape=itemp
+  ishape(1:mxntype)=itemp(1:mxntype)
+  
+  where(ishape(1:mxntype)==0)
+    lurdim(1:mxntype)=.true.
+  end where
   
   return
   
@@ -497,16 +539,16 @@
  
   implicit none
   
-  real(kind=PRC), intent(in) :: dtemp
+  real(kind=PRC), intent(in), dimension(1:mxntype) :: dtemp
   
-  lumass=.true.
-  umass=dtemp
+  lumass(1:ntype)=.true.
+  weight(1:mxntype)=dtemp(1:mxntype)
   
   return
   
  end subroutine set_umass
  
- subroutine set_urdim(dtemp)
+ subroutine set_rdim(dtempx,dtempy,dtempz)
  
 !***********************************************************************
 !     
@@ -520,14 +562,15 @@
  
   implicit none
   
-  real(kind=PRC), intent(in) :: dtemp
+  real(kind=PRC), intent(in), dimension(1:mxntype) :: dtempx,dtempy,dtempz
   
-  lurdim=.true.
-  urdim=dtemp
+  rdimx(1:mxntype)=dtempx(1:mxntype)
+  rdimy(1:mxntype)=dtempy(1:mxntype)
+  rdimz(1:mxntype)=dtempz(1:mxntype)
   
   return
   
- end subroutine set_urdim
+ end subroutine set_rdim
  
  subroutine set_init_temp(dtemp)
  
@@ -577,6 +620,92 @@
   
  end subroutine set_ntpvdw
  
+ subroutine set_atmnamtype(ctemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for allocate the atmnamtype protected variable
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  character(len=8), intent(in), dimension(mxntype) :: ctemp
+  
+  integer :: i
+  
+  do i=1,mxntype
+    atmnamtype(i)=ctemp(i)
+  enddo
+  
+  return
+  
+ end subroutine set_atmnamtype
+ 
+ subroutine allocate_particle_features()
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for allocate the atmnamtype protected variable
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i
+  integer, parameter :: nistatmax=100
+  integer, dimension(nistatmax) :: istat
+  logical :: ltest(1)
+  
+  istat(1:nistatmax)=0
+  
+  
+  allocate(rdimx(mxntype),stat=istat(1))
+  allocate(rdimy(mxntype),stat=istat(2))
+  allocate(rdimz(mxntype),stat=istat(3))
+  
+  allocate(weight(mxntype),stat=istat(4))
+  
+  allocate(rotin(mxntype),stat=istat(5))
+  
+  allocate(rmass(mxntype),stat=istat(6))
+  allocate(atmnamtype(mxntype),stat=istat(7))
+  
+  allocate(ishape(mxntype),stat=istat(8))
+  
+  allocate(lumass(mxntype),stat=istat(9))
+  allocate(lurdim(mxntype),stat=istat(10))
+  
+  if(lrotate)then
+    allocate(rotinx(mxntype),stat=istat(11))
+    allocate(rotiny(mxntype),stat=istat(12))
+    allocate(rotinz(mxntype),stat=istat(13))
+  endif
+  
+  ltest=.false.
+  if(any(istat.ne.0))then
+    do i=1,nistatmax
+      if(istat(i).ne.0)exit
+    enddo
+    call warning(2,dble(i))
+    ltest=.true.
+  endif
+
+  call or_world_larr(ltest,1)
+  if(ltest(1))call error(32)
+  
+  return
+  
+ end subroutine allocate_particle_features
+ 
  subroutine allocate_field_array
  
 !***********************************************************************
@@ -593,19 +722,24 @@
  
   implicit none
   
-  integer :: fail(2)
+  integer :: fail(3)
   
   allocate(prmvdw(mxpvdw,ntpvdw),stat=fail(1))
   allocate(ltpvdw(ntpvdw),stat=fail(2))
+  allocate(mskvdw(mxntype,mxntype),stat=fail(3))
   
-  call sum_world_iarr(fail,2)
+  call sum_world_iarr(fail,3)
   if(any(fail.ne.0))call error(26)
+  
+  prmvdw(1:mxpvdw,1:ntpvdw)=ZERO
+  ltpvdw(1:ntpvdw)=0
+  mskvdw(1:mxntype,1:mxntype)=0
   
   return
   
  end subroutine allocate_field_array
  
- subroutine set_field_array(iarr1,iarr2,itemp1,dtemp2)
+ subroutine set_field_array(iarr1,iarr2,itemp1,dtemp2,itemp2)
  
 !***********************************************************************
 !     
@@ -624,6 +758,7 @@
   integer, intent(in) :: iarr1,iarr2
   integer, dimension(iarr1), intent(in) :: itemp1
   real(kind=PRC), dimension(iarr2,iarr1), intent(in) :: dtemp2
+  integer, dimension(mxntype,mxntype), intent(in) :: itemp2
   
   integer :: i
   
@@ -631,6 +766,8 @@
     ltpvdw(i)=itemp1(i)
     prmvdw(1:iarr2,i)=dtemp2(1:iarr2,i)
   enddo
+  
+  mskvdw(1:mxntype,1:mxntype)=itemp2(1:mxntype,1:mxntype)
   
   return
   
@@ -760,17 +897,6 @@
   allocate(fyy(mxatms),stat=istat(8))
   allocate(fzz(mxatms),stat=istat(9))
   
-  if(ishape==0)then
-    allocate(rdim(mxatms),stat=istat(10))
-  elseif(ishape==1)then
-    allocate(rdimx(mxatms),stat=istat(23))
-    allocate(rdimy(mxatms),stat=istat(24))
-    allocate(rdimz(mxatms),stat=istat(25))
-  endif
-  allocate(weight(mxatms),stat=istat(11))
-  
-  allocate(rotin(mxatms),stat=istat(12))
-  
   allocate(oxx(mxatms),stat=istat(13))
   allocate(oyy(mxatms),stat=istat(14))
   allocate(ozz(mxatms),stat=istat(15))
@@ -784,7 +910,7 @@
   allocate(tqy(mxatms),stat=istat(21))
   allocate(tqz(mxatms),stat=istat(22))
   
-  allocate(rmass(mxatms),stat=istat(23))
+  allocate(ltype(mxatms),stat=istat(23))
   
   allocate(xxo(mxatms),stat=istat(26))
   allocate(yyo(mxatms),stat=istat(27))
@@ -802,6 +928,8 @@
   allocate(fybo(mxatms),stat=istat(33))
   allocate(fzbo(mxatms),stat=istat(34))
   
+  
+  
 #if 1
   if(mxrank>1)then
     if(idrank==0)write(6,'(a)')'ATTENTION: MD in parallel is under developing!'
@@ -813,7 +941,7 @@
     call error(-1)
   endif
   
-  if(ishape/=0)then
+  if(any(ishape(1:ntype)/=0))then
     if(idrank==0)write(6,'(a)')'ATTENTION: non spherical particle part is under developing!'
     call error(-1)
   endif
@@ -862,16 +990,6 @@
   fyy(1:mxatms)=ZERO
   fzz(1:mxatms)=ZERO
   
-  if(ishape==0)then
-    rdim(1:mxatms)=ZERO
-  elseif(ishape==1)then
-    rdimx(1:mxatms)=ZERO
-    rdimy(1:mxatms)=ZERO
-    rdimz(1:mxatms)=ZERO
-  endif
-  weight(1:mxatms)=ZERO
-  rotin(1:mxatms)=ZERO
-  
   oxx(1:mxatms)=ZERO
   oyy(1:mxatms)=ZERO
   ozz(1:mxatms)=ZERO
@@ -881,11 +999,27 @@
   q2(1:mxatms)=ZERO
   q3(1:mxatms)=ZERO
   
-  rmass(1:mxatms)=ZERO
-  
   tqx(1:mxatms)=ZERO
   tqy(1:mxatms)=ZERO
   tqz(1:mxatms)=ZERO
+  
+  ltype(1:mxatms)=0
+  
+  xxo(1:mxatms)=ZERO
+  yyo(1:mxatms)=ZERO
+  zzo(1:mxatms)=ZERO
+  
+  vxo(1:mxatms)=ZERO
+  vyo(1:mxatms)=ZERO
+  vzo(1:mxatms)=ZERO
+  
+  fxb(1:mxatms)=ZERO
+  fyb(1:mxatms)=ZERO
+  fzb(1:mxatms)=ZERO
+  
+  fxbo(1:mxatms)=ZERO
+  fybo(1:mxatms)=ZERO
+  fzbo(1:mxatms)=ZERO
   
   if(lnolink)then
     lentry(1:msatms)=0
@@ -899,8 +1033,43 @@
  
  end subroutine allocate_particles
  
+ subroutine find_type(carr,nch,itype)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for finding the atom type from its label
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: nch
+  character(len=nch), intent(in) :: carr
+  integer, intent(out) :: itype
+  integer :: i
+  
+  character(len=8) :: myservice
+  
+  myservice(1:8)=trim(carr(1:nch))//repeat(' ',8-nch)
+  
+  itype=0
+  do i=1,mxntype
+    if(trim(atmnamtype(i))==trim(myservice))then
+      itype=i
+      return
+    endif
+  enddo
+  
+  return
+  
+ end subroutine find_type
+ 
  subroutine initialize_map_particles(nxyzlist_sub,xyzlist_sub, &
-  xxs,yys,zzs,ots,lvelocity)
+  ltypes,xxs,yys,zzs,ots,lvelocity)
   
 !***********************************************************************
 !     
@@ -918,11 +1087,12 @@
   
   integer, intent(in) :: nxyzlist_sub
   integer, intent(in), allocatable, dimension(:)  :: xyzlist_sub
+  integer, allocatable, dimension(:) :: ltypes
   real(kind=PRC), allocatable, dimension(:) :: xxs,yys,zzs
   real(kind=PRC), allocatable, dimension(:,:) :: ots
   logical, intent(in) :: lvelocity
   
-  integer :: i,j,k,l,iatm,ids,sub_i,idrank_sub
+  integer :: i,j,k,l,iatm,ids,sub_i,idrank_sub,itype
   logical :: ltest(1),lqinput,ltinput
   integer, dimension(0:mxrank-1) :: isend_nparticle
   integer :: isend_nvar
@@ -991,7 +1161,6 @@
         call warning(33,ZERO,'radz')
       case(6)
         call warning(33,ZERO,'rad')
-        lurdim=.true.
       end select
     enddo
   endif
@@ -1014,6 +1183,7 @@
 #endif
         if(ids==idrank_sub)then
           sub_i=sub_i+1
+          ltype(sub_i)=ltypes(i)
           atmbook(sub_i)=i
           xxx(sub_i)=xxs(i)
           yyy(sub_i)=yys(i)
@@ -1065,6 +1235,8 @@
           endif
         endif
       enddo
+      call isend_world_iarr(ltype,isend_nparticle(idrank_sub),idrank_sub, &
+       120+idrank_sub,irequest_send(1,idrank_sub))
       call isend_world_iarr(atmbook,isend_nparticle(idrank_sub),idrank_sub, &
        120+idrank_sub+1,irequest_send(1,idrank_sub))
       call isend_world_farr(xxx,isend_nparticle(idrank_sub),idrank_sub, &
@@ -1149,6 +1321,7 @@
 #endif
       if(ids==0)then
         sub_i=sub_i+1
+        ltype(sub_i)=ltypes(i)
         atmbook(sub_i)=i
         xxx(sub_i)=xxs(i)
         yyy(sub_i)=yys(i)
@@ -1201,6 +1374,8 @@
       endif
     enddo
   else !if not idrank=0
+    call irecv_world_iarr(ltype,isend_nparticle(idrank),0, &
+     120+idrank,irequest_recv(1))
     call irecv_world_iarr(atmbook,isend_nparticle(idrank),0, &
      120+idrank+1,irequest_recv(1))
     call irecv_world_farr(xxx,isend_nparticle(idrank),0, &
@@ -1277,6 +1452,7 @@
   call get_sync_world
   
 ! since the data have been sent, we deallocate
+  if(allocated(ltypes))deallocate(ltypes)
   if(allocated(xxs))deallocate(xxs)
   if(allocated(yys))deallocate(yys)
   if(allocated(zzs))deallocate(zzs)
@@ -1286,27 +1462,10 @@
   call print_all_particles(100,'mioprima',1)
 #endif
   
-! set the unique value of mass if given in input.dat
-  if(lumass)then
-    forall(i=1:natms)
-      weight(i)=umass
-    end forall
-  endif
-  
-! set the unique value of rdim given in input.dat
-! if particle is spherical
-  if(ishape==0)then
-    if(lurdim)then
-      forall(i=1:natms)
-        rdim(i)=urdim
-      end forall
-    endif
-  endif
-  
 ! compute inverse mass
-  forall(i=1:natms)
-    rmass(i)=ONE/weight(i)
-  end forall
+  do itype=1,ntype
+    rmass(itype)=ONE/weight(itype)
+  enddo
   
 ! total degree of freedom of particles
   if(lrotate)then
@@ -1432,7 +1591,7 @@
   
   if(.not. lparticles)return
   
-  call spherical_template(urdim,nsphere,spherelist,spheredist, &
+  call spherical_template(rdimx(1),nsphere,spherelist,spheredist, &
    nspheredead,spherelistdead)
  
  ! initialize isfluid according to the particle presence
@@ -1448,7 +1607,7 @@
   call push_comm_isfluid
   
 #if 0
-  k=floor(urdim)
+  k=floor(rdimx(1))
   write(6,*)nsphere
   do i=1,nsphere
     write(6,*)i,spherelist(1:3,i),spheredist(i)
@@ -1989,97 +2148,115 @@
    kappa,rlimit,gmin
   
 ! Loop counters
-  integer :: iatm,ii,i,ivdw
+  integer :: iatm,ii,i,ivdw,itype,jtype,iimax
   integer :: k,jatm
-  integer :: itype,ilentry
+  integer :: ilentry
   
   real(kind=PRC), parameter :: s2rmin=TWO**(ONE/SIX)
   
   call allocate_array_bdf(natms)
   
-  select case(ltpvdw(1))
-  case (0)
-    return
-  case (1)
+  do ivdw=1,ntpvdw
   
-  ivdw=1
-  eps=prmvdw(1,ivdw)
-  sig=prmvdw(2,ivdw)
-  rmin=s2rmin*sig
-  rsqcut = (rmin)**TWO
-  vmin=FOUR*eps*(sig/rmin)**SIX*((sig/rmin)**SIX-ONE)
+    select case(ltpvdw(ivdw))
+    case (0)
+      return
+    case (1)
   
-  ii = 0
-  do iatm = 1,natms
-    ii=iatm
-    do k = 1,lentrysub(ii)
-      jatm=listsub(k,ii)
-      xdf(k)=xxx(jatm)-xxx(iatm)
-      ydf(k)=yyy(jatm)-yyy(iatm)
-      zdf(k)=zzz(jatm)-zzz(iatm)
-    enddo
-      
-    call pbc_images(imcon,lentrysub(ii),cell,xdf,ydf,zdf)
+    eps=prmvdw(1,ivdw)
+    sig=prmvdw(2,ivdw)
+    rmin=s2rmin*sig
+    rsqcut = (rmin)**TWO
+    vmin=FOUR*eps*(sig/rmin)**SIX*((sig/rmin)**SIX-ONE)
+  
     
-    do k = 1,lentrysub(ii)
-      jatm=listsub(k,ii)
-      rsq=xdf(k)**TWO+ydf(k)**TWO+zdf(k)**TWO
-      if(rsq<=rsqcut) then
-        rrr=sqrt(rsq)
-        vvv=FOUR*eps*(sig/rrr)**SIX*((sig/rrr)**SIX-ONE)+vmin
-        ggg=TWENTYFOUR*eps/rrr*(sig/rrr)**SIX*(TWO*(sig/rrr)**SIX-ONE)
-        engcfg=engcfg+vvv
-        fxx(iatm)=fxx(iatm)-ggg*xdf(k)/rrr
-        fxx(jatm)=fxx(jatm)+ggg*xdf(k)/rrr
-        fyy(iatm)=fyy(iatm)-ggg*ydf(k)/rrr
-        fyy(jatm)=fyy(jatm)+ggg*ydf(k)/rrr
-        fzz(iatm)=fzz(iatm)-ggg*zdf(k)/rrr
-        fzz(jatm)=fzz(jatm)+ggg*zdf(k)/rrr
-      endif
+    do iatm = 1,natms
+      itype=ltype(iatm)
+      if(all(mskvdw(1:ntpvdw,itype)/=ivdw))cycle
+      ii = 0
+      do k = 1,lentrysub(iatm)
+        jatm=listsub(k,iatm)
+        jtype=ltype(jatm)
+        if(mskvdw(itype,jtype)/=ivdw)cycle
+        ii=ii+1
+        xdf(ii)=xxx(jatm)-xxx(iatm)
+        ydf(ii)=yyy(jatm)-yyy(iatm)
+        zdf(ii)=zzz(jatm)-zzz(iatm)
+      enddo
+      iimax=ii
+      
+      call pbc_images(imcon,iimax,cell,xdf,ydf,zdf)
+      
+      ii = 0
+      do k = 1,lentrysub(iatm)
+        jatm=listsub(k,iatm)
+        jtype=ltype(jatm)
+        if(mskvdw(itype,jtype)/=ivdw)cycle
+        ii=ii+1
+        rsq=xdf(ii)**TWO+ydf(ii)**TWO+zdf(ii)**TWO
+        if(rsq<=rsqcut) then
+          rrr=sqrt(rsq)
+          vvv=FOUR*eps*(sig/rrr)**SIX*((sig/rrr)**SIX-ONE)+vmin
+          ggg=TWENTYFOUR*eps/rrr*(sig/rrr)**SIX*(TWO*(sig/rrr)**SIX-ONE)
+          engcfg=engcfg+vvv
+          fxx(iatm)=fxx(iatm)-ggg*xdf(ii)/rrr
+          fxx(jatm)=fxx(jatm)+ggg*xdf(ii)/rrr
+          fyy(iatm)=fyy(iatm)-ggg*ydf(ii)/rrr
+          fyy(jatm)=fyy(jatm)+ggg*ydf(ii)/rrr
+          fzz(iatm)=fzz(iatm)-ggg*zdf(ii)/rrr
+          fzz(jatm)=fzz(jatm)+ggg*zdf(ii)/rrr
+        endif
+      enddo
     enddo
-  enddo
   
-  case (2)
+    case (2)
   
-    ivdw=1
     eps=prmvdw(1,ivdw)
     sig=prmvdw(2,ivdw)
     
     rsqcut = (rcut)**TWO
     
-    ii = 0
+    
     do iatm = 1,natms
-      ii=iatm
-      do k = 1,lentrysub(ii)
-        jatm=listsub(k,ii)
-        xdf(k)=xxx(jatm)-xxx(iatm)
-        ydf(k)=yyy(jatm)-yyy(iatm)
-        zdf(k)=zzz(jatm)-zzz(iatm)
+      itype=ltype(iatm)
+      if(all(mskvdw(1:ntpvdw,itype)/=ivdw))cycle
+      ii = 0
+      do k = 1,lentrysub(iatm)
+        jatm=listsub(k,iatm)
+        jtype=ltype(jatm)
+        if(mskvdw(itype,jtype)/=ivdw)cycle
+        ii=ii+1
+        xdf(ii)=xxx(jatm)-xxx(iatm)
+        ydf(ii)=yyy(jatm)-yyy(iatm)
+        zdf(ii)=zzz(jatm)-zzz(iatm)
       enddo
-        
-      call pbc_images(imcon,lentrysub(ii),cell,xdf,ydf,zdf)
+      iimax=ii
       
-      do k = 1,lentrysub(ii)
-        jatm=listsub(k,ii)
-        rsq=xdf(k)**TWO+ydf(k)**TWO+zdf(k)**TWO
+      call pbc_images(imcon,iimax,cell,xdf,ydf,zdf)
+      
+      do k = 1,lentrysub(iatm)
+        jatm=listsub(k,iatm)
+        jtype=ltype(jatm)
+        if(mskvdw(itype,jtype)/=ivdw)cycle
+        ii=ii+1
+        rsq=xdf(ii)**TWO+ydf(ii)**TWO+zdf(ii)**TWO
         if(rsq<=rsqcut) then
           rrr=sqrt(rsq)
           vvv=FOUR*eps*(sig/rrr)**SIX*((sig/rrr)**SIX-ONE)
           ggg=TWENTYFOUR*eps/rrr*(sig/rrr)**SIX*(TWO*(sig/rrr)**SIX-ONE)
           engcfg=engcfg+vvv
-          fxx(iatm)=fxx(iatm)-ggg*xdf(k)/rrr
-          fxx(jatm)=fxx(jatm)+ggg*xdf(k)/rrr
-          fyy(iatm)=fyy(iatm)-ggg*ydf(k)/rrr
-          fyy(jatm)=fyy(jatm)+ggg*ydf(k)/rrr
-          fzz(iatm)=fzz(iatm)-ggg*zdf(k)/rrr
-          fzz(jatm)=fzz(jatm)+ggg*zdf(k)/rrr
+          fxx(iatm)=fxx(iatm)-ggg*xdf(ii)/rrr
+          fxx(jatm)=fxx(jatm)+ggg*xdf(ii)/rrr
+          fyy(iatm)=fyy(iatm)-ggg*ydf(ii)/rrr
+          fyy(jatm)=fyy(jatm)+ggg*ydf(ii)/rrr
+          fzz(iatm)=fzz(iatm)-ggg*zdf(ii)/rrr
+          fzz(jatm)=fzz(jatm)+ggg*zdf(ii)/rrr
         endif
       enddo
     enddo
     
-  case (3)
+    case (3)
   
-    ivdw=1
     kappa=prmvdw(1,ivdw)
     rmin=prmvdw(2,ivdw)
     rlimit=prmvdw(3,ivdw)
@@ -2087,44 +2264,55 @@
     vmin=kappa*(rmin-rlimit)**(FIVE*HALF)
     gmin=FIVE*HALF*kappa*(rmin-rlimit)**(THREE*HALF)
     
-  ii = 0
-  do iatm = 1,natms
-    ii=iatm
-    do k = 1,lentrysub(ii)
-      jatm=listsub(k,ii)
-      xdf(k)=xxx(jatm)-xxx(iatm)
-      ydf(k)=yyy(jatm)-yyy(iatm)
-      zdf(k)=zzz(jatm)-zzz(iatm)
-    enddo
-      
-    call pbc_images(imcon,lentrysub(ii),cell,xdf,ydf,zdf)
+  
+    do iatm = 1,natms
+      itype=ltype(iatm)
+      if(all(mskvdw(1:ntpvdw,itype)/=ivdw))cycle
+      ii = 0
+      do k = 1,lentrysub(iatm)
+        jatm=listsub(k,iatm)
+        jtype=ltype(jatm)
+        if(mskvdw(itype,jtype)/=ivdw)cycle
+        ii=ii+1
+        xdf(ii)=xxx(jatm)-xxx(iatm)
+        ydf(ii)=yyy(jatm)-yyy(iatm)
+        zdf(ii)=zzz(jatm)-zzz(iatm)
+      enddo
+      iimax=ii
     
-    do k = 1,lentrysub(ii)
-      jatm=listsub(k,ii)
-      rsq=xdf(k)**TWO+ydf(k)**TWO+zdf(k)**TWO
-      if(rsq<=rsqcut) then
-        rrr=sqrt(rsq)
-        if(rrr<=rlimit)then
-          vvv=vmin+(rlimit-rrr)*gmin
-          ggg=gmin
-        else
-          vvv=kappa*(rmin-rrr)**(FIVE*HALF)
-          ggg=FIVE*HALF*kappa*(rmin-rrr)**(THREE*HALF)
+      call pbc_images(imcon,iimax,cell,xdf,ydf,zdf)
+    
+      do k = 1,lentrysub(iatm)
+        jatm=listsub(k,iatm)
+        jtype=ltype(jatm)
+        if(mskvdw(itype,jtype)/=ivdw)cycle
+        ii=ii+1
+        rsq=xdf(ii)**TWO+ydf(ii)**TWO+zdf(ii)**TWO
+        if(rsq<=rsqcut) then
+          rrr=sqrt(rsq)
+          if(rrr<=rlimit)then
+            vvv=vmin+(rlimit-rrr)*gmin
+            ggg=gmin
+          else
+            vvv=kappa*(rmin-rrr)**(FIVE*HALF)
+            ggg=FIVE*HALF*kappa*(rmin-rrr)**(THREE*HALF)
+          endif
+          engcfg=engcfg+vvv
+          fxx(iatm)=fxx(iatm)-ggg*xdf(ii)/rrr
+          fxx(jatm)=fxx(jatm)+ggg*xdf(ii)/rrr
+          fyy(iatm)=fyy(iatm)-ggg*ydf(ii)/rrr
+          fyy(jatm)=fyy(jatm)+ggg*ydf(ii)/rrr
+          fzz(iatm)=fzz(iatm)-ggg*zdf(ii)/rrr
+          fzz(jatm)=fzz(jatm)+ggg*zdf(ii)/rrr
         endif
-        engcfg=engcfg+vvv
-        fxx(iatm)=fxx(iatm)-ggg*xdf(k)/rrr
-        fxx(jatm)=fxx(jatm)+ggg*xdf(k)/rrr
-        fyy(iatm)=fyy(iatm)-ggg*ydf(k)/rrr
-        fyy(jatm)=fyy(jatm)+ggg*ydf(k)/rrr
-        fzz(iatm)=fzz(iatm)-ggg*zdf(k)/rrr
-        fzz(jatm)=fzz(jatm)+ggg*zdf(k)/rrr
-      endif
+      enddo
     enddo
-  enddo
     
-  case default
-    call error(27)
-  end select
+    case default
+      call error(27)
+    end select
+  
+  enddo
   
   return
 
@@ -2172,7 +2360,7 @@
 ! set atomic velocities from gaussian distribution
       
   do i=1,natms
-    sigma=sqrt(tempboltz*init_temp*rmass(i))
+    sigma=sqrt(tempboltz*init_temp*rmass(ltype(i)))
     vxx(i)=sigma*gauss()
     vyy(i)=sigma*gauss()
     vzz(i)=sigma*gauss()
@@ -2280,9 +2468,9 @@
   case (1) 
 ! report the atoms velocity to half timestep back for leap frog
     forall(i=1:natms)      
-      vxx(i)=vxx(i)-HALF*tstepatm*rmass(i)*fxx(i)
-      vyy(i)=vyy(i)-HALF*tstepatm*rmass(i)*fyy(i)
-      vzz(i)=vzz(i)-HALF*tstepatm*rmass(i)*fzz(i)
+      vxx(i)=vxx(i)-HALF*tstepatm*rmass(ltype(i))*fxx(i)
+      vyy(i)=vyy(i)-HALF*tstepatm*rmass(ltype(i))*fyy(i)
+      vzz(i)=vzz(i)-HALF*tstepatm*rmass(ltype(i))*fzz(i)
     end forall
   case default
     return
@@ -2337,12 +2525,14 @@
 
   integer, parameter :: nfailmax=10
   integer, dimension(nfailmax) :: fail
-  integer :: i,k
+  integer :: i,j,k,itype
   logical :: ltest(1)
+  real(kind=PRC) :: trx,try,trz,delx,dely,delz
+  real(kind=PRC), dimension(9) :: myrot
   
 ! working arrays
-  real(kind=PRC), allocatable :: uxx(:),uyy(:),uzz(:)    
-  
+  real(kind=PRC), allocatable :: uxx(:),uyy(:),uzz(:)
+  real(kind=PRC), allocatable :: opx(:),opy(:),opz(:)
       
 ! allocate working arrays
   fail(1:nfailmax)=0
@@ -2350,6 +2540,11 @@
   allocate(uxx(mxatms),stat=fail(1))
   allocate(uyy(mxatms),stat=fail(2))
   allocate(uzz(mxatms),stat=fail(3))
+  if(lrotate)then
+    allocate(opx(mxatms),stat=fail(4))
+    allocate(opy(mxatms),stat=fail(5))
+    allocate(opz(mxatms),stat=fail(6))
+  endif
   
   ltest=.false.
   if(any(fail.ne.0))then
@@ -2366,9 +2561,9 @@
 ! move atoms by leapfrog algorithm    
   forall(i=1:natms)
 !   update velocities       
-    uxx(i)=vxx(i)+tstepatm*rmass(i)*fxx(i)
-    uyy(i)=vyy(i)+tstepatm*rmass(i)*fyy(i)
-    uzz(i)=vzz(i)+tstepatm*rmass(i)*fzz(i)
+    uxx(i)=vxx(i)+tstepatm*rmass(ltype(i))*fxx(i)
+    uyy(i)=vyy(i)+tstepatm*rmass(ltype(i))*fyy(i)
+    uzz(i)=vzz(i)+tstepatm*rmass(ltype(i))*fzz(i)
 !   update positions
     xxx(i)=xxo(i)+tstepatm*uxx(i)
     yyy(i)=yyo(i)+tstepatm*uyy(i)
@@ -2397,17 +2592,54 @@
 ! periodic boundary condition
   call pbc_images_centered(imcon,natms,cell,cx,cy,cz,xxx,yyy,zzz)
     
-! updated velocity     
+! restore free atom half step velocity   
   forall(i=1:natms)
     vxx(i)=uxx(i)
     vyy(i)=uyy(i)
     vzz(i)=uzz(i)
   end forall
   
+  
+! rigid body motion
+  if(lrotate)then
+    do i=1,natms
+      itype=ltype(i)
+      call quat_2_rotmat(q0(i),q1(i),q2(i),q3(i),myrot)
+!     store current angular velocity
+      opx(i)=oxx(i)
+      opy(i)=oyy(i)
+      opz(i)=ozz(i)
+!     iterate angular velocity for time step n (e. yezdimer)
+      do j=1,5
+        
+        trx=(tqx(i)*myrot(1)+tqy(i)*myrot(4)+tqz(i)*myrot(7))/rotinx(itype)+ &
+         (rotiny(itype)-rotinz(itype))*opy(i)*opz(i)/rotinx(itype)
+        try=(tqx(i)*myrot(2)+tqy(i)*myrot(5)+tqz(i)*myrot(8))/rotiny(itype)+ &
+         (rotinz(itype)-rotinx(itype))*opz(i)*opx(i)/rotiny(itype)
+        trz=(tqx(i)*myrot(3)+tqy(i)*myrot(6)+tqz(i)*myrot(9))/rotinz(itype)+ &
+         (rotinx(itype)-rotiny(itype))*opx(i)*opy(i)/rotinz(itype)
+
+        delx=tstepatm*trx
+        dely=tstepatm*try
+        delz=tstepatm*trz
+
+!     improved angular velocity at time step n
+
+!        opx(i)=omx(ig)+delx*HALF
+!        opy(i)=omy(ig)+dely*HALF
+!        opz(i)=omz(ig)+delz*HALF
+        
+      enddo
+    enddo
+  endif
+  
 
 ! deallocate work arrays
   deallocate (uxx,uyy,uzz,stat=fail(2))
-      
+  if(lrotate)then
+    deallocate (opx,opy,opz,stat=fail(3))
+  endif
+  
   return
       
  end subroutine nve_lf
@@ -2461,9 +2693,9 @@
   
 ! update velocities for first and second stages
   forall(i=1:natms)
-    vxx(i)=vxx(i)+HALF*tstepatm*fxx(i)*rmass(i)
-    vyy(i)=vyy(i)+HALF*tstepatm*fyy(i)*rmass(i)
-    vzz(i)=vzz(i)+HALF*tstepatm*fzz(i)*rmass(i)
+    vxx(i)=vxx(i)+HALF*tstepatm*fxx(i)*rmass(ltype(i))
+    vyy(i)=vyy(i)+HALF*tstepatm*fyy(i)*rmass(ltype(i))
+    vzz(i)=vzz(i)+HALF*tstepatm*fzz(i)*rmass(ltype(i))
   end forall
   
   select case(isw)
@@ -2511,7 +2743,7 @@
   engkes=ZERO
   
   do i=1,natms
-    engkes=engkes+weight(i)*(vxx(i)**TWO+vyy(i)**TWO+vzz(i)**TWO)
+    engkes=engkes+weight(ltype(i))*(vxx(i)**TWO+vyy(i)**TWO+vzz(i)**TWO)
   enddo
   
   engkes=HALF*engkes

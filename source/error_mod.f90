@@ -117,6 +117,8 @@
          'allocate_particle_fluids_bc.'
       case (31)
         write(outp,outf)'ERROR - error in subroutine particle_moving_fluids.'
+      case (32)
+        write(outp,outf)'ERROR - bad allocation in subroutine allocate_particle_features.'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select
@@ -415,6 +417,41 @@
       write (r_char,'(i10)')nint(ddata)
       write(outp,'(/,3a,/)')"WARNING - the particle number", &
        trim(adjustl(r_char))," is moving too fast!"
+    case (37)
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,4a,/)')"WARNING - expected particle label", &
+       " not found at line ",trim(adjustl(r_char)),"!"
+    case (38)
+      write(outp,'(/,2a,/)')"WARNING - 'particle type' is not defined in ", &
+      "input file"
+    case (39)
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,4a)')"WARNING - number of particle types beyond", &
+       " the actual limit of ",trim(adjustl(r_char)),"!"
+      write(outp,'(2a,/)')"WARNING - you should decrease 'particle type'", &
+       " in input file!"
+    case (40)
+      write(outp,'(/,2a,/)')"WARNING - 'mass' is not defined in ", &
+      "input file for all the particle types"
+    case (41)
+      write(outp,'(/,a)')"WARNING - label is not recognized in xyz input file!"
+      write(outp,'(2a,/)')"WARNING - the label is: ",trim(wstring)
+    case (42)
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,4a,/)')"WARNING - number of particle type beyond", &
+       " the actual limit of ",trim(adjustl(r_char)),"!"
+    case (43)
+      write(outp,'(/,2a,/)')"WARNING - number of particle type", &
+       " not specified in input file!"
+    case (44)
+      write(outp,'(/,2a,/)')"WARNING - 'particle shape' is not defined in ", &
+      "input file for all the particle types"
+    case (45)
+      write(outp,'(/,2a,/)')"WARNING - 'field pair' specified multiple times for the", &
+       " same particle pair!"
+    case (46)
+      write(outp,'(/,2a,/)')"WARNING - particle pair of force field", &
+       " not specified in input file!"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

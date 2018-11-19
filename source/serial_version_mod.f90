@@ -36,6 +36,7 @@
  public :: bcast_world_iarr
  public :: bcast_world_larr
  public :: bcast_world_farr
+ public :: bcast_world_carr
  public :: sum_world_iarr
  public :: sum_world_farr
  public :: min_world_iarr
@@ -363,6 +364,29 @@
   return
   
  end subroutine bcast_world_farr
+ 
+ subroutine bcast_world_carr(mxlen,argument,narr)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to broadcast a character array to all 
+!     other nodes
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: mxlen
+  character(len=mxlen), intent(inout), dimension(narr) :: buffer
+  integer, intent(in) :: narr
+  
+  return
+  
+ end subroutine bcast_world_carr
  
  subroutine sum_world_iarr(argument,narr,buffersub)
  

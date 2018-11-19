@@ -43,8 +43,10 @@
   set_ishape,set_densvar,densvar,ishape,set_rcut,rcut,delr, &
   set_delr,rotmat_2_quat,lrotate,set_lrotate,allocate_field_array, &
   set_ntpvdw,ntpvdw,set_field_array,mxpvdw,mxvdw,ltpvdw,prmvdw, &
-  set_umass,umass,lumass,linit_temp,init_temp,set_init_temp,lvv, &
-  set_lvv,set_urdim,urdim,lurdim,set_lparticles
+  set_umass,lumass,linit_temp,init_temp,set_init_temp,lvv, &
+  set_lvv,set_rdim,lurdim,set_lparticles,set_atmnamtype, &
+  set_ntype,ntype,mxntype,rdimx,rdimy,rdimz,atmnamtype,weight, &
+  find_type,allocate_particle_features,mskvdw
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,lvtkstruct,set_value_ixyzevery,lxyzfile,ixyzevery
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
@@ -291,10 +293,11 @@
   character(len=maxlen) :: redstring,directive
   logical :: safe,lredo,lredo2,ltest
   logical :: ltestread,lexists,lfoundprint
-  integer :: inumchar,i,nwords,iline,itest
+  integer :: inumchar,i,j,k,nwords,iline,itest,itype,jtype
   character(len=maxlen) ,allocatable :: outwords(:),outwords2(:)
   
   character(len=1) :: hms=' '
+  character(len=8), dimension(mxntype) :: temp_atmnamtype
   logical :: lbox=.false.
   logical :: ltimjob=.false.
   integer :: temp_idistselect=0
@@ -320,7 +323,9 @@
   integer :: temp_nprocy=1
   integer :: temp_nprocz=1
   integer :: ifield_pair=0
-  integer :: temp_ishape=-1
+  integer, dimension(mxntype) :: temp_ishape(1:mxntype)=0
+  integer, dimension(mxntype,mxntype) :: temp_mskvdw(1:mxntype,1:mxntype)=0
+  integer :: temp_ntype=0
   logical :: temp_ibc=.false.
   logical :: temp_lpair_SC=.false.
   logical :: temp_ldomdec=.false.
@@ -345,16 +350,18 @@
   logical :: lerror4=.false.
   logical :: lerror5=.false.
   logical :: lerror6=.false.
+  logical :: lerror7=.false.
   logical :: lmd=.false.
   logical :: temp_densvar=.false.
   logical :: temp_rcut=.false.
   logical :: temp_delr=.false.
   logical :: temp_lrotate=.false.
   logical :: temp_field_pair=.false.
-  logical :: temp_lumass=.false.
+  logical, dimension(1:mxntype) :: temp_lumass(1:mxntype)=.false.
   logical :: temp_linit_temp=.false.
   logical :: temp_lvv=.false.
-  logical :: temp_lurdim=.false.
+  logical, dimension(mxntype) :: temp_lurdim(1:mxntype)=.false.
+  logical :: temp_lparticlentype=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -414,9 +421,11 @@
   real(kind=PRC) :: dtemp_rcut= ZERO
   real(kind=PRC) :: dtemp_delr= ZERO
   
-  real(kind=PRC) :: dtemp_umass= ZERO
+  real(kind=PRC), dimension(1:mxntype) :: dtemp_umass(1:mxntype)= ZERO
   
-  real(kind=PRC) :: dtemp_urdim=ZERO
+  real(kind=PRC), dimension(mxntype) :: dtemp_urdim(1:mxntype)=ZERO
+  real(kind=PRC), dimension(mxntype) :: dtemp_urdimy(1:mxntype)=ZERO
+  real(kind=PRC), dimension(mxntype) :: dtemp_urdimz(1:mxntype)=ZERO
   
   real(kind=PRC) :: dtemp_init_temp= ZERO
   
@@ -428,6 +437,8 @@
   character(len=dimprint) :: mystring
   character(len=dimprint) :: mystring36
   character(len=dimprint2) :: mystring12
+  character(len=1) :: r_char
+  
     
 ! initialize parameters  
 
@@ -834,7 +845,55 @@
             elseif(redstring(1:1)==' ')then
               cycle
             elseif(findstring('particle',directive,inumchar,maxlen))then
-              if(findstring('yes',directive,inumchar,maxlen))then
+              if(findstring('type',directive,inumchar,maxlen))then
+                temp_ntype=intstr(directive,maxlen,inumchar)
+                if(temp_ntype<=0)cycle
+                if(temp_ntype>mxntype)then
+                  lerror5=.true.
+                  lredo=.false.
+                  call warning(39,dble(mxntype))
+                endif
+                temp_lparticlentype=.true.
+                do i=1,temp_ntype
+                  call getline(safe,inputunit,maxlen,redstring)
+                  if(.not.safe)then
+                    call warning(1,dble(iline),redstring)
+                    lerror5=.true.
+                    lredo=.false.
+                    exit
+                  endif
+                  iline=iline+1
+                  call strip(redstring,maxlen)
+                  call copystring(redstring,directive,maxlen)
+                  if(redstring(1:1)=='#')then
+                    lerror7=.true.
+                    lredo=.false.
+                    call warning(37,dble(iline))
+                    exit
+                  elseif(redstring(1:1)=='!')then
+                    lerror7=.true.
+                    lredo=.false.
+                    call warning(37,dble(iline))
+                    exit
+                  elseif(redstring(1:1)==' ')then
+                    lerror7=.true.
+                    lredo=.false.
+                    call warning(37,dble(iline))
+                    exit
+                  else
+                    call findwords(nwords,outwords,directive,maxlen)
+                    if(nwords>0)then
+                      directive=outwords(1)
+                      temp_atmnamtype(i)=directive(1:8)
+                    else
+                      lerror7=.true.
+                      lredo=.false.
+                      call warning(37,dble(iline))
+                      exit
+                    endif
+                  endif
+                enddo
+              elseif(findstring('yes',directive,inumchar,maxlen))then
                 temp_lparticles=.true.
               elseif(findstring('no',directive,inumchar,maxlen))then
                 temp_lparticles=.false.
@@ -844,10 +903,21 @@
               endif
             elseif(findstring('shape',directive,inumchar,maxlen))then
               if(findstring('spher',directive,inumchar,maxlen))then
-                temp_ishape=0
-                temp_lurdim=.true.
-                dtemp_urdim=dblstr(directive,maxlen,inumchar)
-                if(mod(dtemp_urdim-HALF,ONE)/=ZERO)then
+                itype=intstr(directive,maxlen,inumchar)
+                if(itype==0)then
+                  call warning(43)
+                  call warning(1,dble(iline),redstring)
+                  lerror5=.true.
+                elseif(itype>mxntype)then
+                  call warning(42,dble(mxntype))
+                  call warning(1,dble(iline),redstring)
+                  lerror5=.true.
+                else
+                  temp_ishape(itype)=0
+                  temp_lurdim(itype)=.true.
+                  dtemp_urdim(itype)=dblstr(directive,maxlen,inumchar)
+                endif
+                if(mod(dtemp_urdim(itype)-HALF,ONE)/=ZERO)then
                   call warning(30)
                   call warning(31,dble(iline),redstring)
                   lerror5=.true.
@@ -897,8 +967,19 @@
 !                lerror6=.true.
 !              endif
             elseif(findstring('mass',directive,inumchar,maxlen))then
-              dtemp_umass=dblstr(directive,maxlen,inumchar)
-              temp_lumass=.true.
+              itype=intstr(directive,maxlen,inumchar)
+              if(itype<=0)then
+                call warning(43)
+                call warning(1,dble(iline),redstring)
+                lerror5=.true.
+              elseif(itype>mxntype)then
+                call warning(42,dble(mxntype))
+                call warning(1,dble(iline),redstring)
+                lerror5=.true.
+              else
+                temp_lumass(itype)=.true.
+                dtemp_umass(itype)=dblstr(directive,maxlen,inumchar)
+              endif
             elseif(findstring('field',directive,inumchar,maxlen))then
               if(findstring('pair',directive,inumchar,maxlen))then
                 if(findstring('wca',directive,inumchar,maxlen))then
@@ -907,11 +988,32 @@
                   if(ifield_pair>mxvdw)then
                     call warning(24,dble(mxvdw))
                     call warning(1,dble(iline),redstring)
-                    lerror5=.true.
+                    lerror6=.true.
                   else
                     temp_ltpvdw(ifield_pair)=1
-                    dtemp_prmvdw(1,ifield_pair)=dblstr(directive,maxlen,inumchar)
-                    dtemp_prmvdw(2,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                    itype=intstr(directive,maxlen,inumchar)
+                    jtype=intstr(directive,maxlen,inumchar)
+                    if(itype<=0 .or. jtype<=0 )then
+                      call warning(46)
+                      call warning(1,dble(iline),redstring)
+                      lerror6=.true.
+                    elseif(itype>mxntype .or. jtype>mxntype)then
+                      call warning(42,dble(mxntype))
+                      call warning(1,dble(iline),redstring)
+                      lerror6=.true.
+                    else
+                      if(temp_mskvdw(itype,jtype)/=0 .or. &
+                       temp_mskvdw(jtype,itype)/=0)then
+                        call warning(45)
+                        call warning(1,dble(iline),redstring)
+                        lerror6=.true.
+                      else
+                        temp_mskvdw(itype,jtype)=ifield_pair
+                        temp_mskvdw(jtype,itype)=ifield_pair
+                        dtemp_prmvdw(1,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                        dtemp_prmvdw(2,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                      endif
+                    endif
                   endif
                 elseif(findstring('lj',directive,inumchar,maxlen))then
                   temp_field_pair=.true.
@@ -919,11 +1021,32 @@
                   if(ifield_pair>mxvdw)then
                     call warning(24,dble(mxvdw))
                     call warning(1,dble(iline),redstring)
-                    lerror5=.true.
+                    lerror6=.true.
                   else
                     temp_ltpvdw(ifield_pair)=2
-                    dtemp_prmvdw(1,ifield_pair)=dblstr(directive,maxlen,inumchar)
-                    dtemp_prmvdw(2,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                    itype=intstr(directive,maxlen,inumchar)
+                    jtype=intstr(directive,maxlen,inumchar)
+                    if(itype<=0 .or. jtype<=0 )then
+                      call warning(46)
+                      call warning(1,dble(iline),redstring)
+                      lerror6=.true.
+                    elseif(itype>mxntype .or. jtype>mxntype)then
+                      call warning(42,dble(mxntype))
+                      call warning(1,dble(iline),redstring)
+                      lerror6=.true.
+                    else
+                      if(temp_mskvdw(itype,jtype)/=0 .or. &
+                       temp_mskvdw(jtype,itype)/=0)then
+                        call warning(45)
+                        call warning(1,dble(iline),redstring)
+                        lerror6=.true.
+                      else
+                        temp_mskvdw(itype,jtype)=ifield_pair
+                        temp_mskvdw(jtype,itype)=ifield_pair
+                        dtemp_prmvdw(1,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                        dtemp_prmvdw(2,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                      endif
+                    endif
                   endif
                 elseif(findstring('hz',directive,inumchar,maxlen))then
                   temp_field_pair=.true.
@@ -931,12 +1054,33 @@
                   if(ifield_pair>mxvdw)then
                     call warning(24,dble(mxvdw))
                     call warning(1,dble(iline),redstring)
-                    lerror5=.true.
+                    lerror6=.true.
                   else
                     temp_ltpvdw(ifield_pair)=3
-                    dtemp_prmvdw(1,ifield_pair)=dblstr(directive,maxlen,inumchar)
-                    dtemp_prmvdw(2,ifield_pair)=dblstr(directive,maxlen,inumchar)
-                    dtemp_prmvdw(3,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                    itype=intstr(directive,maxlen,inumchar)
+                    jtype=intstr(directive,maxlen,inumchar)
+                    if(itype<=0 .or. jtype<=0 )then
+                      call warning(46)
+                      call warning(1,dble(iline),redstring)
+                      lerror6=.true.
+                    elseif(itype>mxntype .or. jtype>mxntype)then
+                      call warning(42,dble(mxntype))
+                      call warning(1,dble(iline),redstring)
+                      lerror6=.true.
+                    else
+                      if(temp_mskvdw(itype,jtype)/=0 .or. &
+                       temp_mskvdw(jtype,itype)/=0)then
+                        call warning(45)
+                        call warning(1,dble(iline),redstring)
+                        lerror6=.true.
+                      else
+                        temp_mskvdw(itype,jtype)=ifield_pair
+                        temp_mskvdw(jtype,itype)=ifield_pair
+                        dtemp_prmvdw(1,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                        dtemp_prmvdw(2,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                        dtemp_prmvdw(3,ifield_pair)=dblstr(directive,maxlen,inumchar)
+                      endif
+                    endif
                   endif
                 else
                   call warning(1,dble(iline),redstring)
@@ -974,12 +1118,14 @@
   call bcast_world_l(lerror4)
   call bcast_world_l(lerror5)
   call bcast_world_l(lerror6)
+  call bcast_world_l(lerror7)
   
   if(lerror1)call error(1)
   if(lerror2)call error(2)
   if(lerror4)call error(4)
   if(lerror5)call error(5)
   if(lerror6)call error(6)
+  if(lerror7)call error(7)
   
 ! send the read parameters to all the nodes and print them on terminal
   if(idrank==0)then
@@ -1571,6 +1717,12 @@
     
     call bcast_world_l(temp_lparticles)
     call set_lparticles(temp_lparticles)
+    
+    call bcast_world_l(temp_lrotate)
+    call set_lrotate(temp_lrotate)
+    
+    if(lparticles)call allocate_particle_features
+    
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='particles'
@@ -1584,54 +1736,8 @@
       write(6,'(3a)')mystring,": ",mystring12
     endif
     
-    if(lparticles)then
-      call bcast_world_i(temp_ishape)
-      if(temp_ishape>=0)then
-        call set_ishape(temp_ishape)
-        if(idrank==0)then
-          mystring=repeat(' ',dimprint)
-          mystring='particle shape'
-          mystring12=repeat(' ',dimprint2)
-          select case(ishape)
-          case(0)
-            mystring12='spherical'
-          case(1)
-            mystring12='ellipsoid'
-          end select
-          mystring12=adjustr(mystring12)
-          write(6,'(3a)')mystring,": ",mystring12
-        endif
-      else
-        call warning(34)
-        call error(7)
-      endif
-    endif
     
-    call bcast_world_l(temp_lurdim)
-    if(temp_lurdim)then
-      call bcast_world_f(dtemp_urdim)
-      call set_urdim(dtemp_urdim)
-      if(idrank==0)then
-        mystring=repeat(' ',dimprint)
-        mystring='unique particle radius'
-        write(6,'(2a,f12.6)')mystring,": ",urdim
-      endif
-    endif
-    
-    call bcast_world_l(temp_linit_temp)
-    if(temp_linit_temp)then
-      call bcast_world_f(dtemp_init_temp)
-      call set_init_temp(dtemp_init_temp)
-      if(idrank==0)then
-        mystring=repeat(' ',dimprint)
-        mystring='initial temperature'
-        write(6,'(2a,f12.6)')mystring,": ",init_temp
-      endif
-    endif
-    
-    call bcast_world_l(temp_lrotate)
-    if(temp_lrotate)then
-      call set_lrotate(temp_lrotate)
+    if(lrotate)then
       if(idrank==0)then
         mystring=repeat(' ',dimprint)
         mystring='rotation'
@@ -1645,6 +1751,105 @@
         write(6,'(3a)')mystring,": ",mystring12
       endif
     endif
+    
+    call bcast_world_l(temp_lparticlentype)
+    if(lparticles)then
+      if(.not. temp_lparticlentype)then
+        call warning(38)
+        call error(7)
+      endif
+      call bcast_world_i(temp_ntype)
+      call set_ntype(temp_ntype)
+      call bcast_world_carr(8,temp_atmnamtype,mxntype)
+      call set_atmnamtype(temp_atmnamtype)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='particle types'
+        write(6,'(2a,i12)')mystring,": ",ntype
+        do itype=1,ntype
+          mystring=repeat(' ',dimprint)
+          write (r_char,'(i1)')itype
+          mystring=repeat(' ',4)//r_char//'°type label'
+          mystring12=repeat(' ',12)
+          mystring12=atmnamtype(itype)//repeat(' ',4)
+          mystring12=trim(adjustr(mystring12))
+          write(6,'(3a)')mystring," : ",mystring12
+        enddo
+      endif
+    endif
+    
+    if(lparticles)then
+      call bcast_world_iarr(temp_ishape,mxntype)
+      if(any(temp_ishape>=0))then
+        call set_ishape(temp_ishape)
+        if(idrank==0)then
+          mystring=repeat(' ',dimprint)
+          mystring='particle shape'
+          write(6,'(2a,i12)')mystring,": ",ntype
+          do itype=1,ntype
+            mystring=repeat(' ',dimprint)
+            write (r_char,'(i1)')itype
+            mystring=repeat(' ',4)//r_char//'°type shape '
+            select case(ishape(itype))
+            case(0)
+              mystring12='spherical'
+            case(1)
+              mystring12='ellipsoid'
+            end select
+            mystring12=adjustr(mystring12)
+            write(6,'(3a)')mystring," : ",mystring12
+          enddo
+        endif
+      else
+        call warning(34)
+        call error(7)
+      endif
+    endif
+    
+    
+    
+    call bcast_world_larr(temp_lurdim,mxntype)
+    if(.not. all(temp_lurdim(1:ntype)))then
+      call warning(44)
+      call error(7)
+    endif
+    if(any(temp_lurdim))then
+      call bcast_world_farr(dtemp_urdim,mxntype)
+      call bcast_world_farr(dtemp_urdimy,mxntype)
+      call bcast_world_farr(dtemp_urdimz,mxntype)
+      call set_rdim(dtemp_urdim,dtemp_urdimy,dtemp_urdimz)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='particle radius'
+        write(6,'(2a,i12)')mystring,": ",ntype
+        do itype=1,ntype
+          mystring=repeat(' ',dimprint)
+          write (r_char,'(i1)')itype
+          mystring=repeat(' ',4)//r_char//'°type radius '
+          select case(ishape(itype))
+          case(0)
+            write(6,'(2a,f12.6)')mystring," : ",rdimx(itype)
+          case(1)
+            write(6,'(2a,3f12.6)')mystring," : ", &
+             rdimx(itype),rdimy(itype),rdimz(itype)
+          end select
+        enddo
+      endif
+    endif
+    
+    
+    call bcast_world_l(temp_linit_temp)
+    if(temp_linit_temp)then
+      call bcast_world_f(dtemp_init_temp)
+      call set_init_temp(dtemp_init_temp)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='initial temperature'
+        write(6,'(2a,f12.6)')mystring,": ",init_temp
+      endif
+    endif
+    
+    
     
     call bcast_world_l(temp_lvv)
     if(temp_lvv)then
@@ -1677,14 +1882,24 @@
       call error(7)
     endif
     
-    call bcast_world_l(temp_lumass)
-    if(temp_lumass)then
-      call bcast_world_f(dtemp_umass)
+    call bcast_world_larr(temp_lumass,mxntype)
+    if(.not. all(temp_lumass(1:ntype)))then
+      call warning(40)
+      call error(7)
+    endif
+    if(any(temp_lumass))then
+      call bcast_world_farr(dtemp_umass,mxntype)
       call set_umass(dtemp_umass)
       if(idrank==0)then
         mystring=repeat(' ',dimprint)
-        mystring='unique mass'
-        write(6,'(2a,f12.6)')mystring,": ",umass
+        mystring='particle mass'
+        write(6,'(2a,i12)')mystring,": ",ntype
+        do itype=1,ntype
+          mystring=repeat(' ',dimprint)
+          write (r_char,'(i1)')itype
+          mystring=repeat(' ',4)//r_char//'°type radius '
+          write(6,'(2a,f12.6)')mystring," : ",weight(itype)
+        enddo
       endif
     else
       if(lparticles)then
@@ -1693,14 +1908,19 @@
       endif
     endif
     
+    
+    
     call bcast_world_l(temp_field_pair)
     if(temp_field_pair)then
       call bcast_world_i(ifield_pair)
       call set_ntpvdw(ifield_pair)
       call allocate_field_array
       call bcast_world_iarr(temp_ltpvdw,mxvdw)
+      call bcast_world_iarr(temp_mskvdw,mxntype*mxntype)
       call bcast_world_farr(dtemp_prmvdw,mxpvdw*mxvdw)
-      call set_field_array(ntpvdw,mxpvdw,temp_ltpvdw,dtemp_prmvdw)
+      call set_field_array(ntpvdw,mxpvdw,temp_ltpvdw,dtemp_prmvdw, &
+       temp_mskvdw)
+       
       if(idrank==0)then
         mystring=repeat(' ',dimprint)
         mystring='number of field pairs'
@@ -1724,6 +1944,18 @@
           end select
           mystring36=adjustl(mystring36)
           write(6,'(3a)')mystring," : ",mystring36
+          mystring=repeat(' ',dimprint)
+          mystring='    itype jtype pair'
+          do j=1,mxntype
+            do k=1,mxntype
+              if(mskvdw(j,k)==i)then
+                itype=j
+                jtype=k
+              endif
+            enddo
+          enddo
+          write(6,'(2a,2a12)')mystring,": ",atmnamtype(itype), &
+           atmnamtype(jtype)
           mystring=repeat(' ',dimprint)
           mystring='    kappa'
           write(6,'(2a,f12.6)')mystring,": ",prmvdw(1,i)
@@ -2347,7 +2579,7 @@
   
  end subroutine outprint_term
  
- subroutine read_input_atom(inputunit,inputname,xxs,yys,zzs,others, &
+ subroutine read_input_atom(inputunit,inputname,ltypes,xxs,yys,zzs,others, &
   lvelocity)
  
 !***********************************************************************
@@ -2366,12 +2598,13 @@
   
   integer, intent(in) :: inputunit
   character(len=*), intent(in) :: inputname
+  integer, allocatable, dimension(:) :: ltypes
   real(kind=PRC), allocatable, dimension(:) :: xxs,yys,zzs
   real(kind=PRC), allocatable, dimension(:,:) :: others
   logical :: lvelocity
   
   character(len=maxlen) :: redstring,directive
-  integer :: inumchar,i,j,nwords,iline,itest
+  integer :: inumchar,i,j,nwords,iline,itest,itype
   character(len=maxlen) ,allocatable :: outwords(:),outwords2(:)
   logical :: lerror1,lerror2,lerror3,lerror4,safe,lexists
   integer :: temp_natms_tot
@@ -2484,7 +2717,7 @@
       lvel(1:3)=.false.
       do i=1,nxyzlist
         if(xyzlist(i)>=3 .and. xyzlist(i)<=5)then
-          if(ishape==0)then
+          if(all(ishape==0))then
             lerror4=.true.
             call warning(11,dble(iline))
             call warning(16)
@@ -2505,14 +2738,14 @@
         call warning(20)
         goto 120
       endif
-      if((.not. lumass).and.(.not. lmass))then
+      if((.not. all(lumass(1:ntype))).and.(.not. lmass))then
         lerror5=.true.
         call warning(11,dble(iline))
         call warning(25)
         goto 120
       endif
-      if(ishape==0)then
-        if((.not. lrdim).and.(.not. lurdim))then
+      if(all(ishape==0))then
+        if((.not. lrdim).and.(.not. all(lurdim(1:ntype))))then
           lerror5=.true.
           call warning(11,dble(iline))
           call warning(28)
@@ -2531,9 +2764,11 @@
         goto 120
       endif
     endif
+    if(allocated(ltypes))deallocate(ltypes)
     if(allocated(xxs))deallocate(xxs)
     if(allocated(yys))deallocate(yys)
     if(allocated(zzs))deallocate(zzs)
+    allocate(ltypes(temp_natms_tot))
     allocate(xxs(temp_natms_tot))
     allocate(yys(temp_natms_tot))
     allocate(zzs(temp_natms_tot))
@@ -2549,6 +2784,15 @@
           goto 120
         endif
         call strip(redstring,maxlen)
+        call find_type(redstring(1:natmname),natmname,itype)
+        if(itype==0)then
+          !error: itype not found
+          lerror5=.true.
+          call warning(11,dble(iline))
+          call warning(41,dble(iline),redstring(1:natmname))
+          goto 120
+        endif
+        ltypes(i)=itype
         directive(1:maxlen)=redstring(1+natmname:maxlen)// &
          repeat(' ',natmname)
         xxs(i)=dblstr(directive,maxlen,inumchar)
@@ -2575,6 +2819,15 @@
           goto 120
         endif
         call strip(redstring,maxlen)
+        call find_type(redstring(1:natmname),natmname,itype)
+        if(itype==0)then
+          !error: itype not found
+          lerror5=.true.
+          call warning(11,dble(iline))
+          call warning(41,dble(iline),redstring(1:natmname))
+          goto 120
+        endif
+        ltypes(i)=itype
         directive(1:maxlen)=redstring(1+natmname:maxlen)// &
          repeat(' ',natmname)
         xxs(i)=dblstr(directive,maxlen,inumchar)
