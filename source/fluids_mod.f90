@@ -3084,9 +3084,6 @@
     jshift=ey(l)
     kshift=ez(l)
     forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
-        buffservice3d(i,j,k) = aoptpR(l)%p(i,j,k)
-    end forall
-    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
         buffservice3d(i+ishift,j+jshift,k+kshift) = aoptpR(l)%p(i,j,k)
     end forall
     forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
