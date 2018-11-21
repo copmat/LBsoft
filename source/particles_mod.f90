@@ -94,6 +94,9 @@
  !number of pair force fields defined in input
  integer, public, protected, save :: ntpvdw=0
  
+ !number of max iteration in the quaternion update algorithm
+ integer, public, protected, save :: mxquat=5
+ 
  !activate particle part
  logical, public, protected, save :: lparticles=.false.
  
@@ -108,6 +111,9 @@
  
  !rotational degree of freedom of a single particle
  real(kind=PRC), public, protected, save :: degrot=ZERO
+ 
+ !tollerance in the quaternion update algorithm
+ real(kind=PRC), public, protected, save :: quattol=real(1.d-8,kind=PRC)
  
  !initiali particle temperature in KbT unit
  real(kind=PRC), public, protected, save :: init_temp=ONE
@@ -2527,24 +2533,29 @@
   integer, dimension(nfailmax) :: fail
   integer :: i,j,k,itype
   logical :: ltest(1)
-  real(kind=PRC) :: trx,try,trz,delx,dely,delz
+  real(kind=PRC) :: trx,try,trz,delx,dely,delz,engrotbuff(1)
   real(kind=PRC), dimension(9) :: myrot
   
+  real(kind=PRC), parameter :: onefive=real(1.5d0,kind=PRC)
+  
+! versor of particle frame 
+  real(kind=PRC), dimension(3) :: uxx,uyy,yzz
+  
+! working variables
+  real(kind=PRC) :: oqx,oqy,oqz
+  real(kind=PRC) :: opx,opy,opz
+  
+  logical :: lerror
+  
 ! working arrays
-  real(kind=PRC), allocatable :: uxx(:),uyy(:),uzz(:)
-  real(kind=PRC), allocatable :: opx(:),opy(:),opz(:)
-      
+  real(kind=PRC), allocatable :: bxx(:),byy(:),bzz(:)
+  
 ! allocate working arrays
   fail(1:nfailmax)=0
   
-  allocate(uxx(mxatms),stat=fail(1))
-  allocate(uyy(mxatms),stat=fail(2))
-  allocate(uzz(mxatms),stat=fail(3))
-  if(lrotate)then
-    allocate(opx(mxatms),stat=fail(4))
-    allocate(opy(mxatms),stat=fail(5))
-    allocate(opz(mxatms),stat=fail(6))
-  endif
+  allocate(bxx(mxatms),stat=fail(1))
+  allocate(byy(mxatms),stat=fail(2))
+  allocate(bzz(mxatms),stat=fail(3))
   
   ltest=.false.
   if(any(fail.ne.0))then
@@ -2561,18 +2572,18 @@
 ! move atoms by leapfrog algorithm    
   forall(i=1:natms)
 !   update velocities       
-    uxx(i)=vxx(i)+tstepatm*rmass(ltype(i))*fxx(i)
-    uyy(i)=vyy(i)+tstepatm*rmass(ltype(i))*fyy(i)
-    uzz(i)=vzz(i)+tstepatm*rmass(ltype(i))*fzz(i)
+    bxx(i)=vxx(i)+tstepatm*rmass(ltype(i))*fxx(i)
+    byy(i)=vyy(i)+tstepatm*rmass(ltype(i))*fyy(i)
+    bzz(i)=vzz(i)+tstepatm*rmass(ltype(i))*fzz(i)
 !   update positions
-    xxx(i)=xxo(i)+tstepatm*uxx(i)
-    yyy(i)=yyo(i)+tstepatm*uyy(i)
-    zzz(i)=zzo(i)+tstepatm*uzz(i)    
+    xxx(i)=xxo(i)+tstepatm*bxx(i)
+    yyy(i)=yyo(i)+tstepatm*byy(i)
+    zzz(i)=zzo(i)+tstepatm*bzz(i)    
   end forall
   
 #if 1
   do i=1,natms
-    if(abs(uxx(i))>ONE .or. abs(uyy(i))>ONE .or. abs(uzz(i))>ONE )then
+    if(abs(bxx(i))>ONE .or. abs(byy(i))>ONE .or. abs(bzz(i))>ONE )then
       write(6,*)'ERROR - numerical instability'
       call error(-1)
     endif
@@ -2581,12 +2592,12 @@
   
 ! calculate full timestep velocity
   forall(i=1:natms)
-    vxx(i)=HALF*(vxx(i)+uxx(i))
-    vyy(i)=HALF*(vyy(i)+uyy(i))
-    vzz(i)=HALF*(vzz(i)+uzz(i))
+    vxx(i)=HALF*(vxx(i)+bxx(i))
+    vyy(i)=HALF*(vyy(i)+byy(i))
+    vzz(i)=HALF*(vzz(i)+bzz(i))
   end forall
       
-! calculate kinetic energy    
+! calculate kinetic energy at time step n
   call getkin(engke)
     
 ! periodic boundary condition
@@ -2594,55 +2605,209 @@
     
 ! restore free atom half step velocity   
   forall(i=1:natms)
-    vxx(i)=uxx(i)
-    vyy(i)=uyy(i)
-    vzz(i)=uzz(i)
+    vxx(i)=bxx(i)
+    vyy(i)=byy(i)
+    vzz(i)=bzz(i)
   end forall
   
   
 ! rigid body motion
   if(lrotate)then
+    
+!   initialiaze the accumulator of rotational kinetic energy
+    engrotbuff(1)=ZERO
+    
     do i=1,natms
       itype=ltype(i)
+      
+      !current rotational matrix 
       call quat_2_rotmat(q0(i),q1(i),q2(i),q3(i),myrot)
-!     store current angular velocity
-      opx(i)=oxx(i)
-      opy(i)=oyy(i)
-      opz(i)=ozz(i)
-!     iterate angular velocity for time step n (e. yezdimer)
-      do j=1,5
+      
+      !call get_rotation_versor(myrot,uxx,uyy,yzz)
+      
+!     store current angular velocity which are stile at n-1/2
+      opx=oxx(i)
+      opy=oyy(i)
+      opz=ozz(i)
+      
+!     compute angular velocity increment of one step
+      
+      trx=(tqx(i)*myrot(1)+tqy(i)*myrot(4)+tqz(i)*myrot(7))/rotinx(itype)+ &
+       (rotiny(itype)-rotinz(itype))*opy*opz/rotinx(itype)
+      try=(tqx(i)*myrot(2)+tqy(i)*myrot(5)+tqz(i)*myrot(8))/rotiny(itype)+ &
+       (rotinz(itype)-rotinx(itype))*opz*opx/rotiny(itype)
+      trz=(tqx(i)*myrot(3)+tqy(i)*myrot(6)+tqz(i)*myrot(9))/rotinz(itype)+ &
+       (rotinx(itype)-rotiny(itype))*opx*opy/rotinz(itype)
+      
+      delx=tstepatm*trx
+      dely=tstepatm*try
+      delz=tstepatm*trz
+      
+!     angular velocity at time step n
+
+      opx=oxx(i)+delx*HALF
+      opy=oyy(i)+dely*HALF
+      opz=ozz(i)+delz*HALF
+      
+!     angular velocity at time step n+1/2
+
+      bxx(i)=oxx(i)+delx
+      byy(i)=oyy(i)+dely
+      bzz(i)=ozz(i)+delz
+
+!     angular velocity at time step n+1  (needed for quat algorithm)
         
-        trx=(tqx(i)*myrot(1)+tqy(i)*myrot(4)+tqz(i)*myrot(7))/rotinx(itype)+ &
-         (rotiny(itype)-rotinz(itype))*opy(i)*opz(i)/rotinx(itype)
-        try=(tqx(i)*myrot(2)+tqy(i)*myrot(5)+tqz(i)*myrot(8))/rotiny(itype)+ &
-         (rotinz(itype)-rotinx(itype))*opz(i)*opx(i)/rotiny(itype)
-        trz=(tqx(i)*myrot(3)+tqy(i)*myrot(6)+tqz(i)*myrot(9))/rotinz(itype)+ &
-         (rotinx(itype)-rotiny(itype))*opx(i)*opy(i)/rotinz(itype)
+      oqx=oxx(i)+delx*onefive
+      oqy=oyy(i)+dely*onefive
+      oqz=ozz(i)+delz*onefive
+      
+!     angular velocity at timestep n
+      
+      oxx(i)=oxx(i)+HALF*delx
+      oyy(i)=oyy(i)+HALF*dely
+      ozz(i)=ozz(i)+HALF*delz
+      
+!     add its contribution to the total rotational kinetic energy at time step n
 
-        delx=tstepatm*trx
-        dely=tstepatm*try
-        delz=tstepatm*trz
-
-!     improved angular velocity at time step n
-
-!        opx(i)=omx(ig)+delx*HALF
-!        opy(i)=omy(ig)+dely*HALF
-!        opz(i)=omz(ig)+delz*HALF
-        
-      enddo
+      engrotbuff(1)=engrotbuff(1)+(rotinx(itype)*oxx(i)**TWO+ &
+       rotiny(itype)*oyy(i)**TWO+ &
+       rotinz(itype)*ozz(i)**TWO)
+       
+!     restore half step angular velocity
+      
+      opx=oxx(i)
+      opy=oyy(i)
+      opz=ozz(i)
+      oxx(i)=bxx(i)
+      oyy(i)=byy(i)
+      ozz(i)=bzz(i)
+      
+!     assign new quaternions
+      
+      call update_quaternions(lerror,q0(i),q1(i),q2(i),q3(i),tstepatm, &
+       opx,opy,opz,oqx,oqy,oqz)
+    
     enddo
+    
+!   compute the total rotational kinetic energy
+    
+    call sum_world_farr(engrotbuff,1)
+    engrot=HALF*engrotbuff(1)
+    
   endif
   
-
 ! deallocate work arrays
-  deallocate (uxx,uyy,uzz,stat=fail(2))
-  if(lrotate)then
-    deallocate (opx,opy,opz,stat=fail(3))
-  endif
+  deallocate (bxx,byy,bzz,stat=fail(2))
   
   return
       
  end subroutine nve_lf
+ 
+ subroutine get_rotation_versor(rot,uxx,uyy,uzz)
+ 
+  implicit none
+  
+  real(kind=PRC), dimension(9), intent(in) :: rot
+  
+  real(kind=PRC), intent(out), dimension(3) :: uxx,uyy,uzz
+  
+  call rotation((/ONE,ZERO,ZERO/),rot,uxx)
+  call rotation((/ZERO,ONE,ZERO/),rot,uyy)
+  call rotation((/ZERO,ZERO,ONE/),rot,uzz)
+  
+  return
+  
+ end subroutine get_rotation_versor
+ 
+ subroutine update_quaternions(lerror,q0s,q1s,q2s,q3s,tsteps, &
+  opxs,opys,opzs,oqxs,oqys,oqzs)
+
+!***********************************************************************
+!     
+!     dlpoly routine to update the quaternion arrays as part of
+!     the leapfrog algorithm
+!     
+!     copyright daresbury laboratory
+!     author   -  w.smith october 2005
+!     based on -  t.forester oct. 1993
+!     
+!**********************************************************************
+
+      implicit none
+  
+  real(kind=PRC), intent(inout) :: q0s,q1s,q2s,q3s
+  real(kind=PRC), intent(in) :: tsteps,opxs,opys,opzs,oqxs,oqys,oqzs
+  logical, intent(out) :: lerror
+  
+  integer :: itq
+  
+  real(kind=PRC) :: eps,rnorm
+  real(kind=PRC) :: qn0,qn1,qn2,qn3,qn0a,qn1a,qn2a,qn3a,qn0b,qn1b,qn2b,qn3b
+  
+  lerror=.false.
+  
+! first iteration of new quaternions (lab fixed)
+        
+  qn0=q0s+(-q1s*opxs-q2s*opys-q3s*opzs)*tsteps*HALF
+  qn1=q1s+( q0s*opxs-q3s*opys+q2s*opzs)*tsteps*HALF
+  qn2=q2s+( q3s*opxs+q0s*opys-q1s*opzs)*tsteps*HALF
+  qn3=q3s+(-q2s*opxs+q1s*opys+q0s*opzs)*tsteps*HALF
+  
+  qn0b=ZERO
+  qn1b=ZERO
+  qn2b=ZERO
+  qn3b=ZERO
+  
+  itq=0
+  eps=real(1.0d9,kind=PRC)
+  
+  do while((itq.lt.mxquat).and.(eps.gt.quattol))
+  
+    itq=itq+1
+    qn0a=HALF*(-q1s*opxs-q2s*opys-q3s*opzs)+ &
+     HALF*(-qn1*oqxs-qn2*oqys-qn3*oqzs)
+    qn1a=HALF*(  q0s*opxs-q3s*opys+q2s*opzs)+ &
+     HALF*( qn0*oqxs-qn3*oqys+qn2*oqzs)
+    qn2a=HALF*(  q3s*opxs+q0s*opys-q1s*opzs)+ &
+     HALF*( qn3*oqxs+qn0*oqys-qn1*oqzs)
+    qn3a=HALF*(-q2s*opxs+q1s*opys+q0s*opzs)+ &
+     HALF*(-qn2*oqxs+qn1*oqys+qn0*oqzs)
+    
+    qn0=q0s+HALF*qn0a*tsteps
+    qn1=q1s+HALF*qn1a*tsteps
+    qn2=q2s+HALF*qn2a*tsteps
+    qn3=q3s+HALF*qn3a*tsteps
+    
+    rnorm=ONE/sqrt(qn0**TWO+qn1**TWO+qn2**TWO+qn3**TWO)
+    qn0=qn0*rnorm
+    qn1=qn1*rnorm
+    qn2=qn2*rnorm
+    qn3=qn3*rnorm
+    
+!  convergence test 
+          
+    eps=sqrt(((qn0a-qn0b)**TWO+(qn1a-qn1b)**TWO+(qn2a-qn2b)**TWO+ &
+     (qn3a-qn3b)**TWO)*tsteps**TWO)
+          
+    qn0b=qn0a
+    qn1b=qn1a
+    qn2b=qn2a
+    qn3b=qn3a
+          
+  enddo
+  
+  if(itq.ge.mxquat)lerror=.true.
+        
+! store new quaternions
+        
+  q0s=qn0
+  q1s=qn1
+  q2s=qn2
+  q3s=qn3
+  
+  return
+  
+  end subroutine update_quaternions
  
  subroutine integrate_particles_vv(isw,nstepsub)
  
