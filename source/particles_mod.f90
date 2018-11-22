@@ -326,6 +326,10 @@
  public :: set_ntype
  public :: find_type
  public :: allocate_particle_features
+ public :: take_rotversor
+ public :: take_rotversorx
+ public :: take_rotversory
+ public :: take_rotversorz
  
  contains
  
@@ -2719,21 +2723,156 @@
   
  end subroutine get_rotation_versor
  
- subroutine update_quaternions(lerror,q0s,q1s,q2s,q3s,tsteps, &
-  opxs,opys,opzs,oqxs,oqys,oqzs)
-
+ function take_rotversor(idir,q0,q1,q2,q3)
+ 
 !***********************************************************************
 !     
-!     dlpoly routine to update the quaternion arrays as part of
+!     LBsoft subroutine for determining the versor along the idir
+!     direction from the quaternion using x convention for euler angles
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: idir
+      
+  real(kind=PRC), intent(in) :: q0,q1,q2,q3
+  
+  real(kind=PRC), dimension(3) :: take_rotversor
+  
+  select case(idir)
+  case(1)
+  
+    take_rotversor(1)=q0**TWO+q1**TWO-q2**TWO-q3**TWO
+    take_rotversor(2)=TWO*(q1*q2-q0*q3)
+    take_rotversor(3)=TWO*(q1*q3+q0*q2)
+  
+  case(2)
+  
+    take_rotversor(1)=TWO*(q1*q2+q0*q3)
+    take_rotversor(2)=q0**TWO-q1**TWO+q2**TWO-q3**TWO
+    take_rotversor(3)=TWO*(q2*q3-q0*q1)
+  
+  case(3)
+  
+    take_rotversor(1)=TWO*(q1*q3-q0*q2)
+    take_rotversor(2)=TWO*(q2*q3+q0*q1)
+    take_rotversor(3)=q0**TWO-q1**TWO-q2**TWO+q3**TWO
+  
+  case default
+  
+    !so you want to make me angry!
+    take_rotversor=(/ZERO,ZERO,ZERO/)
+    
+  end select
+  
+  return
+  
+ end function take_rotversor
+ 
+ function take_rotversorx(q0,q1,q2,q3)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for determining the versor along x from
+!     the quaternion using x convention for euler angles
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+      
+  real(kind=PRC), intent(in) :: q0,q1,q2,q3
+  
+  real(kind=PRC), dimension(3) :: take_rotversorx
+  
+  take_rotversorx(1)=q0**TWO+q1**TWO-q2**TWO-q3**TWO
+  take_rotversorx(2)=TWO*(q1*q2-q0*q3)
+  take_rotversorx(3)=TWO*(q1*q3+q0*q2)
+  
+  return
+  
+ end function take_rotversorx
+ 
+ function take_rotversory(q0,q1,q2,q3)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for determining the versor along y from
+!     the quaternion using x convention for euler angles
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+      
+  real(kind=PRC), intent(in) :: q0,q1,q2,q3
+  
+  real(kind=PRC), dimension(3) :: take_rotversory
+  
+  take_rotversory(1)=TWO*(q1*q2+q0*q3)
+  take_rotversory(2)=q0**TWO-q1**TWO+q2**TWO-q3**TWO
+  take_rotversory(3)=TWO*(q2*q3-q0*q1)
+  
+  return
+  
+ end function take_rotversory
+ 
+ function take_rotversorz(q0,q1,q2,q3)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for determining the versor along z from
+!     the quaternion using x convention for euler angles
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+      
+  real(kind=PRC), intent(in) :: q0,q1,q2,q3
+  
+  real(kind=PRC), dimension(3) :: take_rotversorz
+  
+  take_rotversorz(1)=TWO*(q1*q3-q0*q2)
+  take_rotversorz(2)=TWO*(q2*q3+q0*q1)
+  take_rotversorz(3)=q0**TWO-q1**TWO-q2**TWO+q3**TWO
+  
+  return
+  
+ end function take_rotversorz
+ 
+ subroutine update_quaternions(lerror,q0s,q1s,q2s,q3s,tsteps, &
+  opxs,opys,opzs,oqxs,oqys,oqzs)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine to update the quaternion as part of
 !     the leapfrog algorithm
+!     NOTE: this is a modified version of the dlpoly classics routine 
+!     with same name, which was originally written by w.smith
+!     in 2005 and released under BSD license
 !     
-!     copyright daresbury laboratory
-!     author   -  w.smith october 2005
-!     based on -  t.forester oct. 1993
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
 !     
-!**********************************************************************
+!***********************************************************************
 
-      implicit none
+  implicit none
   
   real(kind=PRC), intent(inout) :: q0s,q1s,q2s,q3s
   real(kind=PRC), intent(in) :: tsteps,opxs,opys,opzs,oqxs,oqys,oqzs
@@ -2807,7 +2946,7 @@
   
   return
   
-  end subroutine update_quaternions
+ end subroutine update_quaternions
  
  subroutine integrate_particles_vv(isw,nstepsub)
  

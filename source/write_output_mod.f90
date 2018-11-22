@@ -20,7 +20,8 @@
  use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w,lsingle_fluid, &
   minx, maxx, miny, maxy, minz, maxz,isfluid
  use particles_mod,  only : natms,xxx,yyy,zzz,lparticles,cell, &
-  ishape,lrotate,natms,natms_tot,q0,q1,q2,q3,vxx,vyy,vzz
+  ishape,lrotate,natms,natms_tot,q0,q1,q2,q3,vxx,vyy,vzz, &
+  take_rotversorz
  
   private
   
@@ -362,6 +363,15 @@
   do iatm=1,natms
     write(iotest,*)1 !ltype(iatm)
   enddo
+  
+  if(lrotate)then
+    write(iotest,103) 'VECTORS vect float'
+  
+    do iatm=1,natms
+      write(iotest,*) &
+       take_rotversorz(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
+    enddo
+  endif
   
   close(iotest)
    
