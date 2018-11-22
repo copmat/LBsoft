@@ -365,7 +365,7 @@
   enddo
   
   if(lrotate)then
-    write(iotest,103) 'VECTORS vect float'
+    write(iotest,103) 'VECTORS Vect float'
   
     do iatm=1,natms
       write(iotest,*) &
