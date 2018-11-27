@@ -19,7 +19,7 @@
  use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
                    allocate_array_ibuffservice,buffservice, &
                    allocate_array_buffservice,lbuffservice, &
-                   allocate_array_lbuffservice, &
+                   allocate_array_lbuffservice,xcross,ycross,zcross, &
                    nbuffservice3d,buffservice3d, &
                    rand_noseeded,linit_seed,gauss_noseeded,write_fmtnumb
 
@@ -3125,7 +3125,7 @@
   
   
   call manage_bc_pop_selfcomm(aoptpB,lparticles)
-
+  
   
 #ifdef MPI
   call commrpop(aoptpB,lparticles,isfluid)
@@ -8800,8 +8800,8 @@
   end subroutine particle_to_node_bounce_back
   
   subroutine particle_moving_fluids(isec,natmssub,nspheres,spherelists, &
-   spheredists,nspheredeads,spherelistdeads,lmoved,xx,yy,zz, &
-   vx,vy,vz,fx,fy,fz,xo,yo,zo)
+   spheredists,nspheredeads,spherelistdeads,lmoved,lrotate,ltype,xx,yy,zz, &
+   vx,vy,vz,fx,fy,fz,tx,ty,tz,xo,yo,zo,rdimx,rdimy,rdimz)
   
 !***********************************************************************
 !     
@@ -8821,16 +8821,21 @@
    spherelistdeads
   real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
   logical(kind=1), allocatable, dimension(:), intent(in) :: lmoved
+  logical, intent(in) :: lrotate
+  integer, allocatable, dimension(:), intent(in) :: ltype
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xx,yy,zz
   real(kind=PRC), allocatable, dimension(:), intent(in) :: vx,vy,vz
   real(kind=PRC), allocatable, dimension(:), intent(inout) :: fx,fy,fz
+  real(kind=PRC), allocatable, dimension(:), intent(inout) :: tx,ty,tz
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xo,yo,zo
+  real(kind=PRC), allocatable, dimension(:), intent(in) :: rdimx,rdimy,rdimz
   
-  integer :: i,j,k,l,m,isub,jsub,ksub,iatm,io,jo,ko,ishift,jshift,kshift
+  integer :: i,j,k,l,m,isub,jsub,ksub,iatm,io,jo,ko,itype
+  integer :: ii,jj,kk,ishift,jshift,kshift
   integer, save :: imin,imax,jmin,jmax,kmin,kmax
   logical, save :: lfirst=.true.
   logical :: lfind,ltest(1)
-  real(kind=PRC) :: Rsum,Bsum,Dsum,myu,myv,myw
+  real(kind=PRC) :: Rsum,Bsum,Dsum,myu,myv,myw,ftemp(3),rtemp(3)
   
   if(lfirst)then
     lfirst=.false.
@@ -8850,123 +8855,15 @@
   !create fluid 
   ltest(1)=.false.
   do iatm=1,natmssub
-    if(.not. lmoved(iatm))cycle
+    itype=ltype(iatm)
     isub=nint(xx(iatm))
     jsub=nint(yy(iatm))
     ksub=nint(zz(iatm))
     io=nint(xo(iatm))
     jo=nint(yo(iatm))
     ko=nint(zo(iatm))
-    if(lsingle_fluid)then
-      do m=1,nspheres
-        i=io+spherelists(1,m)
-        j=jo+spherelists(2,m)
-        k=ko+spherelists(3,m)
-       !apply periodic conditions if necessary
-        i=pimage(ixpbc,i,nx)
-        j=pimage(iypbc,j,ny)
-        k=pimage(izpbc,k,nz)
-        if(i<imin .or. i>imax)cycle
-        if(j<jmin .or. j>jmax)cycle
-        if(k<kmin .or. k>kmax)cycle
-        if(new_isfluid(i,j,k)==1 .and. isfluid(i,j,k)/=1)then
-          !solid node is trasformed to fluid node
-          Rsum=ZERO
-          Dsum=ZERO
-          !compute mean density value eq. 23 of PRE 83, 046707 (2011)
-          do l=1,linksd3q27
-            ishift=i+exd3q27(l)
-            jshift=j+eyd3q27(l)
-            kshift=k+ezd3q27(l)
-            if(isfluid(ishift,jshift,kshift)==1 .and. &
-             new_isfluid(ishift,jshift,kshift)==1)then
-              Rsum=Rsum+pd3q27(l)*rhoR(ishift,jshift,kshift)
-              Dsum=Dsum+pd3q27(l)
-            endif
-          enddo
-          Rsum=Rsum/Dsum
-          myu=vx(iatm)
-          myv=vy(iatm)
-          myw=vz(iatm)
-          !formula taken from eq. 25 of PRE 83, 046707 (2011)
-          call initialize_newnode_fluid(i,j,k,Rsum,myu,myv,myw,aoptpR)
-          !formula taken from eq. 26 of PRE 83, 046707 (2011)
-          fx(iatm)=fx(iatm)-Rsum*myu
-          fy(iatm)=fy(iatm)-Rsum*myv
-          fz(iatm)=fz(iatm)-Rsum*myw
-        endif
-      enddo
-    else
-      do m=1,nspheres
-        i=io+spherelists(1,m)
-        j=jo+spherelists(2,m)
-        k=ko+spherelists(3,m)
-       !apply periodic conditions if necessary
-        i=pimage(ixpbc,i,nx)
-        j=pimage(iypbc,j,ny)
-        k=pimage(izpbc,k,nz)
-        if(i<imin .or. i>imax)cycle
-        if(j<jmin .or. j>jmax)cycle
-        if(k<kmin .or. k>kmax)cycle
-        if(new_isfluid(i,j,k)==1 .and. isfluid(i,j,k)/=1)then
-          !solid node is trasformed to fluid node
-          Rsum=ZERO
-          Bsum=ZERO
-          Dsum=ZERO
-          !compute mean density value 
-          do l=1,linksd3q27
-            ishift=i+exd3q27(l)
-            jshift=j+eyd3q27(l)
-            kshift=k+ezd3q27(l)
-            if(isfluid(ishift,jshift,kshift)==1 .and. &
-             new_isfluid(ishift,jshift,kshift)==1)then
-              Rsum=Rsum+pd3q27(l)*rhoR(ishift,jshift,kshift)
-              Bsum=Bsum+pd3q27(l)*rhoB(ishift,jshift,kshift)
-              Dsum=Dsum+pd3q27(l)
-            endif
-          enddo
-          Rsum=Rsum/Dsum
-          Bsum=Bsum/Dsum
-          myu=vx(iatm)
-          myv=vy(iatm)
-          myw=vz(iatm)
-          !formula taken from eq. 25 of PRE 83, 046707 (2011)
-          call initialize_newnode_fluid(i,j,k,Rsum,myu,myv,myw,aoptpR)
-          call initialize_newnode_fluid(i,j,k,Bsum,myu,myv,myw,aoptpB)
-          !formula taken from eq. 26 of PRE 83, 046707 (2011)
-          fx(iatm)=fx(iatm)-(Rsum+Bsum)*myu
-          fy(iatm)=fy(iatm)-(Rsum+Bsum)*myv
-          fz(iatm)=fz(iatm)-(Rsum+Bsum)*myw
-        endif
-      enddo
-    endif
-  enddo
-  
-  case(2)
-  
-  !delete fluid 
-  do iatm=1,natmssub
-    isub=nint(xx(iatm))
-    jsub=nint(yy(iatm))
-    ksub=nint(zz(iatm))
     if(.not. lmoved(iatm))then
       if(lsingle_fluid)then
-        do l=1,nspheres
-          i=isub+spherelists(1,l)
-          j=jsub+spherelists(2,l)
-          k=ksub+spherelists(3,l)
-          !apply periodic conditions if necessary
-          i=pimage(ixpbc,i,nx)
-          j=pimage(iypbc,j,ny)
-          k=pimage(izpbc,k,nz)
-          if(i<imin .or. i>imax)cycle
-          if(j<jmin .or. j>jmax)cycle
-          if(k<kmin .or. k>kmax)cycle
-          rhoR(i,j,k)=MINDENS
-          u(i,j,k)=ZERO
-          v(i,j,k)=ZERO
-          w(i,j,k)=ZERO
-        enddo
         do l=1,nspheredeads
           i=isub+spherelistdeads(1,l)
           j=jsub+spherelistdeads(2,l)
@@ -8978,90 +8875,6 @@
           if(i<imin .or. i>imax)cycle
           if(j<jmin .or. j>jmax)cycle
           if(k<kmin .or. k>kmax)cycle
-          rhoR(i,j,k)=MINDENS
-          u(i,j,k)=ZERO
-          v(i,j,k)=ZERO
-          w(i,j,k)=ZERO
-        enddo
-      else
-        do l=1,nspheres
-          i=isub+spherelists(1,l)
-          j=jsub+spherelists(2,l)
-          k=ksub+spherelists(3,l)
-          !apply periodic conditions if necessary
-          i=pimage(ixpbc,i,nx)
-          j=pimage(iypbc,j,ny)
-          k=pimage(izpbc,k,nz)
-          if(i<imin .or. i>imax)cycle
-          if(j<jmin .or. j>jmax)cycle
-          if(k<kmin .or. k>kmax)cycle
-          rhoR(i,j,k)=MINDENS
-          rhoB(i,j,k)=MINDENS
-          u(i,j,k)=ZERO
-          v(i,j,k)=ZERO
-          w(i,j,k)=ZERO
-        enddo
-        do l=1,nspheredeads
-          i=isub+spherelistdeads(1,l)
-          j=jsub+spherelistdeads(2,l)
-          k=ksub+spherelistdeads(3,l)
-          !apply periodic conditions if necessary
-          i=pimage(ixpbc,i,nx)
-          j=pimage(iypbc,j,ny)
-          k=pimage(izpbc,k,nz)
-          if(i<imin .or. i>imax)cycle
-          if(j<jmin .or. j>jmax)cycle
-          if(k<kmin .or. k>kmax)cycle
-          rhoR(i,j,k)=MINDENS
-          rhoB(i,j,k)=MINDENS
-          u(i,j,k)=ZERO
-          v(i,j,k)=ZERO
-          w(i,j,k)=ZERO
-        enddo
-      endif
-    else
-      if(lsingle_fluid)then
-        do l=1,nspheres
-          i=isub+spherelists(1,l)
-          j=jsub+spherelists(2,l)
-          k=ksub+spherelists(3,l)
-         !apply periodic conditions if necessary
-          i=pimage(ixpbc,i,nx)
-          j=pimage(iypbc,j,ny)
-          k=pimage(izpbc,k,nz)
-          if(i<imin .or. i>imax)cycle
-          if(j<jmin .or. j>jmax)cycle
-          if(k<kmin .or. k>kmax)cycle
-          if(isfluid(i,j,k)==1)then
-            !fluid node is trasformed to solid
-            !formula taken from eq. 18 of PRE 83, 046707 (2011)
-            fx(iatm)=fx(iatm)+rhoR(i,j,k)*u(i,j,k)
-            fy(iatm)=fy(iatm)+rhoR(i,j,k)*v(i,j,k)
-            fz(iatm)=fz(iatm)+rhoR(i,j,k)*w(i,j,k)
-          endif
-          rhoR(i,j,k)=MINDENS
-          u(i,j,k)=ZERO
-          v(i,j,k)=ZERO
-          w(i,j,k)=ZERO
-        enddo
-        do l=1,nspheredeads
-          i=isub+spherelistdeads(1,l)
-          j=jsub+spherelistdeads(2,l)
-          k=ksub+spherelistdeads(3,l)
-          !apply periodic conditions if necessary
-          i=pimage(ixpbc,i,nx)
-          j=pimage(iypbc,j,ny)
-          k=pimage(izpbc,k,nz)
-          if(i<imin .or. i>imax)cycle
-          if(j<jmin .or. j>jmax)cycle
-          if(k<kmin .or. k>kmax)cycle
-          if(isfluid(i,j,k)==1)then
-            !fluid node is trasformed to solid
-            !formula taken from eq. 18 of PRE 83, 046707 (2011)
-            fx(iatm)=fx(iatm)+rhoR(i,j,k)*u(i,j,k)
-            fy(iatm)=fy(iatm)+rhoR(i,j,k)*v(i,j,k)
-            fz(iatm)=fz(iatm)+rhoR(i,j,k)*w(i,j,k)
-          endif
           rhoR(i,j,k)=MINDENS
           u(i,j,k)=ZERO
           v(i,j,k)=ZERO
@@ -9072,30 +8885,6 @@
         v(isub,jsub,ksub)=ZERO
         w(isub,jsub,ksub)=ZERO
       else
-        do l=1,nspheres
-          i=isub+spherelists(1,l)
-          j=jsub+spherelists(2,l)
-          k=ksub+spherelists(3,l)
-          !apply periodic conditions if necessary
-          i=pimage(ixpbc,i,nx)
-          j=pimage(iypbc,j,ny)
-          k=pimage(izpbc,k,nz)
-          if(i<imin .or. i>imax)cycle
-          if(j<jmin .or. j>jmax)cycle
-          if(k<kmin .or. k>kmax)cycle
-          if(isfluid(i,j,k)==1)then
-            !fluid node is trasformed to solid node
-            !formula taken from eq. 18 of PRE 83, 046707 (2011)
-            fx(iatm)=fx(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
-            fy(iatm)=fy(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
-            fz(iatm)=fz(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
-          endif
-          rhoR(i,j,k)=MINDENS
-          rhoB(i,j,k)=MINDENS
-          u(i,j,k)=ZERO
-          v(i,j,k)=ZERO
-          w(i,j,k)=ZERO
-        enddo
         do l=1,nspheredeads
           i=isub+spherelistdeads(1,l)
           j=jsub+spherelistdeads(2,l)
@@ -9107,13 +8896,6 @@
           if(i<imin .or. i>imax)cycle
           if(j<jmin .or. j>jmax)cycle
           if(k<kmin .or. k>kmax)cycle
-          if(isfluid(i,j,k)==1)then
-            !fluid node is trasformed to solid node
-            !formula taken from eq. 18 of PRE 83, 046707 (2011)
-            fx(iatm)=fx(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
-            fy(iatm)=fy(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
-            fz(iatm)=fz(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
-          endif
           rhoR(i,j,k)=MINDENS
           rhoB(i,j,k)=MINDENS
           u(i,j,k)=ZERO
@@ -9126,6 +8908,402 @@
         v(isub,jsub,ksub)=ZERO
         w(isub,jsub,ksub)=ZERO
       endif
+    else
+      if(lsingle_fluid)then
+        do m=1,nspheres
+          i=io+spherelists(1,m)
+          j=jo+spherelists(2,m)
+          k=ko+spherelists(3,m)
+          ii=i
+          jj=j
+          kk=k
+         !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(new_isfluid(i,j,k)==1 .and. isfluid(i,j,k)/=1)then
+            if(i==ii.and.j==jj.and.k==kk)then
+              if(i<imin .or. i>imax)cycle
+              if(j<jmin .or. j>jmax)cycle
+              if(k<kmin .or. k>kmax)cycle
+              !solid node is trasformed to fluid node
+              Rsum=ZERO
+              Dsum=ZERO
+              !compute mean density value eq. 23 of PRE 83, 046707 (2011)
+              do l=1,linksd3q27
+                ishift=i+exd3q27(l)
+                jshift=j+eyd3q27(l)
+                kshift=k+ezd3q27(l)
+                if(isfluid(ishift,jshift,kshift)==1 .and. &
+                 new_isfluid(ishift,jshift,kshift)==1)then
+                  Rsum=Rsum+pd3q27(l)*rhoR(ishift,jshift,kshift)
+                  Dsum=Dsum+pd3q27(l)
+                endif
+              enddo
+              Rsum=Rsum/Dsum
+              myu=vx(iatm)
+              myv=vy(iatm)
+              myw=vz(iatm)
+              !formula taken from eq. 25 of PRE 83, 046707 (2011)
+              call initialize_newnode_fluid(i,j,k,Rsum,myu,myv,myw,aoptpR)
+              !formula taken from eq. 26 of PRE 83, 046707 (2011)
+              fx(iatm)=fx(iatm)-Rsum*myu
+              fy(iatm)=fy(iatm)-Rsum*myv
+              fz(iatm)=fz(iatm)-Rsum*myw
+              if(lrotate)then
+                ftemp(1)=-Rsum*myu
+                ftemp(2)=-Rsum*myv
+                ftemp(3)=-Rsum*myw
+                rtemp(1:3)=rdimx(itype)/spheredists(m) * &
+                 real(spherelists(1:3,m),kind=PRC)
+                tx(iatm)=tx(iatm)+xcross(rtemp,ftemp)
+                ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
+                tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
+              endif
+            else
+              if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
+                k>=kmin .and. k<=kmax)then
+                !solid node is trasformed to fluid node
+                Rsum=ZERO
+                Dsum=ZERO
+                !compute mean density value eq. 23 of PRE 83, 046707 (2011)
+                do l=1,linksd3q27
+                  ishift=i+exd3q27(l)
+                  jshift=j+eyd3q27(l)
+                  kshift=k+ezd3q27(l)
+                  if(isfluid(ishift,jshift,kshift)==1 .and. &
+                   new_isfluid(ishift,jshift,kshift)==1)then
+                    Rsum=Rsum+pd3q27(l)*rhoR(ishift,jshift,kshift)
+                    Dsum=Dsum+pd3q27(l)
+                  endif
+                enddo
+                Rsum=Rsum/Dsum
+                myu=vx(iatm)
+                myv=vy(iatm)
+                myw=vz(iatm)
+                !formula taken from eq. 25 of PRE 83, 046707 (2011)
+                call initialize_newnode_fluid(i,j,k,Rsum,myu,myv,myw,aoptpR)
+                !formula taken from eq. 26 of PRE 83, 046707 (2011)
+                fx(iatm)=fx(iatm)-Rsum*myu
+                fy(iatm)=fy(iatm)-Rsum*myv
+                fz(iatm)=fz(iatm)-Rsum*myw
+                if(lrotate)then
+                  ftemp(1)=-Rsum*myu
+                  ftemp(2)=-Rsum*myv
+                  ftemp(3)=-Rsum*myw
+                  rtemp(1:3)=rdimx(itype)/spheredists(m) * &
+                   real(spherelists(1:3,m),kind=PRC)
+                  tx(iatm)=tx(iatm)+xcross(rtemp,ftemp)
+                  ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
+                  tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
+                endif
+              endif
+              if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
+               kk>=kmin .and. kk<=kmax)then
+                !solid node is trasformed to fluid node
+                Rsum=ZERO
+                Dsum=ZERO
+                !compute mean density value eq. 23 of PRE 83, 046707 (2011)
+                do l=1,linksd3q27
+                  ishift=ii+exd3q27(l)
+                  jshift=jj+eyd3q27(l)
+                  kshift=kk+ezd3q27(l)
+                  if(isfluid(ishift,jshift,kshift)==1 .and. &
+                   new_isfluid(ishift,jshift,kshift)==1)then
+                    Rsum=Rsum+pd3q27(l)*rhoR(ishift,jshift,kshift)
+                    Dsum=Dsum+pd3q27(l)
+                  endif
+                enddo
+                Rsum=Rsum/Dsum
+                myu=vx(iatm)
+                myv=vy(iatm)
+                myw=vz(iatm)
+                !formula taken from eq. 25 of PRE 83, 046707 (2011)
+                call initialize_newnode_fluid(ii,jj,kk,Rsum,myu,myv,myw,aoptpR)
+              endif
+            endif
+          endif
+        enddo
+        do m=1,nspheredeads
+          i=isub+spherelistdeads(1,m)
+          j=jsub+spherelistdeads(2,m)
+          k=ksub+spherelistdeads(3,m)
+          !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(i<imin .or. i>imax)cycle
+          if(j<jmin .or. j>jmax)cycle
+          if(k<kmin .or. k>kmax)cycle
+          rhoR(i,j,k)=MINDENS
+          u(i,j,k)=ZERO
+          v(i,j,k)=ZERO
+          w(i,j,k)=ZERO
+        enddo
+        rhoR(isub,jsub,ksub)=MINDENS
+        u(isub,jsub,ksub)=ZERO
+        v(isub,jsub,ksub)=ZERO
+        w(isub,jsub,ksub)=ZERO
+      else
+        do m=1,nspheres
+          i=io+spherelists(1,m)
+          j=jo+spherelists(2,m)
+          k=ko+spherelists(3,m)
+          ii=i
+          jj=j
+          kk=k
+         !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(new_isfluid(i,j,k)==1 .and. isfluid(i,j,k)/=1)then
+            if(i==ii.and.j==jj.and.k==kk)then
+              if(i<imin .or. i>imax)cycle
+              if(j<jmin .or. j>jmax)cycle
+              if(k<kmin .or. k>kmax)cycle
+              !solid node is trasformed to fluid node
+              Rsum=ZERO
+              Bsum=ZERO
+              Dsum=ZERO
+              !compute mean density value 
+              do l=1,linksd3q27
+                ishift=i+exd3q27(l)
+                jshift=j+eyd3q27(l)
+                kshift=k+ezd3q27(l)
+                if(isfluid(ishift,jshift,kshift)==1 .and. &
+                 new_isfluid(ishift,jshift,kshift)==1)then
+                  Rsum=Rsum+pd3q27(l)*rhoR(ishift,jshift,kshift)
+                  Bsum=Bsum+pd3q27(l)*rhoB(ishift,jshift,kshift)
+                  Dsum=Dsum+pd3q27(l)
+                endif
+              enddo
+              Rsum=Rsum/Dsum
+              Bsum=Bsum/Dsum
+              myu=vx(iatm)
+              myv=vy(iatm)
+              myw=vz(iatm)
+              !formula taken from eq. 25 of PRE 83, 046707 (2011)
+              call initialize_newnode_fluid(i,j,k,Rsum,myu,myv,myw,aoptpR)
+              call initialize_newnode_fluid(i,j,k,Bsum,myu,myv,myw,aoptpB)
+              !formula taken from eq. 26 of PRE 83, 046707 (2011)
+              fx(iatm)=fx(iatm)-(Rsum+Bsum)*myu
+              fy(iatm)=fy(iatm)-(Rsum+Bsum)*myv
+              fz(iatm)=fz(iatm)-(Rsum+Bsum)*myw
+              if(lrotate)then
+                ftemp(1)=-(Rsum+Bsum)*myu
+                ftemp(2)=-(Rsum+Bsum)*myv
+                ftemp(3)=-(Rsum+Bsum)*myw
+                rtemp(1:3)=rdimx(itype)/spheredists(m) * &
+                 real(spherelists(1:3,m),kind=PRC)
+                tx(iatm)=tx(iatm)+xcross(rtemp,ftemp)
+                ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
+                tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
+              endif
+            else
+              if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
+               k>=kmin .and. k<=kmax)then
+                !solid node is trasformed to fluid node
+                Rsum=ZERO
+                Bsum=ZERO
+                Dsum=ZERO
+                !compute mean density value 
+                do l=1,linksd3q27
+                  ishift=i+exd3q27(l)
+                  jshift=j+eyd3q27(l)
+                  kshift=k+ezd3q27(l)
+                  if(isfluid(ishift,jshift,kshift)==1 .and. &
+                   new_isfluid(ishift,jshift,kshift)==1)then
+                    Rsum=Rsum+pd3q27(l)*rhoR(ishift,jshift,kshift)
+                    Bsum=Bsum+pd3q27(l)*rhoB(ishift,jshift,kshift)
+                    Dsum=Dsum+pd3q27(l)
+                  endif
+                enddo
+                Rsum=Rsum/Dsum
+                Bsum=Bsum/Dsum
+                myu=vx(iatm)
+                myv=vy(iatm)
+                myw=vz(iatm)
+                !formula taken from eq. 25 of PRE 83, 046707 (2011)
+                call initialize_newnode_fluid(i,j,k,Rsum,myu,myv,myw,aoptpR)
+                call initialize_newnode_fluid(i,j,k,Bsum,myu,myv,myw,aoptpB)
+                !formula taken from eq. 26 of PRE 83, 046707 (2011)
+                fx(iatm)=fx(iatm)-(Rsum+Bsum)*myu
+                fy(iatm)=fy(iatm)-(Rsum+Bsum)*myv
+                fz(iatm)=fz(iatm)-(Rsum+Bsum)*myw
+                if(lrotate)then
+                  ftemp(1)=-(Rsum+Bsum)*myu
+                  ftemp(2)=-(Rsum+Bsum)*myv
+                  ftemp(3)=-(Rsum+Bsum)*myw
+                  rtemp(1:3)=rdimx(itype)/spheredists(m) * &
+                   real(spherelists(1:3,m),kind=PRC)
+                  tx(iatm)=tx(iatm)+xcross(rtemp,ftemp)
+                  ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
+                  tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
+                endif
+              endif
+              if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
+               kk>=kmin .and. kk<=kmax)then
+                !solid node is trasformed to fluid node
+                Rsum=ZERO
+                Bsum=ZERO
+                Dsum=ZERO
+                !compute mean density value 
+                do l=1,linksd3q27
+                  ishift=ii+exd3q27(l)
+                  jshift=jj+eyd3q27(l)
+                  kshift=kk+ezd3q27(l)
+                  if(isfluid(ishift,jshift,kshift)==1 .and. &
+                   new_isfluid(ishift,jshift,kshift)==1)then
+                    Rsum=Rsum+pd3q27(l)*rhoR(ishift,jshift,kshift)
+                    Bsum=Bsum+pd3q27(l)*rhoB(ishift,jshift,kshift)
+                    Dsum=Dsum+pd3q27(l)
+                  endif
+                enddo
+                Rsum=Rsum/Dsum
+                Bsum=Bsum/Dsum
+                myu=vx(iatm)
+                myv=vy(iatm)
+                myw=vz(iatm)
+                !formula taken from eq. 25 of PRE 83, 046707 (2011)
+                call initialize_newnode_fluid(ii,jj,kk,Rsum,myu,myv,myw,aoptpR)
+                call initialize_newnode_fluid(ii,jj,kk,Bsum,myu,myv,myw,aoptpB)
+              endif
+            endif
+          endif
+        enddo
+        do m=1,nspheredeads
+          i=isub+spherelistdeads(1,m)
+          j=jsub+spherelistdeads(2,m)
+          k=ksub+spherelistdeads(3,m)
+          !apply periodic conditions if necessary
+          i=pimage(ixpbc,i,nx)
+          j=pimage(iypbc,j,ny)
+          k=pimage(izpbc,k,nz)
+          if(i<imin .or. i>imax)cycle
+          if(j<jmin .or. j>jmax)cycle
+          if(k<kmin .or. k>kmax)cycle
+          rhoR(i,j,k)=MINDENS
+          rhoB(i,j,k)=MINDENS
+          u(i,j,k)=ZERO
+          v(i,j,k)=ZERO
+          w(i,j,k)=ZERO
+        enddo
+        rhoR(isub,jsub,ksub)=MINDENS
+        rhoB(isub,jsub,ksub)=MINDENS
+        u(isub,jsub,ksub)=ZERO
+        v(isub,jsub,ksub)=ZERO
+        w(isub,jsub,ksub)=ZERO
+      endif
+    endif
+  enddo
+  
+  case(2)
+  
+  !delete fluid 
+  do iatm=1,natmssub
+    if(.not. lmoved(iatm))cycle
+    itype=ltype(iatm)
+    isub=nint(xx(iatm))
+    jsub=nint(yy(iatm))
+    ksub=nint(zz(iatm))
+    if(lsingle_fluid)then
+      do l=1,nspheres
+        i=isub+spherelists(1,l)
+        j=jsub+spherelists(2,l)
+        k=ksub+spherelists(3,l)
+        !apply periodic conditions if necessary
+        i=pimage(ixpbc,i,nx)
+        j=pimage(iypbc,j,ny)
+        k=pimage(izpbc,k,nz)
+        if(i<imin .or. i>imax)cycle
+        if(j<jmin .or. j>jmax)cycle
+        if(k<kmin .or. k>kmax)cycle
+        if(isfluid(i,j,k)==1)then
+          !fluid node is trasformed to solid
+          !formula taken from eq. 18 of PRE 83, 046707 (2011)
+          fx(iatm)=fx(iatm)+rhoR(i,j,k)*u(i,j,k)
+          fy(iatm)=fy(iatm)+rhoR(i,j,k)*v(i,j,k)
+          fz(iatm)=fz(iatm)+rhoR(i,j,k)*w(i,j,k)
+          if(lrotate)then
+            ftemp(1)=rhoR(i,j,k)*u(i,j,k)
+            ftemp(2)=rhoR(i,j,k)*v(i,j,k)
+            ftemp(3)=rhoR(i,j,k)*w(i,j,k)
+            rtemp(1:3)=rdimx(itype)/spheredists(l) * &
+             real(spherelists(1:3,l),kind=PRC)
+            tx(iatm)=tx(iatm)+xcross(rtemp,ftemp)
+            ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
+            tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
+          endif
+        endif
+      enddo
+      do l=1,nspheredeads
+        i=isub+spherelistdeads(1,l)
+        j=jsub+spherelistdeads(2,l)
+        k=ksub+spherelistdeads(3,l)
+        !apply periodic conditions if necessary
+        i=pimage(ixpbc,i,nx)
+        j=pimage(iypbc,j,ny)
+        k=pimage(izpbc,k,nz)
+        if(i<imin .or. i>imax)cycle
+        if(j<jmin .or. j>jmax)cycle
+        if(k<kmin .or. k>kmax)cycle
+        if(isfluid(i,j,k)==1)then
+          !fluid node is trasformed to solid
+          !formula taken from eq. 18 of PRE 83, 046707 (2011)
+          fx(iatm)=fx(iatm)+rhoR(i,j,k)*u(i,j,k)
+          fy(iatm)=fy(iatm)+rhoR(i,j,k)*v(i,j,k)
+          fz(iatm)=fz(iatm)+rhoR(i,j,k)*w(i,j,k)
+        endif
+      enddo
+    else
+      do l=1,nspheres
+        i=isub+spherelists(1,l)
+        j=jsub+spherelists(2,l)
+        k=ksub+spherelists(3,l)
+        !apply periodic conditions if necessary
+        i=pimage(ixpbc,i,nx)
+        j=pimage(iypbc,j,ny)
+        k=pimage(izpbc,k,nz)
+        if(i<imin .or. i>imax)cycle
+        if(j<jmin .or. j>jmax)cycle
+        if(k<kmin .or. k>kmax)cycle
+        if(isfluid(i,j,k)==1)then
+          !fluid node is trasformed to solid node
+          !formula taken from eq. 18 of PRE 83, 046707 (2011)
+          fx(iatm)=fx(iatm)+(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
+          fy(iatm)=fy(iatm)+(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
+          fz(iatm)=fz(iatm)+(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
+          if(lrotate)then
+            ftemp(1)=(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
+            ftemp(2)=(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
+            ftemp(3)=(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
+            rtemp(1:3)=rdimx(itype)/spheredists(l) * &
+             real(spherelists(1:3,l),kind=PRC)
+            tx(iatm)=tx(iatm)+xcross(rtemp,ftemp)
+            ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
+            tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
+          endif
+        endif
+      enddo
+      do l=1,nspheredeads
+        i=isub+spherelistdeads(1,l)
+        j=jsub+spherelistdeads(2,l)
+        k=ksub+spherelistdeads(3,l)
+        !apply periodic conditions if necessary
+        i=pimage(ixpbc,i,nx)
+        j=pimage(iypbc,j,ny)
+        k=pimage(izpbc,k,nz)
+        if(i<imin .or. i>imax)cycle
+        if(j<jmin .or. j>jmax)cycle
+        if(k<kmin .or. k>kmax)cycle
+        if(isfluid(i,j,k)==1)then
+          !fluid node is trasformed to solid node
+          !formula taken from eq. 18 of PRE 83, 046707 (2011)
+          fx(iatm)=fx(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
+          fy(iatm)=fy(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
+          fz(iatm)=fz(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
+        endif
+      enddo
     endif
   enddo
   

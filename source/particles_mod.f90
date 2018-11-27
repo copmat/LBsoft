@@ -481,6 +481,8 @@
   
   integer, intent(in), dimension(1:mxntype) :: itemp
   
+  if(.not. lparticles)return
+  
   ishape(1:mxntype)=itemp(1:mxntype)
   
   where(ishape(1:mxntype)==0)
@@ -551,6 +553,8 @@
   
   real(kind=PRC), intent(in), dimension(1:mxntype) :: dtemp
   
+  if(.not. lparticles)return
+  
   lumass(1:ntype)=.true.
   weight(1:mxntype)=dtemp(1:mxntype)
   
@@ -573,6 +577,8 @@
   implicit none
   
   real(kind=PRC), intent(in), dimension(1:mxntype) :: dtempx,dtempy,dtempz
+  
+  if(.not. lparticles)return
   
   rdimx(1:mxntype)=dtempx(1:mxntype)
   rdimy(1:mxntype)=dtempy(1:mxntype)
@@ -647,6 +653,8 @@
   character(len=8), intent(in), dimension(mxntype) :: ctemp
   
   integer :: i
+  
+  if(.not. lparticles)return
   
   do i=1,mxntype
     atmnamtype(i)=ctemp(i)
@@ -771,6 +779,8 @@
   integer, dimension(mxntype,mxntype), intent(in) :: itemp2
   
   integer :: i
+  
+  if(.not. lparticles)return
   
   do i=1,iarr1
     ltpvdw(i)=itemp1(i)
@@ -907,18 +917,22 @@
   allocate(fyy(mxatms),stat=istat(8))
   allocate(fzz(mxatms),stat=istat(9))
   
-  allocate(oxx(mxatms),stat=istat(13))
-  allocate(oyy(mxatms),stat=istat(14))
-  allocate(ozz(mxatms),stat=istat(15))
+  if(lrotate)then
   
-  allocate(q0(mxatms),stat=istat(16))
-  allocate(q1(mxatms),stat=istat(17))
-  allocate(q2(mxatms),stat=istat(18))
-  allocate(q3(mxatms),stat=istat(19))
+    allocate(oxx(mxatms),stat=istat(13))
+    allocate(oyy(mxatms),stat=istat(14))
+    allocate(ozz(mxatms),stat=istat(15))
+    
+    allocate(q0(mxatms),stat=istat(16))
+    allocate(q1(mxatms),stat=istat(17))
+    allocate(q2(mxatms),stat=istat(18))
+    allocate(q3(mxatms),stat=istat(19))
+    
+    allocate(tqx(mxatms),stat=istat(20))
+    allocate(tqy(mxatms),stat=istat(21))
+    allocate(tqz(mxatms),stat=istat(22))
   
-  allocate(tqx(mxatms),stat=istat(20))
-  allocate(tqy(mxatms),stat=istat(21))
-  allocate(tqz(mxatms),stat=istat(22))
+  endif
   
   allocate(ltype(mxatms),stat=istat(23))
   
@@ -943,11 +957,6 @@
 #if 1
   if(mxrank>1)then
     if(idrank==0)write(6,'(a)')'ATTENTION: MD in parallel is under developing!'
-    call error(-1)
-  endif
-  
-  if(lrotate)then
-    if(idrank==0)write(6,'(a)')'ATTENTION: MD rotation integrator is under developing!'
     call error(-1)
   endif
   
@@ -1000,18 +1009,20 @@
   fyy(1:mxatms)=ZERO
   fzz(1:mxatms)=ZERO
   
-  oxx(1:mxatms)=ZERO
-  oyy(1:mxatms)=ZERO
-  ozz(1:mxatms)=ZERO
-  
-  q0(1:mxatms)=ZERO
-  q1(1:mxatms)=ZERO
-  q2(1:mxatms)=ZERO
-  q3(1:mxatms)=ZERO
-  
-  tqx(1:mxatms)=ZERO
-  tqy(1:mxatms)=ZERO
-  tqz(1:mxatms)=ZERO
+  if(lrotate)then
+    oxx(1:mxatms)=ZERO
+    oyy(1:mxatms)=ZERO
+    ozz(1:mxatms)=ZERO
+    
+    q0(1:mxatms)=ZERO
+    q1(1:mxatms)=ZERO
+    q2(1:mxatms)=ZERO
+    q3(1:mxatms)=ZERO
+    
+    tqx(1:mxatms)=ZERO
+    tqy(1:mxatms)=ZERO
+    tqz(1:mxatms)=ZERO
+  endif
   
   ltype(1:mxatms)=0
   
@@ -1488,6 +1499,25 @@
   if(linit_temp)call init_velocity
   
 ! start the initialization of the rotation part
+  
+  if(lrotate)then
+    !initialize moments of inertia
+    where(ishape(1:ntype)==1)
+      !oblate
+      rotinx(1:ntype)=ONE/FIVE*weight(1:ntype)*(rdimy(1:ntype)+rdimz(1:ntype))**TWO
+      rotiny(1:ntype)=ONE/FIVE*weight(1:ntype)*(rdimx(1:ntype)+rdimz(1:ntype))**TWO
+      rotinz(1:ntype)=ONE/FIVE*weight(1:ntype)*(rdimx(1:ntype)+rdimy(1:ntype))**TWO
+    elsewhere
+      !sphere
+      rotinx(1:ntype)=TWO/FIVE*weight(1:ntype)*(rdimx(1:ntype))**TWO
+      rotiny(1:ntype)=TWO/FIVE*weight(1:ntype)*(rdimx(1:ntype))**TWO
+      rotinz(1:ntype)=TWO/FIVE*weight(1:ntype)*(rdimx(1:ntype))**TWO
+    end where
+    oxx(:)=1.d-3
+    oyy(:)=1.d-3
+    ozz(:)=1.d-3
+  endif
+  
   lqinput=.false.
   ltinput=.false.
   if(nxyzlist_sub>0)then
@@ -1498,7 +1528,7 @@
     enddo
   endif
 
-  if((.not. ltinput) .and. (.not. lqinput))then
+  if((.not. ltinput) .and. (.not. lqinput) .and. lrotate)then
     call warning(19)
     !transform the rotational matrix in quaternions using an uniform
     !distribution
@@ -1551,12 +1581,6 @@
         rot(8)=q2(i)
         rot(9)=q3(i)
         call rotmat_2_quat(rot,q0(i),q1(i),q2(i),q3(i))
-        fxx(i)=ZERO
-        fyy(i)=ZERO
-        fzz(i)=ZERO
-        tqx(i)=ZERO
-        tqy(i)=ZERO
-        tqz(i)=ZERO
       enddo
     endif
   endif
@@ -1679,9 +1703,6 @@
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
-    vxx(iatm)=ZERO
-    vyy(iatm)=ZERO
-    vzz(iatm)=ZERO
     call particle_bounce_back(.true.,i,j,k,nsphere, &
      spherelist,spheredist,vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm))
@@ -1817,7 +1838,7 @@
   
 !***********************************************************************
 !     
-!     LBsoft subroutine to build the new_isfluid array and create
+!     LBsoft subroutine to build the new_isfluid array and delete
 !     fluid nodes if necessary
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
@@ -1838,9 +1859,10 @@
      spherelist,spheredist,nspheredead,spherelistdead,lmove, &
      xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,xxo,yyo,zzo)
   
-  call particle_moving_fluids(1,natms,nsphere, &
-     spherelist,spheredist,nspheredead,spherelistdead,lmove, &
-     xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,xxo,yyo,zzo)
+  call particle_moving_fluids(2,natms,nsphere, &
+     spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
+     ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
+     rdimx,rdimy,rdimz)
   
   return
   
@@ -1851,7 +1873,7 @@
 !***********************************************************************
 !     
 !     LBsoft subroutine to manage moving particle effects
-!     to fluid nodes and viceversa
+!     to fluid nodes and create new fluid if necessary
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -1863,9 +1885,10 @@
   
   if(.not. lparticles)return
   
-  call particle_moving_fluids(2,natms,nsphere, &
-     spherelist,spheredist,nspheredead,spherelistdead,lmove, &
-     xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,xxo,yyo,zzo)
+  call particle_moving_fluids(1,natms,nsphere, &
+     spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
+     ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
+     rdimx,rdimy,rdimz)
   
   call update_isfluid
   
@@ -2068,7 +2091,7 @@
  
 !***********************************************************************
 !     
-!     LBsoft subroutine to initialize the force array
+!     LBsoft subroutine to initialize the force arrays
 !
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -2084,6 +2107,14 @@
     fxx(i)=ZERO
     fyy(i)=ZERO
     fzz(i)=ZERO
+  end forall
+  
+  if(.not. lrotate)return
+  !initialize also the torque of forces
+  forall(i=1:natms)
+    tqx(i)=ZERO
+    tqy(i)=ZERO
+    tqz(i)=ZERO
   end forall
   
   return

@@ -366,7 +366,7 @@
   
   if(lrotate)then
     write(iotest,103) 'VECTORS Vect float'
-  
+    
     do iatm=1,natms
       write(iotest,*) &
        take_rotversorz(q0(iatm),q1(iatm),q2(iatm),q3(iatm))

@@ -50,6 +50,9 @@
  public :: modulvec
  public :: dot
  public :: cross
+ public :: xcross
+ public :: ycross
+ public :: zcross
  public :: sig
  public :: write_fmtnumb
  public :: get_prntime
@@ -498,6 +501,78 @@
   return
   
  end function cross
+ 
+ pure function xcross(a,b)
+ 
+!***********************************************************************
+!     
+!     LBsoft function for computing the cross product of two vectors
+!     along x
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC) :: xcross
+  real(kind=PRC), dimension(3), intent(in) :: a, b
+
+  xcross = a(2) * b(3) - a(3) * b(2)
+  
+  return
+  
+ end function xcross
+ 
+ pure function ycross(a,b)
+ 
+!***********************************************************************
+!     
+!     LBsoft function for computing the cross product of two vectors
+!     along y
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC) :: ycross
+  real(kind=PRC), dimension(3), intent(in) :: a, b
+  
+  ycross = a(3) * b(1) - a(1) * b(3)
+  
+  return
+  
+ end function ycross
+ 
+ pure function zcross(a,b)
+ 
+!***********************************************************************
+!     
+!     LBsoft function for computing the cross product of two vectors
+!     along z
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC) :: zcross
+  real(kind=PRC), dimension(3), intent(in) :: a, b
+  
+  zcross = a(1) * b(2) - a(2) * b(1)
+  
+  return
+  
+ end function zcross
  
  pure function dot(a,b)
  

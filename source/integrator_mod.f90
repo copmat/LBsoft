@@ -159,6 +159,14 @@
   call moments_fluids
   if(ldiagnostic)call end_timing2("LB","moments_fluids")
   
+  if(ldiagnostic)call start_timing2("LB","driver_bc_densities")
+  call driver_bc_densities
+  if(ldiagnostic)call end_timing2("LB","driver_bc_densities")
+  
+  if(ldiagnostic)call start_timing2("LB","driver_bc_velocities")
+  call driver_bc_velocities
+  if(ldiagnostic)call end_timing2("LB","driver_bc_velocities")
+  
   if(lparticles)then
     
     newlst=.false.
@@ -180,14 +188,6 @@
     if(ldiagnostic)call end_timing2("MD","inter_part_and_grid")
     
   endif
-  
-  if(ldiagnostic)call start_timing2("LB","driver_bc_densities")
-  call driver_bc_densities
-  if(ldiagnostic)call end_timing2("LB","driver_bc_densities")
-  
-  if(ldiagnostic)call start_timing2("LB","driver_bc_velocities")
-  call driver_bc_velocities
-  if(ldiagnostic)call end_timing2("LB","driver_bc_velocities")
   
   if(lpair_SC)then
     if(ldiagnostic)call start_timing2("LB","driver_densities_wall")

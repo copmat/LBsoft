@@ -1818,7 +1818,7 @@
       call bcast_world_farr(dtemp_urdimy,mxntype)
       call bcast_world_farr(dtemp_urdimz,mxntype)
       call set_rdim(dtemp_urdim,dtemp_urdimy,dtemp_urdimz)
-      if(idrank==0)then
+      if(idrank==0 .and. lparticles)then
         mystring=repeat(' ',dimprint)
         mystring='particle radius'
         write(6,'(2a,i12)')mystring,": ",ntype
@@ -1890,7 +1890,7 @@
     if(any(temp_lumass))then
       call bcast_world_farr(dtemp_umass,mxntype)
       call set_umass(dtemp_umass)
-      if(idrank==0)then
+      if(idrank==0 .and. lparticles)then
         mystring=repeat(' ',dimprint)
         mystring='particle mass'
         write(6,'(2a,i12)')mystring,": ",ntype
@@ -1921,7 +1921,7 @@
       call set_field_array(ntpvdw,mxpvdw,temp_ltpvdw,dtemp_prmvdw, &
        temp_mskvdw)
        
-      if(idrank==0)then
+      if(idrank==0 .and. lparticles)then
         mystring=repeat(' ',dimprint)
         mystring='number of field pairs'
         write(6,'(2a,i12)')mystring,": ",ntpvdw
