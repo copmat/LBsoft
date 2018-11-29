@@ -25,7 +25,8 @@
                         driver_streaming_fluids,aoptpR,test_fake_pops,&
                         probe_pops_in_node,ex,ey,ez,isfluid, &
                         driver_bc_velocities,lbc_halfway, &
-                        driver_apply_bounceback_halfway_pop
+                        driver_apply_bounceback_halfway_pop, &
+                        probe_red_moments_in_node
  use particles_mod,    only : driver_neighborhood_list,lparticles, &
                         vertest,initialize_particle_force, &
                         driver_inter_force,integrate_particles_lf, &
@@ -34,7 +35,8 @@
                         apply_particle_bounce_back, &
                         store_old_pos_vel_part, &
                         inter_part_and_grid,force_particle_bounce_back,&
-                        merge_particle_force,build_new_isfluid
+                        merge_particle_force,build_new_isfluid, &
+                        compute_mean_particle_force
  use write_output_mod, only : write_vtk_frame,write_xyz
  
  implicit none
@@ -143,11 +145,9 @@
   
   real(kind=PRC)::myrho,myu,myv,myw
   logical :: ltest
-  integer :: itemp,jtemp,ktemp,l
+  integer :: itemp,jtemp,ktemp,i,j,k,l
   integer(kind=IPRC) :: i4
   logical :: newlst
-  
-  
   
   new_time = real(nstep,kind=PRC)*tstep
   
@@ -156,7 +156,7 @@
   if(ldiagnostic)call end_timing2("LB","initialize_force")
   
   if(ldiagnostic)call start_timing2("LB","moments_fluids")
-  call moments_fluids
+  call moments_fluids(nstep)
   if(ldiagnostic)call end_timing2("LB","moments_fluids")
   
   if(ldiagnostic)call start_timing2("LB","driver_bc_densities")
@@ -182,10 +182,6 @@
     call initialize_particle_energy
     call driver_inter_force
     if(ldiagnostic)call end_timing2("MD","driver_inter_f")
-    
-    if(ldiagnostic)call start_timing2("MD","inter_part_and_grid")
-    call inter_part_and_grid
-    if(ldiagnostic)call end_timing2("MD","inter_part_and_grid")
     
   endif
   
@@ -224,13 +220,15 @@
     if(ldiagnostic)call end_timing2("IO","write_xyz")
     
     if(ldiagnostic)call start_timing2("LB","apply_part_bback")
-    call apply_particle_bounce_back
+    call apply_particle_bounce_back(nstep)
     if(ldiagnostic)call end_timing2("LB","apply_part_bback")
     
     call merge_particle_force
     
     call force_particle_bounce_back
-    !call initialize_particle_force
+    
+    call compute_mean_particle_force
+    
     call store_old_pos_vel_part
     if(lvv)then
       if(ldiagnostic)call start_timing2("MD","integrate_vv")
@@ -248,11 +246,6 @@
       if(ldiagnostic)call end_timing2("MD","integrate_lf")
     endif
     
-    if(ldiagnostic)call start_timing2("LB","build_new_isfluid")
-    call initialize_particle_force
-    call build_new_isfluid
-    if(ldiagnostic)call end_timing2("LB","build_new_isfluid")
-    
   endif
   
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
@@ -263,6 +256,19 @@
     if(ldiagnostic)call start_timing2("LB","apply_bback_pop")
     call driver_apply_bounceback_pop
     if(ldiagnostic)call end_timing2("LB","apply_bback_pop")
+  endif
+  
+  if(lparticles)then
+  
+    if(ldiagnostic)call start_timing2("LB","build_new_isfluid")
+    call initialize_particle_force
+    call build_new_isfluid(nstep)
+    if(ldiagnostic)call end_timing2("LB","build_new_isfluid")
+    
+    if(ldiagnostic)call start_timing2("MD","inter_part_and_grid")
+    call inter_part_and_grid(nstep)
+    if(ldiagnostic)call end_timing2("MD","inter_part_and_grid")
+  
   endif
   
   mytime = new_time

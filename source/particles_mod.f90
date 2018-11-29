@@ -43,8 +43,10 @@
                    set_lbc_halfway,lbc_halfway,cssq,links,ex,ey,ez, &
                    init_particle_2_isfluid,push_comm_isfluid, &
                    ixpbc,iypbc,izpbc,isfluid,particle_bounce_back, &
-                   particle_moving_fluids,initialize_new_isfluid, &
-                   update_isfluid,driver_bc_isfluid,mapping_new_isfluid
+                   initialize_new_isfluid,update_isfluid, &
+                   driver_bc_isfluid,mapping_new_isfluid,&
+                   particle_delete_fluids,particle_create_fluids, &
+                   erase_fluids_in_particles
 
  
  implicit none
@@ -143,6 +145,11 @@
  real(kind=PRC), public, protected, save :: rcut=ZERO
  !Verlet neighbour list shell width
  real(kind=PRC), public, protected, save :: delr=ZERO
+ 
+ !mean particle force along directions x y z
+ real(kind=PRC), public, protected, save :: meanpfx=ZERO
+ real(kind=PRC), public, protected, save :: meanpfy=ZERO
+ real(kind=PRC), public, protected, save :: meanpfz=ZERO
  
  !key for set initial particle temperature
  logical, public, protected, save :: linit_temp=.false.
@@ -330,6 +337,8 @@
  public :: take_rotversorx
  public :: take_rotversory
  public :: take_rotversorz
+ public :: clean_fluid_inside_particle
+ public :: compute_mean_particle_force
  
  contains
  
@@ -663,6 +672,43 @@
   return
   
  end subroutine set_atmnamtype
+ 
+ subroutine compute_mean_particle_force()
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for computing the mean particle force
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer :: i
+  real(kind=PRC) :: dtemp(3)
+  
+  dtemp(1:3)=ZERO
+  
+  do i=1,natms
+    dtemp(1)=dtemp(1)+fxx(i)
+    dtemp(2)=dtemp(2)+fyy(i)
+    dtemp(3)=dtemp(3)+fzz(i)
+  enddo
+  
+  if(mxrank>1)then
+    call sum_world_farr(dtemp,3)
+  endif
+  
+  meanpfx=dtemp(1)/real(natms_tot,kind=PRC)
+  meanpfy=dtemp(2)/real(natms_tot,kind=PRC)
+  meanpfz=dtemp(3)/real(natms_tot,kind=PRC)
+  
+  return
+  
+ end subroutine compute_mean_particle_force
  
  subroutine allocate_particle_features()
  
@@ -1513,9 +1559,6 @@
       rotiny(1:ntype)=TWO/FIVE*weight(1:ntype)*(rdimx(1:ntype))**TWO
       rotinz(1:ntype)=TWO/FIVE*weight(1:ntype)*(rdimx(1:ntype))**TWO
     end where
-    oxx(:)=1.d-3
-    oyy(:)=1.d-3
-    ozz(:)=1.d-3
   endif
   
   lqinput=.false.
@@ -1676,7 +1719,7 @@
   
  end subroutine init_particles_fluid_interaction
  
- subroutine apply_particle_bounce_back()
+ subroutine apply_particle_bounce_back(nstep)
  
 !***********************************************************************
 !     
@@ -1691,7 +1734,9 @@
  
   implicit none
   
-  integer :: iatm,i,j,k
+  integer, intent(in) :: nstep
+  
+  integer :: iatm,i,j,k,itype
   
   forall(iatm=1:natms_ext)
     fxb(iatm)=ZERO
@@ -1699,12 +1744,43 @@
     fzb(iatm)=ZERO
   end forall
   
+  if(lrotate)then
+  
   do iatm=1,natms
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
-    call particle_bounce_back(.true.,i,j,k,nsphere, &
-     spherelist,spheredist,vxx(iatm),vyy(iatm),vzz(iatm), &
+    itype=ltype(iatm)
+    call particle_bounce_back(nstep,.true.,lrotate,i,j,k,nsphere, &
+     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
+     xxx(iatm),yyy(iatm),zzz(iatm), &
+     vxx(iatm),vyy(iatm),vzz(iatm), &
+     fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm))
+  enddo
+  
+  do iatm=natms+1,natms_ext
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    itype=ltype(iatm)
+    call particle_bounce_back(nstep,.false.,lrotate,i,j,k,nsphere, &
+     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
+     xxx(iatm),yyy(iatm),zzz(iatm), &
+     vxx(iatm),vyy(iatm),vzz(iatm), &
+     fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm))
+  enddo
+  
+  else
+  
+  do iatm=1,natms
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    itype=ltype(iatm)
+    call particle_bounce_back(nstep,.true.,lrotate,i,j,k,nsphere, &
+     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
+     xxx(iatm),yyy(iatm),zzz(iatm), &
+     vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm))
   enddo
   
@@ -1712,10 +1788,15 @@
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
-    call particle_bounce_back(.false.,i,j,k,nsphere, &
-     spherelist,spheredist,vxx(iatm),vyy(iatm),vzz(iatm), &
+    itype=ltype(iatm)
+    call particle_bounce_back(nstep,.false.,lrotate,i,j,k,nsphere, &
+     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
+     xxx(iatm),yyy(iatm),zzz(iatm), &
+     vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm))
   enddo
+  
+  endif
   
   return
   
@@ -1834,12 +1915,11 @@
   
  end subroutine check_moving_particles
  
- subroutine build_new_isfluid
+ subroutine build_new_isfluid(nstep)
   
 !***********************************************************************
 !     
-!     LBsoft subroutine to build the new_isfluid array and delete
-!     fluid nodes if necessary
+!     LBsoft subroutine to build the new_isfluid array if necessary
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -1848,6 +1928,8 @@
 !***********************************************************************
   
   implicit none
+  
+  integer, intent(in) :: nstep
  
   if(.not. lparticles)return
   
@@ -1859,21 +1941,16 @@
      spherelist,spheredist,nspheredead,spherelistdead,lmove, &
      xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,xxo,yyo,zzo)
   
-  call particle_moving_fluids(2,natms,nsphere, &
-     spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
-     ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
-     rdimx,rdimy,rdimz)
-  
   return
   
  end subroutine build_new_isfluid
  
- subroutine inter_part_and_grid
+ subroutine inter_part_and_grid(nstep)
   
 !***********************************************************************
 !     
 !     LBsoft subroutine to manage moving particle effects
-!     to fluid nodes and create new fluid if necessary
+!     to fluid nodes and create and delete fluid nodes if necessary
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -1883,13 +1960,20 @@
  
   implicit none
   
+  integer, intent(in) :: nstep
+  
   if(.not. lparticles)return
   
-  call particle_moving_fluids(1,natms,nsphere, &
+  call particle_delete_fluids(nstep,natms,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
-  
+     
+  call particle_create_fluids(nstep,natms,nsphere, &
+     spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
+     ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
+     rdimx,rdimy,rdimz)
+     
   call update_isfluid
   
   call driver_bc_isfluid
@@ -1897,6 +1981,28 @@
   return
   
  end subroutine inter_part_and_grid
+ 
+ subroutine clean_fluid_inside_particle
+   
+!***********************************************************************
+!     
+!     LBsoft subroutine to remove fluid inside the particles
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+ 
+  call erase_fluids_in_particles(natms,nsphere,spherelist, &
+   spheredist,nspheredead,spherelistdead,ltype,xxx,yyy,zzz, &
+   vxx,vyy,vzz,rdimx,rdimy,rdimz)
+   
+  return
+  
+ end subroutine clean_fluid_inside_particle
  
  subroutine driver_neighborhood_list(newlst,nstepsub)
  
@@ -2537,7 +2643,12 @@
   implicit none
   
   integer, intent(in) :: nstepsub
-  
+!  vxx(:)=ZERO
+!  vyy(:)=ZERO
+!  vzz(:)=ZERO
+!  fxx(:)=ZERO
+!  fyy(:)=ZERO
+!  fzz(:)=ZERO
   select case(keyint)
   case (1) 
     call nve_lf

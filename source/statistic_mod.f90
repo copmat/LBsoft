@@ -17,13 +17,14 @@
  use fluids_mod,            only : nx,ny,nz,isfluid,rhoR,rhoB,u,v,w, &
   lsingle_fluid, minx, maxx, miny, maxy, minz, maxz
  use particles_mod,         only : lparticles,engke,engcfg,engtot, &
-  engrot,tempboltz,degfre,natms,vxx,vyy,vzz
+  engrot,tempboltz,degfre,natms,vxx,vyy,vzz,fxx,fyy,fzz,natms_tot, &
+  meanpfx,meanpfy,meanpfz
  
  implicit none
  
  private
  
- integer, public, parameter :: nmaxstatdata=24
+ integer, public, parameter :: nmaxstatdata=30
  
  real(kind=PRC), public, save, dimension(nmaxstatdata) :: statdata
  real(kind=PRC), public, save :: meancputime=0.d0
@@ -96,20 +97,26 @@
   
 ! store all the observables in the statdata array to be printed
   statdata(1)=ZERO
+  statdata(25:27)=ZERO
   dnorm(1)=ZERO
   do k=minz,maxz
     do j=miny,maxy
       do i=minx,maxx
         if(isfluid(i,j,k)==1)then
           statdata(1)=statdata(1)+rhoR(i,j,k)
+          statdata(25)=statdata(25)+u(i,j,k)
+          statdata(26)=statdata(26)+v(i,j,k)
+          statdata(27)=statdata(27)+w(i,j,k)
           dnorm(1)=dnorm(1)+ONE
         endif
       enddo
     enddo
   enddo
   
-  statdata(3)=maxval(rhoR(minx:maxx,miny:maxy,minz:maxz))
-  statdata(5)=minval(rhoR(minx:maxx,miny:maxy,minz:maxz))
+  statdata(3)=maxval(rhoR(minx:maxx,miny:maxy,minz:maxz), &
+   isfluid(minx:maxx,miny:maxy,minz:maxz)==1)
+  statdata(5)=minval(rhoR(minx:maxx,miny:maxy,minz:maxz), &
+   isfluid(minx:maxx,miny:maxy,minz:maxz)==1)
   
   if(.not. lsingle_fluid)then
     statdata(2)=ZERO
@@ -122,16 +129,24 @@
         enddo
       enddo
     enddo
-    statdata(4)=maxval(rhoB(minx:maxx,miny:maxy,minz:maxz))
-    statdata(6)=minval(rhoB(minx:maxx,miny:maxy,minz:maxz))
+    statdata(4)=maxval(rhoB(minx:maxx,miny:maxy,minz:maxz), &
+   isfluid(minx:maxx,miny:maxy,minz:maxz)==1)
+    statdata(6)=minval(rhoB(minx:maxx,miny:maxy,minz:maxz), &
+   isfluid(minx:maxx,miny:maxy,minz:maxz)==1)
   endif
   
-  statdata(7)=maxval(u(minx:maxx,miny:maxy,minz:maxz))
-  statdata(8)=minval(u(minx:maxx,miny:maxy,minz:maxz))
-  statdata(9)=maxval(v(minx:maxx,miny:maxy,minz:maxz))
-  statdata(10)=minval(v(minx:maxx,miny:maxy,minz:maxz))
-  statdata(11)=maxval(w(minx:maxx,miny:maxy,minz:maxz))
-  statdata(12)=minval(w(minx:maxx,miny:maxy,minz:maxz))
+  statdata(7)=maxval(u(minx:maxx,miny:maxy,minz:maxz), &
+   isfluid(minx:maxx,miny:maxy,minz:maxz)==1)
+  statdata(8)=minval(u(minx:maxx,miny:maxy,minz:maxz), &
+   isfluid(minx:maxx,miny:maxy,minz:maxz)==1)
+  statdata(9)=maxval(v(minx:maxx,miny:maxy,minz:maxz), &
+   isfluid(minx:maxx,miny:maxy,minz:maxz)==1)
+  statdata(10)=minval(v(minx:maxx,miny:maxy,minz:maxz), &
+   isfluid(minx:maxx,miny:maxy,minz:maxz)==1)
+  statdata(11)=maxval(w(minx:maxx,miny:maxy,minz:maxz), &
+   isfluid(minx:maxx,miny:maxy,minz:maxz)==1)
+  statdata(12)=minval(w(minx:maxx,miny:maxy,minz:maxz), &
+   isfluid(minx:maxx,miny:maxy,minz:maxz)==1)
 ! estimate the remaining CPU time
   statdata(13)=meancputime*(reprinttime-icount)
   statdata(14)=elapsedcputime
@@ -152,18 +167,19 @@
     if(mxrank>1)call max_world_farr(dtemp,1)
     statdata(21)=sqrt(dtemp(1))
     dtemp(1:3)=ZERO
-    dnorm2(1)=ZERO
     do i=1,natms
       dtemp(1)=dtemp(1)+vxx(i)
       dtemp(2)=dtemp(2)+vyy(i)
       dtemp(3)=dtemp(3)+vzz(i)
-      dnorm2(1)=dnorm2(1)+ONE
     enddo
     if(mxrank>1)then
-      call sum_world_farr(dnorm2,1)
       call sum_world_farr(dtemp,3)
     endif
-    statdata(22:24)=dtemp(1:3)/dnorm2(1)
+    statdata(22:24)=dtemp(1:3)/real(natms_tot,kind=PRC)
+    
+    statdata(28)=meanpfx
+    statdata(29)=meanpfy
+    statdata(30)=meanpfz
   endif
   
   if(mxrank>1)then
@@ -172,9 +188,15 @@
     
     dtemp(1)=statdata(1)
     dtemp(2)=statdata(2)
-    call sum_world_farr(dtemp,2)
+    dtemp(3)=statdata(25)
+    dtemp(4)=statdata(26)
+    dtemp(5)=statdata(27)
+    call sum_world_farr(dtemp,5)
     statdata(1)=dtemp(1)
     if(.not. lsingle_fluid)statdata(2)=dtemp(2)
+    statdata(25)=dtemp(3)
+    statdata(26)=dtemp(4)
+    statdata(27)=dtemp(5)
     
     dtemp(1)=statdata(3)
     dtemp(2)=statdata(4)
@@ -203,6 +225,7 @@
   
   statdata(1)=statdata(1)/dnorm(1)
   if(.not. lsingle_fluid)statdata(2)=statdata(2)/dnorm(1)
+  statdata(25:27)=statdata(25:27)/dnorm(1)
   
 ! update the counter
   icount=icount+1

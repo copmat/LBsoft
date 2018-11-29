@@ -210,11 +210,17 @@
       write(outp,'(a)') &
       "WARNING - * minvz                * min fluid velocity of fluid mix along z in lb units   *"
       write(outp,'(a)') &
-      "WARNING - * engke                * min fluid velocity of fluid mix along y in lb units   *"
+      "WARNING - * fvx                  * mean fluid velocity along x in lb units               *"
       write(outp,'(a)') &
-      "WARNING - * engcf                * max fluid velocity of fluid mix along z in lb units   *"
+      "WARNING - * fvy                  * mean fluid velocity along y in lb units               *"
       write(outp,'(a)') &
-      "WARNING - * engto                * min fluid velocity of fluid mix along z in lb units   *"
+      "WARNING - * fvz                  * mean fluid velocity along z in lb units               *"
+      write(outp,'(a)') &
+      "WARNING - * engke                * kinetic energy in lb units                            *"
+      write(outp,'(a)') &
+      "WARNING - * engcf                * configuration energy in lb units                      *"
+      write(outp,'(a)') &
+      "WARNING - * engto                * total energy in lb units                              *"
       write(outp,'(a)') &
       "WARNING - * tempp                * particle temperature as ratio of KbT                  *"
       write(outp,'(a)') &
@@ -225,6 +231,12 @@
       "WARNING - * pvy                  * mean particle velocity along y in lb units            *"
       write(outp,'(a)') &
       "WARNING - * pvz                  * mean particle velocity along z in lb units            *"
+      write(outp,'(a)') &
+      "WARNING - * pfx                  * mean particle force along x in lb units               *"
+      write(outp,'(a)') &
+      "WARNING - * pfy                  * mean particle force along y in lb units               *"
+      write(outp,'(a)') &
+      "WARNING - * pfz                  * mean particle force along z in lb units               *"
       write(outp,'(a)') &
       "WARNING - * cpu                  * time for every print interval in seconds              *"
       write(outp,'(a)') &

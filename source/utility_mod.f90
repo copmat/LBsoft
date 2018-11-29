@@ -60,6 +60,7 @@
  public :: gauss_noseeded
  public :: dcell
  public :: invert
+ public :: int_cube_sphere
  
  contains
  
@@ -573,6 +574,56 @@
   return
   
  end function zcross
+ 
+ pure function int_cube_sphere(rdim,xo,yo,zo,side,xc,yc,zc,ires)
+ 
+!***********************************************************************
+!     
+!     LBsoft function for computing the volume intersection
+!     between a cube and a sphere
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC) :: int_cube_sphere
+  real(kind=PRC), intent(in) :: rdim,xo,yo,zo
+  real(kind=PRC), intent(in) :: side,xc,yc,zc
+  integer, intent(in) :: ires
+  
+  real(kind=PRC) :: myres,sqrdim,xmin,ymin,zmin,xx,yy,zz,rdist,mysum
+  integer :: i,j,k,l
+  
+  sqrdim=rdim**TWO
+  
+  myres=side/real(ires,kind=PRC)
+  xmin=xc+(myres-side)/TWO
+  ymin=yc+(myres-side)/TWO
+  zmin=zc+(myres-side)/TWO
+  mysum=ZERO
+  do k=1,ires
+    zz=zmin+real(k-1,kind=PRC)*myres
+    do j=1,ires
+      yy=ymin+real(j-1,kind=PRC)*myres
+      do i=1,ires
+        xx=xmin+real(i-1,kind=PRC)*myres
+        rdist=(xx-xo)**TWO+(yy-yo)**TWO+(zz-zo)**TWO
+        if(rdist>sqrdim)then
+          mysum=mysum+ONE
+        endif
+      enddo
+    enddo
+  enddo
+  
+  int_cube_sphere=mysum/real(ires*ires*ires,kind=PRC)
+  
+  return
+  
+ end function int_cube_sphere
  
  pure function dot(a,b)
  

@@ -21,7 +21,7 @@
   minx, maxx, miny, maxy, minz, maxz,isfluid
  use particles_mod,  only : natms,xxx,yyy,zzz,lparticles,cell, &
   ishape,lrotate,natms,natms_tot,q0,q1,q2,q3,vxx,vyy,vzz, &
-  take_rotversorz
+  take_rotversorz,clean_fluid_inside_particle
  
   private
   
@@ -559,8 +559,13 @@
   implicit none
   
   integer, intent(in) :: nstepsub
+  integer, save :: iter=0
   
   if((.not. lvtkfile).and.(.not. lxyzfile))return
+  
+  iter=iter+1
+  
+  call clean_fluid_inside_particle
   
   if(lparticles)then
     if(mxrank==1)then

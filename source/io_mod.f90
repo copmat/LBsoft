@@ -2065,11 +2065,11 @@
   elseif(printcodsub(iarg)==12)then
     legendobs='minvz =  min fluid velocity of fluid mix along z  '
   elseif(printcodsub(iarg)==13)then
-    legendobs='cpur  =  remaining time to the end                 '
+    legendobs='cpur  =  remaining time to the end                '
   elseif(printcodsub(iarg)==14)then
-    legendobs='cpue  =  elapsed time                              '
+    legendobs='cpue  =  elapsed time                             '
   elseif(printcodsub(iarg)==15)then
-    legendobs='cpu   =  time for every print interval             '
+    legendobs='cpu   =  time for every print interval            '
   elseif(printcodsub(iarg)==16)then
     legendobs='t     =  unscaled time                            '
   elseif(printcodsub(iarg)==17)then
@@ -2088,6 +2088,18 @@
     legendobs='pvy   =  mean particle velocity along y           '
   elseif(printcodsub(iarg)==24)then
     legendobs='pvz   =  mean particle velocity along z           '
+  elseif(printcodsub(iarg)==25)then
+    legendobs='fvx   =  mean fluid velocity along x              '
+  elseif(printcodsub(iarg)==26)then
+    legendobs='fvy   =  mean fluid velocity along y              '
+  elseif(printcodsub(iarg)==27)then
+    legendobs='fvz   =  mean fluid velocity along z              '
+  elseif(printcodsub(iarg)==28)then
+    legendobs='pfx   =  mean particle force along x              '
+  elseif(printcodsub(iarg)==29)then
+    legendobs='pfy   =  mean particle force along y              '
+  elseif(printcodsub(iarg)==30)then
+    legendobs='pfz   =  mean particle force along z              '
   endif
   legendobs=adjustl(legendobs)
   
@@ -2194,6 +2206,24 @@
   elseif(findstring('pvz',temps,inumchar,lenstring))then
     printcodsub(iarg)=24
     lfound=.true.
+  elseif(findstring('fvx',temps,inumchar,lenstring))then
+    printcodsub(iarg)=25
+    lfound=.true.
+  elseif(findstring('fvy',temps,inumchar,lenstring))then
+    printcodsub(iarg)=26
+    lfound=.true.
+  elseif(findstring('fvz',temps,inumchar,lenstring))then
+    printcodsub(iarg)=27
+    lfound=.true.
+  elseif(findstring('pfx',temps,inumchar,lenstring))then
+    printcodsub(iarg)=28
+    lfound=.true.
+  elseif(findstring('pfy',temps,inumchar,lenstring))then
+    printcodsub(iarg)=29
+    lfound=.true.
+  elseif(findstring('pfz',temps,inumchar,lenstring))then
+    printcodsub(iarg)=30
+    lfound=.true.
   elseif(findstring('t',temps,inumchar,lenstring))then
     printcodsub(iarg)=16
     lfound=.true.
@@ -2280,6 +2310,18 @@
     printlisub(iarg)='pvy (lu)'
   elseif(printcodsub(iarg)==24)then
     printlisub(iarg)='pvz (lu)'
+  elseif(printcodsub(iarg)==25)then
+    printlisub(iarg)='fvx (lu)'
+  elseif(printcodsub(iarg)==26)then
+    printlisub(iarg)='fvy (lu)'
+  elseif(printcodsub(iarg)==27)then
+    printlisub(iarg)='fvz (lu)'
+  elseif(printcodsub(iarg)==28)then
+    printlisub(iarg)='pfx (lu)'
+  elseif(printcodsub(iarg)==29)then
+    printlisub(iarg)='pfy (lu)'
+  elseif(printcodsub(iarg)==30)then
+    printlisub(iarg)='pfz (lu)'
   endif
   printlisub(iarg)=adjustr(printlisub(iarg))
   enddo
