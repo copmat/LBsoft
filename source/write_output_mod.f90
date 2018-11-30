@@ -559,11 +559,10 @@
   implicit none
   
   integer, intent(in) :: nstepsub
-  integer, save :: iter=0
   
   if((.not. lvtkfile).and.(.not. lxyzfile))return
   
-  iter=iter+1
+  if(mod(nstepsub,ivtkevery)/=0)return
   
   call clean_fluid_inside_particle
   

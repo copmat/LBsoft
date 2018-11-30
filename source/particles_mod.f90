@@ -102,6 +102,9 @@
  !activate particle part
  logical, public, protected, save :: lparticles=.false.
  
+ !activate reflecting wall
+ logical, public, protected, save :: lwall_md=.false.
+ 
  !kbT factor
  real(kind=PRC), public, protected, save :: tempboltz=cssq
  
@@ -143,8 +146,15 @@
  
  !Potential cut-off
  real(kind=PRC), public, protected, save :: rcut=ZERO
+ 
  !Verlet neighbour list shell width
  real(kind=PRC), public, protected, save :: delr=ZERO
+ 
+ !force constant of reflecting wall (hertzian force field)
+ real(kind=PRC), public, protected, save :: wall_md_k=ZERO
+ 
+ !distance for activate the force cup of the reflecting wall
+ real(kind=PRC), public, protected, save :: wall_md_rcup=ZERO
  
  !mean particle force along directions x y z
  real(kind=PRC), public, protected, save :: meanpfx=ZERO
@@ -296,6 +306,9 @@
  !parameters of all the pair force fields
  real(kind=PRC), allocatable, public, protected, save :: prmvdw(:,:)
  
+ 
+ real(kind=PRC), public, protected, save :: fmiosss(3,3)
+ 
  public :: allocate_particles
  public :: set_natms_tot
  public :: set_lparticles
@@ -305,6 +318,9 @@
  public :: set_ishape
  public :: set_lrotate
  public :: set_lvv
+ public :: set_lwall_md
+ public :: set_wall_md_k
+ public :: set_wall_md_rcup
  public :: initialize_map_particles
  public :: rotmat_2_quat
  public :: driver_neighborhood_list
@@ -672,6 +688,72 @@
   return
   
  end subroutine set_atmnamtype
+ 
+ subroutine set_lwall_md(ltemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the lwall_md protected variable
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  logical, intent(in) :: ltemp
+  
+  lwall_md=ltemp
+  
+  return
+  
+ end subroutine set_lwall_md
+ 
+ subroutine set_wall_md_k(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the wall_md_k protected variable
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp
+  
+  wall_md_k=dtemp
+  
+  return
+  
+ end subroutine set_wall_md_k
+ 
+ subroutine set_wall_md_rcup(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the wall_md_k protected variable
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp
+  
+  wall_md_rcup=dtemp
+  
+  return
+  
+ end subroutine set_wall_md_rcup
  
  subroutine compute_mean_particle_force()
  
@@ -1784,6 +1866,12 @@
      fxb(iatm),fyb(iatm),fzb(iatm))
   enddo
   
+  fmiosss(1,3)=fxb(1)-fmiosss(1,2)
+  fmiosss(2,3)=fyb(1)-fmiosss(2,2)
+  fmiosss(3,3)=fzb(1)-fmiosss(3,2)
+  
+  write(6,'(i8,10f16.8)')nstep,xxx(1)+4.5d0,fmiosss(:,:)
+  
   do iatm=natms+1,natms_ext
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
@@ -1950,7 +2038,7 @@
 !***********************************************************************
 !     
 !     LBsoft subroutine to manage moving particle effects
-!     to fluid nodes and create and delete fluid nodes if necessary
+!     to fluid nodes and create-delete fluid nodes if necessary
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -1969,11 +2057,19 @@
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
      
+  fmiosss(1,1)=fxx(1)
+  fmiosss(2,1)=fyy(1)
+  fmiosss(3,1)=fzz(1)
+  
   call particle_create_fluids(nstep,natms,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
      
+  fmiosss(1,2)=fxx(1)-fmiosss(1,1)
+  fmiosss(2,2)=fyy(1)-fmiosss(2,1)
+  fmiosss(3,2)=fzz(1)-fmiosss(3,1)
+  
   call update_isfluid
   
   call driver_bc_isfluid

@@ -46,7 +46,8 @@
   set_umass,lumass,linit_temp,init_temp,set_init_temp,lvv, &
   set_lvv,set_rdim,lurdim,set_lparticles,set_atmnamtype, &
   set_ntype,ntype,mxntype,rdimx,rdimy,rdimz,atmnamtype,weight, &
-  find_type,allocate_particle_features,mskvdw
+  find_type,allocate_particle_features,mskvdw,set_lwall_md,lwall_md, &
+  set_wall_md_k,wall_md_k,set_wall_md_rcup,wall_md_k,wall_md_rcup
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,lvtkstruct,set_value_ixyzevery,lxyzfile,ixyzevery
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
@@ -362,6 +363,7 @@
   logical :: temp_lvv=.false.
   logical, dimension(mxntype) :: temp_lurdim(1:mxntype)=.false.
   logical :: temp_lparticlentype=.false.
+  logical :: temp_lwall_md=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -428,6 +430,9 @@
   real(kind=PRC), dimension(mxntype) :: dtemp_urdimz(1:mxntype)=ZERO
   
   real(kind=PRC) :: dtemp_init_temp= ZERO
+  
+  real(kind=PRC) :: dtemp_wall_md_k=ZERO
+  real(kind=PRC) :: dtemp_wall_md_rcup=ZERO
   
   integer, dimension(mxvdw) :: temp_ltpvdw
   real(kind=PRC), dimension(mxpvdw,mxvdw) :: dtemp_prmvdw
@@ -979,6 +984,19 @@
               else
                 temp_lumass(itype)=.true.
                 dtemp_umass(itype)=dblstr(directive,maxlen,inumchar)
+              endif
+            elseif(findstring('wall',directive,inumchar,maxlen))then
+              if(findstring('const',directive,inumchar,maxlen))then
+                dtemp_wall_md_k=dblstr(directive,maxlen,inumchar)
+              elseif(findstring('rcup',directive,inumchar,maxlen))then
+                dtemp_wall_md_rcup=dblstr(directive,maxlen,inumchar)
+              elseif(findstring('yes',directive,inumchar,maxlen))then
+                temp_lwall_md=.true.
+              elseif(findstring('no',directive,inumchar,maxlen))then
+                temp_lwall_md=.false.
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
               endif
             elseif(findstring('field',directive,inumchar,maxlen))then
               if(findstring('pair',directive,inumchar,maxlen))then
@@ -1738,7 +1756,7 @@
     
     
     if(lrotate)then
-      if(idrank==0)then
+      if(idrank==0 .and. lparticles)then
         mystring=repeat(' ',dimprint)
         mystring='rotation'
         mystring12=repeat(' ',dimprint2)
@@ -1762,7 +1780,7 @@
       call set_ntype(temp_ntype)
       call bcast_world_carr(8,temp_atmnamtype,mxntype)
       call set_atmnamtype(temp_atmnamtype)
-      if(idrank==0)then
+      if(idrank==0 .and. lparticles)then
         mystring=repeat(' ',dimprint)
         mystring='particle types'
         write(6,'(2a,i12)')mystring,": ",ntype
@@ -1813,7 +1831,7 @@
       call warning(44)
       call error(7)
     endif
-    if(any(temp_lurdim))then
+    if(any(temp_lurdim) .and. lparticles)then
       call bcast_world_farr(dtemp_urdim,mxntype)
       call bcast_world_farr(dtemp_urdimy,mxntype)
       call bcast_world_farr(dtemp_urdimz,mxntype)
@@ -1854,7 +1872,7 @@
     call bcast_world_l(temp_lvv)
     if(temp_lvv)then
       call set_lvv(temp_lvv)
-      if(idrank==0)then
+      if(idrank==0 .and. lparticles)then
         mystring=repeat(' ',dimprint)
         mystring='velocity Verlet'
         mystring12=repeat(' ',dimprint2)
@@ -1872,7 +1890,7 @@
     if(temp_rcut)then
       call bcast_world_f(dtemp_rcut)
       call set_rcut(dtemp_rcut)
-      if(idrank==0)then
+      if(idrank==0 .and. lparticles)then
         mystring=repeat(' ',dimprint)
         mystring='potential cut-off'
         write(6,'(2a,f12.6)')mystring,": ",rcut
@@ -1908,7 +1926,50 @@
       endif
     endif
     
-    
+    call bcast_world_l(temp_lwall_md)
+    if(temp_lwall_md)then
+      call set_lwall_md(temp_lwall_md)
+      call bcast_world_f(dtemp_wall_md_k)
+      call bcast_world_f(dtemp_wall_md_rcup)
+      if(idrank==0 .and. lparticles)then
+        mystring=repeat(' ',dimprint)
+        mystring='wall'
+        mystring12=repeat(' ',dimprint2)
+        if(lwall_md)then
+          mystring12='yes'
+        else
+          mystring12='no'
+        endif
+        mystring12=adjustr(mystring12)
+        write(6,'(3a)')mystring,": ",mystring12
+      endif
+      if(dtemp_wall_md_k/=ZERO)then
+        call set_wall_md_k(dtemp_wall_md_k)
+        if(idrank==0 .and. lparticles)then
+          mystring=repeat(' ',dimprint)
+          mystring='wall force constant'
+          write(6,'(2a,f12.6)')mystring,": ",wall_md_k
+        endif
+      else
+        if(lwall_md)then
+          call warning(47)
+          call error(7)
+        endif
+      endif
+      if(dtemp_wall_md_rcup/=ZERO)then
+        call set_wall_md_rcup(dtemp_wall_md_rcup)
+        if(idrank==0 .and. lparticles)then
+          mystring=repeat(' ',dimprint)
+          mystring='wall distance force cup'
+          write(6,'(2a,f12.6)')mystring,": ",wall_md_rcup
+        endif
+      else
+        if(lwall_md)then
+          call warning(48)
+          call error(7)
+        endif
+      endif
+    endif
     
     call bcast_world_l(temp_field_pair)
     if(temp_field_pair)then

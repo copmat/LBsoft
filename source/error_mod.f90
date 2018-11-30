@@ -464,6 +464,12 @@
     case (46)
       write(outp,'(/,2a,/)')"WARNING - particle pair of force field", &
        " not specified in input file!"
+    case (47)
+      write(outp,'(/,2a,/)')"WARNING - 'wall const' is not defined in ", &
+      "input file"
+    case (48)
+      write(outp,'(/,2a,/)')"WARNING - 'wall rcup' is not defined in ", &
+      "input file"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

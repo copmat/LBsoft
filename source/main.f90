@@ -210,7 +210,7 @@
     call driver_inter_force
     call initialize_integrator_lf
     call store_old_pos_vel_part
-    call build_new_isfluid
+    call build_new_isfluid(nstep)
   endif
   
 ! initialize lrecycle 

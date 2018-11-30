@@ -8279,6 +8279,7 @@
   f2y=fy
   f2z=fz
   
+  
   if(lfirst)then
     lfirst=.false.
     imin=minx-1
@@ -8310,6 +8311,9 @@
       vxt=vx
       vyt=vy
       vzt=vz
+      f2x=fx
+  f2y=fy
+  f2z=fz
       if(lrotate)then
 #ifdef STAGGERED
         rtemp(1:3)=rdimx/spheredists(l) * &
@@ -8325,32 +8329,36 @@
         vyt=vyt+ycross(otemp,rtemp)
         vzt=vzt+zcross(otemp,rtemp)
       endif
-      if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. &
-         k>=minz .and. k<=maxz)then
-        call node_to_particle_bounce_back(i,j,k,vxt,vyt,vzt,fx,fy,fz, &
+      call node_to_particle_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
          rhoR,aoptpR)
-      endif
       !the fluid bounce back is local so I have to do it
       if(i==ii.and.j==jj.and.k==kk)then
         if(i<imin .or. i>imax)cycle
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle
+  !      call node_to_particle_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
+  !       rhoR,aoptpR)
         call particle_to_node_bounce_back(nstep,i,j,k,vxt,vyt,vzt, &
            rhoR,aoptpR)
       else
         if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
          k>=kmin .and. k<=kmax)then
+  !        call node_to_particle_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
+  !         rhoR,aoptpR)
           call particle_to_node_bounce_back(nstep,i,j,k,vxt,vyt,vzt, &
            rhoR,aoptpR)
         endif
         if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
          kk>=kmin .and. kk<=kmax)then
+  !        call node_to_particle_bounce_back_bc(nstep,ii,jj,kk,vxt,vyt,vzt,fx,fy,fz, &
+  !         rhoR,aoptpR)
           call particle_to_node_bounce_back(nstep,ii,jj,kk,vxt,vyt,vzt, &
            rhoR,aoptpR)
         endif
       endif
+     ! if(nstep>=550 .and. nstep<553)write(6,*)nstep,l,i,j,k,fx-f2x,fx
     enddo
-    !if(mod(iter,10)==0)write(6,*)iter,isub,jsub,ksub,fx,fy,fz
+    
     !call finalize_world
     !stop
   else
@@ -8385,9 +8393,9 @@
       endif
       if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. &
          k>=minz .and. k<=maxz)then
-        call node_to_particle_bounce_back(i,j,k,vxt,vyt,vzt,fx,fy,fz, &
+        call node_to_particle_bounce_back(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
          rhoR,aoptpR)
-        call node_to_particle_bounce_back(i,j,k,vxt,vyt,vzt,fx,fy,fz, &
+        call node_to_particle_bounce_back(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
          rhoB,aoptpB)
       endif
       !the fluid bounce back is local so I have to do it
@@ -8423,7 +8431,7 @@
   
  end subroutine particle_bounce_back
   
- subroutine node_to_particle_bounce_back(i,j,k,vx,vy,vz,fx,fy,fz, &
+ subroutine node_to_particle_bounce_back(nstep,i,j,k,vx,vy,vz,fx,fy,fz, &
   rhosub,aoptp)
  
 !***********************************************************************
@@ -8439,7 +8447,7 @@
  
   implicit none
   
-  integer, intent(in) :: i,j,k
+  integer, intent(in) :: nstep,i,j,k
   real(kind=PRC), intent(in) :: vx,vy,vz
   real(kind=PRC), intent(inout) :: fx,fy,fz
   real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub
@@ -8582,6 +8590,285 @@
   return
   
   end subroutine node_to_particle_bounce_back
+  
+  subroutine node_to_particle_bounce_back_bc(nstep,i,j,k,vx,vy,vz, &
+  fx,fy,fz,rhosub,aoptp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to apply the bounce back of the fluid 
+!     on a particle surface node including the pbc
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: nstep,i,j,k
+  real(kind=PRC), intent(in) :: vx,vy,vz
+  real(kind=PRC), intent(inout) :: fx,fy,fz
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub
+  type(REALPTR), dimension(0:links):: aoptp
+  
+  real(kind=PRC), parameter :: onesixth=ONE/SIX
+  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
+  real(kind=PRC) :: f2p
+  
+  integer, save :: iter=0
+  
+  integer :: ii,jj,kk
+  
+  iter=iter+1
+  
+  !force on particle fx fy fz
+  !eq. 11.2 from page 437 Kruger's book "the lattice boltzmann method"
+    
+  ii=i+ex(1)
+  jj=j
+  kk=k
+  ii=pimage(ixpbc,ii,nx)
+  if(isfluid(ii,j,k)==1)then
+    if(ii>=minx .and. ii<=maxx)then
+      f2p=TWO*real(aoptp(2)%p(ii,j,k),kind=PRC)- &
+       p(2)*pref_bouzidi*rhosub(ii,j,k)*(dex(2)*vx)
+      fx=fx+f2p*dex(2)
+    endif
+  endif
+    
+  ii=i+ex(2)
+  jj=j
+  kk=k
+  ii=pimage(ixpbc,ii,nx)
+  if(isfluid(ii,j,k)==1)then
+    if(ii>=minx .and. ii<=maxx)then
+      f2p=TWO*real(aoptp(1)%p(ii,j,k),kind=PRC)- &
+       p(1)*pref_bouzidi*rhosub(ii,j,k)*(dex(1)*vx)
+      fx=fx+f2p*dex(1)
+    endif
+  endif
+    
+  ii=i
+  jj=j+ey(3)
+  kk=k
+  jj=pimage(iypbc,jj,ny)
+  if(isfluid(i,jj,k)==1)then
+    if(jj>=miny .and. jj<=maxy)then
+      f2p=TWO*real(aoptp(4)%p(i,jj,k),kind=PRC)- &
+       p(4)*pref_bouzidi*rhosub(i,jj,k)*(dey(4)*vy)
+      fy=fy+f2p*dey(4)
+    endif
+  endif
+    
+  ii=i
+  jj=j+ey(4)
+  kk=k
+  jj=pimage(iypbc,jj,ny)
+  if(isfluid(i,jj,k)==1)then
+    if(jj>=miny .and. jj<=maxy)then
+      f2p=TWO*real(aoptp(3)%p(i,jj,k),kind=PRC)- &
+       p(3)*pref_bouzidi*rhosub(i,jj,k)*(dey(3)*vy)
+      fy=fy+f2p*dey(3)
+    endif
+  endif
+    
+  ii=i
+  jj=j
+  kk=k+ez(5)
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(i,j,kk)==1)then
+    if(kk>=minz .and. kk<=maxz)then
+      f2p=TWO*real(aoptp(6)%p(i,j,kk),kind=PRC)- &
+       p(6)*pref_bouzidi*rhosub(i,j,kk)*(dez(6)*vz)
+      fz=fz+f2p*dez(6)
+    endif
+  endif
+    
+  ii=i
+  jj=j
+  kk=k+ez(6)
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(i,j,kk)==1)then
+    if(kk>=minz .and. kk<=maxz)then
+      f2p=TWO*real(aoptp(5)%p(i,j,kk),kind=PRC)- &
+       p(5)*pref_bouzidi*rhosub(i,j,kk)*(dez(5)*vz)
+      fz=fz+f2p*dez(5)
+    endif
+  endif
+    
+  ii=i+ex(7)
+  jj=j+ey(7)
+  kk=k
+  ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
+  if(isfluid(ii,jj,k)==1)then
+    if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy)then
+      f2p=TWO*real(aoptp(8)%p(ii,jj,k),kind=PRC)- &
+       p(8)*pref_bouzidi*rhosub(ii,jj,k)*(dex(8)*vx+dey(8)*vy)
+      fx=fx+f2p*dex(8)
+      fy=fy+f2p*dey(8)
+    endif
+  endif
+    
+  ii=i+ex(8)
+  jj=j+ey(8)
+  kk=k
+  ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
+  if(isfluid(ii,jj,k)==1)then
+    if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy)then
+      f2p=TWO*real(aoptp(7)%p(ii,jj,k),kind=PRC)- &
+       p(7)*pref_bouzidi*rhosub(ii,jj,k)*(dex(7)*vx+dey(7)*vy)
+      fx=fx+f2p*dex(7)
+      fy=fy+f2p*dey(7)
+    endif
+  endif
+    
+  ii=i+ex(9)
+  jj=j+ey(9)
+  kk=k
+  ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
+  if(isfluid(ii,jj,k)==1)then
+    if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy)then
+      f2p=TWO*real(aoptp(10)%p(ii,jj,k),kind=PRC)- &
+       p(10)*pref_bouzidi*rhosub(ii,jj,k)*(dex(10)*vx+dey(10)*vy)
+      fx=fx+f2p*dex(10)
+      fy=fy+f2p*dey(10)
+    endif
+  endif
+    
+  ii=i+ex(10)
+  jj=j+ey(10)
+  kk=k
+  ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
+  if(isfluid(ii,jj,k)==1)then
+    if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy)then
+      f2p=TWO*real(aoptp(9)%p(ii,jj,k),kind=PRC)- &
+       p(9)*pref_bouzidi*rhosub(ii,jj,k)*(dex(9)*vx+dey(9)*vy)
+      fx=fx+f2p*dex(9)
+      fy=fy+f2p*dey(9)
+    endif
+  endif
+    
+  ii=i+ex(11)
+  jj=j
+  kk=k+ez(11)
+  ii=pimage(ixpbc,ii,nx)
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(ii,j,kk)==1)then
+    if(ii>=minx .and. ii<=maxx .and. kk>=minz .and. kk<=maxz)then
+      f2p=TWO*real(aoptp(12)%p(ii,j,kk),kind=PRC)- &
+       p(12)*pref_bouzidi*rhosub(ii,j,kk)*(dex(12)*vx+dez(12)*vz)
+      fx=fx+f2p*dex(12)
+      fz=fz+f2p*dez(12)
+    endif
+  endif
+    
+  ii=i+ex(12)
+  jj=j
+  kk=k+ez(12)
+  ii=pimage(ixpbc,ii,nx)
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(ii,j,kk)==1)then
+    if(ii>=minx .and. ii<=maxx .and. kk>=minz .and. kk<=maxz)then
+      f2p=TWO*real(aoptp(11)%p(ii,j,kk),kind=PRC)- &
+       p(11)*pref_bouzidi*rhosub(ii,j,kk)*(dex(11)*vx+dez(11)*vz)
+      fx=fx+f2p*dex(11)
+      fz=fz+f2p*dez(11)
+    endif
+  endif
+    
+  ii=i+ex(13)
+  jj=j
+  kk=k+ez(13)
+  ii=pimage(ixpbc,ii,nx)
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(ii,j,kk)==1)then
+    if(ii>=minx .and. ii<=maxx .and. kk>=minz .and. kk<=maxz)then
+      f2p=TWO*real(aoptp(14)%p(ii,j,kk),kind=PRC)- &
+       p(14)*pref_bouzidi*rhosub(ii,j,kk)*(dex(14)*vx+dez(14)*vz)
+      fx=fx+f2p*dex(14)
+      fz=fz+f2p*dez(14)
+    endif
+  endif
+    
+  ii=i+ex(14)
+  jj=j
+  kk=k+ez(14)
+  ii=pimage(ixpbc,ii,nx)
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(ii,j,kk)==1)then
+    if(ii>=minx .and. ii<=maxx .and. kk>=minz .and. kk<=maxz)then
+      f2p=TWO*real(aoptp(13)%p(ii,j,kk),kind=PRC)- &
+       p(13)*pref_bouzidi*rhosub(ii,j,kk)*(dex(13)*vx+dez(13)*vz)
+      fx=fx+f2p*dex(13)
+      fz=fz+f2p*dez(13)
+    endif
+  endif
+    
+  ii=i
+  jj=j+ey(15)
+  kk=k+ez(15)
+  jj=pimage(iypbc,jj,ny)
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(i,jj,kk)==1)then
+    if(jj>=miny .and. jj<=maxy .and. kk>=minz .and. kk<=maxz)then
+      f2p=TWO*real(aoptp(16)%p(i,jj,kk),kind=PRC)- &
+       p(16)*pref_bouzidi*rhosub(i,jj,kk)*(dey(16)*vy+dez(16)*vz)
+      fy=fy+f2p*dey(16)
+      fz=fz+f2p*dez(16)
+    endif
+  endif
+    
+  ii=i
+  jj=j+ey(16)
+  kk=k+ez(16)
+  jj=pimage(iypbc,jj,ny)
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(i,jj,kk)==1)then
+    if(jj>=miny .and. jj<=maxy .and. kk>=minz .and. kk<=maxz)then
+      f2p=TWO*real(aoptp(15)%p(i,jj,kk),kind=PRC)- &
+       p(15)*pref_bouzidi*rhosub(i,jj,kk)*(dey(15)*vy+dez(15)*vz)
+      fy=fy+f2p*dey(15)
+      fz=fz+f2p*dez(15)
+    endif
+  endif
+    
+  ii=i
+  jj=j+ey(17)
+  kk=k+ez(17)
+  jj=pimage(iypbc,jj,ny)
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(i,jj,kk)==1)then
+    if(jj>=miny .and. jj<=maxy .and. kk>=minz .and. kk<=maxz)then
+      f2p=TWO*real(aoptp(18)%p(i,jj,kk),kind=PRC)- &
+       p(18)*pref_bouzidi*rhosub(i,jj,kk)*(dey(18)*vy+dez(18)*vz)
+      fy=fy+f2p*dey(18)
+      fz=fz+f2p*dez(18)
+    endif
+  endif
+    
+  ii=i
+  jj=j+ey(18)
+  kk=k+ez(18)
+  jj=pimage(iypbc,jj,ny)
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(i,jj,kk)==1)then
+    if(jj>=miny .and. jj<=maxy .and. kk>=minz .and. kk<=maxz)then
+      f2p=TWO*real(aoptp(17)%p(i,jj,kk),kind=PRC)- &
+       p(17)*pref_bouzidi*rhosub(i,jj,kk)*(dey(17)*vy+dez(17)*vz)
+      fy=fy+f2p*dey(17)
+      fz=fz+f2p*dez(17)
+    endif
+  endif
+   
+  return
+  
+  end subroutine node_to_particle_bounce_back_bc
   
   subroutine particle_to_node_bounce_back(nstep,i,j,k,vx,vy,vz, &
   rhosub,aoptp)
