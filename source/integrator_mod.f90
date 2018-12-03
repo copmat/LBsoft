@@ -26,17 +26,18 @@
                         probe_pops_in_node,ex,ey,ez,isfluid, &
                         driver_bc_velocities,lbc_halfway, &
                         driver_apply_bounceback_halfway_pop, &
-                        probe_red_moments_in_node
+                        probe_red_moments_in_node,print_all_pops, &
+                        print_all_pops_center
  use particles_mod,    only : driver_neighborhood_list,lparticles, &
                         vertest,initialize_particle_force, &
                         driver_inter_force,integrate_particles_lf, &
                         integrate_particles_vv,merge_particle_energies,&
                         initialize_particle_energy,lvv, &
                         apply_particle_bounce_back, &
-                        store_old_pos_vel_part, &
+                        store_old_pos_vel_part,xxx,yyy,zzz, &
                         inter_part_and_grid,force_particle_bounce_back,&
                         merge_particle_force,build_new_isfluid, &
-                        compute_mean_particle_force
+                        compute_mean_particle_force,rdimx,rdimy,rdimz
  use write_output_mod, only : write_vtk_frame,write_xyz
  
  implicit none
@@ -271,6 +272,13 @@
   
   endif
   
+!  if(nstep==1)then
+!    call print_all_pops_center(1322,'poptest.dat',nstep, &
+!     rdimx(1),rdimy(1),rdimz(1),aoptpR, &
+!     nint(xxx(1)),nint(yyy(1)),nint(zzz(1)))
+!    call finalize_world
+!    stop
+!  endif
   mytime = new_time
   
   return

@@ -1,6 +1,6 @@
 [ROOM SYSTEM]
-box 64 64 64
-steps 10000
+box 32 32 32
+steps 2000
 diagnostic yes
 boundary condition 1 1 1
 decomposition type 7
@@ -17,7 +17,7 @@ close time 10 s
 components 1
 density gaussian
 density mean 1.d0 1.d0
-density stdev 1.d-4 0.d-4
+density stdev 0.d-4 0.d-4
 velocity mean 0.d0 0.d0 0.d0
 fluid tau 1.d0 1.d0
 force external 5.d-5 0.d-5 0.d0
