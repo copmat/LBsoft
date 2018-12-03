@@ -191,10 +191,10 @@
  integer, save :: ncellsmax=0
  
  !number of reflecting nodes in the spherical particle
- integer, save :: nsphere
+ integer, save, protected, public :: nsphere
  
  !coordinate list of reflecting nodes in the spherical particle
- integer, allocatable, dimension(:,:), save :: spherelist
+ integer, allocatable, dimension(:,:), save, protected, public :: spherelist
  
  !radial distance list of reflecting nodes in the spherical particle
  real(kind=PRC), allocatable, dimension(:), save :: spheredist
@@ -1840,17 +1840,17 @@
      fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm))
   enddo
   
-  do iatm=natms+1,natms_ext
-    i=nint(xxx(iatm))
-    j=nint(yyy(iatm))
-    k=nint(zzz(iatm))
-    itype=ltype(iatm)
-    call particle_bounce_back(nstep,.false.,lrotate,i,j,k,nsphere, &
-     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
-     xxx(iatm),yyy(iatm),zzz(iatm), &
-     vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm))
-  enddo
+!  do iatm=natms+1,natms_ext
+!    i=nint(xxx(iatm))
+!    j=nint(yyy(iatm))
+!    k=nint(zzz(iatm))
+!    itype=ltype(iatm)
+!    call particle_bounce_back(nstep,.false.,lrotate,i,j,k,nsphere, &
+!     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
+!     xxx(iatm),yyy(iatm),zzz(iatm), &
+!     vxx(iatm),vyy(iatm),vzz(iatm), &
+!     fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm))
+!  enddo
   
   else
   
@@ -1871,22 +1871,22 @@
   fmiosss(3,3)=fzb(1)-fmiosss(3,2)
   
   !if(mod(nstep,10)==0)
-  write(6,'(i8,10f12.6)')nstep,xxx(1),fmiosss(:,:)
+  !write(6,'(i8,10f12.6)')nstep,xxx(1),fmiosss(:,:)
   !if(nstep==2)then
   !call finalize_world
   !stop
   !endif
-  do iatm=natms+1,natms_ext
-    i=nint(xxx(iatm))
-    j=nint(yyy(iatm))
-    k=nint(zzz(iatm))
-    itype=ltype(iatm)
-    call particle_bounce_back(nstep,.false.,lrotate,i,j,k,nsphere, &
-     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
-     xxx(iatm),yyy(iatm),zzz(iatm), &
-     vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxb(iatm),fyb(iatm),fzb(iatm))
-  enddo
+!  do iatm=natms+1,natms_ext
+!    i=nint(xxx(iatm))
+!    j=nint(yyy(iatm))
+!    k=nint(zzz(iatm))
+!    itype=ltype(iatm)
+!    call particle_bounce_back(nstep,.false.,lrotate,i,j,k,nsphere, &
+!     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
+!     xxx(iatm),yyy(iatm),zzz(iatm), &
+!     vxx(iatm),vyy(iatm),vzz(iatm), &
+!     fxb(iatm),fyb(iatm),fzb(iatm))
+!  enddo
   
   endif
   

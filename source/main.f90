@@ -56,7 +56,7 @@
   use fluids_mod,      only : allocate_fluids,initialize_isfluid_bcfluid, &
                         nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
                         miny,maxy,minz,maxz,nbuff,lsingle_fluid, &
-                        isfluid,initialize_fluids, &
+                        isfluid,initialize_fluids,driver_bc_isfluid, &
                         driver_initialiaze_manage_bc_selfcomm
   use particles_mod,   only : allocate_particles,lparticles,vertest, &
                         initialize_map_particles,driver_inter_force, &
@@ -210,7 +210,7 @@
     call driver_inter_force
     call initialize_integrator_lf
     call store_old_pos_vel_part
-    call build_new_isfluid(nstep)
+    call driver_bc_isfluid
   endif
   
 ! initialize lrecycle 

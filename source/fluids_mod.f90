@@ -340,6 +340,9 @@
  public :: erase_fluids_in_particles
  public :: print_all_pops
  public :: print_all_pops_center
+ public :: print_all_pops_area_shpere
+ public :: driver_streaming_fluids_no_pbc_serial
+ public :: pimage
  
  contains
  
@@ -3137,6 +3140,87 @@
   
  end subroutine driver_streaming_fluids
  
+ subroutine driver_streaming_fluids_no_pbc_serial(lparticles)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the streaming step
+!     on the Boltzmann populations
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(in) :: lparticles
+  integer :: i,j,k,l,ishift,jshift,kshift
+  integer, save :: iter=0
+  
+  iter=iter+1
+
+
+
+
+#ifdef DIAGNSTREAM
+   if(iter.eq.NDIAGNSTREAM) then
+     if(allocated(ownern))then
+       call print_all_pops(100,'mioprima',iter,aoptpR)
+     endif
+   endif
+#endif
+    
+  
+  do l=1,links
+    ishift=ex(l)
+    jshift=ey(l)
+    kshift=ez(l)
+    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,isfluid(i,j,k)<3 .or. isfluid(i,j,k)>4)
+        buffservice3d(i+ishift,j+jshift,k+kshift) = aoptpR(l)%p(i,j,k)
+    end forall
+    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,isfluid(i,j,k)<3 .or. isfluid(i,j,k)>4)
+        aoptpR(l)%p(i,j,k) = buffservice3d(i,j,k)
+    end forall
+  enddo
+  
+
+
+
+#ifdef DIAGNSTREAM
+  if(iter.eq.NDIAGNSTREAM) then
+    if(allocated(ownern))then
+       call print_all_pops(300,'miodopo',iter,aoptpR)
+    endif
+  endif
+#endif
+  
+  if(lsingle_fluid)return
+  
+
+  
+  do l=1,links
+    ishift=ex(l)
+    jshift=ey(l)
+    kshift=ez(l)
+    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
+      buffservice3d(i+ishift,j+jshift,k+kshift) = aoptpB(l)%p(i,j,k)
+    end forall
+    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
+      aoptpB(l)%p(i,j,k) = buffservice3d(i,j,k)
+    end forall
+  enddo
+  
+  
+  
+  
+  
+  
+  return
+  
+ end subroutine driver_streaming_fluids_no_pbc_serial
+ 
  subroutine streaming_fluids(lparticles,f00sub,f01sub,f02sub,f03sub,f04sub, &
    f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
    f14sub,f15sub,f16sub,f17sub,f18sub,aoptp)
@@ -5704,30 +5788,9 @@
             if(itemp<minx.or.jtemp<miny.or.ktemp<minz.or. &
              itemp>maxx.or.jtemp>maxy.or.ktemp>maxz)then
               !apply periodic conditions if necessary
-              if(ixpbc.eq.1) then
-                if(itemp<1) then
-                  itemp=itemp+nx
-                endif
-                if(itemp>nx) then
-                  itemp=itemp-nx
-                endif
-              endif
-              if(iypbc.eq.1) then
-                if(jtemp<1) then
-                  jtemp=jtemp+ny
-                endif
-                if(jtemp>ny) then
-                  jtemp=jtemp-ny
-                endif
-              endif
-              if(izpbc.eq.1) then
-                if(ktemp<1) then
-                  ktemp=ktemp+nz
-                endif
-                if(ktemp>nz) then
-                  ktemp=ktemp-nz
-                endif
-              endif
+              itemp=pimage(ixpbc,itemp,nx)
+              jtemp=pimage(iypbc,jtemp,ny)
+              ktemp=pimage(izpbc,ktemp,nz)
               i4=i4back(itemp,jtemp,ktemp) 
               i4orig=i4back(itemp2,jtemp2,ktemp2)
               if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank &
@@ -5764,30 +5827,9 @@
             if(itemp<minx.or.jtemp<miny.or.ktemp<minz.or. &
              itemp>maxx.or.jtemp>maxy.or.ktemp>maxz)then
               !apply periodic conditions if necessary
-              if(ixpbc.eq.1) then
-                if(itemp<1) then
-                  itemp=itemp+nx
-                endif
-                if(itemp>nx) then
-                  itemp=itemp-nx
-                endif
-              endif
-              if(iypbc.eq.1) then
-                if(jtemp<1) then
-                  jtemp=jtemp+ny
-                endif
-               if(jtemp>ny) then
-                  jtemp=jtemp-ny
-                endif
-              endif
-              if(izpbc.eq.1) then
-                if(ktemp<1) then
-                  ktemp=ktemp+nz
-                endif
-                if(ktemp>nz) then
-                  ktemp=ktemp-nz
-                endif
-              endif
+              itemp=pimage(ixpbc,itemp,nx)
+              jtemp=pimage(iypbc,jtemp,ny)
+              ktemp=pimage(izpbc,ktemp,nz)
               i4=i4back(itemp,jtemp,ktemp) 
               i4orig=i4back(itemp2,jtemp2,ktemp2)
               if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank &
@@ -5845,10 +5887,14 @@
       ktemp2 = poplistbc(6,i)
       idir=ipoplistbc(i)
       iopp=opp(idir)
-      if(isfluid(itemp+ex(iopp),jtemp+ey(iopp),ktemp+ez(iopp))<2 .or. &
+      if(isfluid(itemp+ex(iopp),jtemp+ey(iopp),ktemp+ez(iopp))<3 .or. &
        isfluid(itemp+ex(iopp),jtemp+ey(iopp),ktemp+ez(iopp))>5)then
         aoptp(idir)%p(itemp,jtemp,ktemp)=aoptp(idir)%p(itemp2,jtemp2,ktemp2)
       endif
+!      if(isfluid(itemp2+ex(iopp),jtemp2+ey(iopp),ktemp2+ez(iopp))==1)then
+!        aoptp(idir)%p(itemp+ex(iopp),jtemp+ey(iopp),ktemp+ez(iopp))= &
+!         aoptp(idir)%p(itemp2+ex(iopp),jtemp2+ey(iopp),ktemp2+ez(iopp))
+!      endif
     enddo
   else
     forall(i=1:npoplistbc)
@@ -8314,8 +8360,8 @@
       vyt=vy
       vzt=vz
       f2x=fx
-  f2y=fy
-  f2z=fz
+      f2y=fy
+      f2z=fz
       if(lrotate)then
 #ifdef STAGGERED
         rtemp(1:3)=rdimx/spheredists(l) * &
@@ -8331,8 +8377,11 @@
         vyt=vyt+ycross(otemp,rtemp)
         vzt=vzt+zcross(otemp,rtemp)
       endif
-      call node_to_particle_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
-         rhoR,aoptpR)
+      if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. &
+         k>=minz .and. k<=maxz)then
+        call node_to_particle_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
+           rhoR,aoptpR)
+      endif
       !the fluid bounce back is local so I have to do it
       if(i==ii.and.j==jj.and.k==kk)then
         if(i<imin .or. i>imax)cycle
@@ -8395,9 +8444,9 @@
       endif
       if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. &
          k>=minz .and. k<=maxz)then
-        call node_to_particle_bounce_back(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
+        call node_to_particle_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
          rhoR,aoptpR)
-        call node_to_particle_bounce_back(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
+        call node_to_particle_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
          rhoB,aoptpB)
       endif
       !the fluid bounce back is local so I have to do it
@@ -8405,23 +8454,23 @@
         if(i<imin .or. i>imax)cycle
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle
-        call particle_to_node_bounce_back(nstep,i,j,k,vxt,vyt,vzt, &
+        call particle_to_node_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt, &
          rhoR,aoptpR)
-        call particle_to_node_bounce_back(nstep,i,j,k,vxt,vyt,vzt, &
+        call particle_to_node_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt, &
          rhoB,aoptpB)
       else
         if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
          k>=kmin .and. k<=kmax)then
-          call particle_to_node_bounce_back(nstep,i,j,k,vxt,vyt,vzt, &
+          call particle_to_node_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt, &
            rhoR,aoptpR)
-          call particle_to_node_bounce_back(nstep,i,j,k,vxt,vyt,vzt, &
+          call particle_to_node_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt, &
            rhoB,aoptpB)
         endif
         if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
          kk>=kmin .and. kk<=kmax)then
-          call particle_to_node_bounce_back(nstep,ii,jj,kk,vxt,vyt,vzt, &
+          call particle_to_node_bounce_back_bc(nstep,ii,jj,kk,vxt,vyt,vzt, &
            rhoR,aoptpR)
-          call particle_to_node_bounce_back(nstep,ii,jj,kk,vxt,vyt,vzt, &
+          call particle_to_node_bounce_back_bc(nstep,ii,jj,kk,vxt,vyt,vzt, &
            rhoB,aoptpB)
         endif
       endif
@@ -8632,10 +8681,12 @@
   jj=j
   kk=k
   ii=pimage(ixpbc,ii,nx)
-  if(isfluid(ii,j,k)==1)then
+  jj=pimage(iypbc,jj,ny)
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(ii,jj,kk)==1)then
     if(ii>=minx .and. ii<=maxx)then
-      f2p=TWO*real(aoptp(2)%p(ii,j,k),kind=PRC)- &
-       p(2)*pref_bouzidi*rhosub(ii,j,k)*(dex(2)*vx)
+      f2p=TWO*real(aoptp(2)%p(ii,jj,kk),kind=PRC)- &
+       p(2)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(2)*vx)
       fx=fx+f2p*dex(2)
     endif
   endif
@@ -8644,10 +8695,12 @@
   jj=j
   kk=k
   ii=pimage(ixpbc,ii,nx)
-  if(isfluid(ii,j,k)==1)then
+  jj=pimage(iypbc,jj,ny)
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(ii,jj,kk)==1)then
     if(ii>=minx .and. ii<=maxx)then
-      f2p=TWO*real(aoptp(1)%p(ii,j,k),kind=PRC)- &
-       p(1)*pref_bouzidi*rhosub(ii,j,k)*(dex(1)*vx)
+      f2p=TWO*real(aoptp(1)%p(ii,jj,kk),kind=PRC)- &
+       p(1)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(1)*vx)
       fx=fx+f2p*dex(1)
     endif
   endif
@@ -8655,11 +8708,13 @@
   ii=i
   jj=j+ey(3)
   kk=k
+  ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
-  if(isfluid(i,jj,k)==1)then
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(ii,jj,kk)==1)then
     if(jj>=miny .and. jj<=maxy)then
-      f2p=TWO*real(aoptp(4)%p(i,jj,k),kind=PRC)- &
-       p(4)*pref_bouzidi*rhosub(i,jj,k)*(dey(4)*vy)
+      f2p=TWO*real(aoptp(4)%p(ii,jj,kk),kind=PRC)- &
+       p(4)*pref_bouzidi*rhosub(ii,jj,kk)*(dey(4)*vy)
       fy=fy+f2p*dey(4)
     endif
   endif
@@ -8667,11 +8722,13 @@
   ii=i
   jj=j+ey(4)
   kk=k
+  ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
-  if(isfluid(i,jj,k)==1)then
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(ii,jj,kk)==1)then
     if(jj>=miny .and. jj<=maxy)then
-      f2p=TWO*real(aoptp(3)%p(i,jj,k),kind=PRC)- &
-       p(3)*pref_bouzidi*rhosub(i,jj,k)*(dey(3)*vy)
+      f2p=TWO*real(aoptp(3)%p(ii,jj,kk),kind=PRC)- &
+       p(3)*pref_bouzidi*rhosub(ii,jj,kk)*(dey(3)*vy)
       fy=fy+f2p*dey(3)
     endif
   endif
@@ -8679,11 +8736,13 @@
   ii=i
   jj=j
   kk=k+ez(5)
+  ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
-  if(isfluid(i,j,kk)==1)then
+  if(isfluid(ii,jj,kk)==1)then
     if(kk>=minz .and. kk<=maxz)then
-      f2p=TWO*real(aoptp(6)%p(i,j,kk),kind=PRC)- &
-       p(6)*pref_bouzidi*rhosub(i,j,kk)*(dez(6)*vz)
+      f2p=TWO*real(aoptp(6)%p(ii,jj,kk),kind=PRC)- &
+       p(6)*pref_bouzidi*rhosub(ii,jj,kk)*(dez(6)*vz)
       fz=fz+f2p*dez(6)
     endif
   endif
@@ -8691,11 +8750,13 @@
   ii=i
   jj=j
   kk=k+ez(6)
+  ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
-  if(isfluid(i,j,kk)==1)then
+  if(isfluid(ii,jj,kk)==1)then
     if(kk>=minz .and. kk<=maxz)then
-      f2p=TWO*real(aoptp(5)%p(i,j,kk),kind=PRC)- &
-       p(5)*pref_bouzidi*rhosub(i,j,kk)*(dez(5)*vz)
+      f2p=TWO*real(aoptp(5)%p(ii,jj,kk),kind=PRC)- &
+       p(5)*pref_bouzidi*rhosub(ii,jj,kk)*(dez(5)*vz)
       fz=fz+f2p*dez(5)
     endif
   endif
@@ -8705,10 +8766,11 @@
   kk=k
   ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
-  if(isfluid(ii,jj,k)==1)then
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(ii,jj,kk)==1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy)then
-      f2p=TWO*real(aoptp(8)%p(ii,jj,k),kind=PRC)- &
-       p(8)*pref_bouzidi*rhosub(ii,jj,k)*(dex(8)*vx+dey(8)*vy)
+      f2p=TWO*real(aoptp(8)%p(ii,jj,kk),kind=PRC)- &
+       p(8)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(8)*vx+dey(8)*vy)
       fx=fx+f2p*dex(8)
       fy=fy+f2p*dey(8)
     endif
@@ -8719,10 +8781,11 @@
   kk=k
   ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
-  if(isfluid(ii,jj,k)==1)then
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(ii,jj,kk)==1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy)then
-      f2p=TWO*real(aoptp(7)%p(ii,jj,k),kind=PRC)- &
-       p(7)*pref_bouzidi*rhosub(ii,jj,k)*(dex(7)*vx+dey(7)*vy)
+      f2p=TWO*real(aoptp(7)%p(ii,jj,kk),kind=PRC)- &
+       p(7)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(7)*vx+dey(7)*vy)
       fx=fx+f2p*dex(7)
       fy=fy+f2p*dey(7)
     endif
@@ -8733,10 +8796,11 @@
   kk=k
   ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
-  if(isfluid(ii,jj,k)==1)then
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(ii,jj,kk)==1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy)then
-      f2p=TWO*real(aoptp(10)%p(ii,jj,k),kind=PRC)- &
-       p(10)*pref_bouzidi*rhosub(ii,jj,k)*(dex(10)*vx+dey(10)*vy)
+      f2p=TWO*real(aoptp(10)%p(ii,jj,kk),kind=PRC)- &
+       p(10)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(10)*vx+dey(10)*vy)
       fx=fx+f2p*dex(10)
       fy=fy+f2p*dey(10)
     endif
@@ -8747,10 +8811,11 @@
   kk=k
   ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
-  if(isfluid(ii,jj,k)==1)then
+  kk=pimage(izpbc,kk,nz)
+  if(isfluid(ii,jj,kk)==1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy)then
-      f2p=TWO*real(aoptp(9)%p(ii,jj,k),kind=PRC)- &
-       p(9)*pref_bouzidi*rhosub(ii,jj,k)*(dex(9)*vx+dey(9)*vy)
+      f2p=TWO*real(aoptp(9)%p(ii,jj,kk),kind=PRC)- &
+       p(9)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(9)*vx+dey(9)*vy)
       fx=fx+f2p*dex(9)
       fy=fy+f2p*dey(9)
     endif
@@ -8760,11 +8825,12 @@
   jj=j
   kk=k+ez(11)
   ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
-  if(isfluid(ii,j,kk)==1)then
+  if(isfluid(ii,jj,kk)==1)then
     if(ii>=minx .and. ii<=maxx .and. kk>=minz .and. kk<=maxz)then
-      f2p=TWO*real(aoptp(12)%p(ii,j,kk),kind=PRC)- &
-       p(12)*pref_bouzidi*rhosub(ii,j,kk)*(dex(12)*vx+dez(12)*vz)
+      f2p=TWO*real(aoptp(12)%p(ii,jj,kk),kind=PRC)- &
+       p(12)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(12)*vx+dez(12)*vz)
       fx=fx+f2p*dex(12)
       fz=fz+f2p*dez(12)
     endif
@@ -8774,11 +8840,12 @@
   jj=j
   kk=k+ez(12)
   ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
-  if(isfluid(ii,j,kk)==1)then
+  if(isfluid(ii,jj,kk)==1)then
     if(ii>=minx .and. ii<=maxx .and. kk>=minz .and. kk<=maxz)then
-      f2p=TWO*real(aoptp(11)%p(ii,j,kk),kind=PRC)- &
-       p(11)*pref_bouzidi*rhosub(ii,j,kk)*(dex(11)*vx+dez(11)*vz)
+      f2p=TWO*real(aoptp(11)%p(ii,jj,kk),kind=PRC)- &
+       p(11)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(11)*vx+dez(11)*vz)
       fx=fx+f2p*dex(11)
       fz=fz+f2p*dez(11)
     endif
@@ -8788,11 +8855,12 @@
   jj=j
   kk=k+ez(13)
   ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
-  if(isfluid(ii,j,kk)==1)then
+  if(isfluid(ii,jj,kk)==1)then
     if(ii>=minx .and. ii<=maxx .and. kk>=minz .and. kk<=maxz)then
-      f2p=TWO*real(aoptp(14)%p(ii,j,kk),kind=PRC)- &
-       p(14)*pref_bouzidi*rhosub(ii,j,kk)*(dex(14)*vx+dez(14)*vz)
+      f2p=TWO*real(aoptp(14)%p(ii,jj,kk),kind=PRC)- &
+       p(14)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(14)*vx+dez(14)*vz)
       fx=fx+f2p*dex(14)
       fz=fz+f2p*dez(14)
     endif
@@ -8802,11 +8870,12 @@
   jj=j
   kk=k+ez(14)
   ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
-  if(isfluid(ii,j,kk)==1)then
+  if(isfluid(ii,jj,kk)==1)then
     if(ii>=minx .and. ii<=maxx .and. kk>=minz .and. kk<=maxz)then
-      f2p=TWO*real(aoptp(13)%p(ii,j,kk),kind=PRC)- &
-       p(13)*pref_bouzidi*rhosub(ii,j,kk)*(dex(13)*vx+dez(13)*vz)
+      f2p=TWO*real(aoptp(13)%p(ii,jj,kk),kind=PRC)- &
+       p(13)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(13)*vx+dez(13)*vz)
       fx=fx+f2p*dex(13)
       fz=fz+f2p*dez(13)
     endif
@@ -8815,12 +8884,13 @@
   ii=i
   jj=j+ey(15)
   kk=k+ez(15)
+  ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
-  if(isfluid(i,jj,kk)==1)then
+  if(isfluid(ii,jj,kk)==1)then
     if(jj>=miny .and. jj<=maxy .and. kk>=minz .and. kk<=maxz)then
-      f2p=TWO*real(aoptp(16)%p(i,jj,kk),kind=PRC)- &
-       p(16)*pref_bouzidi*rhosub(i,jj,kk)*(dey(16)*vy+dez(16)*vz)
+      f2p=TWO*real(aoptp(16)%p(ii,jj,kk),kind=PRC)- &
+       p(16)*pref_bouzidi*rhosub(ii,jj,kk)*(dey(16)*vy+dez(16)*vz)
       fy=fy+f2p*dey(16)
       fz=fz+f2p*dez(16)
     endif
@@ -8829,12 +8899,13 @@
   ii=i
   jj=j+ey(16)
   kk=k+ez(16)
+  ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
-  if(isfluid(i,jj,kk)==1)then
+  if(isfluid(ii,jj,kk)==1)then
     if(jj>=miny .and. jj<=maxy .and. kk>=minz .and. kk<=maxz)then
-      f2p=TWO*real(aoptp(15)%p(i,jj,kk),kind=PRC)- &
-       p(15)*pref_bouzidi*rhosub(i,jj,kk)*(dey(15)*vy+dez(15)*vz)
+      f2p=TWO*real(aoptp(15)%p(ii,jj,kk),kind=PRC)- &
+       p(15)*pref_bouzidi*rhosub(ii,jj,kk)*(dey(15)*vy+dez(15)*vz)
       fy=fy+f2p*dey(15)
       fz=fz+f2p*dez(15)
     endif
@@ -8843,12 +8914,13 @@
   ii=i
   jj=j+ey(17)
   kk=k+ez(17)
+  ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
-  if(isfluid(i,jj,kk)==1)then
+  if(isfluid(ii,jj,kk)==1)then
     if(jj>=miny .and. jj<=maxy .and. kk>=minz .and. kk<=maxz)then
-      f2p=TWO*real(aoptp(18)%p(i,jj,kk),kind=PRC)- &
-       p(18)*pref_bouzidi*rhosub(i,jj,kk)*(dey(18)*vy+dez(18)*vz)
+      f2p=TWO*real(aoptp(18)%p(ii,jj,kk),kind=PRC)- &
+       p(18)*pref_bouzidi*rhosub(ii,jj,kk)*(dey(18)*vy+dez(18)*vz)
       fy=fy+f2p*dey(18)
       fz=fz+f2p*dez(18)
     endif
@@ -8857,12 +8929,13 @@
   ii=i
   jj=j+ey(18)
   kk=k+ez(18)
+  ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
-  if(isfluid(i,jj,kk)==1)then
+  if(isfluid(ii,jj,kk)==1)then
     if(jj>=miny .and. jj<=maxy .and. kk>=minz .and. kk<=maxz)then
-      f2p=TWO*real(aoptp(17)%p(i,jj,kk),kind=PRC)- &
-       p(17)*pref_bouzidi*rhosub(i,jj,kk)*(dey(17)*vy+dez(17)*vz)
+      f2p=TWO*real(aoptp(17)%p(ii,jj,kk),kind=PRC)- &
+       p(17)*pref_bouzidi*rhosub(ii,jj,kk)*(dey(17)*vy+dez(17)*vz)
       fy=fy+f2p*dey(17)
       fz=fz+f2p*dez(17)
     endif
@@ -9125,6 +9198,8 @@
   jj=j
   kk=k
   ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
+  kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
     aoptp(1)%p(i,j,k)=real(aoptp(2)%p(ii,jj,kk),kind=PRC)- &
      p(2)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(2)*vx)
@@ -9134,6 +9209,8 @@
   jj=j
   kk=k
   ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
+  kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
     aoptp(2)%p(i,j,k)=real(aoptp(1)%p(ii,jj,kk),kind=PRC)- &
      p(1)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(1)*vx)
@@ -9142,7 +9219,9 @@
   ii=i
   jj=j+ey(3)
   kk=k
+  ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
+  kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
     aoptp(3)%p(i,j,k)=real(aoptp(4)%p(ii,jj,kk),kind=PRC)- &
      p(4)*pref_bouzidi*rhosub(ii,jj,kk)*(dey(4)*vy)
@@ -9151,7 +9230,9 @@
   ii=i
   jj=j+ey(4)
   kk=k
+  ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
+  kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
     aoptp(4)%p(i,j,k)=real(aoptp(3)%p(ii,jj,kk),kind=PRC)- &
      p(3)*pref_bouzidi*rhosub(ii,jj,kk)*(dey(3)*vy)
@@ -9160,6 +9241,8 @@
   ii=i
   jj=j
   kk=k+ez(5)
+  ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
     aoptp(5)%p(i,j,k)=real(aoptp(6)%p(ii,jj,kk),kind=PRC)- &
@@ -9169,6 +9252,8 @@
   ii=i
   jj=j
   kk=k+ez(6)
+  ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
     aoptp(6)%p(i,j,k)=real(aoptp(5)%p(ii,jj,kk),kind=PRC)- &
@@ -9180,6 +9265,7 @@
   kk=k
   ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
+  kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
     aoptp(7)%p(i,j,k)=real(aoptp(8)%p(ii,jj,kk),kind=PRC)- &
      p(8)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(8)*vx+dey(8)*vy)
@@ -9190,6 +9276,7 @@
   kk=k
   ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
+  kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
     aoptp(8)%p(i,j,k)=real(aoptp(7)%p(ii,jj,kk),kind=PRC)- &
      p(7)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(7)*vx+dey(7)*vy)
@@ -9200,6 +9287,7 @@
   kk=k
   ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
+  kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
     aoptp(9)%p(i,j,k)=real(aoptp(10)%p(ii,jj,kk),kind=PRC)- &
      p(10)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(10)*vx+dey(10)*vy)
@@ -9210,6 +9298,7 @@
   kk=k
   ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
+  kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
     aoptp(10)%p(i,j,k)=real(aoptp(9)%p(ii,jj,kk),kind=PRC)- &
      p(9)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(9)*vx+dey(9)*vy)
@@ -9219,6 +9308,7 @@
   jj=j
   kk=k+ez(11)
   ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
     aoptp(11)%p(i,j,k)=real(aoptp(12)%p(ii,jj,kk),kind=PRC)- &
@@ -9229,6 +9319,7 @@
   jj=j
   kk=k+ez(12)
   ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
     aoptp(12)%p(i,j,k)=real(aoptp(11)%p(ii,jj,kk),kind=PRC)- &
@@ -9239,6 +9330,7 @@
   jj=j
   kk=k+ez(13)
   ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
     aoptp(13)%p(i,j,k)=real(aoptp(14)%p(ii,jj,kk),kind=PRC)- &
@@ -9249,6 +9341,7 @@
   jj=j
   kk=k+ez(14)
   ii=pimage(ixpbc,ii,nx)
+  jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
     aoptp(14)%p(i,j,k)=real(aoptp(13)%p(ii,jj,kk),kind=PRC)- &
@@ -9258,6 +9351,7 @@
   ii=i
   jj=j+ey(15)
   kk=k+ez(15)
+  ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
@@ -9268,6 +9362,7 @@
   ii=i
   jj=j+ey(16)
   kk=k+ez(16)
+  ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
@@ -9278,6 +9373,7 @@
   ii=i
   jj=j+ey(17)
   kk=k+ez(17)
+  ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
@@ -9288,6 +9384,7 @@
   ii=i
   jj=j+ey(18)
   kk=k+ez(18)
+  ii=pimage(ixpbc,ii,nx)
   jj=pimage(iypbc,jj,ny)
   kk=pimage(izpbc,kk,nz)
   if(isfluid(ii,jj,kk)==1)then
@@ -9299,7 +9396,6 @@
   return
   
  end subroutine particle_to_node_bounce_back_bc
- 
  
  subroutine particle_delete_fluids(nstep,natmssub,nspheres,spherelists, &
    spheredists,nspheredeads,spherelistdeads,lmoved,lrotate,ltype,xx,yy,zz, &
@@ -10712,7 +10808,8 @@
  end subroutine print_all_pops
  
  subroutine print_all_pops_center(iosub,filenam,itersub, &
-  rdimx,rdimy,rdimz,aoptp,xc,yc,zc)
+  rdimx,rdimy,rdimz,aoptp,xc,yc,zc,fmiosss,nspheres, &
+  spherelists)
  
 !***********************************************************************
 !     
@@ -10727,13 +10824,14 @@
  
   implicit none
   
-  integer, intent(in) :: iosub,itersub,xc,yc,zc
+  integer, intent(in) :: iosub,itersub,xc,yc,zc,nspheres
   character(len=*), intent(in) :: filenam
-  real(kind=PRC), intent(in) :: rdimx,rdimy,rdimz
+  real(kind=PRC), intent(in) :: rdimx,rdimy,rdimz,fmiosss(3,3)
   type(REALPTR), dimension(0:links):: aoptp
+  integer, allocatable, dimension(:,:), intent(in) :: spherelists
   
   character(len=120) :: mynamefile
-  integer :: i,j,k,l,ii,jj,kk,ir
+  integer :: i,j,k,l,ii,jj,kk,ir,i2,j2,k2,m
   
   !ownern array is mandatory
   if(.not. allocated(ownern))then
@@ -10749,9 +10847,11 @@
   
   if(idrank==0) then
     open(unit=iosub*idrank+23,file=trim(mynamefile),status='replace')
-    close(iosub*idrank+23)
+    write(iosub*idrank+23,*)fmiosss
+    !close(iosub*idrank+23)
   endif
-  ir=ceiling(rdimx)
+  
+  ir=ceiling(rdimx)+1
   do k=-ir,ir
     do j=-ir,ir
       do i=-ir,ir
@@ -10761,26 +10861,243 @@
         ii=pimage(ixpbc,ii,nx)
         jj=pimage(iypbc,jj,ny)
         kk=pimage(izpbc,kk,nz)
-        if(ownern(i4back(i,j,k))==idrank)then
-          if(isfluid(ii,jj,kk)<=2)then
-            open(unit=iosub*idrank+23,file=trim(mynamefile), &
-             status='old',position='append')
+        !if(ownern(i4back(i,j,k))==idrank)then
+          if(isfluid(ii,jj,kk)==1)then
+!            open(unit=iosub*idrank+23,file=trim(mynamefile), &
+!             status='old',position='append')
             do l=1,links
               write(iosub*idrank+23,*)i,j,k,l,isfluid(ii,jj,kk), &
                aoptp(l)%p(ii,jj,kk)
             enddo
             !write(iosub*idrank+23,*)i,j,k,isfluid(ii,jj,kk)
-            close(iosub*idrank+23)
-            call get_sync_world
+            !close(iosub*idrank+23)
+            !call get_sync_world
           endif
-        endif
+        !endif
       enddo
     enddo
   enddo
   
+  do m=1,nspheres
+    ii=spherelists(1,m)
+    jj=spherelists(2,m)
+    kk=spherelists(3,m)
+    i=xc+spherelists(1,m)
+    j=yc+spherelists(2,m)
+    k=zc+spherelists(3,m)
+    i=pimage(ixpbc,i,nx)
+    j=pimage(iypbc,j,ny)
+    k=pimage(izpbc,k,nz)
+    do l=1,links
+      i2=i+ex(l)
+      j2=j+ey(l)
+      k2=k+ez(l)
+      i2=pimage(ixpbc,i2,nx)
+      j2=pimage(iypbc,j2,ny)
+      k2=pimage(izpbc,k2,nz)
+      if(isfluid(i2,j2,k2)==1)then
+        write(iosub*idrank+23,*)ii,jj,kk,l,isfluid(i,j,k), &
+               aoptp(opp(l))%p(i2,j2,k2)
+      endif
+    enddo
+  enddo
+  
+  close(iosub*idrank+23)
+  
   return
   
  end subroutine print_all_pops_center
+ 
+ subroutine print_all_pops_area_shpere(iosub,filenam,itersub, &
+  rdimx,rdimy,rdimz,aoptp,xc,yc,zc,fmiosss,nspheres, &
+  spherelists)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the populations in ASCII format 
+!     for diagnostic purposes always ordered also in parallel
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iosub,itersub,xc,yc,zc,nspheres
+  character(len=*), intent(in) :: filenam
+  real(kind=PRC), intent(in) :: rdimx,rdimy,rdimz,fmiosss(3,3)
+  type(REALPTR), dimension(0:links):: aoptp
+  integer, allocatable, dimension(:,:), intent(in) :: spherelists
+  
+  character(len=120) :: mynamefile
+  integer :: i,j,k,l,ii,jj,kk,ir,i2,j2,k2,itar,jtar,ktar,m,i3,j3,k3
+  
+  integer, allocatable :: nmiapop(:,:)
+  logical, allocatable :: lmiapop(:,:)
+  real(kind=PRC), allocatable :: miapop(:,:)
+  
+  !ownern array is mandatory
+  if(.not. allocated(ownern))then
+    if(idrank==0)then
+      write(6,*)'Error in print_all_pops'
+      write(6,*)'ownern not allocated'
+    endif
+    call error(-1)
+  endif
+  
+  mynamefile=repeat(' ',120)
+  mynamefile=trim(filenam)//write_fmtnumb(itersub)//'.dat'
+  
+  if(idrank==0) then
+    open(unit=iosub*idrank+23,file=trim(mynamefile),status='replace')
+    write(iosub*idrank+23,*)fmiosss
+    
+  endif
+  
+  allocate(miapop(18,nspheres))
+  allocate(nmiapop(18,nspheres))
+  allocate(lmiapop(18,nspheres))
+  
+  miapop(:,:)=-666.d0
+  nmiapop(:,:)=0
+  lmiapop(:,:)=.false.
+  
+  do l=1,nspheres
+    i=xc+spherelists(1,l)
+    j=yc+spherelists(2,l)
+    k=zc+spherelists(3,l)
+    ii=i
+    jj=j
+    kk=k
+    
+    !apply periodic conditions if necessary
+    i=pimage(ixpbc,i,nx)
+    j=pimage(iypbc,j,ny)
+    k=pimage(izpbc,k,nz)
+    if(i==ii.and.j==jj.and.k==kk)then
+      itar=i
+      jtar=j
+      ktar=k
+      do m=1,links
+        i2=itar+ex(m)
+        j2=jtar+ey(m)
+        k2=ktar+ez(m)
+        i3=pimage(ixpbc,i2,nx)
+        j3=pimage(iypbc,j2,ny)
+        k3=pimage(izpbc,k2,nz)
+        if(l==21 .and. m==7)then
+          write(6,*)'A ',itar,jtar,ktar,i2,j2,k2,isfluid(i2,j2,k2),isfluid(i3,j3,k3)
+        endif
+        !i2=pimage(ixpbc,i2,nx)
+        !j2=pimage(iypbc,j2,ny)
+        !k2=pimage(izpbc,k2,nz)
+        if(isfluid(i2,j2,k2)==1)then
+          nmiapop(m,l)=nmiapop(m,l)+1
+          lmiapop(m,l)=.true.
+          miapop(m,l)=aoptp(m)%p(itar,jtar,ktar)
+        endif
+      enddo
+    else
+      itar=i
+      jtar=j
+      ktar=k
+      
+      do m=1,links
+        i2=itar+ex(m)
+        j2=jtar+ey(m)
+        k2=ktar+ez(m)
+        if(l==21 .and. m==7)then
+          write(6,*)'B ',itar,jtar,ktar,i2,j2,k2
+        endif
+        !i2=pimage(ixpbc,i2,nx)
+        !j2=pimage(iypbc,j2,ny)
+        !k2=pimage(izpbc,k2,nz)
+        if(isfluid(i2,j2,k2)==1)then
+          if(i2<=maxx .and. i2>=minx .and. j2<=maxy .and. j2>=miny .and. &
+           k2<=maxz .and. k2>=minz)then
+            nmiapop(m,l)=nmiapop(m,l)+1
+            lmiapop(m,l)=.true.
+            miapop(m,l)=aoptp(m)%p(itar,jtar,ktar)
+          endif
+        endif
+      enddo
+      itar=ii
+      jtar=jj
+      ktar=kk
+      do m=1,links
+        i2=itar+ex(m)
+        j2=jtar+ey(m)
+        k2=ktar+ez(m)
+        if(l==21 .and. m==7)then
+          write(6,*)'C ',itar,jtar,ktar,i2,j2,k2
+        endif
+        !i2=pimage(ixpbc,i2,nx)
+        !j2=pimage(iypbc,j2,ny)
+        !k2=pimage(izpbc,k2,nz)
+        if(isfluid(i2,j2,k2)==1)then
+          if(i2<=maxx .and. i2>=minx .and. j2<=maxy .and. j2>=miny .and. &
+           k2<=maxz .and. k2>=minz)then
+            nmiapop(m,l)=nmiapop(m,l)+1
+            lmiapop(m,l)=.true.
+            miapop(m,l)=aoptp(m)%p(itar,jtar,ktar)
+          endif
+        endif
+      enddo
+    endif
+  enddo
+  
+  
+  
+  if(any(nmiapop>1))then
+    write(6,*)'so cazzi'
+    do l=1,nspheres
+      do m=1,links
+        write(6,*)m,l,nmiapop(m,l)
+      enddo
+    enddo
+  endif
+  
+  do l=1,nspheres
+    do m=1,links
+      if(lmiapop(m,l))then
+        write(iosub*idrank+23,*)l,m,miapop(m,l)
+      endif
+    enddo
+  enddo
+  
+  close(iosub*idrank+23)
+!  ir=ceiling(rdimx)
+!  do k=-ir,ir
+!    do j=-ir,ir
+!      do i=-ir,ir
+!        ii=i+xc
+!        jj=j+yc
+!        kk=k+zc
+!        ii=pimage(ixpbc,ii,nx)
+!        jj=pimage(iypbc,jj,ny)
+!        kk=pimage(izpbc,kk,nz)
+!        if(ownern(i4back(i,j,k))==idrank)then
+!          !if(isfluid(ii,jj,kk)<=2)then
+!            open(unit=iosub*idrank+23,file=trim(mynamefile), &
+!             status='old',position='append')
+!            do l=1,links
+!              write(iosub*idrank+23,*)i,j,k,l,isfluid(ii,jj,kk), &
+!               aoptp(l)%p(ii,jj,kk)
+!            enddo
+!            !write(iosub*idrank+23,*)i,j,k,isfluid(ii,jj,kk)
+!            close(iosub*idrank+23)
+!            call get_sync_world
+!          !endif
+!        endif
+!      enddo
+!    enddo
+!  enddo
+  
+  return
+  
+ end subroutine print_all_pops_area_shpere
  
  subroutine print_all_hvar(iosub,filenam,itersub,rhosub,usub,vsub, &
    wsub)
