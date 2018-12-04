@@ -2805,8 +2805,8 @@
 !  fxx(:)=ZERO
 !  fyy(:)=ZERO
 !  fzz(:)=ZERO
-  fxx(1)=fxx(1)+0.5d0
-  fxx(2)=fxx(2)-0.5d0
+  !fxx(1)=fxx(1)+0.5d0
+  !fxx(2)=fxx(2)-0.5d0
   select case(keyint)
   case (1) 
     call nve_lf(nstepsub)
