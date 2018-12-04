@@ -118,9 +118,10 @@
   
   if(lmpi)then
     lbsoftpath='mpirun -np '//adjustl(trim(mystring8))//' ..'//delimiter// &
-     '..'//delimiter//'execute'//delimiter//'main_mpi.x'
+     '..'//delimiter//'..'//delimiter//'execute'//delimiter//'main_mpi.x'
   else
-    lbsoftpath='..'//delimiter//'..'//delimiter//'execute'//delimiter//'main.x'
+    lbsoftpath=' ..'//delimiter//'..'//delimiter//'..'//delimiter// &
+     'execute'//delimiter//'main.x'
   endif
   write(6,*)'execute command: ',trim(lbsoftpath)
   

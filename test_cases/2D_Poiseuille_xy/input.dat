@@ -4,7 +4,7 @@ steps 500
 diagnostic yes
 boundary condition 1 0 1
 decomposition type  7
-decomposition dimension    1   1   1
+decomposition dimension    2   2   2
 print list maxd1 mind1 maxvx maxvy maxvz cpue cpur cpu
 print every 10
 test yes
@@ -13,7 +13,6 @@ close time 10 s
 [END ROOM]
 [ROOM LB]
 components 1
-bounceback fullway yes
 density gaussian
 density mean 1.0 1.0
 density stdev 1.d-4 1.d-4

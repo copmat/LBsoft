@@ -227,39 +227,6 @@
     call apply_particle_bounce_back(nstep)
     if(ldiagnostic)call end_timing2("LB","apply_part_bback")
     
-!    i=3
-!    j=0
-!    k=-5
-!    l=14
-!    m=opp(l)
-!    ii=nint(xxx(1))+i
-!    jj=nint(yyy(1))+j
-!    kk=nint(zzz(1))+k
-!    ii=pimage(ixpbc,ii,nx)
-!    jj=pimage(iypbc,jj,ny)
-!    kk=pimage(izpbc,kk,nz)
-!    i2=ii+ex(m)
-!    j2=jj+ey(m)
-!    k2=kk+ez(m)
-!    i2=pimage(ixpbc,i2,nx)
-!    j2=pimage(iypbc,j2,ny)
-!    k2=pimage(izpbc,k2,nz)
-!    i3=ii+ex(l)
-!    j3=jj+ey(l)
-!    k3=kk+ez(l)
-!    i3=pimage(ixpbc,i3,nx)
-!    j3=pimage(iypbc,j3,ny)
-!    k3=pimage(izpbc,k3,nz)
-    !write(6,*)'A ',i2,j2,k2,ii,jj,kk,i3,j3,k3,aoptpR(l)%p(i2,j2,k2),aoptpR(l)%p(ii,jj,kk),aoptpR(l)%p(i3,j3,k3)
-!    if(nstep==2)then
-!      call print_all_pops_area_shpere(1322,'poptest.dat',nstep, &
-!       rdimx(1),rdimy(1),rdimz(1),aoptpR, &
-!       nint(xxx(1)),nint(yyy(1)),nint(zzz(1)),fmiosss,nsphere,spherelist)
-!      call finalize_world
-!      stop
-!    endif
-    
-    
     call merge_particle_force
     
     call force_particle_bounce_back
@@ -289,16 +256,6 @@
   call driver_streaming_fluids(lparticles)
   if(ldiagnostic)call end_timing2("LB","streaming_fluids")
   
-  !write(6,*)'B ',i2,j2,k2,ii,jj,kk,i3,j3,k3,aoptpR(l)%p(i2,j2,k2),aoptpR(l)%p(ii,jj,kk),aoptpR(l)%p(i3,j3,k3)
-  
-!  if(nstep==2)then
-!    call print_all_pops_center(1322,'poptest.dat',nstep, &
-!     rdimx(1),rdimy(1),rdimz(1),aoptpR, &
-!     nint(xxx(1)),nint(yyy(1)),nint(zzz(1)),fmiosss,nsphere,spherelist)
-!    call finalize_world
-!    stop
-!    endif
-  
   if(.not.lbc_halfway)then
     if(ldiagnostic)call start_timing2("LB","apply_bback_pop")
     call driver_apply_bounceback_pop
@@ -317,8 +274,6 @@
     if(ldiagnostic)call end_timing2("MD","inter_part_and_grid")
   
   endif
-  
-  
   
   mytime = new_time
   

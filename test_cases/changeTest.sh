@@ -10,7 +10,7 @@ do
 	cd $i
 	ls
 
-	../../execute/main.x 
+	../../../execute/main.x 
 	mv global.map global.map.orig
 	mv output000000.map output000000.map.orig 
 

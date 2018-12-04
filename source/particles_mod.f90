@@ -1870,12 +1870,6 @@
   fmiosss(2,3)=fyb(1)-fmiosss(2,2)
   fmiosss(3,3)=fzb(1)-fmiosss(3,2)
   
-  !if(mod(nstep,10)==0)
-  !write(6,'(i8,10f12.6)')nstep,xxx(1),fmiosss(:,:)
-  !if(nstep==2)then
-  !call finalize_world
-  !stop
-  !endif
 !  do iatm=natms+1,natms_ext
 !    i=nint(xxx(iatm))
 !    j=nint(yyy(iatm))
