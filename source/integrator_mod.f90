@@ -28,7 +28,6 @@
                         driver_apply_bounceback_halfway_pop, &
                         probe_red_moments_in_node,print_all_pops, &
                         print_all_pops_center,driver_bc_pop_selfcomm, &
-                        driver_streaming_fluids_no_pbc_serial, &
                         print_all_pops_area_shpere,ex,ey,ez,pimage, &
                         ixpbc,iypbc,izpbc,nx,ny,nz,opp
  use particles_mod,    only : driver_neighborhood_list,lparticles, &
@@ -189,11 +188,13 @@
     
   endif
   
-  if(lpair_SC)then
-    if(ldiagnostic)call start_timing2("LB","driver_densities_wall")
+  if(lpair_SC .or. lparticles)then
+    if(ldiagnostic)call start_timing2("LB","driver_densities_solid")
     call driver_copy_densities_wall
-    if(ldiagnostic)call end_timing2("LB","driver_densities_wall")
+    if(ldiagnostic)call end_timing2("LB","driver_densities_solid")
+  endif
     
+  if(lpair_SC)then
     if(ldiagnostic)call start_timing2("LB","compute_force_sc")
     call compute_fluid_force_sc
     if(ldiagnostic)call end_timing2("LB","compute_force_sc")

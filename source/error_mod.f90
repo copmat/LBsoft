@@ -119,6 +119,9 @@
         write(outp,outf)'ERROR - error in subroutine particle_moving_fluids.'
       case (32)
         write(outp,outf)'ERROR - bad allocation in subroutine allocate_particle_features.'
+      case (33)
+        write(outp,outf2)'ERROR - not possible compute average density in ', &
+         'driver_copy_densities_wall.'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select

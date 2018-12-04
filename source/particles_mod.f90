@@ -105,6 +105,9 @@
  !activate reflecting wall
  logical, public, protected, save :: lwall_md=.false.
  
+ !activate lubrication force
+ logical, public, protected, save :: llubrication=.false.
+ 
  !kbT factor
  real(kind=PRC), public, protected, save :: tempboltz=cssq
  
@@ -1840,17 +1843,17 @@
      fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm))
   enddo
   
-!  do iatm=natms+1,natms_ext
-!    i=nint(xxx(iatm))
-!    j=nint(yyy(iatm))
-!    k=nint(zzz(iatm))
-!    itype=ltype(iatm)
-!    call particle_bounce_back(nstep,.false.,lrotate,i,j,k,nsphere, &
-!     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
-!     xxx(iatm),yyy(iatm),zzz(iatm), &
-!     vxx(iatm),vyy(iatm),vzz(iatm), &
-!     fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm))
-!  enddo
+  do iatm=natms+1,natms_ext
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    itype=ltype(iatm)
+    call particle_bounce_back(nstep,.false.,lrotate,i,j,k,nsphere, &
+     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
+     xxx(iatm),yyy(iatm),zzz(iatm), &
+     vxx(iatm),vyy(iatm),vzz(iatm), &
+     fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm))
+  enddo
   
   else
   
@@ -1870,17 +1873,17 @@
   fmiosss(2,3)=fyb(1)-fmiosss(2,2)
   fmiosss(3,3)=fzb(1)-fmiosss(3,2)
   
-!  do iatm=natms+1,natms_ext
-!    i=nint(xxx(iatm))
-!    j=nint(yyy(iatm))
-!    k=nint(zzz(iatm))
-!    itype=ltype(iatm)
-!    call particle_bounce_back(nstep,.false.,lrotate,i,j,k,nsphere, &
-!     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
-!     xxx(iatm),yyy(iatm),zzz(iatm), &
-!     vxx(iatm),vyy(iatm),vzz(iatm), &
-!     fxb(iatm),fyb(iatm),fzb(iatm))
-!  enddo
+  do iatm=natms+1,natms_ext
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    itype=ltype(iatm)
+    call particle_bounce_back(nstep,.false.,lrotate,i,j,k,nsphere, &
+     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
+     xxx(iatm),yyy(iatm),zzz(iatm), &
+     vxx(iatm),vyy(iatm),vzz(iatm), &
+     fxb(iatm),fyb(iatm),fzb(iatm))
+  enddo
   
   endif
   
@@ -2386,10 +2389,10 @@
 ! separation vectors and powers thereof
   
   real(kind=PRC) :: rsq,xm,ym,zm,rsqcut,rrr,eps,sig,vvv,ggg,rmin,vmin, &
-   kappa,rlimit,gmin
+   kappa,rlimit,gmin,rpar,lubfactor,rparcut,rparcap,rsrparcut,mxrsqcut
   
 ! Loop counters
-  integer :: iatm,ii,i,ivdw,itype,jtype,iimax
+  integer :: iatm,ii,i,j,ivdw,itype,jtype,iimax
   integer :: k,jatm
   integer :: ilentry
   
@@ -2403,13 +2406,28 @@
     case (0)
       return
     case (1)
-  
+    
+    !Weeks-Chandler-Andersen
+    
     eps=prmvdw(1,ivdw)
     sig=prmvdw(2,ivdw)
     rmin=s2rmin*sig
     rsqcut = (rmin)**TWO
     vmin=FOUR*eps*(sig/rmin)**SIX*((sig/rmin)**SIX-ONE)
-  
+    do j=1,mxntype
+      do k=1,mxntype
+        if(mskvdw(j,k)==ivdw)then
+          itype=j
+          jtype=k
+        endif
+      enddo
+    enddo
+    rpar=rdimx(itype)+rdimx(jtype)
+    lubfactor=SIX*Pi*rpar**FOUR/(FOUR*rpar**TWO)
+    rparcut=rpar+TWO/THREE
+    rsrparcut=rparcut**TWO
+    mxrsqcut=max(rsrparcut,rsqcut)
+    rparcap=rpar+ONE/TEN
     
     do iatm = 1,natms
       itype=ltype(iatm)
@@ -2435,27 +2453,49 @@
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
         rsq=xdf(ii)**TWO+ydf(ii)**TWO+zdf(ii)**TWO
-        if(rsq<=rsqcut) then
+        if(rsq<=mxrsqcut)then
           rrr=sqrt(rsq)
-          vvv=FOUR*eps*(sig/rrr)**SIX*((sig/rrr)**SIX-ONE)+vmin
-          ggg=TWENTYFOUR*eps/rrr*(sig/rrr)**SIX*(TWO*(sig/rrr)**SIX-ONE)
-          engcfg=engcfg+vvv
-          fxx(iatm)=fxx(iatm)-ggg*xdf(ii)/rrr
-          fxx(jatm)=fxx(jatm)+ggg*xdf(ii)/rrr
-          fyy(iatm)=fyy(iatm)-ggg*ydf(ii)/rrr
-          fyy(jatm)=fyy(jatm)+ggg*ydf(ii)/rrr
-          fzz(iatm)=fzz(iatm)-ggg*zdf(ii)/rrr
-          fzz(jatm)=fzz(jatm)+ggg*zdf(ii)/rrr
+          if(rrr<=rmin)then
+            vvv=FOUR*eps*(sig/rrr)**SIX*((sig/rrr)**SIX-ONE)+vmin
+            ggg=TWENTYFOUR*eps/rrr*(sig/rrr)**SIX*(TWO*(sig/rrr)**SIX-ONE)
+            engcfg=engcfg+vvv
+            fxx(iatm)=fxx(iatm)-ggg*xdf(ii)/rrr
+            fxx(jatm)=fxx(jatm)+ggg*xdf(ii)/rrr
+            fyy(iatm)=fyy(iatm)-ggg*ydf(ii)/rrr
+            fyy(jatm)=fyy(jatm)+ggg*ydf(ii)/rrr
+            fzz(iatm)=fzz(iatm)-ggg*zdf(ii)/rrr
+            fzz(jatm)=fzz(jatm)+ggg*zdf(ii)/rrr
+          endif
+          if(llubrication)then
+          endif
         endif
       enddo
     enddo
   
     case (2)
-  
+    
+    !Lennard-Jones
+    
     eps=prmvdw(1,ivdw)
     sig=prmvdw(2,ivdw)
-    
     rsqcut = (rcut)**TWO
+    
+    do j=1,mxntype
+      do k=1,mxntype
+        if(mskvdw(j,k)==ivdw)then
+          itype=j
+          jtype=k
+        endif
+      enddo
+    enddo
+    rpar=rdimx(itype)+rdimx(jtype)
+    lubfactor=SIX*Pi*rpar**FOUR/(FOUR*rpar**TWO)
+    rparcut=rpar+TWO/THREE
+    rsrparcut=rparcut**TWO
+    mxrsqcut=max(rsrparcut,rsqcut)
+    rparcap=rpar+ONE/TEN
+    
+    
     
     
     do iatm = 1,natms
@@ -2475,13 +2515,14 @@
       
       call pbc_images(imcon,iimax,cell,xdf,ydf,zdf)
       
+      ii = 0
       do k = 1,lentrysub(iatm)
         jatm=listsub(k,iatm)
         jtype=ltype(jatm)
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
         rsq=xdf(ii)**TWO+ydf(ii)**TWO+zdf(ii)**TWO
-        if(rsq<=rsqcut) then
+        if(rsq<=mxrsqcut) then
           rrr=sqrt(rsq)
           vvv=FOUR*eps*(sig/rrr)**SIX*((sig/rrr)**SIX-ONE)
           ggg=TWENTYFOUR*eps/rrr*(sig/rrr)**SIX*(TWO*(sig/rrr)**SIX-ONE)
@@ -2492,6 +2533,8 @@
           fyy(jatm)=fyy(jatm)+ggg*ydf(ii)/rrr
           fzz(iatm)=fzz(iatm)-ggg*zdf(ii)/rrr
           fzz(jatm)=fzz(jatm)+ggg*zdf(ii)/rrr
+          if(llubrication)then
+          endif
         endif
       enddo
     enddo
@@ -2504,6 +2547,20 @@
     rsqcut = (rmin)**TWO
     vmin=kappa*(rmin-rlimit)**(FIVE*HALF)
     gmin=FIVE*HALF*kappa*(rmin-rlimit)**(THREE*HALF)
+    do j=1,mxntype
+      do k=1,mxntype
+        if(mskvdw(j,k)==ivdw)then
+          itype=j
+          jtype=k
+        endif
+      enddo
+    enddo
+    rpar=rdimx(itype)+rdimx(jtype)
+    lubfactor=SIX*Pi*rpar**FOUR/(FOUR*rpar**TWO)
+    rparcut=rpar+TWO/THREE
+    rsrparcut=rparcut**TWO
+    mxrsqcut=max(rsrparcut,rsqcut)
+    rparcap=rpar+ONE/TEN
     
   
     do iatm = 1,natms
@@ -2522,29 +2579,34 @@
       iimax=ii
     
       call pbc_images(imcon,iimax,cell,xdf,ydf,zdf)
-    
+      
+      ii = 0
       do k = 1,lentrysub(iatm)
         jatm=listsub(k,iatm)
         jtype=ltype(jatm)
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
         rsq=xdf(ii)**TWO+ydf(ii)**TWO+zdf(ii)**TWO
-        if(rsq<=rsqcut) then
+        if(rsq<=mxrsqcut) then
           rrr=sqrt(rsq)
-          if(rrr<=rlimit)then
-            vvv=vmin+(rlimit-rrr)*gmin
-            ggg=gmin
-          else
-            vvv=kappa*(rmin-rrr)**(FIVE*HALF)
-            ggg=FIVE*HALF*kappa*(rmin-rrr)**(THREE*HALF)
+          if(rrr<=rmin)then
+            if(rrr<=rlimit)then
+              vvv=vmin+(rlimit-rrr)*gmin
+              ggg=gmin
+            else
+              vvv=kappa*(rmin-rrr)**(FIVE*HALF)
+              ggg=FIVE*HALF*kappa*(rmin-rrr)**(THREE*HALF)
+            endif
+            engcfg=engcfg+vvv
+            fxx(iatm)=fxx(iatm)-ggg*xdf(ii)/rrr
+            fxx(jatm)=fxx(jatm)+ggg*xdf(ii)/rrr
+            fyy(iatm)=fyy(iatm)-ggg*ydf(ii)/rrr
+            fyy(jatm)=fyy(jatm)+ggg*ydf(ii)/rrr
+            fzz(iatm)=fzz(iatm)-ggg*zdf(ii)/rrr
+            fzz(jatm)=fzz(jatm)+ggg*zdf(ii)/rrr
           endif
-          engcfg=engcfg+vvv
-          fxx(iatm)=fxx(iatm)-ggg*xdf(ii)/rrr
-          fxx(jatm)=fxx(jatm)+ggg*xdf(ii)/rrr
-          fyy(iatm)=fyy(iatm)-ggg*ydf(ii)/rrr
-          fyy(jatm)=fyy(jatm)+ggg*ydf(ii)/rrr
-          fzz(iatm)=fzz(iatm)-ggg*zdf(ii)/rrr
-          fzz(jatm)=fzz(jatm)+ggg*zdf(ii)/rrr
+          if(llubrication)then
+          endif
         endif
       enddo
     enddo
@@ -2743,18 +2805,20 @@
 !  fxx(:)=ZERO
 !  fyy(:)=ZERO
 !  fzz(:)=ZERO
+  fxx(1)=fxx(1)+0.5d0
+  fxx(2)=fxx(2)-0.5d0
   select case(keyint)
   case (1) 
-    call nve_lf
+    call nve_lf(nstepsub)
   case default
-    call nve_lf
+    call nve_lf(nstepsub)
   end select
   
   return
   
  end subroutine integrate_particles_lf
  
- subroutine nve_lf()
+ subroutine nve_lf(nstepsub)
 
 !***********************************************************************
 !     
@@ -2768,6 +2832,8 @@
 !***********************************************************************
 
   implicit none
+  
+  integer, intent(in) :: nstepsub
 
   integer, parameter :: nfailmax=10
   integer, dimension(nfailmax) :: fail
@@ -2824,8 +2890,14 @@
 #if 1
   do i=1,natms
     if(abs(bxx(i))>ONE .or. abs(byy(i))>ONE .or. abs(bzz(i))>ONE )then
-      write(6,*)'ERROR - numerical instability'
-      call error(-1)
+      write(6,*)'WARNING - velocity cap applied at step ',nstepsub
+      if(bxx(i)>cssq)bxx(i)=cssq
+      if(bxx(i)<cssq)bxx(i)=-cssq
+      if(byy(i)>cssq)byy(i)=cssq
+      if(byy(i)<cssq)byy(i)=-cssq
+      if(bzz(i)>cssq)bzz(i)=cssq
+      if(bzz(i)<cssq)bzz(i)=-cssq
+      !call error(-1)
     endif
   enddo
 #endif

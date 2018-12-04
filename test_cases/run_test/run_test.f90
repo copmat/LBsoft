@@ -3,15 +3,19 @@
  
   implicit none
   
-  integer, parameter :: ntest=10
+  integer, parameter :: ntest=11
   
   integer, parameter :: orig_io=1017
+  integer, parameter :: orig_ioxyz=3017
   integer, parameter :: orig_mapio=18
   integer, parameter :: map_io=19
   integer, parameter :: actual_io=2027
+  integer, parameter :: actual_ioxyz=4017
   integer, parameter :: remove_file_io=37
   character(len=*), parameter :: orig_file='output000000.map.orig' 
+  character(len=*), parameter :: orig_xyzfile='restart.xyz.orig'
   character(len=*), parameter :: actual_file='output000000.map'
+  character(len=*), parameter :: actual_xyzfile='restart.xyz'
   character(len=*), parameter :: origmap_file='global.map.orig'
   character(len=*), parameter :: map_file='global.map'
   integer, parameter :: maxlen=120
@@ -22,21 +26,27 @@
   character(len=1) :: delimiter
   integer :: imio1,imio2,inumchar
   integer, dimension(3) :: imio3,imio4
-  real, dimension(:,:,:,:),allocatable :: dmio1,dmio2
+  real, dimension(:,:,:,:), allocatable :: dmio1,dmio2
+  real, dimension(:,:), allocatable :: dmio3,dmio4
   integer :: mxrank1,mxrank2,nx1,ny1,nz1,nx2,ny2,nz2
   integer :: minx1,maxx1,miny1,maxy1,minz1,maxz1,type1,iselect1
   integer :: minx2,maxx2,miny2,maxy2,minz2,maxz2,type2,iselect2
   
   logical :: ltest(ntest)
+  logical :: lxyzfile(ntest)
   
-  integer :: i,j,k,l,ii,jj,kk,idrank,ncpu,ndec,xdim,ydim,zdim
+  integer :: i,j,k,l,ii,jj,kk,idrank,ncpu,ndec,xdim,ydim,zdim,iii
   
   character(len=256) :: file_loc_proc
   logical :: lmpi=.false.
-  character(len=8) :: mystring8
+  character(len=8) :: mystring8,atmname
   logical :: lexist
+  character(len=40) :: mystring40
   
   real, parameter :: mytol=1.e-15
+  
+  integer :: natms1,natms2,iatm,nargxyz1,nargxyz2
+  logical :: lrotate1,lrotate2
   
   
   if(iargc()/=0 .and. iargc()/=6)then
@@ -108,6 +118,10 @@
   labeltest(8)='2D_Shear_xz'
   labeltest(9)='2D_Shear_yz'
   labeltest(10)='3D_Spinodal'
+  labeltest(11)='3D_Particle_pbc'
+  
+  lxyzfile(1:10)=.false.
+  lxyzfile(11)=.true.
   
   call getcwd(origpath)
   origpath=trim(origpath)
@@ -118,9 +132,9 @@
   
   if(lmpi)then
     lbsoftpath='mpirun -np '//adjustl(trim(mystring8))//' ..'//delimiter// &
-     '..'//delimiter//'..'//delimiter//'execute'//delimiter//'main_mpi.x'
+     '..'//delimiter//'execute'//delimiter//'main_mpi.x'
   else
-    lbsoftpath=' ..'//delimiter//'..'//delimiter//'..'//delimiter// &
+    lbsoftpath=' ..'//delimiter//'..'//delimiter// &
      'execute'//delimiter//'main.x'
   endif
   write(6,*)'execute command: ',trim(lbsoftpath)
@@ -231,13 +245,93 @@
           enddo
         enddo
         
+        if(lxyzfile(i))then
+          open(unit=orig_ioxyz,file=trim(orig_xyzfile),status='old',action='read')
+          read(orig_ioxyz,*)natms1
+          mystring40=repeat(' ',40)
+          read(orig_ioxyz,'(a)')mystring40
+          if(trim(mystring40)=='read list vxx vyy vzz qa qb qc qd')then
+            lrotate1=.true.
+            nargxyz1=10
+          else
+            lrotate1=.false.
+            nargxyz1=6
+          endif
+          if(lrotate1)then
+            allocate(dmio3(10,natms1))
+            dmio3(:,:)=0.e0
+            do iatm=1,natms1
+               read(orig_ioxyz,'(a8,10g16.8)')atmname,(dmio3(iii,iatm),iii=1,10)
+            enddo
+          else
+            allocate(dmio3(6,natms1))
+            dmio3(:,:)=0.e0
+            do iatm=1,natms1
+               read(orig_ioxyz,'(a8,6g16.8)')atmname,(dmio3(iii,iatm),iii=1,6)
+            enddo
+          endif
+          close(orig_ioxyz)
+          
+          open(unit=actual_ioxyz,file=trim(actual_xyzfile),status='old',action='read')
+          read(actual_ioxyz,*)natms2
+          mystring40=repeat(' ',40)
+          read(actual_ioxyz,'(a)')mystring40
+          if(trim(mystring40)=='read list vxx vyy vzz qa qb qc qd')then
+            lrotate2=.true.
+            nargxyz2=10
+          else
+            lrotate2=.false.
+            nargxyz2=6
+          endif
+          if(lrotate2)then
+            allocate(dmio4(10,natms2))
+            dmio4(:,:)=0.e0
+            do iatm=1,natms2
+               read(actual_ioxyz,'(a8,10g16.8)')atmname,(dmio4(iii,iatm),iii=1,10)
+            enddo
+          else
+            allocate(dmio4(6,natms2))
+            dmio4(:,:)=0.e0
+            do iatm=1,natms2
+               read(actual_ioxyz,'(a8,6g16.8)')atmname,(dmio4(iii,iatm),iii=1,6)
+            enddo
+          endif
+          close(actual_ioxyz)
+          
+          if((natms1/=natms2) .or. (nargxyz1/=nargxyz2) .or. &
+           (lrotate1 .neqv. lrotate2))then
+            ltest(i)=.false.
+          else
+            do iatm=1,natms1
+              do iii=1,nargxyz1
+                if(abs(dmio3(iii,iatm)-dmio4(iii,iatm))>mytol)then
+                  ltest(i)=.false.
+                  cycle
+                endif
+              enddo
+            enddo
+          endif
+          
+          deallocate(dmio3,dmio4)
+        endif
+        
         open(unit=remove_file_io,file='rm.sh',status='replace')
         if(lmpi)then
-          write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-         'rm -f output00*.map global.map time.dat mysed.sh rm.sh'
-        else 
-          write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-           'rm -f output00*.map global.map time.dat rm.sh'
+          if(lxyzfile(i))then
+            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+             'rm -f output00*.map global.map time.dat mysed.sh restart.xyz rm.sh'
+          else
+            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+             'rm -f output00*.map global.map time.dat mysed.sh rm.sh'
+          endif
+        else
+          if(lxyzfile(i))then
+            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+             'rm -f output00*.map global.map time.dat restart.xyz rm.sh'
+          else
+            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+             'rm -f output00*.map global.map time.dat rm.sh'
+          endif
         endif
         close(remove_file_io)
         call execute_command_line('chmod 777 rm.sh',wait=.true.)
@@ -329,6 +423,76 @@
             enddo
           enddo
         enddo
+        
+        if(lxyzfile(i))then
+          open(unit=orig_ioxyz,file=trim(orig_xyzfile),status='old',action='read')
+          read(orig_ioxyz,*)natms1
+          mystring40=repeat(' ',40)
+          read(orig_ioxyz,'(a)')mystring40
+          if(trim(mystring40)=='read list vxx vyy vzz qa qb qc qd')then
+            lrotate1=.true.
+            nargxyz1=10
+          else
+            lrotate1=.false.
+            nargxyz1=6
+          endif
+          if(lrotate1)then
+            allocate(dmio3(10,natms1))
+            dmio3(:,:)=0.e0
+            do iatm=1,natms1
+               read(orig_ioxyz,'(a8,10g16.8)')atmname,(dmio3(iii,iatm),iii=1,10)
+            enddo
+          else
+            allocate(dmio3(6,natms1))
+            dmio3(:,:)=0.e0
+            do iatm=1,natms1
+               read(orig_ioxyz,'(a8,6g16.8)')atmname,(dmio3(iii,iatm),iii=1,6)
+            enddo
+          endif
+          close(orig_ioxyz)
+          
+          open(unit=actual_ioxyz,file=trim(actual_xyzfile),status='old',action='read')
+          read(actual_ioxyz,*)natms2
+          mystring40=repeat(' ',40)
+          read(actual_ioxyz,'(a)')mystring40
+          if(trim(mystring40)=='read list vxx vyy vzz qa qb qc qd')then
+            lrotate2=.true.
+            nargxyz2=10
+          else
+            lrotate2=.false.
+            nargxyz2=6
+          endif
+          if(lrotate2)then
+            allocate(dmio4(10,natms2))
+            dmio4(:,:)=0.e0
+            do iatm=1,natms2
+               read(actual_ioxyz,'(a8,10g16.8)')atmname,(dmio4(iii,iatm),iii=1,10)
+            enddo
+          else
+            allocate(dmio4(6,natms2))
+            dmio4(:,:)=0.e0
+            do iatm=1,natms2
+               read(actual_ioxyz,'(a8,6g16.8)')atmname,(dmio4(iii,iatm),iii=1,6)
+            enddo
+          endif
+          close(actual_ioxyz)
+          
+          if((natms1/=natms2) .or. (nargxyz1/=nargxyz2) .or. &
+           (lrotate1 .neqv. lrotate2))then
+            ltest(i)=.false.
+          else
+            do iatm=1,natms1
+              do iii=1,nargxyz1
+                if(abs(dmio3(iii,iatm)-dmio4(iii,iatm))>mytol)then
+                  ltest(i)=.false.
+                  cycle
+                endif
+              enddo
+            enddo
+          endif
+          
+          deallocate(dmio3,dmio4)
+        endif
         
         open(unit=remove_file_io,file='rm.sh',status='replace')
         if(lmpi)then
