@@ -21,7 +21,8 @@
   minx, maxx, miny, maxy, minz, maxz,isfluid
  use particles_mod,  only : natms,xxx,yyy,zzz,lparticles,cell, &
   ishape,lrotate,natms,natms_tot,q0,q1,q2,q3,vxx,vyy,vzz, &
-  take_rotversorz,clean_fluid_inside_particle
+  take_rotversorx,take_rotversory,take_rotversorz, &
+  clean_fluid_inside_particle
  
   private
   
@@ -326,7 +327,8 @@
   character(len=120) :: sevt
   integer, allocatable, dimension(:,:) :: list
   
-  double precision :: mydist
+  double precision :: mydist,myrot(9)
+  double precision, dimension(3) :: uxx,uyy,uzz
   
   103 format (A)
   104 format (ES16.5)
@@ -365,11 +367,20 @@
   enddo
   
   if(lrotate)then
-    write(iotest,103) 'VECTORS Vect float'
     
+    write(iotest,103) 'VECTORS Vectx float'
     do iatm=1,natms
-      write(iotest,*) &
-       take_rotversorz(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
+      write(iotest,*)take_rotversorx(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
+    enddo
+    
+    write(iotest,103) 'VECTORS Vecty float'
+    do iatm=1,natms
+      write(iotest,*)take_rotversory(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
+    enddo
+    
+    write(iotest,103) 'VECTORS Vectz float'
+    do iatm=1,natms
+      write(iotest,*)take_rotversorz(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
     enddo
   endif
   

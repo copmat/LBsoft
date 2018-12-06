@@ -46,7 +46,8 @@
                    initialize_new_isfluid,update_isfluid, &
                    driver_bc_isfluid,mapping_new_isfluid,&
                    particle_delete_fluids,particle_create_fluids, &
-                   erase_fluids_in_particles
+                   erase_fluids_in_particles,lunique_omega,omega, &
+                   omega_to_viscosity,viscR,pimage
 
  
  implicit none
@@ -358,6 +359,7 @@
  public :: take_rotversorz
  public :: clean_fluid_inside_particle
  public :: compute_mean_particle_force
+ public :: set_llubrication
  
  contains
  
@@ -757,6 +759,28 @@
   return
   
  end subroutine set_wall_md_rcup
+ 
+ subroutine set_llubrication(ltemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the llubrication protected variable
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  logical, intent(in) :: ltemp
+  
+  llubrication=ltemp
+  
+  return
+  
+ end subroutine set_llubrication
  
  subroutine compute_mean_particle_force()
  
@@ -1840,7 +1864,8 @@
      spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm))
+     fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm), &
+     tqx(iatm),tqy(iatm),tqz(iatm))
   enddo
   
   do iatm=natms+1,natms_ext
@@ -1852,7 +1877,8 @@
      spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm))
+     fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm), &
+     tqx(iatm),tqy(iatm),tqz(iatm))
   enddo
   
   else
@@ -2389,16 +2415,21 @@
 ! separation vectors and powers thereof
   
   real(kind=PRC) :: rsq,xm,ym,zm,rsqcut,rrr,eps,sig,vvv,ggg,rmin,vmin, &
-   kappa,rlimit,gmin,rpar,lubfactor,rparcut,rparcap,rsrparcut,mxrsqcut
+   kappa,rlimit,gmin,rpar,lubfactor,rparcut,rparcap,rsrparcut,mxrsqcut,&
+   ux,uy,uz,visc
   
 ! Loop counters
-  integer :: iatm,ii,i,j,ivdw,itype,jtype,iimax
+  integer :: iatm,ii,i,j,ivdw,itype,jtype,iimax,xcm,ycm,zcm
   integer :: k,jatm
   integer :: ilentry
   
   real(kind=PRC), parameter :: s2rmin=TWO**(ONE/SIX)
   
   call allocate_array_bdf(natms)
+  
+  if(lunique_omega)then
+    visc=viscR
+  endif
   
   do ivdw=1,ntpvdw
   
@@ -2467,6 +2498,33 @@
             fzz(jatm)=fzz(jatm)+ggg*zdf(ii)/rrr
           endif
           if(llubrication)then
+            if(rrr<=rparcut)then
+              ux=xdf(ii)/rrr
+              uy=ydf(ii)/rrr
+              uz=zdf(ii)/rrr
+              if(rrr<=rparcap)rrr=rparcap
+              if(.not. lunique_omega)then
+                xcm=nint(xxx(iatm)+xdf(ii)*HALF)
+                ycm=nint(yyy(iatm)+ydf(ii)*HALF)
+                zcm=nint(zzz(iatm)+zdf(ii)*HALF)
+                xcm=pimage(ixpbc,xcm,nx)
+                ycm=pimage(iypbc,ycm,ny)
+                zcm=pimage(izpbc,zcm,nz)
+                visc=omega_to_viscosity(omega(xcm,ycm,zcm))
+              endif
+              fxx(iatm)=fxx(iatm)-lubfactor*(rdimx(itype)**FOUR)*ux* &
+               (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fxx(jatm)=fxx(jatm)+lubfactor*(rdimx(itype)**FOUR)*ux* &
+               (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fyy(iatm)=fyy(iatm)-lubfactor*(rdimx(itype)**FOUR)*uy* &
+               (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fyy(jatm)=fyy(jatm)+lubfactor*(rdimx(jtype)**FOUR)*uy* &
+               (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fzz(iatm)=fzz(iatm)-lubfactor*(rdimx(jtype)**FOUR)*uz* &
+               (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fzz(jatm)=fzz(jatm)+lubfactor*(rdimx(jtype)**FOUR)*uz* &
+               (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
+            endif 
           endif
         endif
       enddo
@@ -2534,6 +2592,33 @@
           fzz(iatm)=fzz(iatm)-ggg*zdf(ii)/rrr
           fzz(jatm)=fzz(jatm)+ggg*zdf(ii)/rrr
           if(llubrication)then
+            if(rrr<=rparcut)then
+              ux=xdf(ii)/rrr
+              uy=ydf(ii)/rrr
+              uz=zdf(ii)/rrr
+              if(rrr<=rparcap)rrr=rparcap
+              if(.not. lunique_omega)then
+                xcm=nint(xxx(iatm)+xdf(ii)*HALF)
+                ycm=nint(yyy(iatm)+ydf(ii)*HALF)
+                zcm=nint(zzz(iatm)+zdf(ii)*HALF)
+                xcm=pimage(ixpbc,xcm,nx)
+                ycm=pimage(iypbc,ycm,ny)
+                zcm=pimage(izpbc,zcm,nz)
+                visc=omega_to_viscosity(omega(xcm,ycm,zcm))
+              endif
+              fxx(iatm)=fxx(iatm)-lubfactor*(rdimx(itype)**FOUR)*ux* &
+               (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fxx(jatm)=fxx(jatm)+lubfactor*(rdimx(itype)**FOUR)*ux* &
+               (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fyy(iatm)=fyy(iatm)-lubfactor*(rdimx(itype)**FOUR)*uy* &
+               (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fyy(jatm)=fyy(jatm)+lubfactor*(rdimx(jtype)**FOUR)*uy* &
+               (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fzz(iatm)=fzz(iatm)-lubfactor*(rdimx(jtype)**FOUR)*uz* &
+               (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fzz(jatm)=fzz(jatm)+lubfactor*(rdimx(jtype)**FOUR)*uz* &
+               (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
+            endif 
           endif
         endif
       enddo
@@ -2556,7 +2641,7 @@
       enddo
     enddo
     rpar=rdimx(itype)+rdimx(jtype)
-    lubfactor=SIX*Pi*rpar**FOUR/(FOUR*rpar**TWO)
+    lubfactor=SIX*Pi/(rpar**TWO)
     rparcut=rpar+TWO/THREE
     rsrparcut=rparcut**TWO
     mxrsqcut=max(rsrparcut,rsqcut)
@@ -2606,6 +2691,33 @@
             fzz(jatm)=fzz(jatm)+ggg*zdf(ii)/rrr
           endif
           if(llubrication)then
+            if(rrr<=rparcut)then
+              ux=xdf(ii)/rrr
+              uy=ydf(ii)/rrr
+              uz=zdf(ii)/rrr
+              if(rrr<=rparcap)rrr=rparcap
+              if(.not. lunique_omega)then
+                xcm=nint(xxx(iatm)+xdf(ii)*HALF)
+                ycm=nint(yyy(iatm)+ydf(ii)*HALF)
+                zcm=nint(zzz(iatm)+zdf(ii)*HALF)
+                xcm=pimage(ixpbc,xcm,nx)
+                ycm=pimage(iypbc,ycm,ny)
+                zcm=pimage(izpbc,zcm,nz)
+                visc=omega_to_viscosity(omega(xcm,ycm,zcm))
+              endif
+              fxx(iatm)=fxx(iatm)-lubfactor*(rdimx(itype)**FOUR)*ux* &
+               (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fxx(jatm)=fxx(jatm)+lubfactor*(rdimx(itype)**FOUR)*ux* &
+               (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fyy(iatm)=fyy(iatm)-lubfactor*(rdimx(itype)**FOUR)*uy* &
+               (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fyy(jatm)=fyy(jatm)+lubfactor*(rdimx(jtype)**FOUR)*uy* &
+               (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fzz(iatm)=fzz(iatm)-lubfactor*(rdimx(jtype)**FOUR)*uz* &
+               (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fzz(jatm)=fzz(jatm)+lubfactor*(rdimx(jtype)**FOUR)*uz* &
+               (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
+            endif 
           endif
         endif
       enddo
@@ -2620,6 +2732,8 @@
   return
 
  end subroutine compute_inter_force
+ 
+ 
  
  subroutine merge_particle_energies()
  
@@ -2799,6 +2913,9 @@
   implicit none
   
   integer, intent(in) :: nstepsub
+  
+  logical, save :: lfirst=.true.
+  
 !  vxx(:)=ZERO
 !  vyy(:)=ZERO
 !  vzz(:)=ZERO
@@ -2807,6 +2924,14 @@
 !  fzz(:)=ZERO
   !fxx(1)=fxx(1)+0.5d0
   !fxx(2)=fxx(2)-0.5d0
+  
+  !tqx(1)=ZERO
+  !tqy(1)=ZERO
+  !tqz(1)=ZERO
+  !oxx(1)=ZERO
+  !oyy(1)=ZERO
+  !ozz(1)=-0.01d0
+  
   select case(keyint)
   case (1) 
     call nve_lf(nstepsub)
@@ -2935,8 +3060,6 @@
       !current rotational matrix 
       call quat_2_rotmat(q0(i),q1(i),q2(i),q3(i),myrot)
       
-      !call get_rotation_versor(myrot,uxx,uyy,yzz)
-      
 !     store current angular velocity which are stile at n-1/2
       opx=oxx(i)
       opy=oyy(i)
@@ -3015,23 +3138,7 @@
       
  end subroutine nve_lf
  
- subroutine get_rotation_versor(rot,uxx,uyy,uzz)
- 
-  implicit none
-  
-  real(kind=PRC), dimension(9), intent(in) :: rot
-  
-  real(kind=PRC), intent(out), dimension(3) :: uxx,uyy,uzz
-  
-  call rotation((/ONE,ZERO,ZERO/),rot,uxx)
-  call rotation((/ZERO,ONE,ZERO/),rot,uyy)
-  call rotation((/ZERO,ZERO,ONE/),rot,uzz)
-  
-  return
-  
- end subroutine get_rotation_versor
- 
- function take_rotversor(idir,q0,q1,q2,q3)
+ function take_rotversor(idir,qa,qb,qc,qd)
  
 !***********************************************************************
 !     
@@ -3047,10 +3154,17 @@
   implicit none
   
   integer, intent(in) :: idir
-      
-  real(kind=PRC), intent(in) :: q0,q1,q2,q3
+  
+  real(kind=PRC), intent(in) :: qa,qb,qc,qd
+  
+  real(kind=PRC) :: q0,q1,q2,q3
   
   real(kind=PRC), dimension(3) :: take_rotversor
+  
+  q0=qa
+  q1=-qb
+  q2=-qc
+  q3=-qd
   
   select case(idir)
   case(1)
@@ -3082,7 +3196,7 @@
   
  end function take_rotversor
  
- function take_rotversorx(q0,q1,q2,q3)
+ function take_rotversorx(qa,qb,qc,qd)
  
 !***********************************************************************
 !     
@@ -3097,9 +3211,16 @@
  
   implicit none
       
-  real(kind=PRC), intent(in) :: q0,q1,q2,q3
+  real(kind=PRC), intent(in) :: qa,qb,qc,qd
+  
+  real(kind=PRC) :: q0,q1,q2,q3
   
   real(kind=PRC), dimension(3) :: take_rotversorx
+  
+  q0=qa
+  q1=-qb
+  q2=-qc
+  q3=-qd
   
   take_rotversorx(1)=q0**TWO+q1**TWO-q2**TWO-q3**TWO
   take_rotversorx(2)=TWO*(q1*q2-q0*q3)
@@ -3109,7 +3230,7 @@
   
  end function take_rotversorx
  
- function take_rotversory(q0,q1,q2,q3)
+ function take_rotversory(qa,qb,qc,qd)
  
 !***********************************************************************
 !     
@@ -3124,9 +3245,16 @@
  
   implicit none
       
-  real(kind=PRC), intent(in) :: q0,q1,q2,q3
+  real(kind=PRC), intent(in) :: qa,qb,qc,qd
+  
+  real(kind=PRC) :: q0,q1,q2,q3
   
   real(kind=PRC), dimension(3) :: take_rotversory
+  
+  q0=qa
+  q1=-qb
+  q2=-qc
+  q3=-qd
   
   take_rotversory(1)=TWO*(q1*q2+q0*q3)
   take_rotversory(2)=q0**TWO-q1**TWO+q2**TWO-q3**TWO
@@ -3136,7 +3264,7 @@
   
  end function take_rotversory
  
- function take_rotversorz(q0,q1,q2,q3)
+ function take_rotversorz(qa,qb,qc,qd)
  
 !***********************************************************************
 !     
@@ -3151,9 +3279,16 @@
  
   implicit none
       
-  real(kind=PRC), intent(in) :: q0,q1,q2,q3
+  real(kind=PRC), intent(in) :: qa,qb,qc,qd
+  
+  real(kind=PRC) :: q0,q1,q2,q3
   
   real(kind=PRC), dimension(3) :: take_rotversorz
+  
+  q0=qa
+  q1=-qb
+  q2=-qc
+  q3=-qd
   
   take_rotversorz(1)=TWO*(q1*q3-q0*q2)
   take_rotversorz(2)=TWO*(q2*q3+q0*q1)

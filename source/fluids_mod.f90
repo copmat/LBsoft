@@ -342,6 +342,7 @@
  public :: print_all_pops_center
  public :: print_all_pops_area_shpere
  public :: pimage
+ public :: omega_to_viscosity
  
  contains
  
@@ -2412,6 +2413,30 @@
   return
  
  end function viscosity_to_omega
+ 
+ pure function omega_to_viscosity(dtemp1)
+ 
+!***********************************************************************
+!     
+!     LBsoft function to convert the omega to viscosity
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp1
+  
+  real(kind=PRC) :: omega_to_viscosity
+  
+  omega_to_viscosity = cssq * ( ONE / dtemp1 - HALF )
+  
+  return
+ 
+ end function omega_to_viscosity
  
  subroutine compute_fluid_force_sc
  
@@ -8051,7 +8076,7 @@
  
  subroutine particle_bounce_back(nstep,lown,lrotate,isub,jsub,ksub,nspheres, &
   spherelists,spheredists,rdimx,rdimy,rdimz,xx,yy,zz,vx,vy,vz,&
-  fx,fy,fz,ox,oy,oz)
+  fx,fy,fz,ox,oy,oz,tx,ty,tz)
   
 !***********************************************************************
 !     
@@ -8076,13 +8101,14 @@
   real(kind=PRC), intent(inout) :: fx,fy,fz
   
   real(kind=PRC), intent(in), optional :: ox,oy,oz
+  real(kind=PRC), intent(inout), optional :: tx,ty,tz
   
   integer :: i,j,k,l,ii,jj,kk
   integer, save :: imin,imax,jmin,jmax,kmin,kmax
   logical, save :: lfirst=.true.
   integer, save :: iter=0
-  real(kind=PRC) :: vxt,vyt,vzt,modr,f2x,f2y,f2z
-  real(kind=PRC), dimension(3) :: rtemp,otemp
+  real(kind=PRC) :: vxt,vyt,vzt,modr,f2x,f2y,f2z,ftx,fty,ftz
+  real(kind=PRC), dimension(3) :: rtemp,otemp,ftemp
   
   iter=iter+1
   
@@ -8126,55 +8152,58 @@
       f2y=fy
       f2z=fz
       if(lrotate)then
-#ifdef STAGGERED
+#if 0
+        !less accurate since it assumes the center on the fluid node
         rtemp(1:3)=rdimx/spheredists(l) * &
          real(spherelists(1:3,l),kind=PRC)
 #else 
+        !more accurate: the center is xx yy zz
         rtemp(1)=real(ii,kind=PRC)-xx
         rtemp(2)=real(jj,kind=PRC)-yy
         rtemp(3)=real(kk,kind=PRC)-zz
         modr=modulvec(rtemp)
         rtemp(1:3)=rdimx/modr*rtemp(1:3)
 #endif
+        !surface velocity corrected with the rotational motion
         vxt=vxt+xcross(otemp,rtemp)
         vyt=vyt+ycross(otemp,rtemp)
         vzt=vzt+zcross(otemp,rtemp)
       endif
       if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. &
          k>=minz .and. k<=maxz)then
-        call node_to_particle_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
-           rhoR,aoptpR)
+        ftemp(1:3)=ZERO
+        call node_to_particle_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt, &
+           ftemp(1),ftemp(2),ftemp(3),rhoR,aoptpR)
+        if(lrotate)then
+          tx=tx+xcross(rtemp,ftemp)
+          ty=ty+ycross(rtemp,ftemp)
+          tz=tz+zcross(rtemp,ftemp)
+        endif
+        fx=fx+ftemp(1)
+        fy=fy+ftemp(2)
+        fz=fz+ftemp(3)
       endif
       !the fluid bounce back is local so I have to do it
       if(i==ii.and.j==jj.and.k==kk)then
         if(i<imin .or. i>imax)cycle
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle
-  !      call node_to_particle_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
-  !       rhoR,aoptpR)
         call particle_to_node_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt, &
            rhoR,aoptpR)
       else
         if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
          k>=kmin .and. k<=kmax)then
-  !        call node_to_particle_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
-  !         rhoR,aoptpR)
           call particle_to_node_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt, &
            rhoR,aoptpR)
         endif
         if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
          kk>=kmin .and. kk<=kmax)then
-  !        call node_to_particle_bounce_back_bc(nstep,ii,jj,kk,vxt,vyt,vzt,fx,fy,fz, &
-  !         rhoR,aoptpR)
           call particle_to_node_bounce_back_bc(nstep,ii,jj,kk,vxt,vyt,vzt, &
            rhoR,aoptpR)
         endif
       endif
-     ! if(nstep>=550 .and. nstep<553)write(6,*)nstep,l,i,j,k,fx-f2x,fx
     enddo
     
-    !call finalize_world
-    !stop
   else
     do l=1,nspheres
       i=isub+spherelists(1,l)
@@ -8191,26 +8220,38 @@
       vyt=vy
       vzt=vz
       if(lrotate)then
-#ifdef STAGGERED
+#if 0
+        !less accurate since it assumes the center on the fluid node
         rtemp(1:3)=rdimx/spheredists(l) * &
          real(spherelists(1:3,l),kind=PRC)
 #else 
+        !more accurate: the center is xx yy zz
         rtemp(1)=real(ii,kind=PRC)-xx
         rtemp(2)=real(jj,kind=PRC)-yy
         rtemp(3)=real(kk,kind=PRC)-zz
         modr=modulvec(rtemp)
         rtemp(1:3)=rdimx/modr*rtemp(1:3)
 #endif
+        !surface velocity corrected with the rotational motion
         vxt=vxt+xcross(otemp,rtemp)
         vyt=vyt+ycross(otemp,rtemp)
         vzt=vzt+zcross(otemp,rtemp)
       endif
       if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. &
          k>=minz .and. k<=maxz)then
-        call node_to_particle_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
-         rhoR,aoptpR)
-        call node_to_particle_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt,fx,fy,fz, &
-         rhoB,aoptpB)
+        ftemp(1:3)=ZERO
+        call node_to_particle_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt, &
+         ftemp(1),ftemp(2),ftemp(3),rhoR,aoptpR)
+        call node_to_particle_bounce_back_bc(nstep,i,j,k,vxt,vyt,vzt, &
+         ftemp(1),ftemp(2),ftemp(3),rhoB,aoptpB)
+        if(lrotate)then
+          tx=tx+xcross(rtemp,ftemp)
+          ty=ty+ycross(rtemp,ftemp)
+          tz=tz+zcross(rtemp,ftemp)
+        endif
+        fx=fx+ftemp(1)
+        fy=fy+ftemp(2)
+        fz=fz+ftemp(3)
       endif
       !the fluid bounce back is local so I have to do it
       if(i==ii.and.j==jj.and.k==kk)then
@@ -9240,16 +9281,19 @@
             ftemp(1)=rhoR(i,j,k)*u(i,j,k)
             ftemp(2)=rhoR(i,j,k)*v(i,j,k)
             ftemp(3)=rhoR(i,j,k)*w(i,j,k)
-#ifdef STAGGERED
+#if 0
+            !less accurate since it assumes the center on the fluid node
             rtemp(1:3)=rdimx(itype)/spheredists(l) * &
              real(spherelists(1:3,l),kind=PRC)
 #else 
+            !more accurate: the center is xx yy zz
             rtemp(1)=real(ii,kind=PRC)-xx(iatm)
             rtemp(2)=real(jj,kind=PRC)-yy(iatm)
             rtemp(3)=real(kk,kind=PRC)-zz(iatm)
             modr=modulvec(rtemp)
             rtemp(1:3)=rdimx(itype)/modr*rtemp(1:3)
 #endif
+            !add the rotational force contribution  
             tx(iatm)=tx(iatm)+xcross(rtemp,ftemp)
             ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
             tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
@@ -9280,16 +9324,19 @@
             ftemp(1)=rhoR(i,j,k)*u(i,j,k)
             ftemp(2)=rhoR(i,j,k)*v(i,j,k)
             ftemp(3)=rhoR(i,j,k)*w(i,j,k)
-#ifdef STAGGERED
+#if 0
+            !less accurate since it assumes the center on the fluid node
             rtemp(1:3)=rdimx(itype)/spheredists(l) * &
              real(spherelists(1:3,l),kind=PRC)
-#else 
+#else
+            !more accurate: the center is xx yy zz
             rtemp(1)=real(ii,kind=PRC)-xx(iatm)
             rtemp(2)=real(jj,kind=PRC)-yy(iatm)
             rtemp(3)=real(kk,kind=PRC)-zz(iatm)
             modr=modulvec(rtemp)
             rtemp(1:3)=rdimx(itype)/modr*rtemp(1:3)
 #endif
+            !add the rotational force contribution  
             tx(iatm)=tx(iatm)+xcross(rtemp,ftemp)
             ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
             tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)

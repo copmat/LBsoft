@@ -47,7 +47,8 @@
   set_lvv,set_rdim,lurdim,set_lparticles,set_atmnamtype, &
   set_ntype,ntype,mxntype,rdimx,rdimy,rdimz,atmnamtype,weight, &
   find_type,allocate_particle_features,mskvdw,set_lwall_md,lwall_md, &
-  set_wall_md_k,wall_md_k,set_wall_md_rcup,wall_md_k,wall_md_rcup
+  set_wall_md_k,wall_md_k,set_wall_md_rcup,wall_md_k,wall_md_rcup, &
+  llubrication,set_llubrication
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,lvtkstruct,set_value_ixyzevery,lxyzfile,ixyzevery
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
@@ -364,6 +365,7 @@
   logical, dimension(mxntype) :: temp_lurdim(1:mxntype)=.false.
   logical :: temp_lparticlentype=.false.
   logical :: temp_lwall_md=.false.
+  logical :: temp_llubrication=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -1104,6 +1106,15 @@
                   call warning(1,dble(iline),redstring)
                   lerror6=.true.
                 endif
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
+              endif
+            elseif(findstring('lubric',directive,inumchar,maxlen))then
+              if(findstring('yes',directive,inumchar,maxlen))then
+                temp_llubrication=.true.
+              elseif(findstring('no',directive,inumchar,maxlen))then
+                temp_llubrication=.false.
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -2027,6 +2038,23 @@
           mystring='    r cap'
           write(6,'(2a,f12.6)')mystring,": ",prmvdw(3,i)
         enddo
+      endif
+    endif
+    
+    call bcast_world_l(temp_llubrication)
+    if(temp_llubrication)then
+      call set_llubrication(temp_llubrication)
+      if(idrank==0 .and. llubrication)then
+        mystring=repeat(' ',dimprint)
+        mystring='lubrication'
+        mystring12=repeat(' ',dimprint2)
+        if(llubrication)then
+          mystring12='yes'
+        else
+          mystring12='no'
+        endif
+        mystring12=adjustr(mystring12)
+        write(6,'(3a)')mystring,": ",mystring12
       endif
     endif
     
