@@ -7842,6 +7842,41 @@
   
   logical :: ltest(1)=.false.
   
+  logical, save :: lfirst=.true.
+  integer, save :: ndouble
+  integer, allocatable, dimension(:), save :: exdouble,eydouble,ezdouble
+  
+  if(lfirst)then
+    lfirst=.false.
+    l=0
+    do k=-2,2
+      do j=-2,2
+        do i=-2,2
+          if(i==-2 .or. i==2 .or. j==-2 .or. j==2 .or. &
+            k==-2 .or. k==2)then
+             l=l+1
+          endif
+        enddo
+      enddo
+    enddo
+    ndouble=l
+    allocate(exdouble(ndouble),eydouble(ndouble),ezdouble(ndouble))
+    l=0
+    do k=-2,2
+      do j=-2,2
+        do i=-2,2
+          if(i==-2 .or. i==2 .or. j==-2 .or. j==2 .or. &
+            k==-2 .or. k==2)then
+             l=l+1
+             exdouble(l)=i
+             eydouble(l)=j
+             ezdouble(l)=k
+          endif
+        enddo
+      enddo
+    enddo
+  endif
+  
 #if 1
    
    if(lsingle_fluid)then
@@ -7861,7 +7896,28 @@
                endif
              enddo
              if(isum==ZERO)then
-               ltest(1)=.true.
+               dsum1=ZERO
+               isum=ZERO
+               do l=1,ndouble
+                 ishift=i+exdouble(l)
+                 jshift=j+eydouble(l)
+                 kshift=k+ezdouble(l)
+                 if(ishift<minx-nbuff)cycle
+                 if(ishift>maxx+nbuff)cycle
+                 if(jshift<miny-nbuff)cycle
+                 if(jshift>maxy+nbuff)cycle
+                 if(kshift<minz-nbuff)cycle
+                 if(kshift>maxz+nbuff)cycle
+                 if(isfluid(ishift,jshift,kshift)==1)then
+                   dsum1=dsum1+rhoR(ishift,jshift,kshift)
+                   isum=isum+ONE
+                 endif
+               enddo
+               if(isum==ZERO)then
+                 ltest(1)=.true.
+               else
+                 rhoR(i,j,k)=dsum1/isum
+               endif
              else
                rhoR(i,j,k)=dsum1/isum
              endif
@@ -7888,7 +7944,31 @@
                endif
              enddo
              if(isum==ZERO)then
-               ltest(1)=.true.
+               dsum1=ZERO
+               dsum2=ZERO
+               isum=ZERO
+               do l=1,ndouble
+                 ishift=i+exdouble(l)
+                 jshift=j+eydouble(l)
+                 kshift=k+ezdouble(l)
+                 if(ishift<minx-nbuff)cycle
+                 if(ishift>maxx+nbuff)cycle
+                 if(jshift<miny-nbuff)cycle
+                 if(jshift>maxy+nbuff)cycle
+                 if(kshift<minz-nbuff)cycle
+                 if(kshift>maxz+nbuff)cycle
+                 if(isfluid(ishift,jshift,kshift)==1)then
+                   dsum1=dsum1+rhoR(ishift,jshift,kshift)
+                   dsum2=dsum2+rhoB(ishift,jshift,kshift)
+                   isum=isum+ONE
+                 endif
+               enddo
+               if(isum==ZERO)then
+                 ltest(1)=.true.
+               else
+                 rhoR(i,j,k)=dsum1/isum
+                 rhoB(i,j,k)=dsum2/isum
+               endif
              else
                rhoR(i,j,k)=dsum1/isum
                rhoB(i,j,k)=dsum2/isum

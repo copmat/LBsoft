@@ -18,13 +18,13 @@
   lsingle_fluid, minx, maxx, miny, maxy, minz, maxz
  use particles_mod,         only : lparticles,engke,engcfg,engtot, &
   engrot,tempboltz,degfre,natms,vxx,vyy,vzz,fxx,fyy,fzz,natms_tot, &
-  meanpfx,meanpfy,meanpfz
+  meanpfx,meanpfy,meanpfz,lrotate,engrot
  
  implicit none
  
  private
  
- integer, public, parameter :: nmaxstatdata=30
+ integer, public, parameter :: nmaxstatdata=31
  
  real(kind=PRC), public, save, dimension(nmaxstatdata) :: statdata
  real(kind=PRC), public, save :: meancputime=0.d0
@@ -157,6 +157,7 @@
 !   these were already sum all reduced in particle_mod.f90 
     statdata(17)=engke
     statdata(18)=engcfg
+    statdata(31)=engrot
     statdata(19)=engtot
 !   particle temperature as ratio of KbT
     statdata(20)=TWO*(engke+engrot)/(tempboltz*degfre)

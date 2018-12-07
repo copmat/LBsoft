@@ -207,7 +207,7 @@
     call vertest(lnewlst,tstep)
     call driver_neighborhood_list(lnewlst,nstep)
     call initialize_particle_force
-    call driver_inter_force
+    call driver_inter_force(nstep)
     call initialize_integrator_lf
     call store_old_pos_vel_part
     call driver_bc_isfluid

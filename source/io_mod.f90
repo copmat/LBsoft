@@ -46,9 +46,10 @@
   set_umass,lumass,linit_temp,init_temp,set_init_temp,lvv, &
   set_lvv,set_rdim,lurdim,set_lparticles,set_atmnamtype, &
   set_ntype,ntype,mxntype,rdimx,rdimy,rdimz,atmnamtype,weight, &
-  find_type,allocate_particle_features,mskvdw,set_lwall_md,lwall_md, &
-  set_wall_md_k,wall_md_k,set_wall_md_rcup,wall_md_k,wall_md_rcup, &
-  llubrication,set_llubrication
+  find_type,allocate_particle_features,mskvdw,set_lsidewall_md,lsidewall_md, &
+  set_sidewall_md_k,sidewall_md_k,sidewall_md_k,sidewall_md_rdist, &
+  llubrication,set_llubrication,set_sidewall_md_rdist, ext_fxx, &
+  ext_fyy,ext_fzz,set_value_ext_force_particles
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,lvtkstruct,set_value_ixyzevery,lxyzfile,ixyzevery
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
@@ -364,8 +365,10 @@
   logical :: temp_lvv=.false.
   logical, dimension(mxntype) :: temp_lurdim(1:mxntype)=.false.
   logical :: temp_lparticlentype=.false.
-  logical :: temp_lwall_md=.false.
+  logical :: temp_lsidewall_md=.false.
   logical :: temp_llubrication=.false.
+  logical :: temp_sidewall_md_k=.false.
+  logical :: temp_sidewall_md_rdist=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -433,8 +436,12 @@
   
   real(kind=PRC) :: dtemp_init_temp= ZERO
   
-  real(kind=PRC) :: dtemp_wall_md_k=ZERO
-  real(kind=PRC) :: dtemp_wall_md_rcup=ZERO
+  real(kind=PRC) :: dtemp_sidewall_md_k=ZERO
+  real(kind=PRC) :: dtemp_sidewall_md_rdist=ONE
+  
+  real(kind=PRC) :: dtemp_ext_fxx = ZERO
+  real(kind=PRC) :: dtemp_ext_fyy = ZERO
+  real(kind=PRC) :: dtemp_ext_fzz = ZERO
   
   integer, dimension(mxvdw) :: temp_ltpvdw
   real(kind=PRC), dimension(mxpvdw,mxvdw) :: dtemp_prmvdw
@@ -987,15 +994,28 @@
                 temp_lumass(itype)=.true.
                 dtemp_umass(itype)=dblstr(directive,maxlen,inumchar)
               endif
-            elseif(findstring('wall',directive,inumchar,maxlen))then
-              if(findstring('const',directive,inumchar,maxlen))then
-                dtemp_wall_md_k=dblstr(directive,maxlen,inumchar)
-              elseif(findstring('rcup',directive,inumchar,maxlen))then
-                dtemp_wall_md_rcup=dblstr(directive,maxlen,inumchar)
-              elseif(findstring('yes',directive,inumchar,maxlen))then
-                temp_lwall_md=.true.
-              elseif(findstring('no',directive,inumchar,maxlen))then
-                temp_lwall_md=.false.
+            elseif(findstring('force',directive,inumchar,maxlen))then
+              if(findstring('ext',directive,inumchar,maxlen))then
+                dtemp_ext_fxx=dblstr(directive,maxlen,inumchar)
+                dtemp_ext_fyy=dblstr(directive,maxlen,inumchar)
+                dtemp_ext_fzz=dblstr(directive,maxlen,inumchar)
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
+              endif
+            elseif(findstring('side',directive,inumchar,maxlen))then
+              if(findstring('wall',directive,inumchar,maxlen))then
+                if(findstring('const',directive,inumchar,maxlen))then
+                  temp_sidewall_md_k=.true.
+                  dtemp_sidewall_md_k=dblstr(directive,maxlen,inumchar)
+                elseif(findstring('dist',directive,inumchar,maxlen))then
+                  temp_sidewall_md_rdist=.true.
+                  dtemp_sidewall_md_rdist= &
+                   dblstr(directive,maxlen,inumchar)
+                else
+                  call warning(1,dble(iline),redstring)
+                  lerror6=.true.
+                endif
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1878,8 +1898,6 @@
       endif
     endif
     
-    
-    
     call bcast_world_l(temp_lvv)
     if(temp_lvv)then
       call set_lvv(temp_lvv)
@@ -1894,6 +1912,20 @@
         endif
         mystring12=adjustr(mystring12)
         write(6,'(3a)')mystring,": ",mystring12
+      endif
+    endif
+    
+    call bcast_world_f(dtemp_ext_fxx)
+    call bcast_world_f(dtemp_ext_fyy)
+    call bcast_world_f(dtemp_ext_fzz)
+    if(dtemp_ext_fxx/=ZERO .or. dtemp_ext_fyy/=ZERO .or. &
+     dtemp_ext_fzz/=ZERO)then
+      call set_value_ext_force_particles(dtemp_ext_fxx,dtemp_ext_fyy, &
+       dtemp_ext_fzz)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='external force on particles'
+        write(6,'(2a,3f12.6)')mystring,": ",ext_fxx,ext_fyy,ext_fzz
       endif
     endif
     
@@ -1937,16 +1969,14 @@
       endif
     endif
     
-    call bcast_world_l(temp_lwall_md)
-    if(temp_lwall_md)then
-      call set_lwall_md(temp_lwall_md)
-      call bcast_world_f(dtemp_wall_md_k)
-      call bcast_world_f(dtemp_wall_md_rcup)
-      if(idrank==0 .and. lparticles)then
+    if(lparticles .and. ibctype/=7)then
+      temp_lsidewall_md=.true.
+      call set_lsidewall_md(temp_lsidewall_md)
+      if(idrank==0)then
         mystring=repeat(' ',dimprint)
-        mystring='wall'
+        mystring='side wall'
         mystring12=repeat(' ',dimprint2)
-        if(lwall_md)then
+        if(lsidewall_md)then
           mystring12='yes'
         else
           mystring12='no'
@@ -1954,31 +1984,41 @@
         mystring12=adjustr(mystring12)
         write(6,'(3a)')mystring,": ",mystring12
       endif
-      if(dtemp_wall_md_k/=ZERO)then
-        call set_wall_md_k(dtemp_wall_md_k)
-        if(idrank==0 .and. lparticles)then
-          mystring=repeat(' ',dimprint)
-          mystring='wall force constant'
-          write(6,'(2a,f12.6)')mystring,": ",wall_md_k
-        endif
-      else
-        if(lwall_md)then
-          call warning(47)
-          call error(7)
-        endif
-      endif
-      if(dtemp_wall_md_rcup/=ZERO)then
-        call set_wall_md_rcup(dtemp_wall_md_rcup)
-        if(idrank==0 .and. lparticles)then
-          mystring=repeat(' ',dimprint)
-          mystring='wall distance force cup'
-          write(6,'(2a,f12.6)')mystring,": ",wall_md_rcup
-        endif
-      else
-        if(lwall_md)then
+      call bcast_world_l(temp_sidewall_md_k)
+      if(temp_sidewall_md_k)then
+        call bcast_world_f(dtemp_sidewall_md_k)
+        if(dtemp_sidewall_md_k>ZERO)then
+          call set_sidewall_md_k(dtemp_sidewall_md_k)
+          if(idrank==0)then
+            mystring=repeat(' ',dimprint)
+            mystring='side wall constant'
+            write(6,'(2a,f12.6)')mystring,": ",sidewall_md_k
+          endif
+        else
           call warning(48)
           call error(7)
         endif
+      else
+        call warning(47)
+        call error(7)
+      endif
+      call bcast_world_l(temp_sidewall_md_rdist)
+      if(temp_sidewall_md_rdist)then
+        call bcast_world_f(dtemp_sidewall_md_rdist)
+        if(dtemp_sidewall_md_rdist>ZERO)then
+          call set_sidewall_md_rdist(dtemp_sidewall_md_rdist)
+          if(idrank==0)then
+            mystring=repeat(' ',dimprint)
+            mystring='side wall distance'
+            write(6,'(2a,f12.6)')mystring,": ",sidewall_md_rdist
+          endif
+        else
+          call warning(50)
+          call error(7)
+        endif
+      else
+        call warning(51)
+        call error(7)
       endif
     endif
     
@@ -2189,6 +2229,8 @@
     legendobs='pfy   =  mean particle force along y              '
   elseif(printcodsub(iarg)==30)then
     legendobs='pfz   =  mean particle force along z              '
+  elseif(printcodsub(iarg)==31)then
+    legendobs='engrt =  rotational energy                        '
   endif
   legendobs=adjustl(legendobs)
   
@@ -2270,6 +2312,9 @@
     lfound=.true.
   elseif(findstring('engto',temps,inumchar,lenstring))then
     printcodsub(iarg)=19
+    lfound=.true.
+  elseif(findstring('engrt',temps,inumchar,lenstring))then
+    printcodsub(iarg)=31
     lfound=.true.
   elseif(findstring('tempp',temps,inumchar,lenstring))then
     printcodsub(iarg)=20
@@ -2411,6 +2456,8 @@
     printlisub(iarg)='pfy (lu)'
   elseif(printcodsub(iarg)==30)then
     printlisub(iarg)='pfz (lu)'
+  elseif(printcodsub(iarg)==31)then
+    printlisub(iarg)='engrt (lu)'
   endif
   printlisub(iarg)=adjustr(printlisub(iarg))
   enddo

@@ -223,6 +223,8 @@
       write(outp,'(a)') &
       "WARNING - * engcf                * configuration energy in lb units                      *"
       write(outp,'(a)') &
+      "WARNING - * engrt                * rotational energy in lb units                         *"
+      write(outp,'(a)') &
       "WARNING - * engto                * total energy in lb units                              *"
       write(outp,'(a)') &
       "WARNING - * tempp                * particle temperature as ratio of KbT                  *"
@@ -468,11 +470,22 @@
       write(outp,'(/,2a,/)')"WARNING - particle pair of force field", &
        " not specified in input file!"
     case (47)
-      write(outp,'(/,2a,/)')"WARNING - 'wall const' is not defined in ", &
-      "input file"
+      write(outp,'(/,2a,/)')"WARNING - 'side wall const' is not defined in ", &
+      "input file!"
     case (48)
-      write(outp,'(/,2a,/)')"WARNING - 'wall rcup' is not defined in ", &
-      "input file"
+      write(outp,'(/,2a,/)')"WARNING - 'side wall const' defined in ", &
+      "input file should be positive!"
+    case (49)
+      write(outp,'(/,2a)')"WARNING - a particle ", &
+       "has crossed a side wall!"
+      write(outp,'(2a,/)')"WARNING - 'side wall const' or ", &
+      "'side wall dist' in input file should be increased!"
+    case (50)
+      write(outp,'(/,2a,/)')"WARNING - 'side wall dist' is not defined in ", &
+      "input file!"
+    case (51)
+      write(outp,'(/,2a,/)')"WARNING - 'side wall dist' defined in ", &
+      "input file should be positive!"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

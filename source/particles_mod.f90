@@ -103,8 +103,8 @@
  !activate particle part
  logical, public, protected, save :: lparticles=.false.
  
- !activate reflecting wall
- logical, public, protected, save :: lwall_md=.false.
+ !activate reflecting side wall
+ logical, public, protected, save :: lsidewall_md=.false.
  
  !activate lubrication force
  logical, public, protected, save :: llubrication=.false.
@@ -154,16 +154,21 @@
  !Verlet neighbour list shell width
  real(kind=PRC), public, protected, save :: delr=ZERO
  
- !force constant of reflecting wall (hertzian force field)
- real(kind=PRC), public, protected, save :: wall_md_k=ZERO
+ !force constant of reflecting side wall (hertzian force field)
+ real(kind=PRC), public, protected, save :: sidewall_md_k=ZERO
  
- !distance for activate the force cup of the reflecting wall
- real(kind=PRC), public, protected, save :: wall_md_rcup=ZERO
+ !force distance from reflecting side wall (hertzian force field)
+ real(kind=PRC), public, protected, save :: sidewall_md_rdist=ONE
  
  !mean particle force along directions x y z
  real(kind=PRC), public, protected, save :: meanpfx=ZERO
  real(kind=PRC), public, protected, save :: meanpfy=ZERO
  real(kind=PRC), public, protected, save :: meanpfz=ZERO
+ 
+ !external particle force along directions x y z
+ real(kind=PRC), save, protected, public :: ext_fxx=ZERO
+ real(kind=PRC), save, protected, public :: ext_fyy=ZERO
+ real(kind=PRC), save, protected, public :: ext_fzz=ZERO
  
  !key for set initial particle temperature
  logical, public, protected, save :: linit_temp=.false.
@@ -322,9 +327,9 @@
  public :: set_ishape
  public :: set_lrotate
  public :: set_lvv
- public :: set_lwall_md
- public :: set_wall_md_k
- public :: set_wall_md_rcup
+ public :: set_lsidewall_md
+ public :: set_sidewall_md_k
+ public :: set_sidewall_md_rdist
  public :: initialize_map_particles
  public :: rotmat_2_quat
  public :: driver_neighborhood_list
@@ -360,6 +365,7 @@
  public :: clean_fluid_inside_particle
  public :: compute_mean_particle_force
  public :: set_llubrication
+ public :: set_value_ext_force_particles
  
  contains
  
@@ -694,11 +700,11 @@
   
  end subroutine set_atmnamtype
  
- subroutine set_lwall_md(ltemp)
+ subroutine set_lsidewall_md(ltemp)
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for setting the lwall_md protected variable
+!     LBsoft subroutine for setting the lsidewall_md protected variable
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -710,21 +716,21 @@
   
   logical, intent(in) :: ltemp
   
-  lwall_md=ltemp
+  lsidewall_md=ltemp
   
   return
   
- end subroutine set_lwall_md
+ end subroutine set_lsidewall_md
  
- subroutine set_wall_md_k(dtemp)
+ subroutine set_sidewall_md_k(dtemp)
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for setting the wall_md_k protected variable
+!     LBsoft subroutine for setting the sidewall_md_k protected variable
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
-!     last modification November 2018
+!     last modification December 2018
 !     
 !***********************************************************************
  
@@ -732,21 +738,22 @@
   
   real(kind=PRC), intent(in) :: dtemp
   
-  wall_md_k=dtemp
+  sidewall_md_k=dtemp
   
   return
   
- end subroutine set_wall_md_k
+ end subroutine set_sidewall_md_k
  
- subroutine set_wall_md_rcup(dtemp)
+ subroutine set_sidewall_md_rdist(dtemp)
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for setting the wall_md_k protected variable
+!     LBsoft subroutine for setting the sidewall_md_rdist 
+!     protected variable
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
-!     last modification November 2018
+!     last modification December 2018
 !     
 !***********************************************************************
  
@@ -754,11 +761,11 @@
   
   real(kind=PRC), intent(in) :: dtemp
   
-  wall_md_rcup=dtemp
+  sidewall_md_rdist=dtemp
   
   return
   
- end subroutine set_wall_md_rcup
+ end subroutine set_sidewall_md_rdist
  
  subroutine set_llubrication(ltemp)
  
@@ -781,6 +788,31 @@
   return
   
  end subroutine set_llubrication
+ 
+ subroutine set_value_ext_force_particles(dtemp1,dtemp2,dtemp3)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the external force values acting
+!     on the particles 
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3
+  
+  ext_fxx = dtemp1
+  ext_fyy = dtemp2
+  ext_fzz = dtemp3
+  
+  return
+  
+ end subroutine set_value_ext_force_particles
  
  subroutine compute_mean_particle_force()
  
@@ -1505,6 +1537,10 @@
         if(nxyzlist_sub>0)then
           do j=1,nxyzlist_sub
             k=xyzlist_sub(j)
+            if(.not. lrotate)then
+              if(k>=16 .and. k<=25)cycle
+              if(k>=10 .and. k<=12)cycle
+            endif
             select case(k)
             case(7)
               vxx(sub_i)=ots(j,i)
@@ -2333,17 +2369,17 @@
   integer :: i
   
   forall(i=1:natms)
-    fxx(i)=ZERO
-    fyy(i)=ZERO
-    fzz(i)=ZERO
+    fxx(i)=ext_fxx
+    fyy(i)=ext_fyy
+    fzz(i)=ext_fzz
   end forall
   
   if(.not. lrotate)return
   !initialize also the torque of forces
   forall(i=1:natms)
-    tqx(i)=ZERO
-    tqy(i)=ZERO
-    tqz(i)=ZERO
+    tqx(i)=ext_fxx
+    tqy(i)=ext_fyy
+    tqz(i)=ext_fzz
   end forall
   
   return
@@ -2373,7 +2409,7 @@
   
  end subroutine initialize_particle_energy
  
- subroutine driver_inter_force
+ subroutine driver_inter_force(nstepsub)
  
 !***********************************************************************
 !     
@@ -2386,10 +2422,15 @@
 !***********************************************************************
 
   implicit none
+  
+  integer, intent(in) :: nstepsub
+  
   real(kind=PRC), parameter :: tol=real(1.d-4,kind=PRC)
   integer :: i
   
   call compute_inter_force(lentry,list)
+  
+  call compute_sidewall_force(nstepsub)
   
   return
   
@@ -2751,11 +2792,147 @@
   endif
   
 ! calculate total energy  
-  engtot=engke+engcfg
+  engtot=engke+engcfg+engrot
   
   return
   
  end subroutine merge_particle_energies
+ 
+ subroutine compute_sidewall_force(nstepsub)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the interaction force with
+!     the side wall if necessary
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: nstepsub
+  
+  integer :: iatm,itype
+  real(kind=PRC) :: inflimit,suplimit(3),vmin,gmin,vvv,ggg,rrr,rlimit, &
+   suprcup(3)
+  logical, dimension(1) :: ltest
+  
+  if(.not. lsidewall_md)return
+  
+  ltest(1)=.false.
+  inflimit=sidewall_md_rdist+HALF
+  rlimit=ONE+HALF
+  vmin=sidewall_md_k*(ONE**(FIVE*HALF))
+  gmin=FIVE*HALF*sidewall_md_k*(ONE**(THREE*HALF))
+  suplimit(1)=cell(1)-sidewall_md_rdist-HALF
+  suplimit(2)=cell(5)-sidewall_md_rdist-HALF
+  suplimit(3)=cell(9)-sidewall_md_rdist-HALF
+  suprcup(1)=cell(1)-ONE-HALF
+  suprcup(2)=cell(5)-ONE-HALF
+  suprcup(3)=cell(9)-ONE-HALF
+  
+  do iatm=1,natms
+    
+    itype=ltype(iatm)
+    if(ixpbc==0) then
+      if(xxx(iatm)-rdimx(itype)<=inflimit)then
+        rrr=xxx(iatm)-rdimx(itype)
+        if(rrr<=rlimit)then
+          vvv=vmin+(rlimit-rrr)*gmin
+          ggg=gmin
+          ltest(1)=.true.
+        else
+          vvv=sidewall_md_k*(inflimit-rrr)**(FIVE*HALF)
+          ggg=FIVE*HALF*sidewall_md_k*(inflimit-rrr)**(THREE*HALF)
+        endif
+        engcfg=engcfg+vvv
+        fxx(iatm)=fxx(iatm)+ggg
+      endif  
+      if(xxx(iatm)+rdimx(itype)>=suplimit(1))then
+        rrr=xxx(iatm)+rdimx(itype)
+        if(rrr>=suprcup(1))then
+          vvv=vmin+(rrr-suprcup(1))*gmin
+          ggg=gmin
+          ltest(1)=.true.
+        else
+          vvv=sidewall_md_k*(rrr-suplimit(1))**(FIVE*HALF)
+          ggg=FIVE*HALF*sidewall_md_k*(rrr-suplimit(1))**(THREE*HALF)
+        endif
+        engcfg=engcfg+vvv
+        fxx(iatm)=fxx(iatm)-ggg
+      endif
+    endif
+    
+    if(iypbc==0) then
+      if(yyy(iatm)-rdimy(itype)<=inflimit)then
+        rrr=yyy(iatm)-rdimy(itype)
+        if(rrr<=rlimit)then
+          vvv=vmin+(rlimit-rrr)*gmin
+          ggg=gmin
+          ltest(1)=.true.
+        else
+          vvv=sidewall_md_k*(inflimit-rrr)**(FIVE*HALF)
+          ggg=FIVE*HALF*sidewall_md_k*(inflimit-rrr)**(THREE*HALF)
+        endif
+        engcfg=engcfg+vvv
+        fyy(iatm)=fyy(iatm)+ggg
+      endif  
+      if(yyy(iatm)+rdimy(itype)>=suplimit(2))then
+        rrr=yyy(iatm)+rdimy(itype)
+        if(rrr>=suprcup(2))then
+          vvv=vmin+(rrr-suprcup(2))*gmin
+          ggg=gmin
+          ltest(1)=.true.
+          write(6,*)nstepsub,yyy(iatm),yyy(iatm)+rdimy(itype),-ggg
+        else
+          vvv=sidewall_md_k*(rrr-suplimit(2))**(FIVE*HALF)
+          ggg=FIVE*HALF*sidewall_md_k*(rrr-suplimit(2))**(THREE*HALF)
+        endif
+        engcfg=engcfg+vvv
+        fyy(iatm)=fyy(iatm)-ggg
+      endif
+    endif
+    
+    if(izpbc==0) then
+      if(zzz(iatm)-rdimz(itype)<=inflimit)then
+        rrr=zzz(iatm)-rdimz(itype)
+        if(rrr<=rlimit)then
+          vvv=vmin+(rlimit-rrr)*gmin
+          ggg=gmin
+          ltest(1)=.true.
+        else
+          vvv=sidewall_md_k*(inflimit-rrr)**(FIVE*HALF)
+          ggg=FIVE*HALF*sidewall_md_k*(inflimit-rrr)**(THREE*HALF)
+        endif
+        engcfg=engcfg+vvv
+        fzz(iatm)=fzz(iatm)+ggg
+      endif  
+      if(zzz(iatm)+rdimz(itype)>=suplimit(3))then
+        rrr=zzz(iatm)+rdimz(itype)
+        if(rrr>=suprcup(3))then
+          vvv=vmin+(rrr-suprcup(3))*gmin
+          ggg=gmin
+          ltest(1)=.true.
+        else
+          vvv=sidewall_md_k*(rrr-suplimit(3))**(FIVE*HALF)
+          ggg=FIVE*HALF*sidewall_md_k*(rrr-suplimit(3))**(THREE*HALF)
+        endif
+        engcfg=engcfg+vvv
+        fzz(iatm)=fzz(iatm)-ggg
+      endif
+    endif
+    
+  enddo
+  
+  call or_world_larr(ltest,1)
+  if(ltest(1))call warning(49)
+  
+  return
+  
+ end subroutine compute_sidewall_force
  
  subroutine init_velocity()
       
@@ -2924,7 +3101,7 @@
 !  fzz(:)=ZERO
   !fxx(1)=fxx(1)+0.5d0
   !fxx(2)=fxx(2)-0.5d0
-  
+
   !tqx(1)=ZERO
   !tqy(1)=ZERO
   !tqz(1)=ZERO
