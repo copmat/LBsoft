@@ -49,7 +49,8 @@
   find_type,allocate_particle_features,mskvdw,set_lsidewall_md,lsidewall_md, &
   set_sidewall_md_k,sidewall_md_k,sidewall_md_k,sidewall_md_rdist, &
   llubrication,set_llubrication,set_sidewall_md_rdist, ext_fxx, &
-  ext_fyy,ext_fzz,set_value_ext_force_particles
+  ext_fyy,ext_fzz,set_value_ext_force_particles,ext_tqx,ext_tqy, &
+  ext_tqz,set_value_ext_torque_particles
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,lvtkstruct,set_value_ixyzevery,lxyzfile,ixyzevery
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
@@ -442,6 +443,10 @@
   real(kind=PRC) :: dtemp_ext_fxx = ZERO
   real(kind=PRC) :: dtemp_ext_fyy = ZERO
   real(kind=PRC) :: dtemp_ext_fzz = ZERO
+  
+  real(kind=PRC) :: dtemp_ext_tqx = ZERO
+  real(kind=PRC) :: dtemp_ext_tqy = ZERO
+  real(kind=PRC) :: dtemp_ext_tqz = ZERO
   
   integer, dimension(mxvdw) :: temp_ltpvdw
   real(kind=PRC), dimension(mxpvdw,mxvdw) :: dtemp_prmvdw
@@ -999,6 +1004,15 @@
                 dtemp_ext_fxx=dblstr(directive,maxlen,inumchar)
                 dtemp_ext_fyy=dblstr(directive,maxlen,inumchar)
                 dtemp_ext_fzz=dblstr(directive,maxlen,inumchar)
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
+              endif
+            elseif(findstring('torque',directive,inumchar,maxlen))then
+              if(findstring('ext',directive,inumchar,maxlen))then
+                dtemp_ext_tqx=dblstr(directive,maxlen,inumchar)
+                dtemp_ext_tqy=dblstr(directive,maxlen,inumchar)
+                dtemp_ext_tqz=dblstr(directive,maxlen,inumchar)
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1926,6 +1940,22 @@
         mystring=repeat(' ',dimprint)
         mystring='external force on particles'
         write(6,'(2a,3f12.6)')mystring,": ",ext_fxx,ext_fyy,ext_fzz
+      endif
+    endif
+    
+    if(lrotate)then
+      call bcast_world_f(dtemp_ext_tqx)
+      call bcast_world_f(dtemp_ext_tqy)
+      call bcast_world_f(dtemp_ext_tqz)
+      if(dtemp_ext_tqx/=ZERO .or. dtemp_ext_tqy/=ZERO .or. &
+       dtemp_ext_tqz/=ZERO)then
+        call set_value_ext_torque_particles(dtemp_ext_tqx, &
+         dtemp_ext_tqy,dtemp_ext_tqz)
+        if(idrank==0)then
+          mystring=repeat(' ',dimprint)
+          mystring='external torque on particles'
+          write(6,'(2a,3f12.6)')mystring,": ",ext_tqx,ext_tqy,ext_tqz
+        endif
       endif
     endif
     

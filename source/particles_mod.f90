@@ -170,6 +170,11 @@
  real(kind=PRC), save, protected, public :: ext_fyy=ZERO
  real(kind=PRC), save, protected, public :: ext_fzz=ZERO
  
+ !external particle torque along directions x y z
+ real(kind=PRC), save, protected, public :: ext_tqx=ZERO
+ real(kind=PRC), save, protected, public :: ext_tqy=ZERO
+ real(kind=PRC), save, protected, public :: ext_tqz=ZERO
+ 
  !key for set initial particle temperature
  logical, public, protected, save :: linit_temp=.false.
  
@@ -366,6 +371,7 @@
  public :: compute_mean_particle_force
  public :: set_llubrication
  public :: set_value_ext_force_particles
+ public :: set_value_ext_torque_particles
  
  contains
  
@@ -813,6 +819,31 @@
   return
   
  end subroutine set_value_ext_force_particles
+ 
+ subroutine set_value_ext_torque_particles(dtemp1,dtemp2,dtemp3)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the external torque values acting
+!     on the particles 
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3
+  
+  ext_tqx = dtemp1
+  ext_tqy = dtemp2
+  ext_tqz = dtemp3
+  
+  return
+  
+ end subroutine set_value_ext_torque_particles
  
  subroutine compute_mean_particle_force()
  
@@ -2154,6 +2185,8 @@
 !***********************************************************************
  
   implicit none
+  
+  if(.not. lparticles)return
  
   call erase_fluids_in_particles(natms,nsphere,spherelist, &
    spheredist,nspheredead,spherelistdead,ltype,xxx,yyy,zzz, &
@@ -2377,9 +2410,9 @@
   if(.not. lrotate)return
   !initialize also the torque of forces
   forall(i=1:natms)
-    tqx(i)=ext_fxx
-    tqy(i)=ext_fyy
-    tqz(i)=ext_fzz
+    tqx(i)=ext_tqx
+    tqy(i)=ext_tqy
+    tqz(i)=ext_tqz
   end forall
   
   return

@@ -3,7 +3,7 @@
  
   implicit none
   
-  integer, parameter :: ntest=11
+  integer, parameter :: ntest=13
   
   integer, parameter :: orig_io=1017
   integer, parameter :: orig_ioxyz=3017
@@ -34,6 +34,7 @@
   
   logical :: ltest(ntest)
   logical :: lxyzfile(ntest)
+  logical :: lskip(ntest)
   
   integer :: i,j,k,l,ii,jj,kk,idrank,ncpu,ndec,xdim,ydim,zdim,iii
   
@@ -46,7 +47,7 @@
   real, parameter :: mytol=1.e-15
   
   integer :: natms1,natms2,iatm,nargxyz1,nargxyz2
-  logical :: lrotate1,lrotate2
+  logical :: lrotate1,lrotate2,lerase
   
   
   if(iargc()/=0 .and. iargc()/=6)then
@@ -119,9 +120,14 @@
   labeltest(9)='2D_Shear_yz'
   labeltest(10)='3D_Spinodal'
   labeltest(11)='3D_Particle_pbc'
+  labeltest(12)='3D_Rotating_Particle'
+  labeltest(13)='3D_Shear_Particle'
   
   lxyzfile(1:10)=.false.
-  lxyzfile(11)=.true.
+  lxyzfile(11:ntest)=.true.
+  !lskip(1:12)=.true.
+  lskip(1:ntest)=.false.
+  lerase=.true.
   
   call getcwd(origpath)
   origpath=trim(origpath)
@@ -141,6 +147,7 @@
   
   ltest(1:ntest)=.true.
   do i=1,ntest
+    if(lskip(i))cycle
     call chdir(trim(origpath))
     newpath=repeat(' ',maxlen)
     newpath='..'//delimiter//labeltest(i)
@@ -335,7 +342,7 @@
         endif
         close(remove_file_io)
         call execute_command_line('chmod 777 rm.sh',wait=.true.)
-        call execute_command_line('./rm.sh',wait=.true.)
+        if(lerase)call execute_command_line('./rm.sh',wait=.true.)
         deallocate(dmio1)
         deallocate(dmio2)
         if(ltest(i))then
@@ -357,7 +364,7 @@
         endif
         close(remove_file_io)
         call execute_command_line('chmod 777 rm.sh',wait=.true.)
-        call execute_command_line('./rm.sh',wait=.true.)
+        if(lerase)call execute_command_line('./rm.sh',wait=.true.)
         deallocate(dmio1)
         deallocate(dmio2)
         if(ltest(i))then
@@ -504,7 +511,7 @@
         endif
         close(remove_file_io)
         call execute_command_line('chmod 777 rm.sh',wait=.true.)
-        call execute_command_line('./rm.sh',wait=.true.)
+        if(lerase)call execute_command_line('./rm.sh',wait=.true.)
         deallocate(dmio1)
         deallocate(dmio2)
         if(ltest(i))then
@@ -526,7 +533,7 @@
         endif
         close(remove_file_io)
         call execute_command_line('chmod 777 rm.sh',wait=.true.)
-        call execute_command_line('./rm.sh',wait=.true.)
+        if(lerase)call execute_command_line('./rm.sh',wait=.true.)
         deallocate(dmio1)
         deallocate(dmio2)
         if(ltest(i))then

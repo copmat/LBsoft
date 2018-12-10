@@ -1017,6 +1017,8 @@
 
   if(.not. ltest_mode)return
   
+  call clean_fluid_inside_particle
+  
   if(idrank==0)then 
     open(iomap-1,file='global.map',status='replace',action='write')
     write(iomap-1,'(4i10)')mxrank,nx,ny,nz

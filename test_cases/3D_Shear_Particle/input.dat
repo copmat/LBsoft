@@ -1,0 +1,40 @@
+[ROOM SYSTEM]
+box 32 32 32
+steps 500
+diagnostic yes
+boundary condition 1 0 1
+decomposition type  7
+decomposition dimension    1   1   1
+print list engke engrt mind1 maxvx cpue cpur cpu
+print every 10
+test yes
+job time 4 d
+close time 10 s
+[END ROOM]
+[ROOM LB]
+components 1
+density gaussian
+density mean 1.0 1.0
+density stdev 1.d-4 1.d-4
+velocity mean 0.d0 0.d0 0.d0
+boundary open front type 2
+boundary open front velocity 0.02 0.0 0.0
+boundary open rear type 2
+boundary open rear velocity -0.02 0.0 0.0
+fluid tau 1.d0 1.d0
+[END ROOM]
+[ROOM MD]
+particle yes
+particle type 1
+C
+rotate yes
+densvar 1.4d0
+rcut 12.d0
+delr 1.0d0
+shape spherical 1 4.5d0
+field pair hz 1 1 50.d0 10.d0 9.1d0
+mass 1 472.d0
+side wall constant 50.d0
+side wall dist 2.d0
+[END ROOM]
+[END]
