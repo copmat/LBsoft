@@ -15,7 +15,6 @@ EXEP = $(BINROOT)/$(EXP)
 SHELL=/bin/sh
 
 
-
 all:
 	@echo "Error - you should specify a target machine!"
 	@echo "Possible choices are:              "
@@ -145,12 +144,12 @@ seq:IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
 mpi:IR_Precision.o Lib_Pack_Data.o Lib_Base64.o \
 	Lib_VTK_IO.o get_mem.o parallel_version_mod.o \
 	profiling_mod.o parse_mod.o error_mod.o aop_mod.o utility_mod.o \
-	comsetup_mod.o fluids_mod.o particles_mod.o write_output_mod.o \
+	comsetup_mod.o mpi_comm.o fluids_mod.o particles_mod.o write_output_mod.o \
 	integrator_mod.o statistic_mod.o io_mod.o main.o
 	$(FC) $(LDFLAGS) $(EX) IR_Precision.o \
 	Lib_Pack_Data.o Lib_Base64.o Lib_VTK_IO.o get_mem.o \
 	parallel_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
-	aop_mod.o utility_mod.o comsetup_mod.o fluids_mod.o particles_mod.o \
+	aop_mod.o utility_mod.o comsetup_mod.o mpi_comm.o fluids_mod.o particles_mod.o \
 	write_output_mod.o integrator_mod.o statistic_mod.o io_mod.o main.o
 	mv $(EXP) $(EXEP)
 	
@@ -210,6 +209,9 @@ statistic_mod.o:statistic_mod.f90
 	
 io_mod.o:io_mod.f90
 	$(FC) $(FFLAGS) io_mod.f90
+	
+mpi_comm.o:	mpi_comm.f90 aop_mod.o comsetup_mod.o
+	$(FC) $(FFLAGS) mpi_comm.f90
 	
 main.o:main.f90
 	$(FC) $(FFLAGS) main.f90

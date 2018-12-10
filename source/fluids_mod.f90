@@ -30,6 +30,8 @@
                    commwait_vel_component,commexch_isfluid, &
                    commwait_isfluid
 
+ use mpi_comm, only : mpisendpops, mpirecvpops, mpibounceback, mpisend_hvar, mpirecv_hvar
+
  
  implicit none
  
@@ -344,6 +346,8 @@
  public :: pimage
  public :: omega_to_viscosity
  
+ public :: setTest,checkTest
+
  contains
  
  subroutine allocate_fluids(lparticles)
@@ -2975,6 +2979,103 @@
  
  end subroutine driver_bc_pop_selfcomm
  
+
+
+    subroutine stream_nocopy(aoptp)
+     implicit none
+     type(REALPTR), dimension(0:links), intent(inout)   :: aoptp
+     integer :: i,j,k
+
+
+      do i=maxx+1, minx, -1
+         aoptp( 1)%p(i,:,:) =  aoptp( 1)%p(i-1,:,:)
+      enddo
+      do i=minx-1, maxx
+         aoptp( 2)%p(i,:,:) =  aoptp( 2)%p(i+1,:,:)
+      enddo
+
+      do j=maxy+1, miny, -1
+         aoptp( 3)%p(:,j,:) =  aoptp( 3)%p(:,j-1,:)
+      enddo
+      do j=miny-1, maxy
+         aoptp( 4)%p(:,j,:) =  aoptp( 4)%p(:,j+1,:)
+      enddo
+
+      do k=maxz+1, minz, -1
+         aoptp( 5)%p(:,:,k) =  aoptp( 5)%p(:,:,k-1)
+      enddo
+      do k=minz-1, maxz
+         aoptp( 6)%p(:,:,k) =  aoptp( 6)%p(:,:,k+1)
+      enddo
+
+      do i=maxx+1, minx, -1
+       do j=maxy+1, miny, -1
+         aoptp( 7)%p(i,j,:) =  aoptp( 7)%p(i-1,j-1,:)
+       enddo
+      enddo
+      do i=minx-1, maxx
+       do j=miny-1, maxy
+         aoptp( 8)%p(i,j,:) =  aoptp( 8)%p(i+1,j+1,:)
+       enddo
+      enddo
+
+      do i=minx-1, maxx
+       do j=maxy+1, miny, -1
+         aoptp( 9)%p(i,j,:) =  aoptp( 9)%p(i+1,j-1,:)
+       enddo
+      enddo
+      do i=maxx+1, minx, -1
+       do j=miny-1, maxy
+         aoptp( 10)%p(i,j,:) =  aoptp( 10)%p(i-1,j+1,:)
+       enddo
+      enddo
+
+      do i=maxx+1, minx, -1
+       do k=maxz+1, minz, -1
+         aoptp( 11)%p(i,:,k) =  aoptp( 11)%p(i-1,:,k-1)
+       enddo
+      enddo
+      do i=minx-1, maxx
+       do k=minz-1, maxz
+         aoptp( 12)%p(i,:,k) =  aoptp( 12)%p(i+1,:,k+1)
+       enddo
+      enddo
+
+      do i=minx-1, maxx
+       do k=maxz+1, minz, -1
+         aoptp( 13)%p(i,:,k) =  aoptp( 13)%p(i+1,:,k-1)
+       enddo
+      enddo
+      do i=maxx+1, minx, -1
+       do k=minz-1, maxz
+         aoptp( 14)%p(i,:,k) =  aoptp( 14)%p(i-1,:,k+1)
+       enddo
+      enddo
+
+      do j=maxy+1, miny, -1
+       do k=maxz+1, minz, -1
+         aoptp( 15)%p(:,j,k) =  aoptp( 15)%p(:,j-1,k-1)
+       enddo
+      enddo
+      do j=miny-1, maxy
+       do k=minz-1, maxz
+         aoptp( 16)%p(:,j,k) =  aoptp( 16)%p(:,j+1,k+1)
+       enddo
+      enddo
+
+      do j=miny-1, maxy
+       do k=maxz+1, minz, -1
+         aoptp( 17)%p(:,j,k) =  aoptp( 17)%p(:,j+1,k-1)
+       enddo
+      enddo
+      do j=maxy+1, miny, -1
+       do k=minz-1, maxz
+         aoptp( 18)%p(:,j,k) =  aoptp( 18)%p(:,j-1,k+1)
+       enddo
+      enddo
+
+     end subroutine stream_nocopy
+
  subroutine driver_streaming_fluids(lparticles)
  
 !***********************************************************************
@@ -3020,6 +3121,7 @@
    
 #else
 
+
 #ifdef DIAGNSTREAM
    if(iter.eq.NDIAGNSTREAM) then
      if(allocated(ownern))then
@@ -3028,29 +3130,45 @@
    endif
 #endif
     
+
 #ifdef MPI
+#ifdef ALLAFAB
+  call mpisendpops(aoptpR)
+
+  call mpirecvpops(aoptpR)
+
+  call stream_nocopy(aoptpR)
+#else
   call commspop(aoptpR)
 #endif
-  
+#endif
+
+#ifdef ALLAFAB
+#else
   do l=1,links
     ishift=ex(l)
     jshift=ey(l)
     kshift=ez(l)
-    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,isfluid(i,j,k)<3 &
-     .or. isfluid(i,j,k)>4)
+    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,isfluid(i,j,k)<3 .or. isfluid(i,j,k)>4)
         buffservice3d(i+ishift,j+jshift,k+kshift) = aoptpR(l)%p(i,j,k)
     end forall
-    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,isfluid(i,j,k)<3 &
-     .or. isfluid(i,j,k)>4)
+    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,isfluid(i,j,k)<3 .or. isfluid(i,j,k)>4)
         aoptpR(l)%p(i,j,k) = buffservice3d(i,j,k)
     end forall
   enddo
+#endif
   
-  call manage_bc_pop_selfcomm(aoptpR,lparticles)
 
 #ifdef MPI
+#ifdef ALLAFAB
+  call mpibounceback(aoptpR)
+#else
+  call manage_bc_pop_selfcomm(aoptpR,lparticles)
+
   call commrpop(aoptpR,lparticles,isfluid)
 #endif
+#endif
+
 
 #ifdef DIAGNSTREAM
   if(iter.eq.NDIAGNSTREAM) then
@@ -3059,34 +3177,50 @@
     endif
   endif
 #endif
+
+
   
   if(lsingle_fluid)return
   
 #ifdef MPI
+#ifdef ALLAFAB
+  call mpisendpops(aoptpB)
+
+  call mpirecvpops(aoptpB)
+
+  call stream_nocopy(aoptpB)
+#else
   call commspop(aoptpB)
 #endif
-  
+#endif
+
+
+#ifdef ALLAFAB
+#else
   do l=1,links
     ishift=ex(l)
     jshift=ey(l)
     kshift=ez(l)
-    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
+    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,isfluid(i,j,k)<3 .or. isfluid(i,j,k)>4)
       buffservice3d(i+ishift,j+jshift,k+kshift) = aoptpB(l)%p(i,j,k)
     end forall
-    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
+    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,isfluid(i,j,k)<3 .or. isfluid(i,j,k)>4)
       aoptpB(l)%p(i,j,k) = buffservice3d(i,j,k)
     end forall
   enddo
-  
-  
-  call manage_bc_pop_selfcomm(aoptpB,lparticles)
-  
-  
-#ifdef MPI
-  call commrpop(aoptpB,lparticles,isfluid)
 #endif
   
+#ifdef MPI
+#ifdef ALLAFAB
+  call mpibounceback(aoptpB)
+#else
+  call manage_bc_pop_selfcomm(aoptpB,lparticles)
+
+  call commrpop(aoptpB,lparticles,isfluid)
+#endif
+#endif
   
+!! #ifdef ALLAMAX
 #endif
   
   
@@ -5107,7 +5241,21 @@
 !***********************************************************************
  
   implicit none
+  Logical, save   :: isFirst = .true.
   
+#ifdef ALLAFAB
+    if(lexch_dens)then
+        call mpisend_hvar(rhoR, isFirst)
+        call mpirecv_hvar(rhoR)
+        if(.not. lsingle_fluid)then
+            call mpisend_hvar(rhoB, isFirst)
+            call mpirecv_hvar(rhoB)
+        endif
+
+        isFirst = .false.
+    endif
+    return
+#endif
   
   if(lexch_dens)then
 #ifdef MPI
@@ -5483,38 +5631,77 @@
 !***********************************************************************
  
   implicit none
+  Logical, save   :: isFirst = .true.
+
  
   if(lexch_u)then
 #ifdef MPI
+#ifdef ALLAFAB
+    call mpisend_hvar(u, isFirst)
+#else
     call commexch_vel_component(u)
 #endif
+#endif
+
+#ifndef ALLAFAB
     call manage_bc_hvar_selfcomm(u_managebc)
+#endif
+
 #ifdef MPI
+#ifdef ALLAFAB
+    call mpirecv_hvar(u)
+#else
     call commwait_vel_component(u)
+#endif
 #endif
   endif
   
   if(lexch_v)then
 #ifdef MPI
+#ifdef ALLAFAB
+    call mpisend_hvar(v, isFirst)
+#else
     call commexch_vel_component(v)
 #endif
+#endif
+
+#ifndef ALLAFAB
     call manage_bc_hvar_selfcomm(v_managebc)
+#endif
+
 #ifdef MPI
+#ifdef ALLAFAB
+    call mpirecv_hvar(v)
+#else
     call commwait_vel_component(v)
+#endif
 #endif
   endif
   
   if(lexch_w)then
 #ifdef MPI
+#ifdef ALLAFAB
+    call mpisend_hvar(w, isFirst)
+#else
     call commexch_vel_component(w)
 #endif
+#endif
+
+#ifndef ALLAFAB
     call manage_bc_hvar_selfcomm(w_managebc)
+#endif
+
 #ifdef MPI
+#ifdef ALLAFAB
+    call mpirecv_hvar(w)
+#else
     call commwait_vel_component(w)
+#endif
 #endif
   endif
   
-  
+  isFirst = .false.
+
   return
 
   
@@ -5754,7 +5941,11 @@
   
   call set_bc_variable_hvar
   
+#ifdef ALLAFAB
+#else
   call apply_bounceback_pop(bc_rhoR,bc_u,bc_v,bc_w,aoptpR)
+#endif
+
   
 #ifdef DIAGNSTREAM
   if(iter==NDIAGNSTREAM)call print_all_pops(100,'miodopobounce',iter,aoptpR)
@@ -11029,9 +11220,11 @@
     open(unit=iosub*idrank+23,file=trim(mynamefile),status='replace')
     close(iosub*idrank+23)
   endif
-  do k=0,nz+1
-    do j=0,ny+1
-      do i=0,nx+1
+  call get_sync_world
+
+  do k=1,nz
+    do j=1,ny
+      do i=1,nx
         if(ownern(i4back(i,j,k))==idrank)then
           open(unit=iosub*idrank+23,file=trim(mynamefile),status='old',position='append')
           write(iosub*idrank+23,*)i,j,k,rhosub(i,j,k),usub(i,j,k), &
@@ -11047,4 +11240,83 @@
   
  end subroutine print_all_hvar
  
+
+    subroutine setTest
+     implicit none
+     integer :: i,j,k,l
+
+     do l=0, links
+        forall(i=minx-1:maxx+1, j=miny-1:maxy+1, k=minz-1:maxz+1)
+            aoptpR(l)%p(i,j,k) = i*1000000 + j*10000 + k*100 + l
+        end forall
+
+            where(isfluid(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)==0)
+              aoptpR(l)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = - aoptpR(l)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+        end where
+    enddo
+    end subroutine setTest
+
+
+    subroutine checkTest(it)
+     implicit none
+     integer, intent(in) :: it
+     integer :: i,j,k,l,ishift,jshift,kshift
+     integer :: itemp, jtemp, ktemp, ltemp, errtemp
+     real(kind=PRC)    :: destVal, val
+
+     if (it /= 1) return
+
+     do l=0, links
+        ishift=ex(l)
+        jshift=ey(l)
+        kshift=ez(l)
+        do k=minz,maxz
+         do j=miny,maxy
+          do i=minx,maxx
+
+            destVal = aoptpR(l)%p(i,j,k)
+
+            ltemp = mod(destVal, 100.)
+            itemp =  destVal / 10000
+            jtemp = (destVal - itemp*10000) / 1000
+            ktemp = (destVal - itemp*10000 - jtemp*1000) / 100
+
+
+            errtemp = 0
+            if ( ltemp /= l) then
+                errtemp = errtemp + 1
+            endif
+            ktemp = ktemp+kshift
+            if ( ktemp == 0) ktemp=nz
+            if ( ktemp == nz+1) ktemp=1
+            if ( ktemp /= k) then
+                errtemp = errtemp + 100
+            endif
+            jtemp = jtemp+jshift
+            if ( jtemp == 0) jtemp=ny
+            if ( jtemp == ny+1) jtemp=1
+            if ( jtemp /= j) then
+                errtemp = errtemp + 1000
+            endif
+            itemp = itemp+ishift
+            if ( itemp == 0) itemp=nx
+            if ( itemp == nx+1) itemp=1
+            if ( itemp /= i) then
+                errtemp = errtemp + 10000
+            endif
+            if (errtemp /= 0) then
+                val = itemp*10000 + jtemp*1000 +ktemp*100 + l
+                write(6,'("Err in stream:", 3I3, " pop:",I3, F8.0, " vs:", F8.0, " errNr:", I6, " rank=", I3)') i,j,k,l, &
+                                    destVal,val,errtemp, idrank
+                write(6,*) i,j,k,l,destVal, "vs", itemp,jtemp,ktemp,ltemp, val
+            endif
+           enddo
+          enddo
+         enddo
+
+        enddo
+    end subroutine checkTest
+
+
+
  end module fluids_mod

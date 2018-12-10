@@ -72,6 +72,8 @@
   use statistic_mod,   only : statistic_driver
   use io_mod
   
+  use mpi_comm, only : mpiInit
+
   implicit none
   
   integer :: IVAL=1
@@ -110,6 +112,8 @@
 ! setup domain decomposition
   call setupcom(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
    miny,maxy,minz,maxz,lsingle_fluid)
+
+  call mpiInit(nx,ny,nz, ibctype)
 
 ! initialize output files
   call init_output()
