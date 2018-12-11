@@ -8345,7 +8345,7 @@
   
  end subroutine init_particle_2_isfluid
  
- subroutine particle_bounce_back(nstep,lown,lrotate,isub,jsub,ksub,nspheres, &
+ subroutine particle_bounce_back(nstep,iatm,lown,lrotate,isub,jsub,ksub,nspheres, &
   spherelists,spheredists,rdimx,rdimy,rdimz,xx,yy,zz,vx,vy,vz,&
   fx,fy,fz,ox,oy,oz,tx,ty,tz)
   
@@ -8363,7 +8363,7 @@
   implicit none
   
   logical, intent(in) :: lown,lrotate
-  integer, intent(in) :: nstep,isub,jsub,ksub,nspheres
+  integer, intent(in) :: nstep,iatm,isub,jsub,ksub,nspheres
   integer, allocatable, dimension(:,:), intent(in) :: spherelists
   real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
   real(kind=PRC), intent(in) :: rdimx,rdimy,rdimz
@@ -8378,14 +8378,11 @@
   integer, save :: imin,imax,jmin,jmax,kmin,kmax
   logical, save :: lfirst=.true.
   integer, save :: iter=0
-  real(kind=PRC) :: vxt,vyt,vzt,modr,f2x,f2y,f2z,ftx,fty,ftz
+  real(kind=PRC) :: vxt,vyt,vzt,modr,ftx,fty,ftz
   real(kind=PRC), dimension(3) :: rtemp,otemp,ftemp
   
   iter=iter+1
   
-  f2x=fx
-  f2y=fy
-  f2z=fz
   
   
   if(lfirst)then
@@ -8416,12 +8413,6 @@
       i=pimage(ixpbc,i,nx)
       j=pimage(iypbc,j,ny)
       k=pimage(izpbc,k,nz)
-      vxt=vx
-      vyt=vy
-      vzt=vz
-      f2x=fx
-      f2y=fy
-      f2z=fz
       if(lrotate)then
 #if 0
         !less accurate since it assumes the center on the fluid node
@@ -8433,12 +8424,12 @@
         rtemp(2)=real(jj,kind=PRC)-yy
         rtemp(3)=real(kk,kind=PRC)-zz
         modr=modulvec(rtemp)
-        rtemp(1:3)=rdimx/modr*rtemp(1:3)
+        rtemp(1:3)=rdimx*rtemp(1:3)/modr
 #endif
         !surface velocity corrected with the rotational motion
-        vxt=vxt+xcross(otemp,rtemp)
-        vyt=vyt+ycross(otemp,rtemp)
-        vzt=vzt+zcross(otemp,rtemp)
+        vxt=vx+xcross(otemp,rtemp)
+        vyt=vy+ycross(otemp,rtemp)
+        vzt=vz+zcross(otemp,rtemp)
       endif
       if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. &
          k>=minz .and. k<=maxz)then
@@ -8487,9 +8478,6 @@
       i=pimage(ixpbc,i,nx)
       j=pimage(iypbc,j,ny)
       k=pimage(izpbc,k,nz)
-      vxt=vx
-      vyt=vy
-      vzt=vz
       if(lrotate)then
 #if 0
         !less accurate since it assumes the center on the fluid node
@@ -8504,9 +8492,9 @@
         rtemp(1:3)=rdimx/modr*rtemp(1:3)
 #endif
         !surface velocity corrected with the rotational motion
-        vxt=vxt+xcross(otemp,rtemp)
-        vyt=vyt+ycross(otemp,rtemp)
-        vzt=vzt+zcross(otemp,rtemp)
+        vxt=vx+xcross(otemp,rtemp)
+        vyt=vy+ycross(otemp,rtemp)
+        vzt=vz+zcross(otemp,rtemp)
       endif
       if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. &
          k>=minz .and. k<=maxz)then

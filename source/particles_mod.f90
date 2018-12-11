@@ -98,7 +98,7 @@
  integer, public, protected, save :: ntpvdw=0
  
  !number of max iteration in the quaternion update algorithm
- integer, public, protected, save :: mxquat=5
+ integer, public, protected, save :: mxquat=20
  
  !activate particle part
  logical, public, protected, save :: lparticles=.false.
@@ -1967,7 +1967,7 @@
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
     itype=ltype(iatm)
-    call particle_bounce_back(nstep,.true.,lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(nstep,iatm,.true.,lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
@@ -1980,7 +1980,7 @@
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
     itype=ltype(iatm)
-    call particle_bounce_back(nstep,.false.,lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(nstep,iatm,.false.,lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
@@ -1995,7 +1995,7 @@
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
     itype=ltype(iatm)
-    call particle_bounce_back(nstep,.true.,lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(nstep,iatm,.true.,lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
@@ -2011,7 +2011,7 @@
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
     itype=ltype(iatm)
-    call particle_bounce_back(nstep,.false.,lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(nstep,iatm,.false.,lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
@@ -3202,6 +3202,7 @@
   !oxx(1)=ZERO
   !oyy(1)=ZERO
   !ozz(1)=-0.01d0
+  
   
   select case(keyint)
   case (1) 
