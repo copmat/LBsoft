@@ -288,6 +288,16 @@
  real(kind=PRC), allocatable, public, protected, save :: fybo(:)
  real(kind=PRC), allocatable, public, protected, save :: fzbo(:)
  
+ !components of torque due to bounce back
+ real(kind=PRC), allocatable, public, protected, save :: txb(:)
+ real(kind=PRC), allocatable, public, protected, save :: tyb(:)
+ real(kind=PRC), allocatable, public, protected, save :: tzb(:)
+ 
+ !old components of torque due to bounce back
+ real(kind=PRC), allocatable, public, protected, save :: txbo(:)
+ real(kind=PRC), allocatable, public, protected, save :: tybo(:)
+ real(kind=PRC), allocatable, public, protected, save :: tzbo(:)
+ 
  !radius of particles
  real(kind=PRC), allocatable, public, protected, save :: rdimx(:)
  real(kind=PRC), allocatable, public, protected, save :: rdimy(:)
@@ -1166,10 +1176,19 @@
   allocate(fyb(mxatms),stat=istat(33))
   allocate(fzb(mxatms),stat=istat(34))
   
-  allocate(fxbo(mxatms),stat=istat(32))
-  allocate(fybo(mxatms),stat=istat(33))
-  allocate(fzbo(mxatms),stat=istat(34))
+  allocate(fxbo(mxatms),stat=istat(35))
+  allocate(fybo(mxatms),stat=istat(36))
+  allocate(fzbo(mxatms),stat=istat(37))
   
+  if(lrotate)then
+    allocate(txb(mxatms),stat=istat(38))
+    allocate(tyb(mxatms),stat=istat(39))
+    allocate(tzb(mxatms),stat=istat(40))
+    
+    allocate(txbo(mxatms),stat=istat(41))
+    allocate(tybo(mxatms),stat=istat(42))
+    allocate(tzbo(mxatms),stat=istat(43))
+  endif
   
   
 #if 1
@@ -1259,6 +1278,16 @@
   fxbo(1:mxatms)=ZERO
   fybo(1:mxatms)=ZERO
   fzbo(1:mxatms)=ZERO
+  
+  if(lrotate)then
+    txb(1:mxatms)=ZERO
+    tyb(1:mxatms)=ZERO
+    tzb(1:mxatms)=ZERO
+    
+    txbo(1:mxatms)=ZERO
+    tybo(1:mxatms)=ZERO
+    tzbo(1:mxatms)=ZERO
+  endif
   
   if(lnolink)then
     lentry(1:msatms)=0
@@ -1922,17 +1951,23 @@
   
   if(lrotate)then
   
+  forall(iatm=1:natms_ext)
+    txb(iatm)=ZERO
+    tyb(iatm)=ZERO
+    tzb(iatm)=ZERO
+  end forall
+  
   do iatm=1,natms
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
     itype=ltype(iatm)
     call particle_bounce_back(nstep,.true.,lrotate,i,j,k,nsphere, &
-     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
+     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm), &
-     tqx(iatm),tqy(iatm),tqz(iatm))
+     txb(iatm),tyb(iatm),tzb(iatm))
   enddo
   
   do iatm=natms+1,natms_ext
@@ -1941,11 +1976,11 @@
     k=nint(zzz(iatm))
     itype=ltype(iatm)
     call particle_bounce_back(nstep,.false.,lrotate,i,j,k,nsphere, &
-     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
+     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm), &
-     tqx(iatm),tqy(iatm),tqz(iatm))
+     txb(iatm),tyb(iatm),tzb(iatm))
   enddo
   
   else
@@ -1956,7 +1991,7 @@
     k=nint(zzz(iatm))
     itype=ltype(iatm)
     call particle_bounce_back(nstep,.true.,lrotate,i,j,k,nsphere, &
-     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
+     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm))
@@ -1972,7 +2007,7 @@
     k=nint(zzz(iatm))
     itype=ltype(iatm)
     call particle_bounce_back(nstep,.false.,lrotate,i,j,k,nsphere, &
-     spherelist,spheredist,rdimx(iatm),rdimy(iatm),rdimz(iatm), &
+     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm))
@@ -2012,6 +2047,21 @@
     fxbo(iatm)=fxb(iatm)
     fybo(iatm)=fyb(iatm)
     fzbo(iatm)=fzb(iatm)
+  end forall
+  
+  if(.not. lrotate)return
+  
+  !f(t) = (f(t+1/2)+f(t-1/2))/2
+  forall(iatm=1:natms)
+    tqx(iatm)=tqx(iatm)+(txb(iatm)+txbo(iatm))*HALF
+    tqy(iatm)=tqy(iatm)+(tyb(iatm)+tybo(iatm))*HALF
+    tqz(iatm)=tqz(iatm)+(tzb(iatm)+tzbo(iatm))*HALF
+  end forall
+  
+  forall(iatm=1:natms)
+    txbo(iatm)=txb(iatm)
+    tybo(iatm)=tyb(iatm)
+    tzbo(iatm)=tzb(iatm)
   end forall
   
   return
