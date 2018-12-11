@@ -222,7 +222,9 @@
       write(outp,'(a)') &
       "WARNING - * fvz                  * mean fluid velocity along z in lb units               *"
       write(outp,'(a)') &
-      "WARNING - * engke                * kinetic energy in lb units                            *"
+      "WARNING - * engkf                * kinetic energy of fluid in lb units                   *"
+      write(outp,'(a)') &
+      "WARNING - * engke                * kinetic energy of particle in lb units                *"
       write(outp,'(a)') &
       "WARNING - * engcf                * configuration energy in lb units                      *"
       write(outp,'(a)') &

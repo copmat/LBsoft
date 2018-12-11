@@ -5,7 +5,7 @@ diagnostic yes
 boundary condition 1 1 1
 decomposition type  7
 decomposition dimension    1   1   1
-print list engke engrt mind1 maxvx cpue cpur cpu
+print list engkf engke engrt mind1 cpue cpur cpu
 print every 10
 test yes
 job time 4 d

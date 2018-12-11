@@ -24,7 +24,7 @@
  
  private
  
- integer, public, parameter :: nmaxstatdata=31
+ integer, public, parameter :: nmaxstatdata=32
  
  real(kind=PRC), public, save, dimension(nmaxstatdata) :: statdata
  real(kind=PRC), public, save :: meancputime=0.d0
@@ -96,8 +96,6 @@
   forall(i=1:nmaxstatdata)statdata(i)=ZERO
   
 ! store all the observables in the statdata array to be printed
-  statdata(1)=ZERO
-  statdata(25:27)=ZERO
   dnorm(1)=ZERO
   do k=minz,maxz
     do j=miny,maxy
@@ -107,6 +105,8 @@
           statdata(25)=statdata(25)+u(i,j,k)
           statdata(26)=statdata(26)+v(i,j,k)
           statdata(27)=statdata(27)+w(i,j,k)
+          statdata(32)=statdata(32)+rhoR(i,j,k)* &
+           (u(i,j,k)**TWO+v(i,j,k)**TWO+w(i,j,k)**TWO)
           dnorm(1)=dnorm(1)+ONE
         endif
       enddo
@@ -125,6 +125,8 @@
         do i=minx,maxx
           if(isfluid(i,j,k)==1)then
             statdata(2)=statdata(2)+rhoB(i,j,k)
+            statdata(32)=statdata(32)+rhoB(i,j,k)* &
+             (u(i,j,k)**TWO+v(i,j,k)**TWO+w(i,j,k)**TWO)
           endif
         enddo
       enddo
@@ -158,7 +160,7 @@
     statdata(17)=engke
     statdata(18)=engcfg
     statdata(31)=engrot
-    statdata(19)=engtot
+    
 !   particle temperature as ratio of KbT
     statdata(20)=TWO*(engke+engrot)/(tempboltz*degfre)
     dtemp(1)=ZERO
@@ -192,12 +194,14 @@
     dtemp(3)=statdata(25)
     dtemp(4)=statdata(26)
     dtemp(5)=statdata(27)
-    call sum_world_farr(dtemp,5)
+    dtemp(6)=statdata(32)
+    call sum_world_farr(dtemp,6)
     statdata(1)=dtemp(1)
     if(.not. lsingle_fluid)statdata(2)=dtemp(2)
     statdata(25)=dtemp(3)
     statdata(26)=dtemp(4)
     statdata(27)=dtemp(5)
+    statdata(32)=dtemp(6)
     
     dtemp(1)=statdata(3)
     dtemp(2)=statdata(4)
@@ -227,6 +231,8 @@
   statdata(1)=statdata(1)/dnorm(1)
   if(.not. lsingle_fluid)statdata(2)=statdata(2)/dnorm(1)
   statdata(25:27)=statdata(25:27)/dnorm(1)
+  statdata(32)=HALF*statdata(32)
+  statdata(19)=engtot+statdata(32)
   
 ! update the counter
   icount=icount+1

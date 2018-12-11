@@ -2232,7 +2232,7 @@
   elseif(printcodsub(iarg)==16)then
     legendobs='t     =  unscaled time                            '
   elseif(printcodsub(iarg)==17)then
-    legendobs='engke =  kinetic energy                           '
+    legendobs='engke =  particle kinetic energy                  '
   elseif(printcodsub(iarg)==18)then
     legendobs='engcf =  configurational energy                   '
   elseif(printcodsub(iarg)==19)then
@@ -2261,6 +2261,8 @@
     legendobs='pfz   =  mean particle force along z              '
   elseif(printcodsub(iarg)==31)then
     legendobs='engrt =  rotational energy                        '
+  elseif(printcodsub(iarg)==32)then
+    legendobs='engkf =  fluid kinetic energy                     '
   endif
   legendobs=adjustl(legendobs)
   
@@ -2336,6 +2338,9 @@
     lfound=.true.
   elseif(findstring('engke',temps,inumchar,lenstring))then
     printcodsub(iarg)=17
+    lfound=.true.
+  elseif(findstring('engkf',temps,inumchar,lenstring))then
+    printcodsub(iarg)=32
     lfound=.true.
   elseif(findstring('engcf',temps,inumchar,lenstring))then
     printcodsub(iarg)=18
@@ -2488,6 +2493,8 @@
     printlisub(iarg)='pfz (lu)'
   elseif(printcodsub(iarg)==31)then
     printlisub(iarg)='engrt (lu)'
+  elseif(printcodsub(iarg)==32)then
+    printlisub(iarg)='engkf (lu)'
   endif
   printlisub(iarg)=adjustr(printlisub(iarg))
   enddo
