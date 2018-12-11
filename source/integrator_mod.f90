@@ -154,6 +154,14 @@
   
   new_time = real(nstep,kind=PRC)*tstep
   
+  if(lparticles)then
+    if(ldiagnostic)call start_timing2("LB","build_new_isfluid")
+    call initialize_particle_force
+    call build_new_isfluid(nstep)
+    if(ldiagnostic)call end_timing2("LB","build_new_isfluid")
+    
+  endif
+  
   if(ldiagnostic)call start_timing2("LB","initialize_force")
   call initialize_fluid_force
   if(ldiagnostic)call end_timing2("LB","initialize_force")
@@ -175,6 +183,10 @@
   if(ldiagnostic)call end_timing2("LB","compute_omega")
   
   if(lparticles)then
+    
+    if(ldiagnostic)call start_timing2("MD","inter_part_and_grid")
+    call inter_part_and_grid(nstep)
+    if(ldiagnostic)call end_timing2("MD","inter_part_and_grid")
     
     newlst=.false.
     if(ldiagnostic)call start_timing2("MD","vertest")
@@ -261,19 +273,6 @@
     if(ldiagnostic)call start_timing2("LB","apply_bback_pop")
     call driver_apply_bounceback_pop
     if(ldiagnostic)call end_timing2("LB","apply_bback_pop")
-  endif
-  
-  if(lparticles)then
-  
-    if(ldiagnostic)call start_timing2("LB","build_new_isfluid")
-    call initialize_particle_force
-    call build_new_isfluid(nstep)
-    if(ldiagnostic)call end_timing2("LB","build_new_isfluid")
-    
-    if(ldiagnostic)call start_timing2("MD","inter_part_and_grid")
-    call inter_part_and_grid(nstep)
-    if(ldiagnostic)call end_timing2("MD","inter_part_and_grid")
-  
   endif
   
   mytime = new_time

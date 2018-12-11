@@ -2172,6 +2172,15 @@
   call mapping_new_isfluid(natms,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove, &
      xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,xxo,yyo,zzo)
+     
+  call particle_delete_fluids(nstep,natms,nsphere, &
+     spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
+     ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
+     rdimx,rdimy,rdimz)
+     
+  fmiosss(1,1)=fxx(1)
+  fmiosss(2,1)=fyy(1)
+  fmiosss(3,1)=fzz(1)
   
   return
   
@@ -2195,15 +2204,6 @@
   integer, intent(in) :: nstep
   
   if(.not. lparticles)return
-  
-  call particle_delete_fluids(nstep,natms,nsphere, &
-     spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
-     ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
-     rdimx,rdimy,rdimz)
-     
-  fmiosss(1,1)=fxx(1)
-  fmiosss(2,1)=fyy(1)
-  fmiosss(3,1)=fzz(1)
   
   call particle_create_fluids(nstep,natms,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
