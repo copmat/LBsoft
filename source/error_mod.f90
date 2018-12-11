@@ -122,6 +122,9 @@
       case (33)
         write(outp,outf2)'ERROR - not possible compute average density in ', &
          'driver_copy_densities_wall.'
+      case (34)
+        write(outp,outf2)'ERROR - not possible compute average density in ', &
+         'particle_create_fluids.'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select

@@ -122,7 +122,10 @@
  real(kind=PRC), public, protected, save :: degrot=ZERO
  
  !tollerance in the quaternion update algorithm
- real(kind=PRC), public, protected, save :: quattol=real(1.d-8,kind=PRC)
+ real(kind=PRC), public, protected, save :: quattol=real(1.d-12,kind=PRC)
+ 
+ !square tollerance in the quaternion update algorithm 
+ real(kind=PRC), public, protected, save :: sqquattol
  
  !initiali particle temperature in KbT unit
  real(kind=PRC), public, protected, save :: init_temp=ONE
@@ -1850,6 +1853,8 @@
 ! ATTENTION DOMAIN DECOMPOSITION SHOULD BE ADDED HERE AND natms_ext PROPERLY SET  
   natms_ext=natms
   
+  
+  
   return
   
  end subroutine initialize_map_particles
@@ -2050,6 +2055,10 @@
   end forall
   
   if(.not. lrotate)return
+  
+!  forall(iatm=1:natms,abs(txb(iatm))>0.1d0)txb(iatm)=txb(iatm)/abs(txb(iatm))*0.1d0
+!  forall(iatm=1:natms,abs(tyb(iatm))>0.1d0)tyb(iatm)=tyb(iatm)/abs(tyb(iatm))*0.1d0
+!  forall(iatm=1:natms,abs(tzb(iatm))>0.1d0)tzb(iatm)=tzb(iatm)/abs(tzb(iatm))*0.1d0
   
   !f(t) = (f(t+1/2)+f(t-1/2))/2
   forall(iatm=1:natms)
@@ -3141,6 +3150,8 @@
   
   if(lvv)return
   
+  sqquattol=quattol**TWO
+  
   select case(keyint)
   case (1) 
 ! report the atoms velocity to half timestep back for leap frog
@@ -3185,9 +3196,9 @@
   !fxx(1)=fxx(1)+0.5d0
   !fxx(2)=fxx(2)-0.5d0
 
-  !tqx(1)=ZERO
-  !tqy(1)=ZERO
-  !tqz(1)=ZERO
+  !tqx(:)=ZERO
+  !tqy(:)=ZERO
+  !tqz(:)=ZERO
   !oxx(1)=ZERO
   !oyy(1)=ZERO
   !ozz(1)=-0.01d0
@@ -3603,7 +3614,7 @@
   itq=0
   eps=real(1.0d9,kind=PRC)
   
-  do while((itq.lt.mxquat).and.(eps.gt.quattol))
+  do while((itq.lt.mxquat).and.(eps.gt.sqquattol))
   
     itq=itq+1
     qn0a=HALF*(-q1s*opxs-q2s*opys-q3s*opzs)+ &
@@ -3628,8 +3639,8 @@
     
 !  convergence test 
           
-    eps=sqrt(((qn0a-qn0b)**TWO+(qn1a-qn1b)**TWO+(qn2a-qn2b)**TWO+ &
-     (qn3a-qn3b)**TWO)*tsteps**TWO)
+    eps=((qn0a-qn0b)**TWO+(qn1a-qn1b)**TWO+(qn2a-qn2b)**TWO+ &
+     (qn3a-qn3b)**TWO)*tsteps**TWO
           
     qn0b=qn0a
     qn1b=qn1a

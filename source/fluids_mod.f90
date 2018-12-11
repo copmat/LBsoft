@@ -191,6 +191,12 @@
  real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_v
  real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_w
  
+!array containing the node list of the second belt 
+ integer, save :: ndouble
+ real(kind=PRC), save, allocatable, dimension(:) :: exdouble
+ real(kind=PRC), save, allocatable, dimension(:) :: eydouble
+ real(kind=PRC), save, allocatable, dimension(:) :: ezdouble
+ 
  integer, allocatable, save :: ibounce(:,:)
  integer, save :: nbounce0,nbounce6,nbounce7,nbounce8
  integer, dimension(0:nbcdir), save :: nbounce6dir,nbounce7dir,nbounce8dir
@@ -371,7 +377,7 @@
      integer, dimension(nistatmax) :: istat
 !max     integer :: ix,iy,iz,mynx,myny,mynz
 
-     integer :: i,j,k
+     integer :: i,j,k,l
      logical, dimension(1) :: ltest=.false.
      
      logical, parameter :: lverbose=.true.
@@ -688,10 +694,38 @@
       f17B(ix:mynx,iy:myny,iz:mynz)=ZERO
       f18B(ix:mynx,iy:myny,iz:mynz)=ZERO
    endif
-     
-     
-     
-     return
+   
+   l=0
+    do k=-2,2
+      do j=-2,2
+        do i=-2,2
+          if(i==-2 .or. i==2 .or. j==-2 .or. j==2 .or. &
+            k==-2 .or. k==2)then
+             l=l+1
+          endif
+        enddo
+      enddo
+    enddo
+    ndouble=l
+    allocate(exdouble(ndouble),eydouble(ndouble),ezdouble(ndouble))
+    l=0
+    do k=-2,2
+      do j=-2,2
+        do i=-2,2
+          if(i==-2 .or. i==2 .or. j==-2 .or. j==2 .or. &
+            k==-2 .or. k==2)then
+             l=l+1
+             exdouble(l)=i
+             eydouble(l)=j
+             ezdouble(l)=k
+          endif
+        enddo
+      enddo
+    enddo
+  
+   
+   
+   return
 
  end subroutine allocate_fluids
  
@@ -8033,40 +8067,6 @@
   
   logical :: ltest(1)=.false.
   
-  logical, save :: lfirst=.true.
-  integer, save :: ndouble
-  integer, allocatable, dimension(:), save :: exdouble,eydouble,ezdouble
-  
-  if(lfirst)then
-    lfirst=.false.
-    l=0
-    do k=-2,2
-      do j=-2,2
-        do i=-2,2
-          if(i==-2 .or. i==2 .or. j==-2 .or. j==2 .or. &
-            k==-2 .or. k==2)then
-             l=l+1
-          endif
-        enddo
-      enddo
-    enddo
-    ndouble=l
-    allocate(exdouble(ndouble),eydouble(ndouble),ezdouble(ndouble))
-    l=0
-    do k=-2,2
-      do j=-2,2
-        do i=-2,2
-          if(i==-2 .or. i==2 .or. j==-2 .or. j==2 .or. &
-            k==-2 .or. k==2)then
-             l=l+1
-             exdouble(l)=i
-             eydouble(l)=j
-             ezdouble(l)=k
-          endif
-        enddo
-      enddo
-    enddo
-  endif
   
 #if 1
    
@@ -9761,7 +9761,8 @@
     io=nint(xo(iatm))
     jo=nint(yo(iatm))
     ko=nint(zo(iatm))
-    if(lmoved(iatm))then
+    if(.not. lmoved(iatm))cycle
+    
       if(lsingle_fluid)then
         do m=1,nspheres
           i=io+spherelists(1,m)
@@ -9791,15 +9792,38 @@
               kshift=pimage(izpbc,kshift,nz)
               if(isfluid(ishift,jshift,kshift)==1 .and. &
                new_isfluid(ishift,jshift,kshift)==1)then
-                Rsum=Rsum+pd3q27(l)*rhoR(ishift,jshift,kshift)
-                Dsum=Dsum+pd3q27(l)
+                Rsum=Rsum+rhoR(ishift,jshift,kshift)
+                Dsum=Dsum+ONE
               endif
             enddo
             if(Dsum==ZERO)then
-              write(6,*)'error Dsum==ZERO'
-              stop
+              Rsum=ZERO
+              Dsum=ZERO
+              do l=1,ndouble
+                ishift=i+exdouble(l)
+                jshift=j+eydouble(l)
+                kshift=k+ezdouble(l)
+                if(ishift<minx-nbuff)cycle
+                if(ishift>maxx+nbuff)cycle
+                if(jshift<miny-nbuff)cycle
+                if(jshift>maxy+nbuff)cycle
+                if(kshift<minz-nbuff)cycle
+                if(kshift>maxz+nbuff)cycle
+                if(isfluid(ishift,jshift,kshift)==1 .and. &
+                 new_isfluid(ishift,jshift,kshift)==1)then
+                  Rsum=Rsum+rhoR(ishift,jshift,kshift)
+                  Dsum=Dsum+ONE
+                endif
+              enddo
+              if(Dsum==ZERO)then
+                ltest(1)=.true.
+                exit
+              else
+                Rsum=Rsum/Dsum
+              endif
+            else
+              Rsum=Rsum/Dsum
             endif
-            Rsum=Rsum/Dsum
             myu=vx(iatm)
             myv=vy(iatm)
             myw=vz(iatm)
@@ -9861,15 +9885,38 @@
               kshift=pimage(izpbc,kshift,nz)
               if(isfluid(ishift,jshift,kshift)==1 .and. &
                new_isfluid(ishift,jshift,kshift)==1)then
-                Rsum=Rsum+pd3q27(l)*rhoR(ishift,jshift,kshift)
-                Dsum=Dsum+pd3q27(l)
+                Rsum=Rsum+rhoR(ishift,jshift,kshift)
+                Dsum=Dsum+ONE
               endif
             enddo
             if(Dsum==ZERO)then
-              write(6,*)'error Dsum==ZERO'
-              stop
+              Rsum=ZERO
+              Dsum=ZERO
+              do l=1,ndouble
+                ishift=i+exdouble(l)
+                jshift=j+eydouble(l)
+                kshift=k+ezdouble(l)
+                if(ishift<minx-nbuff)cycle
+                if(ishift>maxx+nbuff)cycle
+                if(jshift<miny-nbuff)cycle
+                if(jshift>maxy+nbuff)cycle
+                if(kshift<minz-nbuff)cycle
+                if(kshift>maxz+nbuff)cycle
+                if(isfluid(ishift,jshift,kshift)==1 .and. &
+                 new_isfluid(ishift,jshift,kshift)==1)then
+                  Rsum=Rsum+rhoR(ishift,jshift,kshift)
+                  Dsum=Dsum+ONE
+                endif
+              enddo
+              if(Dsum==ZERO)then
+                ltest(1)=.true.
+                exit
+              else
+                Rsum=Rsum/Dsum
+              endif
+            else
+              Rsum=Rsum/Dsum
             endif
-            Rsum=Rsum/Dsum
             myu=vx(iatm)
             myv=vy(iatm)
             myw=vz(iatm)
@@ -9903,6 +9950,7 @@
             endif
           endif
         enddo
+        if(ltest(1))exit
       else
         do m=1,nspheres
           i=io+spherelists(1,m)
@@ -9933,17 +9981,43 @@
               kshift=pimage(izpbc,kshift,nz)
               if(isfluid(ishift,jshift,kshift)==1 .and. &
                new_isfluid(ishift,jshift,kshift)==1)then
-                Rsum=Rsum+pd3q27(l)*rhoR(ishift,jshift,kshift)
-                Bsum=Bsum+pd3q27(l)*rhoB(ishift,jshift,kshift)
-                Dsum=Dsum+pd3q27(l)
+                Rsum=Rsum+rhoR(ishift,jshift,kshift)
+                Bsum=Bsum+rhoB(ishift,jshift,kshift)
+                Dsum=Dsum+ONE
               endif
             enddo
             if(Dsum==ZERO)then
-              write(6,*)'error Dsum==ZERO'
-              stop
+              Rsum=ZERO
+              Bsum=ZERO
+              Dsum=ZERO
+              do l=1,ndouble
+                ishift=i+exdouble(l)
+                jshift=j+eydouble(l)
+                kshift=k+ezdouble(l)
+                if(ishift<minx-nbuff)cycle
+                if(ishift>maxx+nbuff)cycle
+                if(jshift<miny-nbuff)cycle
+                if(jshift>maxy+nbuff)cycle
+                if(kshift<minz-nbuff)cycle
+                if(kshift>maxz+nbuff)cycle
+                if(isfluid(ishift,jshift,kshift)==1 .and. &
+                 new_isfluid(ishift,jshift,kshift)==1)then
+                  Rsum=Rsum+rhoR(ishift,jshift,kshift)
+                  Bsum=Bsum+rhoB(ishift,jshift,kshift)
+                  Dsum=Dsum+ONE
+                endif
+              enddo
+              if(Dsum==ZERO)then
+                ltest(1)=.true.
+                exit
+              else
+                Rsum=Rsum/Dsum
+                Bsum=Bsum/Dsum
+              endif
+            else
+              Rsum=Rsum/Dsum
+              Bsum=Bsum/Dsum
             endif
-            Rsum=Rsum/Dsum
-            Bsum=Bsum/Dsum
             myu=vx(iatm)
             myv=vy(iatm)
             myw=vz(iatm)
@@ -10008,17 +10082,43 @@
               kshift=pimage(izpbc,kshift,nz)
               if(isfluid(ishift,jshift,kshift)==1 .and. &
                new_isfluid(ishift,jshift,kshift)==1)then
-                Rsum=Rsum+pd3q27(l)*rhoR(ishift,jshift,kshift)
-                Bsum=Bsum+pd3q27(l)*rhoB(ishift,jshift,kshift)
-                Dsum=Dsum+pd3q27(l)
+                Rsum=Rsum+rhoR(ishift,jshift,kshift)
+                Bsum=Bsum+rhoB(ishift,jshift,kshift)
+                Dsum=Dsum+ONE
               endif
             enddo
             if(Dsum==ZERO)then
-              write(6,*)'error Dsum==ZERO'
-              stop
+              Rsum=ZERO
+              Bsum=ZERO
+              Dsum=ZERO
+              do l=1,ndouble
+                ishift=i+exdouble(l)
+                jshift=j+eydouble(l)
+                kshift=k+ezdouble(l)
+                if(ishift<minx-nbuff)cycle
+                if(ishift>maxx+nbuff)cycle
+                if(jshift<miny-nbuff)cycle
+                if(jshift>maxy+nbuff)cycle
+                if(kshift<minz-nbuff)cycle
+                if(kshift>maxz+nbuff)cycle
+                if(isfluid(ishift,jshift,kshift)==1 .and. &
+                 new_isfluid(ishift,jshift,kshift)==1)then
+                  Rsum=Rsum+rhoR(ishift,jshift,kshift)
+                  Bsum=Bsum+rhoB(ishift,jshift,kshift)
+                  Dsum=Dsum+ONE
+                endif
+              enddo
+              if(Dsum==ZERO)then
+                ltest(1)=.true.
+                exit
+              else
+                Rsum=Rsum/Dsum
+                Bsum=Bsum/Dsum
+              endif
+            else
+              Rsum=Rsum/Dsum
+              Bsum=Bsum/Dsum
             endif
-            Rsum=Rsum/Dsum
-            Bsum=Bsum/Dsum
             myu=vx(iatm)
             myv=vy(iatm)
             myw=vz(iatm)
@@ -10054,9 +10154,13 @@
             endif
           endif
         enddo
+        if(ltest(1))exit
       endif
-    endif
+    
   enddo
+  
+  call or_world_larr(ltest,1)
+  if(ltest(1))call error(34)
   
   return
   
@@ -10298,65 +10402,35 @@
     isub=nint(xx(iatm))
     jsub=nint(yy(iatm))
     ksub=nint(zz(iatm))
-    if(.not. lmoved(iatm))then
-      do l=1,nspheres
-        i=isub+spherelists(1,l)
-        j=jsub+spherelists(2,l)
-        k=ksub+spherelists(3,l)
-        !apply periodic conditions if necessary
-        i=pimage(ixpbc,i,nx)
-        j=pimage(iypbc,j,ny)
-        k=pimage(izpbc,k,nz)
-        if(i<imin .or. i>imax)cycle
-        if(j<jmin .or. j>jmax)cycle
-        if(k<kmin .or. k>kmax)cycle
-        if(new_isfluid(i,j,k)/=4)new_isfluid(i,j,k)=2
-      enddo
-      do l=1,nspheredeads
-        i=isub+spherelistdeads(1,l)
-        j=jsub+spherelistdeads(2,l)
-        k=ksub+spherelistdeads(3,l)
-        !apply periodic conditions if necessary
-        i=pimage(ixpbc,i,nx)
-        j=pimage(iypbc,j,ny)
-        k=pimage(izpbc,k,nz)
-        if(i<imin .or. i>imax)cycle
-        if(j<jmin .or. j>jmax)cycle
-        if(k<kmin .or. k>kmax)cycle
-        new_isfluid(i,j,k)=4
-      enddo
-    else
-      do l=1,nspheres
-        i=isub+spherelists(1,l)
-        j=jsub+spherelists(2,l)
-        k=ksub+spherelists(3,l)
-       !apply periodic conditions if necessary
-        i=pimage(ixpbc,i,nx)
-        j=pimage(iypbc,j,ny)
-        k=pimage(izpbc,k,nz)
-        if(i<imin .or. i>imax)cycle
-        if(j<jmin .or. j>jmax)cycle
-        if(k<kmin .or. k>kmax)cycle
-        if(new_isfluid(i,j,k)/=4)new_isfluid(i,j,k)=2
-      enddo
-      do l=1,nspheredeads
-        i=isub+spherelistdeads(1,l)
-        j=jsub+spherelistdeads(2,l)
-        k=ksub+spherelistdeads(3,l)
-        !apply periodic conditions if necessary
-        i=pimage(ixpbc,i,nx)
-        j=pimage(iypbc,j,ny)
-        k=pimage(izpbc,k,nz)
-        if(i<imin .or. i>imax)cycle
-        if(j<jmin .or. j>jmax)cycle
-        if(k<kmin .or. k>kmax)cycle
-        new_isfluid(i,j,k)=4
-      enddo
-      new_isfluid(isub,jsub,ksub)=5
-    endif
+    do l=1,nspheres
+      i=isub+spherelists(1,l)
+      j=jsub+spherelists(2,l)
+      k=ksub+spherelists(3,l)
+      !apply periodic conditions if necessary
+      i=pimage(ixpbc,i,nx)
+      j=pimage(iypbc,j,ny)
+      k=pimage(izpbc,k,nz)
+      if(i<imin .or. i>imax)cycle
+      if(j<jmin .or. j>jmax)cycle
+      if(k<kmin .or. k>kmax)cycle
+      new_isfluid(i,j,k)=2
+    enddo
+    do l=1,nspheredeads
+      i=isub+spherelistdeads(1,l)
+      j=jsub+spherelistdeads(2,l)
+      k=ksub+spherelistdeads(3,l)
+      !apply periodic conditions if necessary
+      i=pimage(ixpbc,i,nx)
+      j=pimage(iypbc,j,ny)
+      k=pimage(izpbc,k,nz)
+      if(i<imin .or. i>imax)cycle
+      if(j<jmin .or. j>jmax)cycle
+      if(k<kmin .or. k>kmax)cycle
+      new_isfluid(i,j,k)=4
+    enddo
+    new_isfluid(isub,jsub,ksub)=5
   enddo
   
- 
   
   return
   
