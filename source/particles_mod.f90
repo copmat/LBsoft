@@ -47,7 +47,7 @@
                    driver_bc_isfluid,mapping_new_isfluid,&
                    particle_delete_fluids,particle_create_fluids, &
                    erase_fluids_in_particles,lunique_omega,omega, &
-                   omega_to_viscosity,viscR,pimage
+                   omega_to_viscosity,viscR,pimage,opp
 
  
  implicit none
@@ -1370,7 +1370,7 @@
   integer, dimension(4+nxyzlist_sub,1:mxrank-1) :: irequest_send
   integer, dimension(4+nxyzlist_sub) :: irequest_recv
   real(kind=PRC), dimension(9) :: rot,newrot
-  real(kind=PRC) :: matrixmio(3,3),dmio(3)
+  real(kind=PRC) :: matrixmio(3,3),dmio(3),rnorm
   real(kind=PRC), dimension(3) :: xsubm,ysubm,zsubm
 #ifdef CHECKQUAT
   real(kind=PRC), parameter :: toll=real(1.d-4,kind=PRC)
@@ -1848,6 +1848,15 @@
       call set_lbc_halfway(.true.)
       call warning(26)
     endif
+    
+    do i=1,natms
+      rnorm=ONE/sqrt(q0(i)**TWO+q1(i)**TWO+q2(i)**TWO+q3(i)**TWO)
+      q0(i)=q0(i)*rnorm
+      q1(i)=q1(i)*rnorm
+      q2(i)=q2(i)*rnorm
+      q3(i)=q3(i)*rnorm
+    enddo
+    
   endif
   
 ! ATTENTION DOMAIN DECOMPOSITION SHOULD BE ADDED HERE AND natms_ext PROPERLY SET  
@@ -3203,6 +3212,9 @@
   !oyy(1)=ZERO
   !ozz(1)=-0.01d0
   
+!  if(mod(nstepsub,10)==0)write(6,'(4i8,6g16.8)')nstepsub,nint(xxx(1)),nint(yyy(1)),nint(zzz(1)), &
+!   oxx(1),oyy(1),ozz(1),txb(1),tyb(1),tzb(1)
+  
   
   select case(keyint)
   case (1) 
@@ -4334,10 +4346,13 @@
   integer, allocatable, dimension(:,:) :: outlist,outlistdead
   real(kind=PRC), allocatable, dimension(:) :: outdist
   
-  integer :: i,j,k,l,rmax,rmin
+  integer :: i,j,k,l,m,rmax,rmin,ishift,jshift,kshift
+  integer :: ioppshift,joppshift,koppshift
   
   real(kind=PRC) :: vec(3),rdist,sqrcut
   integer, allocatable, dimension(:,:,:) :: issub
+  
+  integer, allocatable, dimension(:) :: icount
   
   sqrcut=rdimsub**TWO
   
@@ -4443,6 +4458,31 @@
       enddo
     enddo
   enddo
+  
+  allocate(icount(outnum))
+  icount(1:outnum)=0
+  do m=1,outnum
+    i=outlist(1,m)
+    j=outlist(2,m)
+    k=outlist(3,m)
+    do l=1,links
+      ishift=i+ex(l)
+      jshift=j+ey(l)
+      kshift=k+ez(l)
+      ioppshift=i+ex(opp(l))
+      joppshift=j+ey(opp(l))
+      koppshift=k+ez(opp(l))
+      if(issub(ishift,jshift,kshift)/=1)cycle
+      if(issub(ioppshift,joppshift,koppshift)==1)then
+        icount(m)=icount(m)+1
+      endif
+    enddo
+  enddo
+  
+!  do m=1,outnum
+!    write(6,*)m,icount(m)
+!  enddo
+!  stop
   
   return
   

@@ -327,8 +327,10 @@
   character(len=120) :: sevt
   integer, allocatable, dimension(:,:) :: list
   
-  double precision :: mydist,myrot(9)
-  double precision, dimension(3) :: uxx,uyy,uzz
+  real(kind=PRC) :: mydist,miomax,vmod
+  real(kind=PRC), dimension(3) :: uxx,uyy,uzz
+  
+  integer :: i,j,k,ii,jj,kk
   
   103 format (A)
   104 format (ES16.5)
@@ -347,24 +349,46 @@
   
   open(unit=iotest,file=trim(sevt),status='replace',action='write')
   
+  miomax=ZERO
+  do k=minz,maxz
+    do j=miny,maxy
+      do i=minx,maxx
+        if(isfluid(i,j,k)/=1)cycle
+        vmod=u(i,j,k)**TWO+v(i,j,k)**TWO+w(i,j,k)**TWO
+        miomax=max(miomax,vmod)
+        if(vmod==miomax)then
+          ii=i
+          jj=j
+          kk=k
+        endif
+      enddo
+    enddo
+  enddo
+  
+  i=ii
+  j=jj
+  k=kk
+  
   
   write(iotest,103) '# vtk DataFile Version 2.0'
   write(iotest,103) 'Field Emission Device - Charge Density Plot'
   write(iotest,103) 'ASCII'
   write(iotest,103) 'DATASET POLYDATA'
-  write(iotest,106) 'POINTS ',natms,' float'
+  write(iotest,106) 'POINTS ',natms+1,' float'
   do iatm=1,natms
     write(iotest,108)xxx(iatm),yyy(iatm),zzz(iatm)
   enddo
+  write(iotest,108)real(i,kind=PRC),real(j,kind=PRC),real(k,kind=PRC)
   
   write(iotest,*)
-  write(iotest,107) 'POINT_DATA ', natms
+  write(iotest,107) 'POINT_DATA ', natms+1
   write(iotest,103) 'SCALARS Type float 1'
   write(iotest,103) 'LOOKUP_TABLE default'
   
   do iatm=1,natms
     write(iotest,*)1 !ltype(iatm)
   enddo
+  write(iotest,*)2
   
   if(lrotate)then
     
@@ -372,16 +396,19 @@
     do iatm=1,natms
       write(iotest,*)take_rotversorx(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
     enddo
+    write(iotest,*)ONE,ZERO,ZERO
     
     write(iotest,103) 'VECTORS Vecty float'
     do iatm=1,natms
       write(iotest,*)take_rotversory(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
     enddo
+    write(iotest,*)ZERO,ONE,ZERO
     
     write(iotest,103) 'VECTORS Vectz float'
     do iatm=1,natms
       write(iotest,*)take_rotversorz(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
     enddo
+    write(iotest,*)ZERO,ZERO,ONE
   endif
   
   close(iotest)
@@ -633,6 +660,8 @@
   
   logical, save :: lfirst=.true.
   
+  real(kind=PRC) :: miomax,vmod
+  
   if(.not. lvtkfile)return
   
   if(mxrank/=1)call error(11)
@@ -684,9 +713,6 @@
    
   E_IO = VTK_DAT_XML(var_location = 'node', &
    var_block_action = 'open')
- 
- 
- 
  
   service1(nx1:nx2,ny1:ny2,nz1:nz2)=rhoR(1:nx,1:ny,1:nz)
   E_IO = VTK_VAR_XML(NC_NN=nn,varname ='density1', &
