@@ -9,6 +9,8 @@
 
 #define NDIAGNHVAR 100
 
+#define SVANBERG
+
 #define IOOUT 6
 
 #define _LB_(content) \

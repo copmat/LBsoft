@@ -1808,6 +1808,7 @@
       rot(7)=zsubm(1)
       rot(8)=zsubm(2)
       rot(9)=zsubm(3)
+      !note rot is transpose
       call rotmat_2_quat(rot,q0(i),q1(i),q2(i),q3(i))
 #ifdef CHECKQUAT
       call quat_2_rotmat(q0(i),q1(i),q2(i),q3(i),newrot)
@@ -3246,7 +3247,7 @@
 
   integer, parameter :: nfailmax=10
   integer, dimension(nfailmax) :: fail
-  integer :: i,j,k,itype
+  integer :: i,j,k,itype,itq
   logical :: ltest(1)
   real(kind=PRC) :: trx,try,trz,delx,dely,delz,engrotbuff(1)
   real(kind=PRC), dimension(9) :: myrot
@@ -3259,6 +3260,12 @@
 ! working variables
   real(kind=PRC) :: oqx,oqy,oqz
   real(kind=PRC) :: opx,opy,opz
+  
+  real(kind=PRC), dimension(0:3) :: q,qv,qtq,qtr,qtrtemp,qt,qtn
+  real(kind=PRC), dimension(0:3) :: qd,qob,qot
+  
+  real(kind=PRC) :: eps,matrot(3,3),obx,oby,obz,oxtemp,oytemp,oztemp,oxtemp3,oytemp3,oztemp3,rnorm
+  real(kind=PRC) :: qn0b,qn1b,qn2b,qn3b,qn0,qn1,qn2,qn3,qn0a,qn1a,qn2a,qn3a,dq0,dq1,dq2,dq3
   
   logical :: lerror
   
@@ -3338,6 +3345,135 @@
 !   initialiaze the accumulator of rotational kinetic energy
     engrotbuff(1)=ZERO
     
+#ifdef SVANBERG
+    
+    do i=1,natms
+      itype=ltype(i)
+      
+      !current rotational matrix 
+      call quat_2_rotmat(q0(i),q1(i),q2(i),q3(i),myrot)
+      
+!     store current angular velocity which are stile at n-1/2
+      opx=oxx(i)
+      opy=oyy(i)
+      opz=ozz(i)
+      
+!     compute angular velocity increment of one step
+      
+      trx=(tqx(i)*myrot(1)+tqy(i)*myrot(4)+tqz(i)*myrot(7))/rotinx(itype)+ &
+       (rotiny(itype)-rotinz(itype))*opy*opz/rotinx(itype)
+      try=(tqx(i)*myrot(2)+tqy(i)*myrot(5)+tqz(i)*myrot(8))/rotiny(itype)+ &
+       (rotinz(itype)-rotinx(itype))*opz*opx/rotiny(itype)
+      trz=(tqx(i)*myrot(3)+tqy(i)*myrot(6)+tqz(i)*myrot(9))/rotinz(itype)+ &
+       (rotinx(itype)-rotiny(itype))*opx*opy/rotinz(itype)
+      
+      delx=tstepatm*trx
+      dely=tstepatm*try
+      delz=tstepatm*trz
+      
+!     angular velocity at time step n
+
+      opx=oxx(i)+delx*HALF
+      opy=oyy(i)+dely*HALF
+      opz=ozz(i)+delz*HALF
+      
+      
+!     add its contribution to the total rotational kinetic energy at time step n
+
+      engrotbuff(1)=engrotbuff(1)+(rotinx(itype)*opx**TWO+ &
+       rotiny(itype)*opy**TWO+ &
+       rotinz(itype)*opz**TWO)
+       
+!     compute derivative at n
+      dq0=(-q1(i)*opx-q2(i)*opy-q3(i)*opz)*HALF
+      dq1=( q0(i)*opx-q3(i)*opy+q2(i)*opz)*HALF
+      dq2=( q3(i)*opx+q0(i)*opy-q1(i)*opz)*HALF
+      dq3=(-q2(i)*opx+q1(i)*opy+q0(i)*opz)*HALF
+      
+!     update at t+1/2
+      qn0=q0(i)+dq0*tstepatm*HALF
+      qn1=q1(i)+dq1*tstepatm*HALF
+      qn2=q2(i)+dq2*tstepatm*HALF
+      qn3=q3(i)+dq3*tstepatm*HALF
+      
+      rnorm=ONE/sqrt(qn0**TWO+qn1**TWO+qn2**TWO+qn3**TWO)
+      qn0=qn0*rnorm
+      qn1=qn1*rnorm
+      qn2=qn2*rnorm
+      qn3=qn3*rnorm
+      
+!     angular velocity at timestep n+1/2
+      oxx(i)=oxx(i)+delx
+      oyy(i)=oyy(i)+dely
+      ozz(i)=ozz(i)+delz
+      
+      
+!     store angular velocity at timestep n+1/2
+      opx=oxx(i)
+      opy=oyy(i)
+      opz=ozz(i)
+      
+!     assign new quaternions
+      
+!     iteration of new quaternions (lab fixed)
+  
+      itq=0
+      eps=real(1.0d9,kind=PRC)
+  
+      do while((itq.lt.mxquat).and.(eps.gt.sqquattol))
+      
+        itq=itq+1
+        
+!       compute derivative at n+1/2
+        dq0=(-qn1*opx-qn2*opy-qn3*opz)*HALF
+        dq1=( qn0*opx-qn3*opy+qn2*opz)*HALF
+        dq2=( qn3*opx+qn0*opy-qn1*opz)*HALF
+        dq3=(-qn2*opx+qn1*opy+qn0*opz)*HALF
+        
+!       update at t+1/2
+        qn0a=qn0+dq0*tstepatm*HALF
+        qn1a=qn1+dq1*tstepatm*HALF
+        qn2a=qn2+dq2*tstepatm*HALF
+        qn3a=qn3+dq3*tstepatm*HALF
+        
+        rnorm=ONE/sqrt(qn0a**TWO+qn1a**TWO+qn2a**TWO+qn3a**TWO)
+        qn0a=qn0a*rnorm
+        qn1a=qn1a*rnorm
+        qn2a=qn2a*rnorm
+        qn3a=qn3a*rnorm
+        
+!      convergence test 
+          
+        eps=((qn0a-qn0)**TWO+(qn1a-qn1)**TWO+(qn2a-qn2)**TWO+ &
+         (qn3a-qn3)**TWO)*tstepatm**TWO
+              
+        qn0=qn0a
+        qn1=qn1a
+        qn2=qn2a
+        qn3=qn3a
+          
+      enddo
+      
+! store new quaternions
+      
+      q0(i)=q0(i)+dq0*tstepatm
+      q1(i)=q1(i)+dq1*tstepatm
+      q2(i)=q2(i)+dq2*tstepatm
+      q3(i)=q3(i)+dq3*tstepatm
+      
+      rnorm=ONE/sqrt(q0(i)**TWO+q1(i)**TWO+q2(i)**TWO+q3(i)**TWO)
+      q0(i)=q0(i)*rnorm
+      q1(i)=q1(i)*rnorm
+      q2(i)=q2(i)*rnorm
+      q3(i)=q3(i)*rnorm
+    
+    enddo
+    
+
+#else
+
+
+    
     do i=1,natms
       itype=ltype(i)
       
@@ -3408,8 +3544,11 @@
     
     enddo
     
-!   compute the total rotational kinetic energy
     
+#endif
+     
+!   compute the total rotational kinetic energy
+     
     call sum_world_farr(engrotbuff,1)
     engrot=HALF*engrotbuff(1)
     
@@ -3445,6 +3584,41 @@
   
   real(kind=PRC), dimension(3) :: take_rotversor
   
+#ifdef SVANBERG
+  
+  real(kind=PRC), dimension(0:3) :: qversor,qtemp,qtemp2
+  
+  qtemp(0)=qa
+  qtemp(1)=qb
+  qtemp(2)=qc
+  qtemp(3)=qd
+  
+  select case(idir)
+  case(1)
+    
+    qversor = (/ ZERO , ONE , ZERO , ZERO /)
+    
+  case(2)
+    
+    qversor = (/ ZERO , ZERO , ONE , ZERO /)
+    
+  case(3)
+    
+    qversor = (/ ZERO , ZERO , ZERO , ONE /)
+    
+  case default
+    
+    !so you want to make me angry!
+    take_rotversor=(/ZERO,ZERO,ZERO/)
+    return
+    
+  end select
+  
+  qtemp2=qtrimult(qtemp,qversor,qconj(qtemp))
+  take_rotversor=qtemp2(1:3)
+
+#else
+  
   q0=qa
   q1=-qb
   q2=-qc
@@ -3476,6 +3650,8 @@
     
   end select
   
+#endif
+  
   return
   
  end function take_rotversor
@@ -3501,6 +3677,23 @@
   
   real(kind=PRC), dimension(3) :: take_rotversorx
   
+#ifdef SVANBERG
+  
+  real(kind=PRC), dimension(0:3), parameter :: qversor= &
+   (/ ZERO , ONE , ZERO , ZERO /)
+  
+  real(kind=PRC), dimension(0:3) :: qtemp,qtemp2
+  
+  qtemp(0)=qa
+  qtemp(1)=qb
+  qtemp(2)=qc
+  qtemp(3)=qd
+  
+  qtemp2=qtrimult(qtemp,qversor,qconj(qtemp))
+  take_rotversorx=qtemp2(1:3)
+  
+#else
+  
   q0=qa
   q1=-qb
   q2=-qc
@@ -3509,6 +3702,8 @@
   take_rotversorx(1)=q0**TWO+q1**TWO-q2**TWO-q3**TWO
   take_rotversorx(2)=TWO*(q1*q2-q0*q3)
   take_rotversorx(3)=TWO*(q1*q3+q0*q2)
+  
+#endif
   
   return
   
@@ -3535,6 +3730,23 @@
   
   real(kind=PRC), dimension(3) :: take_rotversory
   
+#ifdef SVANBERG
+
+  real(kind=PRC), dimension(0:3), parameter :: qversor= &
+   (/ ZERO , ZERO , ONE , ZERO /)
+  
+  real(kind=PRC), dimension(0:3) :: qtemp,qtemp2
+  
+  qtemp(0)=qa
+  qtemp(1)=qb
+  qtemp(2)=qc
+  qtemp(3)=qd
+  
+  qtemp2=qtrimult(qtemp,qversor,qconj(qtemp))
+  take_rotversory=qtemp2(1:3)
+
+#else
+  
   q0=qa
   q1=-qb
   q2=-qc
@@ -3543,6 +3755,8 @@
   take_rotversory(1)=TWO*(q1*q2+q0*q3)
   take_rotversory(2)=q0**TWO-q1**TWO+q2**TWO-q3**TWO
   take_rotversory(3)=TWO*(q2*q3-q0*q1)
+  
+#endif
   
   return
   
@@ -3569,6 +3783,23 @@
   
   real(kind=PRC), dimension(3) :: take_rotversorz
   
+#ifdef SVANBERG
+
+  real(kind=PRC), dimension(0:3), parameter :: qversor= &
+   (/ ZERO , ZERO , ZERO , ONE /)
+  
+  real(kind=PRC), dimension(0:3) :: qtemp,qtemp2
+  
+  qtemp(0)=qa
+  qtemp(1)=qb
+  qtemp(2)=qc
+  qtemp(3)=qd
+  
+  qtemp2=qtrimult(qtemp,qversor,qconj(qtemp))
+  take_rotversorz=qtemp2(1:3)
+
+#else
+  
   q0=qa
   q1=-qb
   q2=-qc
@@ -3578,9 +3809,414 @@
   take_rotversorz(2)=TWO*(q2*q3+q0*q1)
   take_rotversorz(3)=q0**TWO-q1**TWO-q2**TWO+q3**TWO
   
+#endif
+  
   return
   
  end function take_rotversorz
+ 
+ pure function qsum(qsa,qsb)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the sum of two quaternions
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in), dimension(0:3) :: qsa,qsb
+  
+  real(kind=PRC), dimension(0:3) :: qsum
+  
+  qsum(0:3)=qsa(0:3)+qsb(0:3)
+  
+  return
+  
+ end function qsum
+ 
+ pure function qdiff(qsa,qsb)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the difference of two quaternions
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in), dimension(0:3) :: qsa,qsb
+  
+  real(kind=PRC), dimension(0:3) :: qdiff
+  
+  qdiff(0:3)=qsa(0:3)-qsb(0:3)
+  
+  return
+  
+ end function qdiff
+ 
+ pure function qmult(qsa,qsb)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the product of two quaternions.
+!     NOTE: it is not commutative!
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in), dimension(0:3) :: qsa,qsb
+  
+  real(kind=PRC), dimension(0:3) :: qmult
+  
+  qmult(0)=qsa(0)*qsb(0)-qsa(1)*qsb(1)-qsa(2)*qsb(2)-qsa(3)*qsb(3)
+  qmult(1:3)=qsa(0)*qsb(1:3)+qsb(0)*qsa(1:3)+cross(qsa(1:3),qsb(1:3))
+  
+  return
+  
+ end function qmult
+ 
+ pure function qtrimult(qsa,qsb,qsc)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the triple product of two
+!     quaternions.
+!     NOTE: it is not commutative!
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in), dimension(0:3) :: qsa,qsb,qsc
+  
+  real(kind=PRC), dimension(0:3) :: qtrimult,qtemps
+  
+  qtemps=qmult(qsb,qsc)
+  qtrimult=qmult(qsa,qtemps)
+  
+  return
+  
+ end function qtrimult
+ 
+ pure function qtrimultzero(qsa,qsb,qsc)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the triple product of two
+!     quaternions.
+!     NOTE: it is not commutative!
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in), dimension(0:3) :: qsa,qsb,qsc
+  
+  real(kind=PRC), dimension(0:3) :: qtrimult,qtemps,qtrimultzero
+  
+  qtemps=qmult(qsb,qsc)
+  qtrimult=qmult(qsa,qtemps)
+  qtrimultzero(0)=ZERO
+  qtrimultzero(1:3)=qtrimult(1:3)
+  
+  return
+  
+ end function qtrimultzero
+ 
+ pure function qdot(qsa,qsb)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the dot product of two quaternions
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in), dimension(0:3) :: qsa,qsb
+  
+  real(kind=PRC) :: qdot
+  
+  qdot=qsa(0)*qsb(0)+qsa(1)*qsb(1)+qsa(2)*qsb(2)+qsa(3)*qsb(3)
+  
+  return
+  
+ end function qdot
+ 
+ pure function qmodule(qs)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the module of a quaternion
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in), dimension(0:3) :: qs
+  
+  real(kind=PRC) :: qmodule
+  
+  qmodule = sqrt(qs(0)**TWO+qs(1)**TWO+qs(2)**TWO+qs(3)**TWO)
+  
+  return
+  
+ end function qmodule
+ 
+ pure function qang(ang,vect)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the quaternion associated to
+!     a rotation of angle [ang] around the unit vector [vect]
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in) :: ang
+  real(kind=PRC), intent(in), dimension(1:3) :: vect
+  
+  real(kind=PRC), dimension(0:3) :: qang
+  
+  real(kind=PRC) :: lmod,uvect(1:3)
+  
+  lmod = sqrt(vect(1)**TWO+vect(2)**TWO+vect(3)**TWO)
+  uvect(1:3)=vect(1:3)/lmod
+  
+  qang(0)=cos(ang*HALF)
+  qang(1:3)=sin(ang*HALF)*uvect(1:3)
+  
+  lmod = sqrt(qang(0)**TWO+qang(1)**TWO+qang(2)**TWO+qang(3)**TWO)
+  
+  qang(0:3)=qang(0:3)/lmod
+  
+  return
+  
+ end function qang
+ 
+ subroutine qnorm(qs)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to normalize a quaternion
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(inout), dimension(0:3) :: qs
+  
+  real(kind=PRC) :: lmod
+  
+  lmod = sqrt(qs(0)**TWO+qs(1)**TWO+qs(2)**TWO+qs(3)**TWO)
+  
+  qs(0:3)=qs(0:3)/lmod
+  
+  return
+  
+ end subroutine qnorm
+ 
+ pure function qconj(qs)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the conjugate of a quaternion
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in), dimension(0:3) :: qs
+  
+  real(kind=PRC), dimension(0:3) :: qconj
+  
+  qconj(0)=qs(0)
+  qconj(1:3)=-qs(1:3)
+  
+  return
+  
+ end function qconj
+ 
+ pure function  qinv(qs)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the inverse of a quaternion
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in), dimension(0:3) :: qs
+  
+  real(kind=PRC), dimension(0:3) :: qinv
+  
+  real(kind=PRC) :: lmod
+  
+  lmod = sqrt(qs(0)**TWO+qs(1)**TWO+qs(2)**TWO+qs(3)**TWO)
+  
+  qinv(0)=qs(0)/lmod
+  qinv(1:3)=-qs(1:3)/lmod
+  
+  return
+  
+ end function qinv
+ 
+ subroutine eul2q(phis,psis,thetas,qs)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the quaternion associated to
+!     the Euler angles
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in) :: phis,psis,thetas
+  real(kind=PRC), intent(out), dimension(0:3) :: qs
+  
+  real(kind=PRC) :: cy,sy,cp,sp,cr,sr
+  
+  cy = cos(phis * HALF)
+  sy = sin(phis * HALF)
+  cp = cos(psis * HALF)
+  sp = sin(psis * HALF)
+  cr = cos(thetas * HALF)
+  sr = sin(thetas * HALF)
+  
+  qs(0) = cy * cp * cr + sy * sp * sr
+  qs(1) = cy * cp * sr - sy * sp * cr
+  qs(2) = sy * cp * sr + cy * sp * cr
+  qs(3) = sy * cp * cr - cy * sp * sr
+  
+  return
+  
+ end subroutine eul2q
+ 
+ subroutine q2eul(qs,phis,psis,thetas)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the three Euler angles associated to
+!     a quaternion
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in), dimension(0:3) :: qs
+  real(kind=PRC), intent(out) :: phis,psis,thetas
+  
+  real(kind=PRC) :: sinr_cosp,cosr_cosp,siny_cosp,cosy_cosp,sinp
+  
+  sinr_cosp = TWO * (qs(0) * qs(1) + qs(2) * qs(3))
+  cosr_cosp = ONE- TWO * (qs(1)**TWO + qs(2)**TWO)
+  thetas = atan2(sinr_cosp, cosr_cosp)
+
+! psis (y-axis rotation)
+  sinp = TWO * (qs(0) * qs(2) - qs(3) * qs(1))
+  if(abs(sinp)>=ONE)then
+    psis = sign(Pi*HALF, sinp) 
+  else
+    psis = asin(sinp)
+  endif
+
+! phis (z-axis rotation)
+  siny_cosp = TWO * (qs(0) * qs(3) + qs(1) * qs(2))
+  cosy_cosp = ONE - TWO * (qs(2)**TWO + qs(3)**TWO)
+  phis = atan2(siny_cosp, cosy_cosp)
+  
+  return
+  
+ end subroutine q2eul
+ 
+ subroutine q2mat(qs,mat)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the rotation matrix associated to
+!     a quaternion
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in), dimension(0:3) :: qs
+  real(kind=PRC), intent(out), dimension(3,3) :: mat
+  
+  mat(1,1) = qs(0)**TWO+qs(1)**TWO-qs(2)**TWO-qs(3)**TWO
+  mat(2,1) = TWO*(qs(1)*qs(2)+qs(0)*qs(3))
+  mat(3,1) = TWO*(qs(1)*qs(3)-qs(0)*qs(2))
+  mat(1,2) = TWO*(qs(1)*qs(2)-qs(0)*qs(3))
+  mat(2,2) = qs(0)**TWO-qs(1)**TWO+qs(2)**TWO-qs(3)**TWO
+  mat(3,2) = TWO*(qs(2)*qs(3)+qs(0)*qs(1))
+  mat(1,3) = TWO*(qs(1)*qs(3)+qs(0)*qs(2))
+  mat(2,3) = TWO*(qs(2)*qs(3)-qs(0)*qs(1))
+  mat(3,3) = qs(0)**TWO-qs(1)**TWO-qs(2)**TWO+qs(3)**TWO
+  
+  return
+  
+ end subroutine q2mat
  
  subroutine update_quaternions(lerror,q0s,q1s,q2s,q3s,tsteps, &
   opxs,opys,opzs,oqxs,oqys,oqzs)
