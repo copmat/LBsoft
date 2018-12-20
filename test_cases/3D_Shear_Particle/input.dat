@@ -1,6 +1,6 @@
 [ROOM SYSTEM]
 box 32 32 32
-steps 500
+steps 5000
 diagnostic yes
 boundary condition 1 0 1
 decomposition type  7
