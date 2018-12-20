@@ -192,7 +192,7 @@
     if(ldiagnostic)call start_timing2("MD","vertest")
     call vertest(newlst,tstep)
     if(ldiagnostic)call end_timing2("MD","vertest")
-      
+    
     if(ldiagnostic)call start_timing2("MD","driver_nlist")
     call driver_neighborhood_list(newlst,nstep)
     if(ldiagnostic)call end_timing2("MD","driver_nlist")

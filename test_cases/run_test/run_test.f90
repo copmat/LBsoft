@@ -3,7 +3,7 @@
  
   implicit none
   
-  integer, parameter :: ntest=13
+  integer, parameter :: ntest=14
   
   integer, parameter :: orig_io=1017
   integer, parameter :: orig_ioxyz=3017
@@ -122,12 +122,13 @@
   labeltest(11)='3D_Particle_pbc'
   labeltest(12)='3D_Rotating_Particle'
   labeltest(13)='3D_Shear_Particle'
+  labeltest(14)='3D_Particles_box'
   
   lxyzfile(1:10)=.false.
   lxyzfile(11:ntest)=.true.
   !lskip(1:ntest)=.true.
   lskip(1:ntest)=.false.
-  !lskip(11)=.false.
+  !lskip(13)=.false.
   lerase=.true.
   
   call getcwd(origpath)

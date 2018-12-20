@@ -311,7 +311,7 @@
  real(kind=PRC), allocatable, public, protected, save :: rmass(:)
  !rotational inertia in body fixed frame
  real(kind=PRC), allocatable, public, protected, save :: rotin(:)
- !components of angular velocity
+ !components of angular velocity (NOTE: in body referement system)
  real(kind=PRC), allocatable, public, protected, save :: oxx(:)
  real(kind=PRC), allocatable, public, protected, save :: oyy(:)
  real(kind=PRC), allocatable, public, protected, save :: ozz(:)
@@ -320,7 +320,7 @@
  real(kind=PRC), allocatable, public, protected, save :: q1(:)
  real(kind=PRC), allocatable, public, protected, save :: q2(:)
  real(kind=PRC), allocatable, public, protected, save :: q3(:)
- !components of torque on rigid body
+ !components of torque on rigid body (NOTE: in world referement system)
  real(kind=PRC), allocatable, public, protected, save :: tqx(:)
  real(kind=PRC), allocatable, public, protected, save :: tqy(:)
  real(kind=PRC), allocatable, public, protected, save :: tqz(:)
@@ -1778,77 +1778,72 @@
       if(k>=22)lqinput=.true.
     enddo
   endif
-
-  if((.not. ltinput) .and. (.not. lqinput) .and. lrotate)then
-    call warning(19)
-    !transform the rotational matrix in quaternions using an uniform
-    !distribution
-    do i=1,natms
-      xsubm(1:3)=ZERO
-      ysubm(1:3)=ZERO
-      zsubm(1:3)=ZERO
-      xsubm(1)=ONE
-      ysubm(2)=ONE
-      zsubm(3)=ONE
-      call random_number(dmio(1))
-      call random_number(dmio(2))
-      call random_number(dmio(3))
-      dmio(1:3)=dmio(1:3)*TWO*Pi
-      do j=1,3
-        call matrix_rotaxis(j,dmio(j),matrixmio)
-        call rotate_vect(1,3,xsubm,ysubm,zsubm,(/ZERO,ZERO,ZERO/), &
-         matrixmio)
-      enddo
-      rot(1)=xsubm(1)
-      rot(2)=xsubm(2)
-      rot(3)=xsubm(3)
-      rot(4)=ysubm(1)
-      rot(5)=ysubm(2)
-      rot(6)=ysubm(3)
-      rot(7)=zsubm(1)
-      rot(8)=zsubm(2)
-      rot(9)=zsubm(3)
-      !note rot is transpose
-      call rotmat_2_quat(rot,q0(i),q1(i),q2(i),q3(i))
-#ifdef CHECKQUAT
-      call quat_2_rotmat(q0(i),q1(i),q2(i),q3(i),newrot)
-      do j=1,9
-        if(abs(newrot(j)-rot(j))>toll)then
-          ltestrot=.true.
-        endif
-      enddo
-#endif
-    enddo
-  else
-    if(ltinput)then
-      !transform the rotational matrix in quaternions
+  
+  if(lrotate)then
+    if((.not. ltinput) .and. (.not. lqinput))then
+      call warning(19)
+      !transform the rotational matrix in quaternions using an uniform
+      !distribution
       do i=1,natms
-        rot(1)=fxx(i)
-        rot(2)=fyy(i)
-        rot(3)=fzz(i)
-        rot(4)=tqx(i)
-        rot(5)=tqy(i)
-        rot(6)=tqz(i)
-        rot(7)=q1(i)
-        rot(8)=q2(i)
-        rot(9)=q3(i)
+        xsubm(1:3)=ZERO
+        ysubm(1:3)=ZERO
+        zsubm(1:3)=ZERO
+        xsubm(1)=ONE
+        ysubm(2)=ONE
+        zsubm(3)=ONE
+        call random_number(dmio(1))
+        call random_number(dmio(2))
+        call random_number(dmio(3))
+        dmio(1:3)=dmio(1:3)*TWO*Pi
+        do j=1,3
+          call matrix_rotaxis(j,dmio(j),matrixmio)
+          call rotate_vect(1,3,xsubm,ysubm,zsubm,(/ZERO,ZERO,ZERO/), &
+           matrixmio)
+        enddo
+        rot(1)=xsubm(1)
+        rot(2)=xsubm(2)
+        rot(3)=xsubm(3)
+        rot(4)=ysubm(1)
+        rot(5)=ysubm(2)
+        rot(6)=ysubm(3)
+        rot(7)=zsubm(1)
+        rot(8)=zsubm(2)
+        rot(9)=zsubm(3)
+        !note rot is transpose
         call rotmat_2_quat(rot,q0(i),q1(i),q2(i),q3(i))
+#ifdef CHECKQUAT
+        call quat_2_rotmat(q0(i),q1(i),q2(i),q3(i),newrot)
+        do j=1,9
+          if(abs(newrot(j)-rot(j))>toll)then
+            ltestrot=.true.
+          endif
+        enddo
+#endif
       enddo
+    else
+      if(ltinput)then
+        !transform the rotational matrix in quaternions
+        do i=1,natms
+          rot(1)=fxx(i)
+          rot(2)=fyy(i)
+          rot(3)=fzz(i)
+          rot(4)=tqx(i)
+          rot(5)=tqy(i)
+          rot(6)=tqz(i)
+          rot(7)=q1(i)
+          rot(8)=q2(i)
+          rot(9)=q3(i)
+          call rotmat_2_quat(rot,q0(i),q1(i),q2(i),q3(i))
+        enddo
+      endif
     endif
-  endif
   
 #ifdef CHECKQUAT
-  call or_world_larr(ltestrot,1)
-  if(ltestrot(1))then
-    call error(22)
-  endif
-#endif
-  
-  if(lparticles)then
-    if(.not. lbc_halfway)then
-      call set_lbc_halfway(.true.)
-      call warning(26)
+    call or_world_larr(ltestrot,1)
+    if(ltestrot(1))then
+      call error(22)
     endif
+#endif
     
     do i=1,natms
       rnorm=ONE/sqrt(q0(i)**TWO+q1(i)**TWO+q2(i)**TWO+q3(i)**TWO)
@@ -1857,6 +1852,14 @@
       q2(i)=q2(i)*rnorm
       q3(i)=q3(i)*rnorm
     enddo
+    
+  endif
+  
+  if(lparticles)then
+    if(.not. lbc_halfway)then
+      call set_lbc_halfway(.true.)
+      call warning(26)
+    endif
     
   endif
   
@@ -1957,6 +1960,8 @@
   integer, intent(in) :: nstep
   
   integer :: iatm,i,j,k,itype
+  real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3)
+  
   
   forall(iatm=1:natms_ext)
     fxb(iatm)=ZERO
@@ -1977,24 +1982,45 @@
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
     itype=ltype(iatm)
+    !transform oxx oyy ozz from body ref to world ref
+    qtemp(0)=q0(iatm)
+    qtemp(1)=q1(iatm)
+    qtemp(2)=q2(iatm)
+    qtemp(3)=q3(iatm)
+    qversor(0)=ZERO
+    qversor(1)=oxx(iatm)
+    qversor(2)=oyy(iatm)
+    qversor(3)=ozz(iatm)
+    oat=qtrimult(qtemp,qversor,qconj(qtemp))
     call particle_bounce_back(nstep,iatm,.true.,lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm), &
+     fxb(iatm),fyb(iatm),fzb(iatm),oat(1),oat(2),oat(3), &
      txb(iatm),tyb(iatm),tzb(iatm))
   enddo
+  
   
   do iatm=natms+1,natms_ext
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
     itype=ltype(iatm)
+    !transform oxx oyy ozz from body ref to world ref
+    qtemp(0)=q0(iatm)
+    qtemp(1)=q1(iatm)
+    qtemp(2)=q2(iatm)
+    qtemp(3)=q3(iatm)
+    qversor(0)=ZERO
+    qversor(1)=oxx(iatm)
+    qversor(2)=oyy(iatm)
+    qversor(3)=ozz(iatm)
+    oat=qtrimult(qtemp,qversor,qconj(qtemp))
     call particle_bounce_back(nstep,iatm,.false.,lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxb(iatm),fyb(iatm),fzb(iatm),oxx(iatm),oyy(iatm),ozz(iatm), &
+     fxb(iatm),fyb(iatm),fzb(iatm),oat(1),oat(2),oat(3), &
      txb(iatm),tyb(iatm),tzb(iatm))
   enddo
   
@@ -3197,26 +3223,6 @@
   
   logical, save :: lfirst=.true.
   
-!  vxx(:)=ZERO
-!  vyy(:)=ZERO
-!  vzz(:)=ZERO
-!  fxx(:)=ZERO
-!  fyy(:)=ZERO
-!  fzz(:)=ZERO
-  !fxx(1)=fxx(1)+0.5d0
-  !fxx(2)=fxx(2)-0.5d0
-
-  !tqx(:)=ZERO
-  !tqy(:)=ZERO
-  !tqz(:)=ZERO
-  !oxx(1)=ZERO
-  !oyy(1)=ZERO
-  !ozz(1)=-0.01d0
-  
-!  if(mod(nstepsub,10)==0)write(6,'(4i8,6g16.8)')nstepsub,nint(xxx(1)),nint(yyy(1)),nint(zzz(1)), &
-!   oxx(1),oyy(1),ozz(1),txb(1),tyb(1),tzb(1)
-  
-  
   select case(keyint)
   case (1) 
     call nve_lf(nstepsub)
@@ -3313,10 +3319,10 @@
     vyy(i)=HALF*(vyy(i)+byy(i))
     vzz(i)=HALF*(vzz(i)+bzz(i))
   end forall
-      
+  
 ! calculate kinetic energy at time step n
   call getkin(engke)
-    
+  
 ! periodic boundary condition
   call pbc_images_centered(imcon,natms,cell,cx,cy,cz,xxx,yyy,zzz)
     
