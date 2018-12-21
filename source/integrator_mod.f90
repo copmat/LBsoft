@@ -18,9 +18,9 @@
                        ldiagnostic
  use lbempi_mod,      only : i4back,ownern
  use fluids_mod,      only : initialize_fluid_force,compute_fluid_force_sc, &
-                        driver_bc_densities,&
+                        driver_bc_densities,compute_psi_sc,&
                         driver_collision_fluids,compute_omega, &
-                        moments_fluids,driver_copy_densities_wall, &
+                        moments_fluids,compute_densities_wall, &
                         lpair_SC,driver_apply_bounceback_pop, &
                         driver_streaming_fluids,aoptpR,test_fake_pops,&
                         probe_pops_in_node,ex,ey,ez,isfluid, &
@@ -205,12 +205,16 @@
   endif
   
   if(lpair_SC .or. lparticles)then
-    if(ldiagnostic)call start_timing2("LB","driver_densities_solid")
-    call driver_copy_densities_wall
-    if(ldiagnostic)call end_timing2("LB","driver_densities_solid")
+    if(ldiagnostic)call start_timing2("LB","compute_densities_wall")
+    call compute_densities_wall
+    if(ldiagnostic)call end_timing2("LB","compute_densities_wall")
   endif
     
   if(lpair_SC)then
+    if(ldiagnostic)call start_timing2("LB","compute_psi_sc")
+    call compute_psi_sc
+    if(ldiagnostic)call end_timing2("LB","compute_psi_sc")
+    
     if(ldiagnostic)call start_timing2("LB","compute_force_sc")
     call compute_fluid_force_sc
     if(ldiagnostic)call end_timing2("LB","compute_force_sc")

@@ -313,7 +313,8 @@
  public :: compute_omega
  public :: driver_streaming_fluids
  public :: moments_fluids
- public :: driver_copy_densities_wall
+ public :: compute_densities_wall
+ public :: compute_psi_sc
  public :: set_lsingle_fluid
  public :: driver_apply_bounceback_pop
  public :: probe_red_moments_in_node
@@ -1364,8 +1365,7 @@
   call print_all_hvar(100,'inithvar_dopo',0,rhoR,u,v,w)
 #endif
   
-  call initialize_copy_densities_wall
-  call driver_copy_densities_wall
+  call compute_densities_wall
   
 #ifdef DIAGNINIT
   call print_all_hvar(100,'inithvar_fine',0,rhoR,u,v,w)
@@ -2476,53 +2476,6 @@
  
  end function omega_to_viscosity
  
- subroutine compute_fluid_force_sc
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for computing the Shan Chen pair interaction
-!     forces
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k
-  
-  !red fluid
-  call compute_grad_on_lattice(rhoR,gradpsixR,gradpsiyR,gradpsizR)
-  !blue fluid
-  call compute_grad_on_lattice(rhoB,gradpsixB,gradpsiyB,gradpsizB)
-  
-  !red fluid
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    fuR(i,j,k) = fuR(i,j,k) - pair_SC*rhoR(i,j,k)*gradpsixB(i,j,k)
-  end forall
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    fvR(i,j,k) = fvR(i,j,k) - pair_SC*rhoR(i,j,k)*gradpsiyB(i,j,k)
-  end forall
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    fwR(i,j,k) = fwR(i,j,k) - pair_SC*rhoR(i,j,k)*gradpsizB(i,j,k)
-  end forall
-  !blue fluid
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    fuB(i,j,k) = fuB(i,j,k) - pair_SC*rhoB(i,j,k)*gradpsixR(i,j,k)
-  end forall
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    fvB(i,j,k) = fvB(i,j,k) - pair_SC*rhoB(i,j,k)*gradpsiyR(i,j,k)
-  end forall
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    fwB(i,j,k) = fwB(i,j,k) - pair_SC*rhoB(i,j,k)*gradpsizR(i,j,k)
-  end forall
-  
-  return
-  
- end subroutine compute_fluid_force_sc
- 
  subroutine convert_fluid_force_to_velshifted
  
 !***********************************************************************
@@ -2559,143 +2512,6 @@
   return
   
  end subroutine convert_fluid_force_to_velshifted
- 
- subroutine compute_grad_on_lattice(myarr,mygradx,mygrady,mygradz)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for computing the gradient of a scalar
-!     over the lattice
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
-  
-  implicit none
-  
-  real(kind=PRC), allocatable, dimension(:,:,:), intent(in) :: myarr
-  real(kind=PRC), allocatable, dimension(:,:,:), intent(inout) :: &
-   mygradx,mygrady,mygradz
-   
-  integer :: i,j,k,l
-  
-#if LATTICE==319
-  !tolti gli zeri su dex dey dez con pazienza
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    mygradx(i,j,k)= &
-     myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dex(1)+ & !01
-     myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dex(2)+ & !02
-     myarr(i+ex(7),j+ey(7),k+ez(7))*p(7)*dex(7)+ & !07
-     myarr(i+ex(8),j+ey(8),k+ez(8))*p(8)*dex(8)+ & !08
-     myarr(i+ex(9),j+ey(9),k+ez(9))*p(9)*dex(9)+ & !09
-     myarr(i+ex(10),j+ey(10),k+ez(10))*p(10)*dex(10)+ & !10
-     myarr(i+ex(11),j+ey(11),k+ez(11))*p(11)*dex(11)+ & !11
-     myarr(i+ex(12),j+ey(12),k+ez(12))*p(12)*dex(12)+ & !12
-     myarr(i+ex(13),j+ey(13),k+ez(13))*p(13)*dex(13)+ & !13
-     myarr(i+ex(14),j+ey(14),k+ez(14))*p(14)*dex(14)    !14
-  end forall
-  
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    mygrady(i,j,k)= &
-     myarr(i+ex(3),j+ey(3),k+ez(3))*p(3)*dey(3)+ & !03
-     myarr(i+ex(4),j+ey(4),k+ez(4))*p(4)*dey(4)+ & !04
-     myarr(i+ex(7),j+ey(7),k+ez(7))*p(7)*dey(7)+ & !07
-     myarr(i+ex(8),j+ey(8),k+ez(8))*p(8)*dey(8)+ & !08
-     myarr(i+ex(9),j+ey(9),k+ez(9))*p(9)*dey(9)+ & !09
-     myarr(i+ex(10),j+ey(10),k+ez(10))*p(10)*dey(10)+ & !10
-     myarr(i+ex(15),j+ey(15),k+ez(15))*p(15)*dey(15)+ & !15
-     myarr(i+ex(16),j+ey(16),k+ez(16))*p(16)*dey(16)+ & !16
-     myarr(i+ex(17),j+ey(17),k+ez(17))*p(17)*dey(17)+ & !17
-     myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dey(18)    !18
-  end forall
-  
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    mygradz(i,j,k)= &
-     myarr(i+ex(5),j+ey(5),k+ez(5))*p(5)*dez(5)+ & !05
-     myarr(i+ex(6),j+ey(6),k+ez(6))*p(6)*dez(6)+ & !06
-     myarr(i+ex(11),j+ey(11),k+ez(11))*p(11)*dez(11)+ & !11
-     myarr(i+ex(12),j+ey(12),k+ez(12))*p(12)*dez(12)+ & !12
-     myarr(i+ex(13),j+ey(13),k+ez(13))*p(13)*dez(13)+ & !13
-     myarr(i+ex(14),j+ey(14),k+ez(14))*p(14)*dez(14)+ & !14
-     myarr(i+ex(15),j+ey(15),k+ez(15))*p(15)*dez(15)+ & !15
-     myarr(i+ex(16),j+ey(16),k+ez(16))*p(16)*dez(16)+ & !16
-     myarr(i+ex(17),j+ey(17),k+ez(17))*p(17)*dez(17)+ & !17
-     myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dez(18)    !18
-  end forall
-#else
-  !occhio gli zeri su dex dey dez andrebbero tolti con pazienza
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    mygradx(i,j,k)= &
-     myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dex(1)+ & !01
-     myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dex(2)+ & !02
-     myarr(i+ex(3),j+ey(3),k+ez(3))*p(3)*dex(3)+ & !03
-     myarr(i+ex(4),j+ey(4),k+ez(4))*p(4)*dex(4)+ & !04
-     myarr(i+ex(5),j+ey(5),k+ez(5))*p(5)*dex(5)+ & !05
-     myarr(i+ex(6),j+ey(6),k+ez(6))*p(6)*dex(6)+ & !06
-     myarr(i+ex(7),j+ey(7),k+ez(7))*p(7)*dex(7)+ & !07
-     myarr(i+ex(8),j+ey(8),k+ez(8))*p(8)*dex(8)+ & !08
-     myarr(i+ex(9),j+ey(9),k+ez(9))*p(9)*dex(9)+ & !09
-     myarr(i+ex(10),j+ey(10),k+ez(10))*p(10)*dex(10)+ & !10
-     myarr(i+ex(11),j+ey(11),k+ez(11))*p(11)*dex(11)+ & !11
-     myarr(i+ex(12),j+ey(12),k+ez(12))*p(12)*dex(12)+ & !12
-     myarr(i+ex(13),j+ey(13),k+ez(13))*p(13)*dex(13)+ & !13
-     myarr(i+ex(14),j+ey(14),k+ez(14))*p(14)*dex(14)+ & !14
-     myarr(i+ex(15),j+ey(15),k+ez(15))*p(15)*dex(15)+ & !15
-     myarr(i+ex(16),j+ey(16),k+ez(16))*p(16)*dex(16)+ & !16
-     myarr(i+ex(17),j+ey(17),k+ez(17))*p(17)*dex(17)+ & !17
-     myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dex(18)    !18
-  end forall
-  
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    mygrady(i,j,k)= &
-     myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dey(1)+ & !01
-     myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dey(2)+ & !02
-     myarr(i+ex(3),j+ey(3),k+ez(3))*p(3)*dey(3)+ & !03
-     myarr(i+ex(4),j+ey(4),k+ez(4))*p(4)*dey(4)+ & !04
-     myarr(i+ex(5),j+ey(5),k+ez(5))*p(5)*dey(5)+ & !05
-     myarr(i+ex(6),j+ey(6),k+ez(6))*p(6)*dey(6)+ & !06
-     myarr(i+ex(7),j+ey(7),k+ez(7))*p(7)*dey(7)+ & !07
-     myarr(i+ex(8),j+ey(8),k+ez(8))*p(8)*dey(8)+ & !08
-     myarr(i+ex(9),j+ey(9),k+ez(9))*p(9)*dey(9)+ & !09
-     myarr(i+ex(10),j+ey(10),k+ez(10))*p(10)*dey(10)+ & !10
-     myarr(i+ex(11),j+ey(11),k+ez(11))*p(11)*dey(11)+ & !11
-     myarr(i+ex(12),j+ey(12),k+ez(12))*p(12)*dey(12)+ & !12
-     myarr(i+ex(13),j+ey(13),k+ez(13))*p(13)*dey(13)+ & !13
-     myarr(i+ex(14),j+ey(14),k+ez(14))*p(14)*dey(14)+ & !14
-     myarr(i+ex(15),j+ey(15),k+ez(15))*p(15)*dey(15)+ & !15
-     myarr(i+ex(16),j+ey(16),k+ez(16))*p(16)*dey(16)+ & !16
-     myarr(i+ex(17),j+ey(17),k+ez(17))*p(17)*dey(17)+ & !17
-     myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dey(18)    !18
-  end forall
-  
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    mygradz(i,j,k)= &
-     myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dez(1)+ & !01
-     myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dez(2)+ & !02
-     myarr(i+ex(3),j+ey(3),k+ez(3))*p(3)*dez(3)+ & !03
-     myarr(i+ex(4),j+ey(4),k+ez(4))*p(4)*dez(4)+ & !04
-     myarr(i+ex(5),j+ey(5),k+ez(5))*p(5)*dez(5)+ & !05
-     myarr(i+ex(6),j+ey(6),k+ez(6))*p(6)*dez(6)+ & !06
-     myarr(i+ex(7),j+ey(7),k+ez(7))*p(7)*dez(7)+ & !07
-     myarr(i+ex(8),j+ey(8),k+ez(8))*p(8)*dez(8)+ & !08
-     myarr(i+ex(9),j+ey(9),k+ez(9))*p(9)*dez(9)+ & !09
-     myarr(i+ex(10),j+ey(10),k+ez(10))*p(10)*dez(10)+ & !10
-     myarr(i+ex(11),j+ey(11),k+ez(11))*p(11)*dez(11)+ & !11
-     myarr(i+ex(12),j+ey(12),k+ez(12))*p(12)*dez(12)+ & !12
-     myarr(i+ex(13),j+ey(13),k+ez(13))*p(13)*dez(13)+ & !13
-     myarr(i+ex(14),j+ey(14),k+ez(14))*p(14)*dez(14)+ & !14
-     myarr(i+ex(15),j+ey(15),k+ez(15))*p(15)*dez(15)+ & !15
-     myarr(i+ex(16),j+ey(16),k+ez(16))*p(16)*dez(16)+ & !16
-     myarr(i+ex(17),j+ey(17),k+ez(17))*p(17)*dez(17)+ & !17
-     myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dez(18)    !18
-  end forall
-#endif
-  
-  return
-  
- end subroutine compute_grad_on_lattice
  
  subroutine driver_collision_fluids
  
@@ -8003,50 +7819,8 @@
 !******************END PART TO MANAGE THE BOUNCEBACK********************
 
 !******************START PART TO MANAGE THE COPY WALL*******************
-
- subroutine initialize_copy_densities_wall
  
-!***********************************************************************
-!     
-!     LBsoft subroutine for driving the reflection of the density 
-!     variables if requested from the boundary conditions
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k,l,ishift,jshift,kshift
-  REAL(kind=PRC) :: isum
-   
-   
-   do k=minz-1,maxz+1
-     do j=miny-1,maxy+1
-       do i=minx-1,maxx+1
-         if(isfluid(i,j,k)==0)then
-           isum=ZERO
-           do l=1,linksd3q27
-             ishift=i+exd3q27(l)
-             jshift=j+eyd3q27(l)
-             kshift=k+ezd3q27(l)
-             if(isfluid(ishift,jshift,kshift)==1)then
-               isum=isum+pd3q27(l)
-             endif
-           enddo
-           wwfluid(i,j,k)=isum
-         endif
-       enddo
-     enddo
-   enddo
-   
-   return
-   
- end subroutine initialize_copy_densities_wall
- 
- subroutine driver_copy_densities_wall
+ subroutine compute_densities_wall
  
 !***********************************************************************
 !     
@@ -8068,7 +7842,6 @@
   logical :: ltest(1)=.false.
   
   
-#if 1
    
    if(lsingle_fluid)then
      do k=minz-1,maxz+1
@@ -8173,51 +7946,233 @@
    call or_world_larr(ltest,1)
    if(ltest(1))call error(33)
    
-#else
-   
-   if(lsingle_fluid)then
-     forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,wwfluid(i,j,k)/=ZERO)
-       rhoR(i,j,k)=ZERO
-     end forall
-     do l=1,linksd3q27
-       forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1, &
-        isfluid(i,j,k)==0 .and. &
-        isfluid(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))==1)
-         rhoR(i,j,k)=rhoR(i,j,k)+pd3q27(l)*rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))
-       end forall
-     enddo
-     forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1, &
-      wwfluid(i,j,k)/=ZERO)
-       rhoR(i,j,k)=rhoR(i,j,k)/wwfluid(i,j,k)
-     end forall
-   else
-     forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,wwfluid(i,j,k)/=ZERO)
-       rhoR(i,j,k)=ZERO
-       rhoB(i,j,k)=ZERO
-     end forall
-     do l=1,linksd3q27
-       forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1, &
-        isfluid(i,j,k)==0 .and. &
-        isfluid(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))==1)
-         rhoR(i,j,k)=rhoR(i,j,k)+pd3q27(l)*rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))
-         rhoB(i,j,k)=rhoB(i,j,k)+pd3q27(l)*rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))
-       end forall
-     enddo
-     forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1, &
-      wwfluid(i,j,k)/=ZERO)
-       rhoR(i,j,k)=rhoR(i,j,k)/wwfluid(i,j,k)
-       rhoB(i,j,k)=rhoB(i,j,k)/wwfluid(i,j,k)
-     end forall
-   endif
-   
-#endif
-   
    return
-   
   
- end subroutine driver_copy_densities_wall
+ end subroutine compute_densities_wall
  
 !*******************END PART TO MANAGE THE COPY WALL********************
+
+!************START PART TO MANAGE THE SHAN CHEN INTERACTION*************
+
+ subroutine compute_psi_sc
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for computing the Shan Chen pseudo 
+!     potential values for the fluid part
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  
+  if(lsingle_fluid)then
+  
+    forall(i=minx-nbuff:maxx+nbuff,j=miny-nbuff:maxy+nbuff, &
+     k=minz-nbuff:maxz+nbuff)psiR(i,j,k)=ZERO
+   
+  else
+    
+    forall(i=minx-nbuff:maxx+nbuff,j=miny-nbuff:maxy+nbuff, &
+     k=minz-nbuff:maxz+nbuff)psiR(i,j,k)=ZERO
+     
+    forall(i=minx-nbuff:maxx+nbuff,j=miny-nbuff:maxy+nbuff, &
+     k=minz-nbuff:maxz+nbuff)psiB(i,j,k)=ZERO
+  
+  endif
+  
+  return
+  
+ end subroutine compute_psi_sc
+ 
+ subroutine compute_fluid_force_sc
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for computing the Shan Chen pair interaction
+!     forces
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k
+  
+  !red fluid
+  call compute_grad_on_lattice(rhoR,gradpsixR,gradpsiyR,gradpsizR)
+  !blue fluid
+  call compute_grad_on_lattice(rhoB,gradpsixB,gradpsiyB,gradpsizB)
+  
+  !red fluid
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    fuR(i,j,k) = fuR(i,j,k) - pair_SC*rhoR(i,j,k)*gradpsixB(i,j,k)
+  end forall
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    fvR(i,j,k) = fvR(i,j,k) - pair_SC*rhoR(i,j,k)*gradpsiyB(i,j,k)
+  end forall
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    fwR(i,j,k) = fwR(i,j,k) - pair_SC*rhoR(i,j,k)*gradpsizB(i,j,k)
+  end forall
+  !blue fluid
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    fuB(i,j,k) = fuB(i,j,k) - pair_SC*rhoB(i,j,k)*gradpsixR(i,j,k)
+  end forall
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    fvB(i,j,k) = fvB(i,j,k) - pair_SC*rhoB(i,j,k)*gradpsiyR(i,j,k)
+  end forall
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    fwB(i,j,k) = fwB(i,j,k) - pair_SC*rhoB(i,j,k)*gradpsizR(i,j,k)
+  end forall
+  
+  return
+  
+ end subroutine compute_fluid_force_sc
+ 
+ subroutine compute_grad_on_lattice(myarr,mygradx,mygrady,mygradz)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for computing the gradient of a scalar
+!     over the lattice
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC), allocatable, dimension(:,:,:), intent(in) :: myarr
+  real(kind=PRC), allocatable, dimension(:,:,:), intent(inout) :: &
+   mygradx,mygrady,mygradz
+   
+  integer :: i,j,k,l
+  
+#if LATTICE==319
+  !tolti gli zeri su dex dey dez con pazienza
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    mygradx(i,j,k)= &
+     myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dex(1)+ & !01
+     myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dex(2)+ & !02
+     myarr(i+ex(7),j+ey(7),k+ez(7))*p(7)*dex(7)+ & !07
+     myarr(i+ex(8),j+ey(8),k+ez(8))*p(8)*dex(8)+ & !08
+     myarr(i+ex(9),j+ey(9),k+ez(9))*p(9)*dex(9)+ & !09
+     myarr(i+ex(10),j+ey(10),k+ez(10))*p(10)*dex(10)+ & !10
+     myarr(i+ex(11),j+ey(11),k+ez(11))*p(11)*dex(11)+ & !11
+     myarr(i+ex(12),j+ey(12),k+ez(12))*p(12)*dex(12)+ & !12
+     myarr(i+ex(13),j+ey(13),k+ez(13))*p(13)*dex(13)+ & !13
+     myarr(i+ex(14),j+ey(14),k+ez(14))*p(14)*dex(14)    !14
+  end forall
+  
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    mygrady(i,j,k)= &
+     myarr(i+ex(3),j+ey(3),k+ez(3))*p(3)*dey(3)+ & !03
+     myarr(i+ex(4),j+ey(4),k+ez(4))*p(4)*dey(4)+ & !04
+     myarr(i+ex(7),j+ey(7),k+ez(7))*p(7)*dey(7)+ & !07
+     myarr(i+ex(8),j+ey(8),k+ez(8))*p(8)*dey(8)+ & !08
+     myarr(i+ex(9),j+ey(9),k+ez(9))*p(9)*dey(9)+ & !09
+     myarr(i+ex(10),j+ey(10),k+ez(10))*p(10)*dey(10)+ & !10
+     myarr(i+ex(15),j+ey(15),k+ez(15))*p(15)*dey(15)+ & !15
+     myarr(i+ex(16),j+ey(16),k+ez(16))*p(16)*dey(16)+ & !16
+     myarr(i+ex(17),j+ey(17),k+ez(17))*p(17)*dey(17)+ & !17
+     myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dey(18)    !18
+  end forall
+  
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    mygradz(i,j,k)= &
+     myarr(i+ex(5),j+ey(5),k+ez(5))*p(5)*dez(5)+ & !05
+     myarr(i+ex(6),j+ey(6),k+ez(6))*p(6)*dez(6)+ & !06
+     myarr(i+ex(11),j+ey(11),k+ez(11))*p(11)*dez(11)+ & !11
+     myarr(i+ex(12),j+ey(12),k+ez(12))*p(12)*dez(12)+ & !12
+     myarr(i+ex(13),j+ey(13),k+ez(13))*p(13)*dez(13)+ & !13
+     myarr(i+ex(14),j+ey(14),k+ez(14))*p(14)*dez(14)+ & !14
+     myarr(i+ex(15),j+ey(15),k+ez(15))*p(15)*dez(15)+ & !15
+     myarr(i+ex(16),j+ey(16),k+ez(16))*p(16)*dez(16)+ & !16
+     myarr(i+ex(17),j+ey(17),k+ez(17))*p(17)*dez(17)+ & !17
+     myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dez(18)    !18
+  end forall
+#else
+  !occhio gli zeri su dex dey dez andrebbero tolti con pazienza
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    mygradx(i,j,k)= &
+     myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dex(1)+ & !01
+     myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dex(2)+ & !02
+     myarr(i+ex(3),j+ey(3),k+ez(3))*p(3)*dex(3)+ & !03
+     myarr(i+ex(4),j+ey(4),k+ez(4))*p(4)*dex(4)+ & !04
+     myarr(i+ex(5),j+ey(5),k+ez(5))*p(5)*dex(5)+ & !05
+     myarr(i+ex(6),j+ey(6),k+ez(6))*p(6)*dex(6)+ & !06
+     myarr(i+ex(7),j+ey(7),k+ez(7))*p(7)*dex(7)+ & !07
+     myarr(i+ex(8),j+ey(8),k+ez(8))*p(8)*dex(8)+ & !08
+     myarr(i+ex(9),j+ey(9),k+ez(9))*p(9)*dex(9)+ & !09
+     myarr(i+ex(10),j+ey(10),k+ez(10))*p(10)*dex(10)+ & !10
+     myarr(i+ex(11),j+ey(11),k+ez(11))*p(11)*dex(11)+ & !11
+     myarr(i+ex(12),j+ey(12),k+ez(12))*p(12)*dex(12)+ & !12
+     myarr(i+ex(13),j+ey(13),k+ez(13))*p(13)*dex(13)+ & !13
+     myarr(i+ex(14),j+ey(14),k+ez(14))*p(14)*dex(14)+ & !14
+     myarr(i+ex(15),j+ey(15),k+ez(15))*p(15)*dex(15)+ & !15
+     myarr(i+ex(16),j+ey(16),k+ez(16))*p(16)*dex(16)+ & !16
+     myarr(i+ex(17),j+ey(17),k+ez(17))*p(17)*dex(17)+ & !17
+     myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dex(18)    !18
+  end forall
+  
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    mygrady(i,j,k)= &
+     myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dey(1)+ & !01
+     myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dey(2)+ & !02
+     myarr(i+ex(3),j+ey(3),k+ez(3))*p(3)*dey(3)+ & !03
+     myarr(i+ex(4),j+ey(4),k+ez(4))*p(4)*dey(4)+ & !04
+     myarr(i+ex(5),j+ey(5),k+ez(5))*p(5)*dey(5)+ & !05
+     myarr(i+ex(6),j+ey(6),k+ez(6))*p(6)*dey(6)+ & !06
+     myarr(i+ex(7),j+ey(7),k+ez(7))*p(7)*dey(7)+ & !07
+     myarr(i+ex(8),j+ey(8),k+ez(8))*p(8)*dey(8)+ & !08
+     myarr(i+ex(9),j+ey(9),k+ez(9))*p(9)*dey(9)+ & !09
+     myarr(i+ex(10),j+ey(10),k+ez(10))*p(10)*dey(10)+ & !10
+     myarr(i+ex(11),j+ey(11),k+ez(11))*p(11)*dey(11)+ & !11
+     myarr(i+ex(12),j+ey(12),k+ez(12))*p(12)*dey(12)+ & !12
+     myarr(i+ex(13),j+ey(13),k+ez(13))*p(13)*dey(13)+ & !13
+     myarr(i+ex(14),j+ey(14),k+ez(14))*p(14)*dey(14)+ & !14
+     myarr(i+ex(15),j+ey(15),k+ez(15))*p(15)*dey(15)+ & !15
+     myarr(i+ex(16),j+ey(16),k+ez(16))*p(16)*dey(16)+ & !16
+     myarr(i+ex(17),j+ey(17),k+ez(17))*p(17)*dey(17)+ & !17
+     myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dey(18)    !18
+  end forall
+  
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    mygradz(i,j,k)= &
+     myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dez(1)+ & !01
+     myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dez(2)+ & !02
+     myarr(i+ex(3),j+ey(3),k+ez(3))*p(3)*dez(3)+ & !03
+     myarr(i+ex(4),j+ey(4),k+ez(4))*p(4)*dez(4)+ & !04
+     myarr(i+ex(5),j+ey(5),k+ez(5))*p(5)*dez(5)+ & !05
+     myarr(i+ex(6),j+ey(6),k+ez(6))*p(6)*dez(6)+ & !06
+     myarr(i+ex(7),j+ey(7),k+ez(7))*p(7)*dez(7)+ & !07
+     myarr(i+ex(8),j+ey(8),k+ez(8))*p(8)*dez(8)+ & !08
+     myarr(i+ex(9),j+ey(9),k+ez(9))*p(9)*dez(9)+ & !09
+     myarr(i+ex(10),j+ey(10),k+ez(10))*p(10)*dez(10)+ & !10
+     myarr(i+ex(11),j+ey(11),k+ez(11))*p(11)*dez(11)+ & !11
+     myarr(i+ex(12),j+ey(12),k+ez(12))*p(12)*dez(12)+ & !12
+     myarr(i+ex(13),j+ey(13),k+ez(13))*p(13)*dez(13)+ & !13
+     myarr(i+ex(14),j+ey(14),k+ez(14))*p(14)*dez(14)+ & !14
+     myarr(i+ex(15),j+ey(15),k+ez(15))*p(15)*dez(15)+ & !15
+     myarr(i+ex(16),j+ey(16),k+ez(16))*p(16)*dez(16)+ & !16
+     myarr(i+ex(17),j+ey(17),k+ez(17))*p(17)*dez(17)+ & !17
+     myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dez(18)    !18
+  end forall
+#endif
+  
+  return
+  
+ end subroutine compute_grad_on_lattice
 
 !*********START PART TO MANAGE THE INTERACTION WITH PARTICLES***********
 
