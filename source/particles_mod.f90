@@ -385,6 +385,7 @@
  public :: set_llubrication
  public :: set_value_ext_force_particles
  public :: set_value_ext_torque_particles
+ public :: q2eul
  
  contains
  
@@ -1364,14 +1365,15 @@
   logical, intent(in) :: lvelocity
   
   integer :: i,j,k,l,iatm,ids,sub_i,idrank_sub,itype
-  logical :: ltest(1),lqinput,ltinput
+  logical :: ltest(1),lqinput
   integer, dimension(0:mxrank-1) :: isend_nparticle
   integer :: isend_nvar
   integer, dimension(4+nxyzlist_sub,1:mxrank-1) :: irequest_send
   integer, dimension(4+nxyzlist_sub) :: irequest_recv
   real(kind=PRC), dimension(9) :: rot,newrot
-  real(kind=PRC) :: matrixmio(3,3),dmio(3),rnorm
+  real(kind=PRC) :: matrixmio(3,3),dmio(3),dmio2(3),rnorm
   real(kind=PRC), dimension(3) :: xsubm,ysubm,zsubm
+  real(kind=PRC), dimension(0:3) :: qs
 #ifdef CHECKQUAT
   real(kind=PRC), parameter :: toll=real(1.d-4,kind=PRC)
   logical :: ltestrot(1)=.false.
@@ -1476,30 +1478,10 @@
               case(12)
                 ozz(sub_i)=ots(j,i)
               case(13)
-                fxx(sub_i)=ots(j,i)
+                q1(sub_i)=ots(j,i)
               case(14)
-                fyy(sub_i)=ots(j,i)
+                q2(sub_i)=ots(j,i)
               case(15)
-                fzz(sub_i)=ots(j,i)
-              case(16)
-                tqx(sub_i)=ots(j,i)
-              case(17)
-                tqy(sub_i)=ots(j,i)
-              case(18)
-                tqz(sub_i)=ots(j,i)
-              case(19)
-                q1(sub_i)=ots(j,i)
-              case(20)
-                q2(sub_i)=ots(j,i)
-              case(21)
-                q3(sub_i)=ots(j,i)
-              case(22)
-                q0(sub_i)=ots(j,i)
-              case(23)
-                q1(sub_i)=ots(j,i)
-              case(24)
-                q2(sub_i)=ots(j,i)
-              case(25)
                 q3(sub_i)=ots(j,i)
               end select
             enddo
@@ -1538,42 +1520,12 @@
           call isend_world_farr(ozz,isend_nparticle(idrank_sub),idrank_sub, &
            120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
         case(13)
-          call isend_world_farr(fxx,isend_nparticle(idrank_sub),idrank_sub, &
+          call isend_world_farr(q1,isend_nparticle(idrank_sub),idrank_sub, &
            120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
         case(14)
-          call isend_world_farr(fyy,isend_nparticle(idrank_sub),idrank_sub, &
+          call isend_world_farr(q2,isend_nparticle(idrank_sub),idrank_sub, &
            120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
         case(15)
-          call isend_world_farr(fzz,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(16)
-          call isend_world_farr(tqx,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(17)
-          call isend_world_farr(tqy,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(18)
-          call isend_world_farr(tqz,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(19)
-          call isend_world_farr(q1,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(20)
-          call isend_world_farr(q2,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(21)
-          call isend_world_farr(q3,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(22)
-          call isend_world_farr(q0,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(23)
-          call isend_world_farr(q1,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(24)
-          call isend_world_farr(q2,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(25)
           call isend_world_farr(q3,isend_nparticle(idrank_sub),idrank_sub, &
            120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
         end select
@@ -1618,30 +1570,10 @@
             case(12)
               ozz(sub_i)=ots(j,i)
             case(13)
-              fxx(sub_i)=ots(j,i)
+              q1(sub_i)=ots(j,i)
             case(14)
-              fyy(sub_i)=ots(j,i)
+              q2(sub_i)=ots(j,i)
             case(15)
-              fzz(sub_i)=ots(j,i)
-            case(16)
-              tqx(sub_i)=ots(j,i)
-            case(17)
-              tqy(sub_i)=ots(j,i)
-            case(18)
-              tqz(sub_i)=ots(j,i)
-            case(19)
-              q1(sub_i)=ots(j,i)
-            case(20)
-              q2(sub_i)=ots(j,i)
-            case(21)
-              q3(sub_i)=ots(j,i)
-            case(22)
-              q0(sub_i)=ots(j,i)
-            case(23)
-              q1(sub_i)=ots(j,i)
-            case(24)
-              q2(sub_i)=ots(j,i)
-            case(25)
               q3(sub_i)=ots(j,i)
             end select
           enddo
@@ -1681,42 +1613,12 @@
         call irecv_world_farr(ozz,isend_nparticle(idrank),0, &
          120+idrank+4+j,irequest_recv(4+j))
       case(13)
-        call irecv_world_farr(fxx,isend_nparticle(idrank),0, &
+        call irecv_world_farr(q1,isend_nparticle(idrank),0, &
          120+idrank+4+j,irequest_recv(4+j))
       case(14)
-        call irecv_world_farr(fyy,isend_nparticle(idrank),0, &
+        call irecv_world_farr(q2,isend_nparticle(idrank),0, &
          120+idrank+4+j,irequest_recv(4+j))
       case(15)
-        call irecv_world_farr(fzz,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(16)
-        call irecv_world_farr(tqx,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(17)
-        call irecv_world_farr(tqy,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(18)
-        call irecv_world_farr(tqz,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(19)
-        call irecv_world_farr(q1,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(20)
-        call irecv_world_farr(q2,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(21)
-        call irecv_world_farr(q3,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(22)
-        call irecv_world_farr(q0,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(23)
-        call irecv_world_farr(q1,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(24)
-        call irecv_world_farr(q2,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(25)
         call irecv_world_farr(q3,isend_nparticle(idrank),0, &
          120+idrank+4+j,irequest_recv(4+j))
       end select
@@ -1770,17 +1672,15 @@
   endif
   
   lqinput=.false.
-  ltinput=.false.
   if(nxyzlist_sub>0)then
     do j=1,nxyzlist_sub
       k=xyzlist_sub(j)
-      if(k>=13 .and. k<=21)ltinput=.true.
-      if(k>=22)lqinput=.true.
+      if(k>=13 .and. k<=15)lqinput=.true.
     enddo
   endif
   
   if(lrotate)then
-    if((.not. ltinput) .and. (.not. lqinput))then
+    if(.not. lqinput)then
       call warning(19)
       !transform the rotational matrix in quaternions using an uniform
       !distribution
@@ -1794,48 +1694,43 @@
         call random_number(dmio(1))
         call random_number(dmio(2))
         call random_number(dmio(3))
-        dmio(1:3)=dmio(1:3)*TWO*Pi
-        do j=1,3
-          call matrix_rotaxis(j,dmio(j),matrixmio)
-          call rotate_vect(1,3,xsubm,ysubm,zsubm,(/ZERO,ZERO,ZERO/), &
-           matrixmio)
-        enddo
-        rot(1)=xsubm(1)
-        rot(2)=xsubm(2)
-        rot(3)=xsubm(3)
-        rot(4)=ysubm(1)
-        rot(5)=ysubm(2)
-        rot(6)=ysubm(3)
-        rot(7)=zsubm(1)
-        rot(8)=zsubm(2)
-        rot(9)=zsubm(3)
-        !note rot is transpose
-        call rotmat_2_quat(rot,q0(i),q1(i),q2(i),q3(i))
+        dmio(1)=(dmio(1)-HALF)*TWO*Pi
+        dmio(2)=(dmio(2)-HALF)*Pi
+        dmio(3)=(dmio(3)-HALF)*TWO*Pi
+        call eul2q(dmio(1),dmio(3),dmio(2),qs)
+        q0(i)=qs(0)
+        q1(i)=qs(1)
+        q2(i)=qs(2)
+        q3(i)=qs(3)
 #ifdef CHECKQUAT
-        call quat_2_rotmat(q0(i),q1(i),q2(i),q3(i),newrot)
-        do j=1,9
-          if(abs(newrot(j)-rot(j))>toll)then
+        call q2eul(qs,dmio2(1),dmio2(3),dmio2(2))
+        do j=1,3
+          if(abs(dmio(j)-dmio2(j))>toll)then
             ltestrot=.true.
           endif
         enddo
 #endif
       enddo
     else
-      if(ltinput)then
-        !transform the rotational matrix in quaternions
-        do i=1,natms
-          rot(1)=fxx(i)
-          rot(2)=fyy(i)
-          rot(3)=fzz(i)
-          rot(4)=tqx(i)
-          rot(5)=tqy(i)
-          rot(6)=tqz(i)
-          rot(7)=q1(i)
-          rot(8)=q2(i)
-          rot(9)=q3(i)
-          call rotmat_2_quat(rot,q0(i),q1(i),q2(i),q3(i))
+      !transform the Euler angles to quaternions
+      do i=1,natms
+        dmio(1)=q1(i)
+        dmio(2)=q2(i)
+        dmio(3)=q3(i)
+        call eul2q(dmio(1),dmio(3),dmio(2),qs)
+        q0(i)=qs(0)
+        q1(i)=qs(1)
+        q2(i)=qs(2)
+        q3(i)=qs(3)
+#ifdef CHECKQUAT
+        call q2eul(qs,dmio2(1),dmio2(3),dmio2(2))
+        do j=1,3
+          if(abs(dmio(j)-dmio2(j))>toll)then
+            ltestrot=.true.
+          endif
         enddo
-      endif
+#endif
+      enddo
     endif
   
 #ifdef CHECKQUAT
@@ -4012,13 +3907,12 @@
   
  end function qtrimult
  
- pure function qtrimultzero(qsa,qsb,qsc)
+ pure function qzeroreal(qsa)
  
 !***********************************************************************
 !     
-!     LBsoft subroutine to compute the triple product of two
+!     LBsoft subroutine to set to zero the real part of a
 !     quaternions.
-!     NOTE: it is not commutative!
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -4028,18 +3922,42 @@
  
   implicit none
   
-  real(kind=PRC), intent(in), dimension(0:3) :: qsa,qsb,qsc
+  real(kind=PRC), intent(in), dimension(0:3) :: qsa
   
-  real(kind=PRC), dimension(0:3) :: qtrimult,qtemps,qtrimultzero
+  real(kind=PRC), dimension(0:3) :: qzeroreal
   
-  qtemps=qmult(qsb,qsc)
-  qtrimult=qmult(qsa,qtemps)
-  qtrimultzero(0)=ZERO
-  qtrimultzero(1:3)=qtrimult(1:3)
+  qzeroreal(0)=ZERO
+  qzeroreal(1:3)=qsa(1:3)
   
   return
   
- end function qtrimultzero
+ end function qzeroreal
+ 
+ pure function qzeroimg(qsa)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to set to zero the imaginary part of a
+!     quaternions.
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification December 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), intent(in), dimension(0:3) :: qsa
+  
+  real(kind=PRC), dimension(0:3) :: qzeroimg
+  
+  qzeroimg(0)=qsa(0)
+  qzeroimg(1:3)=ZERO
+  
+  return
+  
+ end function qzeroimg
  
  pure function qdot(qsa,qsb)
  

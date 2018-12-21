@@ -313,31 +313,11 @@
       write(outp,'(a)') &
       "WARNING - * radz                 * radius of the particle along x in lb units            *"
       write(outp,'(a)') &
-      "WARNING - * txx                  * particle rotational matrix x term along x             *"
+      "WARNING - * phi                  * first Euler angle in the range [−Pi,Pi]               *"
       write(outp,'(a)') &
-      "WARNING - * txy                  * particle rotational matrix x term along y             *"
+      "WARNING - * theta                * second Euler angle in the range [−Pi/2,Pi/2]          *"
       write(outp,'(a)') &
-      "WARNING - * txz                  * particle rotational matrix x term along z             *"
-      write(outp,'(a)') &
-      "WARNING - * tyx                  * particle rotational matrix y term along x             *"
-      write(outp,'(a)') &
-      "WARNING - * tyy                  * particle rotational matrix y term along y             *"
-      write(outp,'(a)') &
-      "WARNING - * tyz                  * particle rotational matrix y term along z             *"
-      write(outp,'(a)') &
-      "WARNING - * tzx                  * particle rotational matrix z term along x             *"
-      write(outp,'(a)') &
-      "WARNING - * tzy                  * particle rotational matrix z term along y             *"
-      write(outp,'(a)') &
-      "WARNING - * tzz                  * particle rotational matrix z term along z             *"
-      write(outp,'(a)') &
-      "WARNING - * qa                   * real part of quaternions                              *"
-      write(outp,'(a)') &
-      "WARNING - * qb                   * imaginary i part of quaternions                       *"
-      write(outp,'(a)') &
-      "WARNING - * qc                   * imaginary j part of quaternions                       *"
-      write(outp,'(a)') &
-      "WARNING - * qd                   * imaginary k part of quaternions                       *"
+      "WARNING - * psi                  * third Euler angle in the range [−Pi,Pi]               *"
       write(outp,'(a,/)') &
       "WARNING - ********************************************************************************"
     case (14)
@@ -365,9 +345,7 @@
       write(outp,'(2a,/)')"an uniform random orientation has been set ", &
       "for each particle"
     case (20)
-      write(outp,'(/,a)')"WARNING - 'read list' is not correctly specified"
-      write(outp,'(a)')"WARNING - 'read list' both quaternions and rotation matrices"
-      write(outp,'(a,/)')"WARNING -  only one of two can be used in input"
+      !free
     case (21)
       write(outp,'(/,a)')"WARNING - link cell algorithm cannot be used"
       write(outp,'(a,/)')"WARNING - the sub cell size is too small compared to rcut"

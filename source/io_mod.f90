@@ -2570,44 +2570,14 @@
   elseif(findstring('oz',temps,inumchar,lenstring))then
     printcodsub(iarg)=12
     lfound=.true.
-  elseif(findstring('txx',temps,inumchar,lenstring))then
+  elseif(findstring('phi',temps,inumchar,lenstring))then
     printcodsub(iarg)=13
     lfound=.true.
-  elseif(findstring('txy',temps,inumchar,lenstring))then
+  elseif(findstring('theta',temps,inumchar,lenstring))then
     printcodsub(iarg)=14
     lfound=.true.
-  elseif(findstring('txz',temps,inumchar,lenstring))then
+  elseif(findstring('psi',temps,inumchar,lenstring))then
     printcodsub(iarg)=15
-    lfound=.true.
-  elseif(findstring('tyx',temps,inumchar,lenstring))then
-    printcodsub(iarg)=16
-    lfound=.true.
-  elseif(findstring('tyy',temps,inumchar,lenstring))then
-    printcodsub(iarg)=17
-    lfound=.true.
-  elseif(findstring('tyz',temps,inumchar,lenstring))then
-    printcodsub(iarg)=18
-    lfound=.true.
-  elseif(findstring('tzx',temps,inumchar,lenstring))then
-    printcodsub(iarg)=19
-    lfound=.true.
-  elseif(findstring('tzy',temps,inumchar,lenstring))then
-    printcodsub(iarg)=20
-    lfound=.true.
-  elseif(findstring('tzz',temps,inumchar,lenstring))then
-    printcodsub(iarg)=21
-    lfound=.true.
-  elseif(findstring('qa',temps,inumchar,lenstring))then
-    printcodsub(iarg)=22
-    lfound=.true.
-  elseif(findstring('qb',temps,inumchar,lenstring))then
-    printcodsub(iarg)=23
-    lfound=.true.
-  elseif(findstring('qc',temps,inumchar,lenstring))then
-    printcodsub(iarg)=24
-    lfound=.true.
-  elseif(findstring('qd',temps,inumchar,lenstring))then
-    printcodsub(iarg)=25
     lfound=.true.
   else
     lfound=.false.
@@ -2665,31 +2635,11 @@
   elseif(xyzcod(iarg)==12)then
     legendobs_xyz='oz   =  particle angular velocity along z         '
   elseif(xyzcod(iarg)==13)then
-    legendobs_xyz='txx  =  particle rotational matrix x term along x '
+    legendobs_xyz='phi  =  first Euler angle [−Pi,Pi]                '
   elseif(xyzcod(iarg)==14)then
-    legendobs_xyz='txy  =  particle rotational matrix x term along y '
+    legendobs_xyz='theta=  second Euler angle [−Pi/2,Pi/2]           '
   elseif(xyzcod(iarg)==15)then
-    legendobs_xyz='txz  =  particle rotational matrix x term along z '
-  elseif(xyzcod(iarg)==16)then
-    legendobs_xyz='tyx  =  particle rotational matrix y term along x '
-  elseif(xyzcod(iarg)==17)then
-    legendobs_xyz='tyy  =  particle rotational matrix y term along y '
-  elseif(xyzcod(iarg)==18)then
-    legendobs_xyz='tyz  =  particle rotational matrix y term along z '
-  elseif(xyzcod(iarg)==19)then
-    legendobs_xyz='tzx  =  particle rotational matrix z term along x '
-  elseif(xyzcod(iarg)==20)then
-    legendobs_xyz='tzy  =  particle rotational matrix z term along y '
-  elseif(xyzcod(iarg)==21)then
-    legendobs_xyz='tzz  =  particle rotational matrix z term along z '
-  elseif(xyzcod(iarg)==22)then
-    legendobs_xyz='qa   =  real part of quaternions                  '
-  elseif(xyzcod(iarg)==23)then
-    legendobs_xyz='qb   =  imaginary i part of quaternions           '
-  elseif(xyzcod(iarg)==24)then
-    legendobs_xyz='qc   =  imaginary j part of quaternions           '
-  elseif(xyzcod(iarg)==25)then
-    legendobs_xyz='qd   =  imaginary k part of quaternions           '
+    legendobs_xyz='psi  =  third Euler angle [−Pi,Pi]                '
   endif
   legendobs_xyz=adjustl(legendobs_xyz)
   
@@ -2824,7 +2774,7 @@
   logical :: lerror1,lerror2,lerror3,lerror4,safe,lexists
   integer :: temp_natms_tot
   logical :: lxyzlisterror,lfoundprintxyz,lxyzlist,lxyzlist1,lxyzlist2, &
-   lqinput,ltinput,lerror5,lmass,lvel(3),lrdim
+   lqinput,lerror5,lmass,lvel(3),lrdim
   
   character(len=*),parameter :: of='(a)'
   integer, parameter :: natmname=4
@@ -2926,7 +2876,6 @@
       enddo
       call print_legend_xyz(6)
       lqinput=.false.
-      ltinput=.false.
       lmass=.false.
       lrdim=.false.
       lvel(1:3)=.false.
@@ -2939,20 +2888,13 @@
             goto 120
           endif
         endif
-        if(xyzlist(i)>=22)lqinput=.true.
-        if(xyzlist(i)>=13 .and. xyzlist(i)<=21)ltinput=.true.
+        if(xyzlist(i)>=13 .and. xyzlist(i)<=15)lqinput=.true.
         if(xyzlist(i)==2)lmass=.true.
         if(xyzlist(i)==6)lrdim=.true.
         if(xyzlist(i)==7)lvel(1)=.true.
         if(xyzlist(i)==8)lvel(2)=.true.
         if(xyzlist(i)==9)lvel(3)=.true.
       enddo
-      if(lqinput .and. ltinput)then
-        lerror5=.true.
-        call warning(11,dble(iline))
-        call warning(20)
-        goto 120
-      endif
       if((.not. all(lumass(1:ntype))).and.(.not. lmass))then
         lerror5=.true.
         call warning(11,dble(iline))

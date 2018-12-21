@@ -128,7 +128,7 @@
   lxyzfile(11:ntest)=.true.
   !lskip(1:ntest)=.true.
   lskip(1:ntest)=.false.
-  !lskip(13)=.false.
+  !lskip(12:14)=.false.
   lerase=.true.
   
   call getcwd(origpath)

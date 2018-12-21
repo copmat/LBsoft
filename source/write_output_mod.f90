@@ -22,7 +22,7 @@
  use particles_mod,  only : natms,xxx,yyy,zzz,lparticles,cell, &
   ishape,lrotate,natms,natms_tot,q0,q1,q2,q3,vxx,vyy,vzz, &
   take_rotversorx,take_rotversory,take_rotversorz, &
-  clean_fluid_inside_particle
+  clean_fluid_inside_particle,q2eul
  
   private
   
@@ -1102,13 +1102,15 @@
   
   character(len=8), parameter :: mystring8='C       '
   
+  real(kind=PRC) :: dtemp(3)
+  
   if(.not.lparticles)return
   
   if(idrank==0)then 
     open(ioxyz,file='restart.xyz',status='replace',action='write')
     write(ioxyz,'(i10)')natms_tot
     if(lrotate)then
-      write(ioxyz,'(a)')'read list vxx vyy vzz qa qb qc qd '
+      write(ioxyz,'(a)')'read list vxx vyy vzz phi theta psi '
     else
       write(ioxyz,'(a)')'read list vxx vyy vzz '
     endif
@@ -1121,8 +1123,9 @@
        position='append')
       if(lrotate)then
         do i=1,natms
-          write(ioxyz,'(a8,10g16.8)')mystring8,xxx(i),yyy(i),zzz(i), &
-           vxx(i),vyy(i),vzz(i),q0(i),q1(i),q2(i),q3(i)
+          call q2eul((/q0(i),q1(i),q2(i),q3(i)/),dtemp(1),dtemp(3),dtemp(2))
+          write(ioxyz,'(a8,9g16.8)')mystring8,xxx(i),yyy(i),zzz(i), &
+           vxx(i),vyy(i),vzz(i),dtemp(1:3)
         enddo
       else
         do i=1,natms
