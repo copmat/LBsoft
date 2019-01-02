@@ -39,7 +39,9 @@
                         store_old_pos_vel_part,xxx,yyy,zzz, &
                         inter_part_and_grid,force_particle_bounce_back,&
                         merge_particle_force,build_new_isfluid, &
-                        compute_mean_particle_force,rdimx,rdimy,rdimz,fmiosss,nsphere,spherelist
+                        compute_mean_particle_force,rdimx,rdimy,rdimz, &
+                        fmiosss,nsphere,compute_psi_sc_particles, &
+                        spherelist
  use write_output_mod, only : write_vtk_frame,write_xyz
  
  implicit none
@@ -214,6 +216,12 @@
     if(ldiagnostic)call start_timing2("LB","compute_psi_sc")
     call compute_psi_sc
     if(ldiagnostic)call end_timing2("LB","compute_psi_sc")
+    
+    if(lparticles)then
+      if(ldiagnostic)call start_timing2("MD","compute_sc_particles")
+      call compute_psi_sc_particles(nstep)
+      if(ldiagnostic)call end_timing2("MD","compute_sc_particles")
+    endif
     
     if(ldiagnostic)call start_timing2("LB","compute_force_sc")
     call compute_fluid_force_sc

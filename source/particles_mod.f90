@@ -47,7 +47,8 @@
                    driver_bc_isfluid,mapping_new_isfluid,&
                    particle_delete_fluids,particle_create_fluids, &
                    erase_fluids_in_particles,lunique_omega,omega, &
-                   omega_to_viscosity,viscR,pimage,opp
+                   omega_to_viscosity,viscR,pimage,opp, &
+                   compute_sc_particle_interact
 
  
  implicit none
@@ -386,6 +387,7 @@
  public :: set_value_ext_force_particles
  public :: set_value_ext_torque_particles
  public :: q2eul
+ public :: compute_psi_sc_particles
  
  contains
  
@@ -2185,6 +2187,104 @@
   return
   
  end subroutine clean_fluid_inside_particle
+ 
+ subroutine compute_psi_sc_particles(nstep)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine to compute the Shan Chen pseudo potential
+!     in presence of particles
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification January 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: nstep
+  
+  integer :: iatm,i,j,k,itype
+  real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3)
+  
+  if(lrotate)then
+  
+  do iatm=1,natms
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    itype=ltype(iatm)
+    !transform xversor from body ref to world ref
+    qtemp(0)=q0(iatm)
+    qtemp(1)=q1(iatm)
+    qtemp(2)=q2(iatm)
+    qtemp(3)=q3(iatm)
+    qversor(0:3)=ZERO
+    qversor(1)=ONE
+    oat=qtrimult(qtemp,qversor,qconj(qtemp))
+    call compute_sc_particle_interact(nstep,iatm,.true.,lrotate,i,j,k,nsphere, &
+     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
+     xxx(iatm),yyy(iatm),zzz(iatm), &
+     vxx(iatm),vyy(iatm),vzz(iatm), &
+     fxx(iatm),fyy(iatm),fzz(iatm),oat(1),oat(2),oat(3), &
+     tqx(iatm),tqy(iatm),tqz(iatm))
+  enddo
+  
+  
+  do iatm=natms+1,natms_ext
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    itype=ltype(iatm)
+    !transform xversor from body ref to world ref
+    qtemp(0)=q0(iatm)
+    qtemp(1)=q1(iatm)
+    qtemp(2)=q2(iatm)
+    qtemp(3)=q3(iatm)
+    qversor(0:3)=ZERO
+    qversor(1)=ONE
+    oat=qtrimult(qtemp,qversor,qconj(qtemp))
+    call compute_sc_particle_interact(nstep,iatm,.false.,lrotate,i,j,k,nsphere, &
+     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
+     xxx(iatm),yyy(iatm),zzz(iatm), &
+     vxx(iatm),vyy(iatm),vzz(iatm), &
+     fxx(iatm),fyy(iatm),fzz(iatm),oat(1),oat(2),oat(3), &
+     tqx(iatm),tqy(iatm),tqz(iatm))
+  enddo
+  
+  else
+  
+  do iatm=1,natms
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    itype=ltype(iatm)
+    call compute_sc_particle_interact(nstep,iatm,.true.,lrotate,i,j,k,nsphere, &
+     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
+     xxx(iatm),yyy(iatm),zzz(iatm), &
+     vxx(iatm),vyy(iatm),vzz(iatm), &
+     fxx(iatm),fyy(iatm),fzz(iatm))
+  enddo
+  
+  do iatm=natms+1,natms_ext
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    itype=ltype(iatm)
+    call compute_sc_particle_interact(nstep,iatm,.false.,lrotate,i,j,k,nsphere, &
+     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
+     xxx(iatm),yyy(iatm),zzz(iatm), &
+     vxx(iatm),vyy(iatm),vzz(iatm), &
+     fxx(iatm),fyy(iatm),fzz(iatm))
+  enddo
+  
+  endif
+     
+  
+  return
+  
+ end subroutine compute_psi_sc_particles
  
  subroutine driver_neighborhood_list(newlst,nstepsub)
  
