@@ -39,6 +39,8 @@
   
  real(kind=PRC), public, parameter :: & 
   Pi=real(3.141592653589793238462643383279502884d0,kind=PRC)
+  
+ real(kind=PRC), public, parameter :: conv_rad=Pi/real(180.d0,kind=PRC)
  
  public :: allocate_array_lbuffservice
  public :: allocate_array_ibuffservice
@@ -61,6 +63,7 @@
  public :: dcell
  public :: invert
  public :: int_cube_sphere
+ public :: fcut
  
  contains
  
@@ -899,6 +902,36 @@
   return
       
  end subroutine invert
+ 
+ pure function fcut(r,inner_cut,outer_cut)
+ 
+!***********************************************************************
+!     
+!     LBsoft function for fading an observable (r) within a given 
+!     interval
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification January 2018
+!     
+!***********************************************************************
+      
+  implicit none
+  
+  real(kind=PRC), intent(in) :: r,inner_cut,outer_cut
+  real(kind=PRC) :: fcut
+  
+  if ( r <= inner_cut ) then
+    fcut = ONE
+  elseif ( r > outer_cut ) then
+      fcut = ZERO
+  else
+      fcut = HALF*cos((r-inner_cut)*Pi/(outer_cut-inner_cut))+HALF
+  endif
+  
+  return
+  
+ end function fcut
  
  end module utility_mod
 

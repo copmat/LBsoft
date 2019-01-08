@@ -2210,77 +2210,76 @@
   
   if(lrotate)then
   
-  do iatm=1,natms
-    i=nint(xxx(iatm))
-    j=nint(yyy(iatm))
-    k=nint(zzz(iatm))
-    itype=ltype(iatm)
-    !transform xversor from body ref to world ref
-    qtemp(0)=q0(iatm)
-    qtemp(1)=q1(iatm)
-    qtemp(2)=q2(iatm)
-    qtemp(3)=q3(iatm)
-    qversor(0:3)=ZERO
-    qversor(1)=ONE
-    oat=qtrimult(qtemp,qversor,qconj(qtemp))
-    call compute_sc_particle_interact(nstep,iatm,.true.,lrotate,i,j,k,nsphere, &
-     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
-     xxx(iatm),yyy(iatm),zzz(iatm), &
-     vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxx(iatm),fyy(iatm),fzz(iatm),oat(1),oat(2),oat(3), &
-     tqx(iatm),tqy(iatm),tqz(iatm))
-  enddo
-  
-  
-  do iatm=natms+1,natms_ext
-    i=nint(xxx(iatm))
-    j=nint(yyy(iatm))
-    k=nint(zzz(iatm))
-    itype=ltype(iatm)
-    !transform xversor from body ref to world ref
-    qtemp(0)=q0(iatm)
-    qtemp(1)=q1(iatm)
-    qtemp(2)=q2(iatm)
-    qtemp(3)=q3(iatm)
-    qversor(0:3)=ZERO
-    qversor(1)=ONE
-    oat=qtrimult(qtemp,qversor,qconj(qtemp))
-    call compute_sc_particle_interact(nstep,iatm,.false.,lrotate,i,j,k,nsphere, &
-     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
-     xxx(iatm),yyy(iatm),zzz(iatm), &
-     vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxx(iatm),fyy(iatm),fzz(iatm),oat(1),oat(2),oat(3), &
-     tqx(iatm),tqy(iatm),tqz(iatm))
-  enddo
+    do iatm=1,natms
+      i=nint(xxx(iatm))
+      j=nint(yyy(iatm))
+      k=nint(zzz(iatm))
+      itype=ltype(iatm)
+      !transform xversor from body ref to world ref
+      qtemp(0)=q0(iatm)
+      qtemp(1)=q1(iatm)
+      qtemp(2)=q2(iatm)
+      qtemp(3)=q3(iatm)
+      qversor(0:3)=ZERO
+      qversor(1)=ONE
+      oat=qtrimult(qtemp,qversor,qconj(qtemp))
+      call compute_sc_particle_interact(nstep,iatm,.true.,lrotate,i,j,k,nsphere, &
+       spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
+       xxx(iatm),yyy(iatm),zzz(iatm), &
+       vxx(iatm),vyy(iatm),vzz(iatm), &
+       fxx(iatm),fyy(iatm),fzz(iatm),oat(1),oat(2),oat(3), &
+       tqx(iatm),tqy(iatm),tqz(iatm))
+    enddo
+    
+    
+    do iatm=natms+1,natms_ext
+      i=nint(xxx(iatm))
+      j=nint(yyy(iatm))
+      k=nint(zzz(iatm))
+      itype=ltype(iatm)
+      !transform xversor from body ref to world ref
+      qtemp(0)=q0(iatm)
+      qtemp(1)=q1(iatm)
+      qtemp(2)=q2(iatm)
+      qtemp(3)=q3(iatm)
+      qversor(0:3)=ZERO
+      qversor(1)=ONE
+      oat=qtrimult(qtemp,qversor,qconj(qtemp))
+      call compute_sc_particle_interact(nstep,iatm,.false.,lrotate,i,j,k,nsphere, &
+       spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
+       xxx(iatm),yyy(iatm),zzz(iatm), &
+       vxx(iatm),vyy(iatm),vzz(iatm), &
+       fxx(iatm),fyy(iatm),fzz(iatm),oat(1),oat(2),oat(3), &
+       tqx(iatm),tqy(iatm),tqz(iatm))
+    enddo
   
   else
   
-  do iatm=1,natms
-    i=nint(xxx(iatm))
-    j=nint(yyy(iatm))
-    k=nint(zzz(iatm))
-    itype=ltype(iatm)
-    call compute_sc_particle_interact(nstep,iatm,.true.,lrotate,i,j,k,nsphere, &
-     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
-     xxx(iatm),yyy(iatm),zzz(iatm), &
-     vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxx(iatm),fyy(iatm),fzz(iatm))
-  enddo
+    do iatm=1,natms
+      i=nint(xxx(iatm))
+      j=nint(yyy(iatm))
+      k=nint(zzz(iatm))
+      itype=ltype(iatm)
+      call compute_sc_particle_interact(nstep,iatm,.true.,lrotate,i,j,k,nsphere, &
+       spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
+       xxx(iatm),yyy(iatm),zzz(iatm), &
+       vxx(iatm),vyy(iatm),vzz(iatm), &
+       fxx(iatm),fyy(iatm),fzz(iatm))
+    enddo
   
-  do iatm=natms+1,natms_ext
-    i=nint(xxx(iatm))
-    j=nint(yyy(iatm))
-    k=nint(zzz(iatm))
-    itype=ltype(iatm)
-    call compute_sc_particle_interact(nstep,iatm,.false.,lrotate,i,j,k,nsphere, &
-     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
-     xxx(iatm),yyy(iatm),zzz(iatm), &
-     vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxx(iatm),fyy(iatm),fzz(iatm))
-  enddo
+    do iatm=natms+1,natms_ext
+      i=nint(xxx(iatm))
+      j=nint(yyy(iatm))
+      k=nint(zzz(iatm))
+      itype=ltype(iatm)
+      call compute_sc_particle_interact(nstep,iatm,.false.,lrotate,i,j,k,nsphere, &
+       spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
+       xxx(iatm),yyy(iatm),zzz(iatm), &
+       vxx(iatm),vyy(iatm),vzz(iatm), &
+       fxx(iatm),fyy(iatm),fzz(iatm))
+    enddo
   
   endif
-     
   
   return
   
