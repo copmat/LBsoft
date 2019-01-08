@@ -801,7 +801,7 @@
               elseif(findstring('back',directive,inumchar,maxlen))then
                 dtemp_backR=dblstr(directive,maxlen,inumchar)
                 dtemp_backB=dblstr(directive,maxlen,inumchar)
-              elseif(findstring('area',directive,inumchar,maxlen))then
+              elseif(findstring('selec',directive,inumchar,maxlen))then
                 temp_areaR(1,1)=intstr(directive,maxlen,inumchar)
                 temp_areaR(2,1)=intstr(directive,maxlen,inumchar)
                 temp_areaR(1,2)=intstr(directive,maxlen,inumchar)
@@ -811,13 +811,11 @@
               elseif(findstring('gauss',directive,inumchar,maxlen))then
                 temp_idistselect=1
               elseif(findstring('unifo',directive,inumchar,maxlen))then
-                if(findstring('area',directive,inumchar,maxlen))then
-                  temp_idistselect=4
-                else
-                  temp_idistselect=2
-                endif
+                temp_idistselect=2
               elseif(findstring('fake',directive,inumchar,maxlen))then
                 temp_idistselect=3
+              elseif(findstring('area',directive,inumchar,maxlen))then
+                temp_idistselect=4
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.

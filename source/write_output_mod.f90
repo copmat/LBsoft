@@ -349,46 +349,23 @@
   
   open(unit=iotest,file=trim(sevt),status='replace',action='write')
   
-  miomax=ZERO
-  do k=minz,maxz
-    do j=miny,maxy
-      do i=minx,maxx
-        if(isfluid(i,j,k)/=1)cycle
-        vmod=u(i,j,k)**TWO+v(i,j,k)**TWO+w(i,j,k)**TWO
-        miomax=max(miomax,vmod)
-        if(vmod==miomax)then
-          ii=i
-          jj=j
-          kk=k
-        endif
-      enddo
-    enddo
-  enddo
-  
-  i=ii
-  j=jj
-  k=kk
-  
-  
   write(iotest,103) '# vtk DataFile Version 2.0'
   write(iotest,103) 'Field Emission Device - Charge Density Plot'
   write(iotest,103) 'ASCII'
   write(iotest,103) 'DATASET POLYDATA'
-  write(iotest,106) 'POINTS ',natms+1,' float'
+  write(iotest,106) 'POINTS ',natms,' float'
   do iatm=1,natms
     write(iotest,108)xxx(iatm),yyy(iatm),zzz(iatm)
   enddo
-  write(iotest,108)real(i,kind=PRC),real(j,kind=PRC),real(k,kind=PRC)
   
   write(iotest,*)
-  write(iotest,107) 'POINT_DATA ', natms+1
+  write(iotest,107) 'POINT_DATA ', natms
   write(iotest,103) 'SCALARS Type float 1'
   write(iotest,103) 'LOOKUP_TABLE default'
   
   do iatm=1,natms
     write(iotest,*)1 !ltype(iatm)
   enddo
-  write(iotest,*)2
   
   if(lrotate)then
     
@@ -396,19 +373,17 @@
     do iatm=1,natms
       write(iotest,*)take_rotversorx(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
     enddo
-    write(iotest,*)ONE,ZERO,ZERO
     
     write(iotest,103) 'VECTORS Vecty float'
     do iatm=1,natms
       write(iotest,*)take_rotversory(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
     enddo
-    write(iotest,*)ZERO,ONE,ZERO
     
     write(iotest,103) 'VECTORS Vectz float'
     do iatm=1,natms
       write(iotest,*)take_rotversorz(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
     enddo
-    write(iotest,*)ZERO,ZERO,ONE
+    
   endif
   
   close(iotest)

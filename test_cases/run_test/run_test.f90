@@ -3,7 +3,7 @@
  
   implicit none
   
-  integer, parameter :: ntest=14
+  integer, parameter :: ntest=15
   
   integer, parameter :: orig_io=1017
   integer, parameter :: orig_ioxyz=3017
@@ -123,12 +123,13 @@
   labeltest(12)='3D_Rotating_Particle'
   labeltest(13)='3D_Shear_Particle'
   labeltest(14)='3D_Particles_box'
+  labeltest(15)='3D_Particle_SC'
   
   lxyzfile(1:10)=.false.
   lxyzfile(11:ntest)=.true.
   !lskip(1:ntest)=.true.
   lskip(1:ntest)=.false.
-  !lskip(12:14)=.false.
+  !lskip(14)=.false.
   lerase=.true.
   
   call getcwd(origpath)
@@ -259,9 +260,9 @@
           read(orig_ioxyz,*)natms1
           mystring40=repeat(' ',40)
           read(orig_ioxyz,'(a)')mystring40
-          if(trim(mystring40)=='read list vxx vyy vzz qa qb qc qd')then
+          if(trim(mystring40)=='read list vxx vyy vzz phi theta psi')then
             lrotate1=.true.
-            nargxyz1=10
+            nargxyz1=9
           else
             lrotate1=.false.
             nargxyz1=6
@@ -270,13 +271,13 @@
             allocate(dmio3(10,natms1))
             dmio3(:,:)=0.e0
             do iatm=1,natms1
-               read(orig_ioxyz,'(a8,10g16.8)')atmname,(dmio3(iii,iatm),iii=1,10)
+               read(orig_ioxyz,'(a8,10g16.8)')atmname,(dmio3(iii,iatm),iii=1,nargxyz1)
             enddo
           else
             allocate(dmio3(6,natms1))
             dmio3(:,:)=0.e0
             do iatm=1,natms1
-               read(orig_ioxyz,'(a8,6g16.8)')atmname,(dmio3(iii,iatm),iii=1,6)
+               read(orig_ioxyz,'(a8,6g16.8)')atmname,(dmio3(iii,iatm),iii=1,nargxyz1)
             enddo
           endif
           close(orig_ioxyz)
@@ -285,9 +286,9 @@
           read(actual_ioxyz,*)natms2
           mystring40=repeat(' ',40)
           read(actual_ioxyz,'(a)')mystring40
-          if(trim(mystring40)=='read list vxx vyy vzz qa qb qc qd')then
+          if(trim(mystring40)=='read list vxx vyy vzz phi theta psi')then
             lrotate2=.true.
-            nargxyz2=10
+            nargxyz2=9
           else
             lrotate2=.false.
             nargxyz2=6
@@ -296,13 +297,13 @@
             allocate(dmio4(10,natms2))
             dmio4(:,:)=0.e0
             do iatm=1,natms2
-               read(actual_ioxyz,'(a8,10g16.8)')atmname,(dmio4(iii,iatm),iii=1,10)
+               read(actual_ioxyz,'(a8,10g16.8)')atmname,(dmio4(iii,iatm),iii=1,nargxyz2)
             enddo
           else
             allocate(dmio4(6,natms2))
             dmio4(:,:)=0.e0
             do iatm=1,natms2
-               read(actual_ioxyz,'(a8,6g16.8)')atmname,(dmio4(iii,iatm),iii=1,6)
+               read(actual_ioxyz,'(a8,6g16.8)')atmname,(dmio4(iii,iatm),iii=1,nargxyz2)
             enddo
           endif
           close(actual_ioxyz)
@@ -438,9 +439,9 @@
           read(orig_ioxyz,*)natms1
           mystring40=repeat(' ',40)
           read(orig_ioxyz,'(a)')mystring40
-          if(trim(mystring40)=='read list vxx vyy vzz qa qb qc qd')then
+          if(trim(mystring40)=='read list vxx vyy vzz phi theta psi')then
             lrotate1=.true.
-            nargxyz1=10
+            nargxyz1=9
           else
             lrotate1=.false.
             nargxyz1=6
@@ -449,13 +450,13 @@
             allocate(dmio3(10,natms1))
             dmio3(:,:)=0.e0
             do iatm=1,natms1
-               read(orig_ioxyz,'(a8,10g16.8)')atmname,(dmio3(iii,iatm),iii=1,10)
+               read(orig_ioxyz,'(a8,10g16.8)')atmname,(dmio3(iii,iatm),iii=1,nargxyz1)
             enddo
           else
             allocate(dmio3(6,natms1))
             dmio3(:,:)=0.e0
             do iatm=1,natms1
-               read(orig_ioxyz,'(a8,6g16.8)')atmname,(dmio3(iii,iatm),iii=1,6)
+               read(orig_ioxyz,'(a8,6g16.8)')atmname,(dmio3(iii,iatm),iii=1,nargxyz1)
             enddo
           endif
           close(orig_ioxyz)
@@ -464,9 +465,9 @@
           read(actual_ioxyz,*)natms2
           mystring40=repeat(' ',40)
           read(actual_ioxyz,'(a)')mystring40
-          if(trim(mystring40)=='read list vxx vyy vzz qa qb qc qd')then
+          if(trim(mystring40)=='read list vxx vyy vzz phi theta psi')then
             lrotate2=.true.
-            nargxyz2=10
+            nargxyz2=9
           else
             lrotate2=.false.
             nargxyz2=6
@@ -475,13 +476,13 @@
             allocate(dmio4(10,natms2))
             dmio4(:,:)=0.e0
             do iatm=1,natms2
-               read(actual_ioxyz,'(a8,10g16.8)')atmname,(dmio4(iii,iatm),iii=1,10)
+               read(actual_ioxyz,'(a8,10g16.8)')atmname,(dmio4(iii,iatm),iii=1,nargxyz2)
             enddo
           else
             allocate(dmio4(6,natms2))
             dmio4(:,:)=0.e0
             do iatm=1,natms2
-               read(actual_ioxyz,'(a8,6g16.8)')atmname,(dmio4(iii,iatm),iii=1,6)
+               read(actual_ioxyz,'(a8,6g16.8)')atmname,(dmio4(iii,iatm),iii=1,nargxyz2)
             enddo
           endif
           close(actual_ioxyz)
@@ -505,11 +506,21 @@
         
         open(unit=remove_file_io,file='rm.sh',status='replace')
         if(lmpi)then
-          write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-         'rm -f output00*.map global.map time.dat mysed.sh rm.sh'
+         if(lxyzfile(i))then
+            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+             'rm -f output00*.map global.map time.dat mysed.sh restart.xyz rm.sh'
+          else
+            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+             'rm -f output00*.map global.map time.dat mysed.sh rm.sh'
+          endif
         else 
-          write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-           'rm -f output00*.map global.map time.dat rm.sh'
+          if(lxyzfile(i))then
+            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+             'rm -f output00*.map global.map time.dat restart.xyz rm.sh'
+          else
+            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+             'rm -f output00*.map global.map time.dat rm.sh'
+          endif
         endif
         close(remove_file_io)
         call execute_command_line('chmod 777 rm.sh',wait=.true.)
@@ -527,11 +538,21 @@
         close(actual_io)
         open(unit=remove_file_io,file='rm.sh',status='replace')
         if(lmpi)then
-          write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-         'rm -f output00*.map global.map time.dat mysed.sh rm.sh'
+          if(lxyzfile(i))then
+            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+             'rm -f output00*.map global.map time.dat mysed.sh restart.xyz rm.sh'
+          else
+            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+             'rm -f output00*.map global.map time.dat mysed.sh rm.sh'
+          endif
         else 
-          write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-           'rm -f output00*.map global.map time.dat rm.sh'
+          if(lxyzfile(i))then
+            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+             'rm -f output00*.map global.map time.dat restart.xyz rm.sh'
+          else
+            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
+             'rm -f output00*.map global.map time.dat rm.sh'
+          endif
         endif
         close(remove_file_io)
         call execute_command_line('chmod 777 rm.sh',wait=.true.)

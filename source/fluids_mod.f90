@@ -18,7 +18,7 @@
  use error_mod
  use aop_mod
  use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
-                   allocate_array_ibuffservice,buffservice, &
+                   allocate_array_ibuffservice,buffservice,conv_rad, &
                    allocate_array_buffservice,lbuffservice, &
                    allocate_array_lbuffservice,xcross,ycross,zcross, &
                    nbuffservice3d,buffservice3d,int_cube_sphere,fcut, &
@@ -4099,7 +4099,7 @@
   end forall
   
   !compute speed from mass flux
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
     u(i,j,k) = u(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
     v(i,j,k) = v(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
     w(i,j,k) = w(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
@@ -8255,10 +8255,7 @@
   integer, save :: imin,imax,jmin,jmax,kmin,kmax
   logical, save :: lfirst=.true.
   real(kind=PRC) :: vxt,vyt,vzt,modr,ftx,fty,ftz,mytheta,factR,factB
-  real(kind=PRC), dimension(3) :: rtemp,otemp,ftemp,urtemp
-  
-  !still in development stage
-  return
+  real(kind=PRC), dimension(3) :: rtemp,otemp,ftemp,urtemp,initf
   
   if(lfirst)then
     lfirst=.false.
@@ -8274,7 +8271,13 @@
     otemp(1)=ux
     otemp(2)=uy
     otemp(3)=uz
+    modr=modulvec(otemp)
+    otemp=otemp/modr
   endif
+  
+  initf(1)=fx
+  initf(2)=fy
+  initf(3)=fz
   
   if(lsingle_fluid)then
     do l=1,nspheres
@@ -8294,6 +8297,7 @@
         rtemp(3)=real(kk,kind=PRC)-zz
         modr=modulvec(rtemp)
         rtemp(1:3)=rdimx/modr*rtemp(1:3)
+        modr=modulvec(rtemp)
         urtemp(1:3)=rtemp(1:3)/modr
         mytheta=acos(dot(otemp,urtemp))
         factR= partR_SC*(TWO* &
@@ -8325,7 +8329,7 @@
         ftemp(1)=- pair_SC*psiR(i,j,k)*gradpsixR(i,j,k)
         ftemp(2)=- pair_SC*psiR(i,j,k)*gradpsiyR(i,j,k)
         ftemp(3)=- pair_SC*psiR(i,j,k)*gradpsizR(i,j,k)
-        fy=fy+ftemp(1)
+        fx=fx+ftemp(1)
         fy=fy+ftemp(2)
         fz=fz+ftemp(3)
         if(lrotate)then
@@ -8354,6 +8358,7 @@
         rtemp(3)=real(kk,kind=PRC)-zz
         modr=modulvec(rtemp)
         rtemp(1:3)=rdimx/modr*rtemp(1:3)
+        modr=modulvec(rtemp)
         urtemp(1:3)=rtemp(1:3)/modr
         mytheta=acos(dot(otemp,urtemp))
         factR= partR_SC*(TWO* &
@@ -8396,7 +8401,7 @@
          pair_SC*psiB(i,j,k)*gradpsiyR(i,j,k)
         ftemp(3)=- pair_SC*psiR(i,j,k)*gradpsizB(i,j,k) - &
          pair_SC*psiB(i,j,k)*gradpsizR(i,j,k)
-        fy=fy+ftemp(1)
+        fx=fx+ftemp(1)
         fy=fy+ftemp(2)
         fz=fz+ftemp(3)
         if(lrotate)then
@@ -8405,7 +8410,6 @@
           tz=tz+zcross(rtemp,ftemp)
         endif
       endif
-      
       
     enddo
   endif

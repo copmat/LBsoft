@@ -2231,7 +2231,6 @@
        tqx(iatm),tqy(iatm),tqz(iatm))
     enddo
     
-    
     do iatm=natms+1,natms_ext
       i=nint(xxx(iatm))
       j=nint(yyy(iatm))
