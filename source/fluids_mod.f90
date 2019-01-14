@@ -30,7 +30,8 @@
                    commwait_vel_component,commexch_isfluid, &
                    commwait_isfluid
 
- use mpi_comm, only : mpisendpops, mpirecvpops, mpibounceback, mpisend_hvar, mpirecv_hvar
+ use mpi_comm, only : mpisendpops, mpirecvpops, mpibounceback, mpisend_hvar, mpirecv_hvar, &
+                        mpisend_isfluid, mpirecv_isfluid
 
  
  implicit none
@@ -5063,6 +5064,17 @@
 !***********************************************************************
  
   implicit none
+  Logical, save   :: isFirst = .true.
+
+#ifdef ALLAFAB
+    if(lexch_dens)then
+        call mpisend_isfluid(isfluid, isFirst)
+        call mpirecv_isfluid(isfluid)
+
+        isFirst = .false.
+    endif
+    return
+#endif
   
 #ifdef MPI
     call commexch_isfluid(isfluid)

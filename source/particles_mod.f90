@@ -334,9 +334,7 @@
  !parameters of all the pair force fields
  real(kind=PRC), allocatable, public, protected, save :: prmvdw(:,:)
  
- 
- real(kind=PRC), public, protected, save :: fmiosss(3,3)
- 
+
  public :: allocate_particles
  public :: set_natms_tot
  public :: set_lparticles
@@ -1935,9 +1933,6 @@
      fxb(iatm),fyb(iatm),fzb(iatm))
   enddo
   
-  fmiosss(1,3)=fxb(1)-fmiosss(1,2)
-  fmiosss(2,3)=fyb(1)-fmiosss(2,2)
-  fmiosss(3,3)=fzb(1)-fmiosss(3,2)
   
   do iatm=natms+1,natms_ext
     i=nint(xxx(iatm))
@@ -2119,11 +2114,7 @@
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
-     
-  fmiosss(1,1)=fxx(1)
-  fmiosss(2,1)=fyy(1)
-  fmiosss(3,1)=fzz(1)
-  
+
   return
   
  end subroutine build_new_isfluid
@@ -2142,28 +2133,18 @@
 !***********************************************************************
  
   implicit none
-  
   integer, intent(in) :: nstep
-  
-  if(.not. lparticles)return
   
   call particle_create_fluids(nstep,natms,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
-     
-  fmiosss(1,2)=fxx(1)-fmiosss(1,1)
-  fmiosss(2,2)=fyy(1)-fmiosss(2,1)
-  fmiosss(3,2)=fzz(1)-fmiosss(3,1)
-  
+
   call update_isfluid
-  
   call driver_bc_isfluid
-  
-  return
-  
  end subroutine inter_part_and_grid
  
+
  subroutine clean_fluid_inside_particle
    
 !***********************************************************************
