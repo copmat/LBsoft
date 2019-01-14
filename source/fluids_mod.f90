@@ -194,9 +194,9 @@
  
 !array containing the node list of the second belt 
  integer, save :: ndouble
- real(kind=PRC), save, allocatable, dimension(:) :: exdouble
- real(kind=PRC), save, allocatable, dimension(:) :: eydouble
- real(kind=PRC), save, allocatable, dimension(:) :: ezdouble
+ integer, save, allocatable, dimension(:) :: exdouble
+ integer, save, allocatable, dimension(:) :: eydouble
+ integer, save, allocatable, dimension(:) :: ezdouble
  
  integer, allocatable, save :: ibounce(:,:)
  integer, save :: nbounce0,nbounce6,nbounce7,nbounce8
@@ -725,10 +725,6 @@
         enddo
       enddo
     enddo
-  
-   
-   
-   return
 
  end subroutine allocate_fluids
  
@@ -10906,10 +10902,116 @@
     endif
   enddo
   
-  return
-  
  end subroutine particle_delete_fluids
  
+
+#define CYCLE_OUT_INTERVAL(x, a,b) if ((x)<(a) .or. (x)>(b)) cycle
+
+  subroutine compute_onebelt_density(i,j,k, Rsum, Dsum)
+    implicit none
+    real(kind=PRC), intent(out) :: Rsum,Dsum
+    integer, intent(in) :: i,j,k
+    integer :: l, ishift,jshift,kshift
+
+    Rsum=ZERO; Dsum=ZERO
+    !compute mean density value eq. 23 of PRE 83, 046707 (2011)
+    do l=1,linksd3q27
+        ishift=i+exd3q27(l)
+        jshift=j+eyd3q27(l)
+        kshift=k+ezd3q27(l)
+        ishift=pimage(ixpbc,ishift,nx)
+        jshift=pimage(iypbc,jshift,ny)
+        kshift=pimage(izpbc,kshift,nz)
+        if(isfluid(ishift,jshift,kshift)==1 .and. &
+            new_isfluid(ishift,jshift,kshift)==1)then
+            Rsum=Rsum+rhoR(ishift,jshift,kshift)
+            Dsum=Dsum+ONE
+        endif
+    enddo
+    if (Dsum /= ZERO) Rsum=Rsum/Dsum
+end subroutine compute_onebelt_density
+
+  subroutine compute_onebelt_density_twofluids(i,j,k, Rsum, Bsum, Dsum)
+    implicit none
+    real(kind=PRC), intent(out) :: Rsum,Bsum,Dsum
+    integer, intent(in) :: i,j,k
+    integer :: l, ishift,jshift,kshift
+
+    Rsum=ZERO; Bsum=ZERO; Dsum=ZERO
+    !compute mean density value
+    do l=1,linksd3q27
+        ishift=i+exd3q27(l)
+        jshift=j+eyd3q27(l)
+        kshift=k+ezd3q27(l)
+        ishift=pimage(ixpbc,ishift,nx)
+        jshift=pimage(iypbc,jshift,ny)
+        kshift=pimage(izpbc,kshift,nz)
+        if(isfluid(ishift,jshift,kshift)==1 .and. &
+            new_isfluid(ishift,jshift,kshift)==1)then
+            Rsum=Rsum+rhoR(ishift,jshift,kshift)
+            Bsum=Bsum+rhoB(ishift,jshift,kshift)
+            Dsum=Dsum+ONE
+        endif
+    enddo
+    if (Dsum /= ZERO) then
+        Rsum=Rsum/Dsum
+        Bsum=Bsum/Dsum
+    endif
+end subroutine compute_onebelt_density_twofluids
+
+subroutine compute_secbelt_density(i,j,k, Rsum, Dsum)
+    implicit none
+    real(kind=PRC), intent(out) :: Rsum,Dsum
+    integer, intent(in) :: i,j,k
+    integer :: l, ishift,jshift,kshift
+
+    Rsum=ZERO; Dsum=ZERO
+    do l=1,ndouble
+        ishift=i+exdouble(l)
+        jshift=j+eydouble(l)
+        kshift=k+ezdouble(l)
+        CYCLE_OUT_INTERVAL(ishift, minx-nbuff, maxx+nbuff)
+        CYCLE_OUT_INTERVAL(jshift, miny-nbuff, maxy+nbuff)
+        CYCLE_OUT_INTERVAL(kshift, minz-nbuff, maxz+nbuff)
+        if(isfluid(ishift,jshift,kshift)==1 .and. &
+            new_isfluid(ishift,jshift,kshift)==1)then
+            Rsum=Rsum+rhoR(ishift,jshift,kshift)
+            Dsum=Dsum+ONE
+        endif
+    enddo
+    if (Dsum /= ZERO) Rsum=Rsum/Dsum
+end subroutine compute_secbelt_density
+
+subroutine compute_secbelt_density_twofluids(i,j,k, Rsum, Bsum, Dsum)
+    implicit none
+    real(kind=PRC), intent(out) :: Rsum,Bsum,Dsum
+    integer, intent(in) :: i,j,k
+    integer :: l, ishift,jshift,kshift
+
+    Rsum=ZERO
+    Bsum=ZERO
+    Dsum=ZERO
+    do l=1,ndouble
+        ishift=i+exdouble(l)
+        jshift=j+eydouble(l)
+        kshift=k+ezdouble(l)
+        CYCLE_OUT_INTERVAL(ishift, minx-nbuff, maxx+nbuff)
+        CYCLE_OUT_INTERVAL(jshift, miny-nbuff, maxy+nbuff)
+        CYCLE_OUT_INTERVAL(kshift, minz-nbuff, maxz+nbuff)
+        if(isfluid(ishift,jshift,kshift)==1 .and. &
+            new_isfluid(ishift,jshift,kshift)==1)then
+            Rsum=Rsum+rhoR(ishift,jshift,kshift)
+            Bsum=Bsum+rhoB(ishift,jshift,kshift)
+            Dsum=Dsum+ONE
+        endif
+    enddo
+    if (Dsum /= ZERO) then
+        Rsum=Rsum/Dsum
+        Bsum=Bsum/Dsum
+    endif
+end subroutine compute_secbelt_density_twofluids
+
+
  subroutine particle_create_fluids(nstep,natmssub,nspheres,spherelists, &
    spheredists,nspheredeads,spherelistdeads,lmoved,lrotate,ltype,xx,yy,zz, &
    vx,vy,vz,fx,fy,fz,tx,ty,tz,xo,yo,zo,rdimx,rdimy,rdimz)
@@ -10926,7 +11028,6 @@
 !***********************************************************************
   
   implicit none
-  
   integer, intent(in) :: nstep,natmssub,nspheres,nspheredeads
   integer, allocatable, dimension(:,:), intent(in) :: spherelists, &
    spherelistdeads
@@ -10984,54 +11085,20 @@
           j=pimage(iypbc,j,ny)
           k=pimage(izpbc,k,nz)
           if(new_isfluid(i,j,k)==1 .and. isfluid(i,j,k)/=1)then
-            if(i<imin .or. i>imax)cycle
-            if(j<jmin .or. j>jmax)cycle
-            if(k<kmin .or. k>kmax)cycle
+            CYCLE_OUT_INTERVAL(i, imin, imax)
+            CYCLE_OUT_INTERVAL(j, jmin, jmax)
+            CYCLE_OUT_INTERVAL(k, kmin, kmax)
+
             !solid node is trasformed to fluid node
-            Rsum=ZERO
-            Dsum=ZERO
-            !compute mean density value eq. 23 of PRE 83, 046707 (2011)
-            do l=1,linksd3q27
-              ishift=i+exd3q27(l)
-              jshift=j+eyd3q27(l)
-              kshift=k+ezd3q27(l)
-              ishift=pimage(ixpbc,ishift,nx)
-              jshift=pimage(iypbc,jshift,ny)
-              kshift=pimage(izpbc,kshift,nz)
-              if(isfluid(ishift,jshift,kshift)==1 .and. &
-               new_isfluid(ishift,jshift,kshift)==1)then
-                Rsum=Rsum+rhoR(ishift,jshift,kshift)
-                Dsum=Dsum+ONE
-              endif
-            enddo
+            call compute_onebelt_density(i,j,k, Rsum, Dsum)
             if(Dsum==ZERO)then
-              Rsum=ZERO
-              Dsum=ZERO
-              do l=1,ndouble
-                ishift=i+exdouble(l)
-                jshift=j+eydouble(l)
-                kshift=k+ezdouble(l)
-                if(ishift<minx-nbuff)cycle
-                if(ishift>maxx+nbuff)cycle
-                if(jshift<miny-nbuff)cycle
-                if(jshift>maxy+nbuff)cycle
-                if(kshift<minz-nbuff)cycle
-                if(kshift>maxz+nbuff)cycle
-                if(isfluid(ishift,jshift,kshift)==1 .and. &
-                 new_isfluid(ishift,jshift,kshift)==1)then
-                  Rsum=Rsum+rhoR(ishift,jshift,kshift)
-                  Dsum=Dsum+ONE
-                endif
-              enddo
+              call compute_secbelt_density(i,j,k, Rsum, Dsum)
               if(Dsum==ZERO)then
                 ltest(1)=.true.
                 exit
-              else
-                Rsum=Rsum/Dsum
               endif
-            else
-              Rsum=Rsum/Dsum
             endif
+
             myu=vx(iatm)
             myv=vy(iatm)
             myw=vz(iatm)
@@ -11072,54 +11139,20 @@
           j=pimage(iypbc,j,ny)
           k=pimage(izpbc,k,nz)
           if(new_isfluid(i,j,k)==1 .and. isfluid(i,j,k)/=1)then
-            if(i<imin .or. i>imax)cycle
-            if(j<jmin .or. j>jmax)cycle
-            if(k<kmin .or. k>kmax)cycle
+            CYCLE_OUT_INTERVAL(i, imin, imax)
+            CYCLE_OUT_INTERVAL(j, jmin, jmax)
+            CYCLE_OUT_INTERVAL(k, kmin, kmax)
+
             !solid node is trasformed to fluid node
-            Rsum=ZERO
-            Dsum=ZERO
-            !compute mean density value eq. 23 of PRE 83, 046707 (2011)
-            do l=1,linksd3q27
-              ishift=i+exd3q27(l)
-              jshift=j+eyd3q27(l)
-              kshift=k+ezd3q27(l)
-              ishift=pimage(ixpbc,ishift,nx)
-              jshift=pimage(iypbc,jshift,ny)
-              kshift=pimage(izpbc,kshift,nz)
-              if(isfluid(ishift,jshift,kshift)==1 .and. &
-               new_isfluid(ishift,jshift,kshift)==1)then
-                Rsum=Rsum+rhoR(ishift,jshift,kshift)
-                Dsum=Dsum+ONE
-              endif
-            enddo
+            call compute_onebelt_density(i,j,k, Rsum, Dsum)
             if(Dsum==ZERO)then
-              Rsum=ZERO
-              Dsum=ZERO
-              do l=1,ndouble
-                ishift=i+exdouble(l)
-                jshift=j+eydouble(l)
-                kshift=k+ezdouble(l)
-                if(ishift<minx-nbuff)cycle
-                if(ishift>maxx+nbuff)cycle
-                if(jshift<miny-nbuff)cycle
-                if(jshift>maxy+nbuff)cycle
-                if(kshift<minz-nbuff)cycle
-                if(kshift>maxz+nbuff)cycle
-                if(isfluid(ishift,jshift,kshift)==1 .and. &
-                 new_isfluid(ishift,jshift,kshift)==1)then
-                  Rsum=Rsum+rhoR(ishift,jshift,kshift)
-                  Dsum=Dsum+ONE
-                endif
-              enddo
+              call compute_secbelt_density(i,j,k, Rsum, Dsum)
               if(Dsum==ZERO)then
                 ltest(1)=.true.
                 exit
-              else
-                Rsum=Rsum/Dsum
               endif
-            else
-              Rsum=Rsum/Dsum
             endif
+
             myu=vx(iatm)
             myv=vy(iatm)
             myw=vz(iatm)
@@ -11162,60 +11195,19 @@
           j=pimage(iypbc,j,ny)
           k=pimage(izpbc,k,nz)
           if(new_isfluid(i,j,k)==1 .and. isfluid(i,j,k)/=1)then
-            if(i<imin .or. i>imax)cycle
-            if(j<jmin .or. j>jmax)cycle
-            if(k<kmin .or. k>kmax)cycle
-            !solid node is trasformed to fluid node
-            Rsum=ZERO
-            Bsum=ZERO
-            Dsum=ZERO
-            !compute mean density value 
-            do l=1,linksd3q27
-              ishift=i+exd3q27(l)
-              jshift=j+eyd3q27(l)
-              kshift=k+ezd3q27(l)
-              ishift=pimage(ixpbc,ishift,nx)
-              jshift=pimage(iypbc,jshift,ny)
-              kshift=pimage(izpbc,kshift,nz)
-              if(isfluid(ishift,jshift,kshift)==1 .and. &
-               new_isfluid(ishift,jshift,kshift)==1)then
-                Rsum=Rsum+rhoR(ishift,jshift,kshift)
-                Bsum=Bsum+rhoB(ishift,jshift,kshift)
-                Dsum=Dsum+ONE
-              endif
-            enddo
+            CYCLE_OUT_INTERVAL(i, imin, imax)
+            CYCLE_OUT_INTERVAL(j, jmin, jmax)
+            CYCLE_OUT_INTERVAL(k, kmin, kmax)
+
+            call compute_onebelt_density_twofluids(i,j,k, Rsum, Bsum, Dsum)
             if(Dsum==ZERO)then
-              Rsum=ZERO
-              Bsum=ZERO
-              Dsum=ZERO
-              do l=1,ndouble
-                ishift=i+exdouble(l)
-                jshift=j+eydouble(l)
-                kshift=k+ezdouble(l)
-                if(ishift<minx-nbuff)cycle
-                if(ishift>maxx+nbuff)cycle
-                if(jshift<miny-nbuff)cycle
-                if(jshift>maxy+nbuff)cycle
-                if(kshift<minz-nbuff)cycle
-                if(kshift>maxz+nbuff)cycle
-                if(isfluid(ishift,jshift,kshift)==1 .and. &
-                 new_isfluid(ishift,jshift,kshift)==1)then
-                  Rsum=Rsum+rhoR(ishift,jshift,kshift)
-                  Bsum=Bsum+rhoB(ishift,jshift,kshift)
-                  Dsum=Dsum+ONE
-                endif
-              enddo
+              call compute_secbelt_density_twofluids(i,j,k, Rsum, Bsum,Dsum)
               if(Dsum==ZERO)then
                 ltest(1)=.true.
                 exit
-              else
-                Rsum=Rsum/Dsum
-                Bsum=Bsum/Dsum
               endif
-            else
-              Rsum=Rsum/Dsum
-              Bsum=Bsum/Dsum
             endif
+
             myu=vx(iatm)
             myv=vy(iatm)
             myw=vz(iatm)
@@ -11258,60 +11250,19 @@
           j=pimage(iypbc,j,ny)
           k=pimage(izpbc,k,nz)
           if(new_isfluid(i,j,k)==1 .and. isfluid(i,j,k)/=1)then
-            if(i<imin .or. i>imax)cycle
-            if(j<jmin .or. j>jmax)cycle
-            if(k<kmin .or. k>kmax)cycle
+            CYCLE_OUT_INTERVAL(i, imin, imax)
+            CYCLE_OUT_INTERVAL(j, jmin, jmax)
+            CYCLE_OUT_INTERVAL(k, kmin, kmax)
             !solid node is trasformed to fluid node
-            Rsum=ZERO
-            Bsum=ZERO
-            Dsum=ZERO
-            !compute mean density value 
-            do l=1,linksd3q27
-              ishift=i+exd3q27(l)
-              jshift=j+eyd3q27(l)
-              kshift=k+ezd3q27(l)
-              ishift=pimage(ixpbc,ishift,nx)
-              jshift=pimage(iypbc,jshift,ny)
-              kshift=pimage(izpbc,kshift,nz)
-              if(isfluid(ishift,jshift,kshift)==1 .and. &
-               new_isfluid(ishift,jshift,kshift)==1)then
-                Rsum=Rsum+rhoR(ishift,jshift,kshift)
-                Bsum=Bsum+rhoB(ishift,jshift,kshift)
-                Dsum=Dsum+ONE
-              endif
-            enddo
+            call compute_onebelt_density_twofluids(i,j,k, Rsum, Bsum, Dsum)
             if(Dsum==ZERO)then
-              Rsum=ZERO
-              Bsum=ZERO
-              Dsum=ZERO
-              do l=1,ndouble
-                ishift=i+exdouble(l)
-                jshift=j+eydouble(l)
-                kshift=k+ezdouble(l)
-                if(ishift<minx-nbuff)cycle
-                if(ishift>maxx+nbuff)cycle
-                if(jshift<miny-nbuff)cycle
-                if(jshift>maxy+nbuff)cycle
-                if(kshift<minz-nbuff)cycle
-                if(kshift>maxz+nbuff)cycle
-                if(isfluid(ishift,jshift,kshift)==1 .and. &
-                 new_isfluid(ishift,jshift,kshift)==1)then
-                  Rsum=Rsum+rhoR(ishift,jshift,kshift)
-                  Bsum=Bsum+rhoB(ishift,jshift,kshift)
-                  Dsum=Dsum+ONE
-                endif
-              enddo
+              call compute_secbelt_density_twofluids(i,j,k, Rsum, Bsum,Dsum)
               if(Dsum==ZERO)then
                 ltest(1)=.true.
                 exit
-              else
-                Rsum=Rsum/Dsum
-                Bsum=Bsum/Dsum
               endif
-            else
-              Rsum=Rsum/Dsum
-              Bsum=Bsum/Dsum
             endif
+
             myu=vx(iatm)
             myv=vy(iatm)
             myw=vz(iatm)
@@ -11558,7 +11509,6 @@
 !***********************************************************************
   
   implicit none
-  
   integer, intent(in) :: natmssub,nspheres,nspheredeads
   integer, allocatable, dimension(:,:), intent(in) :: spherelists, &
    spherelistdeads
@@ -11575,6 +11525,7 @@
   logical :: lfind,ltest(1)
   real(kind=PRC) :: Rsum,Bsum,Dsum,myu,myv,myw
   
+
   if(lfirst)then
     lfirst=.false.
     imin=minx-1
@@ -11619,9 +11570,6 @@
     new_isfluid(isub,jsub,ksub)=5
   enddo
   
-  
-  return
-  
  end subroutine mapping_new_isfluid
  
  subroutine initialize_new_isfluid()
@@ -11646,8 +11594,6 @@
     new_isfluid(minx-nbuff:maxx+nbuff,miny-nbuff:maxy+nbuff,minz-nbuff:maxz+nbuff)= &
      isfluid(minx-nbuff:maxx+nbuff,miny-nbuff:maxy+nbuff,minz-nbuff:maxz+nbuff)
   end where
-  
-  return
   
  end subroutine initialize_new_isfluid
  
