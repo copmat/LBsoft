@@ -2760,7 +2760,6 @@
 !***********************************************************************
  
   implicit none
-  
   integer, intent(in) :: inputunit
   character(len=*), intent(in) :: inputname
   integer, allocatable, dimension(:) :: ltypes
@@ -2779,7 +2778,6 @@
   character(len=*),parameter :: of='(a)'
   integer, parameter :: natmname=4
   
-  if(.not. lparticles)return
   
   temp_natms_tot=0
   lerror1=.false.
@@ -3028,10 +3026,8 @@
   
   call bcast_world_i(temp_natms_tot)
   call set_natms_tot(temp_natms_tot)
-  
-  return
-  
  end subroutine read_input_atom
+
  
  subroutine print_legend_xyz(iu)
  

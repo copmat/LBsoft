@@ -30,9 +30,9 @@
                         print_all_pops_center,driver_bc_pop_selfcomm, &
                         print_all_pops_area_shpere,ex,ey,ez,pimage, &
                         ixpbc,iypbc,izpbc,nx,ny,nz,opp
- use particles_mod,    only : driver_neighborhood_list,lparticles, &
+ use particles_mod,    only : parlst,lparticles, &
                         vertest,initialize_particle_force, &
-                        driver_inter_force,integrate_particles_lf, &
+                        driver_inter_force,nve_lf, &
                         integrate_particles_vv,merge_particle_energies,&
                         initialize_particle_energy,lvv, &
                         apply_particle_bounce_back, &
@@ -40,7 +40,7 @@
                         inter_part_and_grid,force_particle_bounce_back,&
                         merge_particle_force,build_new_isfluid, &
                         compute_mean_particle_force,rdimx,rdimy,rdimz, &
-                        fmiosss,nsphere,compute_psi_sc_particles, &
+                        nsphere,compute_psi_sc_particles, &
                         spherelist
  use write_output_mod, only : write_vtk_frame,write_xyz
  
@@ -185,7 +185,6 @@
   if(ldiagnostic)call end_timing2("LB","compute_omega")
   
   if(lparticles)then
-    
     if(ldiagnostic)call start_timing2("MD","inter_part_and_grid")
     call inter_part_and_grid(nstep)
     if(ldiagnostic)call end_timing2("MD","inter_part_and_grid")
@@ -196,7 +195,7 @@
     if(ldiagnostic)call end_timing2("MD","vertest")
     
     if(ldiagnostic)call start_timing2("MD","driver_nlist")
-    call driver_neighborhood_list(newlst,nstep)
+    call parlst(newlst)
     if(ldiagnostic)call end_timing2("MD","driver_nlist")
     
     if(ldiagnostic)call start_timing2("MD","driver_inter_f")
@@ -259,21 +258,21 @@
     call compute_mean_particle_force
     
     call store_old_pos_vel_part
-    if(lvv)then
-      if(ldiagnostic)call start_timing2("MD","integrate_vv")
-      call integrate_particles_vv(1,nstep)
-      if(ldiagnostic)call end_timing2("MD","integrate_vv")
-      
-      if(ldiagnostic)call start_timing2("MD","integrate_vv")
-      call integrate_particles_vv(2,nstep)
-      call merge_particle_energies
-      if(ldiagnostic)call end_timing2("MD","integrate_vv")
-    else
+!    if(lvv)then
+!      if(ldiagnostic)call start_timing2("MD","integrate_vv")
+!      call integrate_particles_vv(1,nstep)
+!      if(ldiagnostic)call end_timing2("MD","integrate_vv")
+!
+!      if(ldiagnostic)call start_timing2("MD","integrate_vv")
+!      call integrate_particles_vv(2,nstep)
+!      call merge_particle_energies
+!      if(ldiagnostic)call end_timing2("MD","integrate_vv")
+!    else
       if(ldiagnostic)call start_timing2("MD","integrate_lf")
-      call integrate_particles_lf(nstep)
+      call nve_lf(nstep)
       call merge_particle_energies
       if(ldiagnostic)call end_timing2("MD","integrate_lf")
-    endif
+!    endif
     
   endif
   

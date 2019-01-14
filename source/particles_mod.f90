@@ -22,7 +22,8 @@
                    get_sync_world,isend_world_farr,bcast_world_iarr, &
                    waitall_world,irecv_world_farr,isend_world_iarr, &
                    irecv_world_iarr,max_world_iarr,sum_world_iarr, &
-                   sum_world_farr
+                   sum_world_farr, bcast_world_i, bcast_world_farr
+
  use error_mod
  use aop_mod
  use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
@@ -76,9 +77,6 @@
  
  !expected local size of the neighborhood list
  integer, public, protected, save :: msatms=0
- 
- !expected number of particles in each neighborhood listcell
- integer, public, protected, save :: mslistcell=0
  
  !number of subdomains in parallel decomposition
  integer, public, protected, save :: nbig_cells=0
@@ -194,19 +192,12 @@
  !book of global particle ID
  integer, allocatable, public, protected, save :: atmbook(:)
  
- !number of particle ID in the link cells within the same process
- integer, allocatable, public, protected, save :: nlinklist(:)
- !list of particle ID in the link cells within the same process
- integer, allocatable, public, protected, save :: linklist(:,:)
- 
+
  !number of link cell within the same process
  integer, save :: ncells=0
  
  !global minimum number of link cell within the same process
  integer, save :: ncellsmin=0
- 
- !global maximum number of link cell within the same process
- integer, save :: ncellsmax=0
  
  !number of reflecting nodes in the spherical particle
  integer, save, protected, public :: nsphere
@@ -349,7 +340,7 @@
  public :: set_sidewall_md_rdist
  public :: initialize_map_particles
  public :: rotmat_2_quat
- public :: driver_neighborhood_list
+ public :: parlst
  public :: set_ntpvdw
  public :: allocate_field_array
  public :: set_field_array
@@ -360,7 +351,7 @@
  public :: initialize_particle_energy
  public :: driver_inter_force
  public :: initialize_integrator_lf
- public :: integrate_particles_lf
+ public :: nve_lf
  public :: integrate_particles_vv
  public :: merge_particle_energies
  public :: set_init_temp
@@ -951,10 +942,8 @@
 
   call or_world_larr(ltest,1)
   if(ltest(1))call error(32)
-  
-  return
-  
  end subroutine allocate_particle_features
+
  
  subroutine allocate_field_array
  
@@ -1038,7 +1027,6 @@
 !***********************************************************************
  
   implicit none
-  
   integer, intent(in) :: ibctype
   real(kind=PRC), intent(in) :: tstep
   
@@ -1049,18 +1037,20 @@
   logical :: ltest(1)
   integer :: ilx,ily,ilz
   
-  if(.not. lparticles)return
   
   tstepatm=tstep
   
   imcon=ibctype
   
   mxatms=ceiling(real(natms_tot,kind=PRC)*densvar)
+  mxatms = natms_tot    !! In this version, all processes have all atoms from begin to end!
+
+
   volm=real(nx+1,kind=PRC)*real(nx+1,kind=PRC)*real(nx+1,kind=PRC)
   dens=dble(mxatms)/volm
   ratio=(ONE+HALF)*dens*(FOUR*pi/THREE)*(rcut+delr)**THREE
   mxlist=min(nint(ratio),(mxatms+1)/2)
-  mxlist=max(mxlist,6)
+  mxlist=max(mxlist,1000)
   
   msatms=ceiling(real(natms_tot/mxrank,kind=PRC)*densvar)
   
@@ -1082,13 +1072,6 @@
   if(ily.lt.3)lnolink=.true.
   if(ilz.lt.3)lnolink=.true.
   ncellsmin=ilx*ily*ilz
-  
-  if(lnolink)then
-    call warning(21)
-  else
-    !cordination number of spheres in bcc and fcc is 12, thus....
-    mslistcell=max(((mxatms/mxrank)/ncellsmin+1),12)
-  endif
   
 #if 0
   if(.not. lnolink)then
@@ -1112,7 +1095,6 @@
   ilx=int(cellx/(rcut+delr))
   ily=int(celly/(rcut+delr))
   ilz=int(cellz/(rcut+delr))
-  ncellsmax=ilx*ily*ilz
   
   nbig_cells=mxrank
   
@@ -1150,7 +1132,6 @@
   allocate(fzz(mxatms),stat=istat(9))
   
   if(lrotate)then
-  
     allocate(oxx(mxatms),stat=istat(13))
     allocate(oyy(mxatms),stat=istat(14))
     allocate(ozz(mxatms),stat=istat(15))
@@ -1208,20 +1189,16 @@
   
   !at the moment only verlet list
   if(.not. lnolink)then
-    if(idrank==0)write(6,'(a)')'ATTENTION: at the moment link cell is not implemente!'
+    if(idrank==0)write(6,'(a)')'ATTENTION: at the moment link cell is not implemented!'
     if(idrank==0)write(6,'(a)')'ATTENTION: automatic switch to Verlet list mode!'
     lnolink=.true.
   endif
   
 #endif
   
-  if(lnolink)then
-    allocate(lentry(msatms),stat=istat(23))
-    allocate(list(mxlist,msatms),stat=istat(24))
-  else
-    allocate(nlinklist(ncellsmax),stat=istat(23))
-    allocate(linklist(mslistcell,ncellsmax),stat=istat(24))
-  endif
+  allocate(lentry(msatms),stat=istat(23))
+  allocate(list(mxlist,msatms),stat=istat(24))
+
   
   ltest=.false.
   if(any(istat.ne.0))then
@@ -1293,18 +1270,11 @@
     tzbo(1:mxatms)=ZERO
   endif
   
-  if(lnolink)then
-    lentry(1:msatms)=0
-    list(1:mxlist,1:msatms)=0
-  else
-    nlinklist(1:ncellsmax)=0
-    linklist(1:mslistcell,1:ncellsmax)=0
-  endif
-  
-  return
- 
+  lentry(1:msatms)=0
+  list(1:mxlist,1:msatms)=0
  end subroutine allocate_particles
  
+
  subroutine find_type(carr,nch,itype)
   
 !***********************************************************************
@@ -1356,7 +1326,6 @@
 !***********************************************************************
  
   implicit none
-  
   integer, intent(in) :: nxyzlist_sub
   integer, intent(in), allocatable, dimension(:)  :: xyzlist_sub
   integer, allocatable, dimension(:) :: ltypes
@@ -1364,7 +1333,7 @@
   real(kind=PRC), allocatable, dimension(:,:) :: ots
   logical, intent(in) :: lvelocity
   
-  integer :: i,j,k,l,iatm,ids,sub_i,idrank_sub,itype
+  integer :: i,j,k,l,iatm,ids,idrank_sub,itype, myi
   logical :: ltest(1),lqinput
   integer, dimension(0:mxrank-1) :: isend_nparticle
   integer :: isend_nvar
@@ -1379,46 +1348,9 @@
   logical :: ltestrot(1)=.false.
 #endif
   
-  if(.not. lparticles)return
-  
-  ltest=.false.
   
   isend_nvar=4+nxyzlist_sub
-  
-  if(idrank==0)then
     
-    call pbc_images_centered(imcon,natms_tot,cell,cx,cy,cz,xxs,yys,zzs)
-    
-    do idrank_sub=0,mxrank-1
-      sub_i=0
-      do i=1,natms_tot
-#ifndef DEOWERN
-        ids=ownernfind_arr(nint(xxs(i)),nint(yys(i)),nint(zzs(i)), &
-         nx,ny,nz,nbuff,ownern)
-#else
-        ids=ownernfind(nint(xxs(i)),nint(yys(i)),nint(zzs(i)), &
-         mxrank,gminx,gmaxx,gminy,gmaxy,gminz,gmaxz)
-#endif
-        if(ids==idrank_sub)then
-          sub_i=sub_i+1
-          if(sub_i>mxatms)then
-            ltest(1)=.true.
-            goto 460
-          endif
-        endif
-      enddo
-      isend_nparticle(idrank_sub)=sub_i
-    enddo
-  endif
-  
- 460 continue
- 
-  call or_world_larr(ltest,1)
-  if(ltest(1))then
-    call warning(15,densvar)
-    call error(21)
-  endif
-  
   if(nxyzlist_sub>0)then
     do j=1,nxyzlist_sub
       k=xyzlist_sub(j)
@@ -1438,194 +1370,73 @@
     enddo
   endif
   
-  call bcast_world_iarr(isend_nparticle,mxrank)
-  
-  natms=isend_nparticle(idrank)
   
   if(idrank==0)then
-    
-    do idrank_sub=1,mxrank-1
-      sub_i=0
       do i=1,natms_tot
-#ifndef DEOWERN
-        ids=ownernfind_arr(nint(xxs(i)),nint(yys(i)),nint(zzs(i)), &
-         nx,ny,nz,nbuff,ownern)
-#else
-        ids=ownernfind(nint(xxs(i)),nint(yys(i)),nint(zzs(i)), &
-         mxrank,gminx,gmaxx,gminy,gmaxy,gminz,gmaxz)
-#endif
-        if(ids==idrank_sub)then
-          sub_i=sub_i+1
-          ltype(sub_i)=ltypes(i)
-          atmbook(sub_i)=i
-          xxx(sub_i)=xxs(i)
-          yyy(sub_i)=yys(i)
-          zzz(sub_i)=zzs(i)
+          xxx(i)=xxs(i)
+          yyy(i)=yys(i)
+          zzz(i)=zzs(i)
           if(nxyzlist_sub>0)then
             do j=1,nxyzlist_sub
               k=xyzlist_sub(j)
               select case(k)
               case(7)
-                vxx(sub_i)=ots(j,i)
+                vxx(i)=ots(j,i)
               case(8)
-                vyy(sub_i)=ots(j,i)
+                vyy(i)=ots(j,i)
               case(9)
-                vzz(sub_i)=ots(j,i)
+                vzz(i)=ots(j,i)
               case(10)
-                oxx(sub_i)=ots(j,i)
+                oxx(i)=ots(j,i)
               case(11)
-                oyy(sub_i)=ots(j,i)
+                oyy(i)=ots(j,i)
               case(12)
-                ozz(sub_i)=ots(j,i)
+                ozz(i)=ots(j,i)
               case(13)
-                q1(sub_i)=ots(j,i)
+                q1(i)=ots(j,i)
               case(14)
-                q2(sub_i)=ots(j,i)
+                q2(i)=ots(j,i)
               case(15)
-                q3(sub_i)=ots(j,i)
+                q3(i)=ots(j,i)
               end select
             enddo
           endif
-        endif
+
       enddo
-      call isend_world_iarr(ltype,isend_nparticle(idrank_sub),idrank_sub, &
-       120+idrank_sub,irequest_send(1,idrank_sub))
-      call isend_world_iarr(atmbook,isend_nparticle(idrank_sub),idrank_sub, &
-       120+idrank_sub+1,irequest_send(1,idrank_sub))
-      call isend_world_farr(xxx,isend_nparticle(idrank_sub),idrank_sub, &
-       120+idrank_sub+2,irequest_send(2,idrank_sub))
-      call isend_world_farr(yyy,isend_nparticle(idrank_sub),idrank_sub, &
-       120+idrank_sub+3,irequest_send(3,idrank_sub))
-      call isend_world_farr(zzz,isend_nparticle(idrank_sub),idrank_sub, &
-       120+idrank_sub+4,irequest_send(4,idrank_sub))
-      do j=1,nxyzlist_sub
-        k=xyzlist_sub(j)
-        select case(k)
-        case(7)
-          call isend_world_farr(vxx,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(8)
-          call isend_world_farr(vyy,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(9)
-          call isend_world_farr(vzz,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(10)
-          call isend_world_farr(oxx,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(11)
-          call isend_world_farr(oyy,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(12)
-          call isend_world_farr(ozz,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(13)
-          call isend_world_farr(q1,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(14)
-          call isend_world_farr(q2,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        case(15)
-          call isend_world_farr(q3,isend_nparticle(idrank_sub),idrank_sub, &
-           120+idrank_sub+4+j,irequest_send(4+j,idrank_sub))
-        end select
-      enddo
-      call waitall_world(irequest_send(1:isend_nvar,idrank_sub),isend_nvar)
-    enddo
-    
-    sub_i=0
-    do i=1,natms_tot
-#ifndef DEOWERN
-      ids=ownernfind_arr(nint(xxs(i)),nint(yys(i)),nint(zzs(i)), &
-       nx,ny,nz,nbuff,ownern)
-#else
-      ids=ownernfind(nint(xxs(i)),nint(yys(i)),nint(zzs(i)), &
-       mxrank,gminx,gmaxx,gminy,gmaxy,gminz,gmaxz)
-#endif
-      if(ids==0)then
-        sub_i=sub_i+1
-        ltype(sub_i)=ltypes(i)
-        atmbook(sub_i)=i
-        xxx(sub_i)=xxs(i)
-        yyy(sub_i)=yys(i)
-        zzz(sub_i)=zzs(i)
-        if(nxyzlist_sub>0)then
-          do j=1,nxyzlist_sub
-            k=xyzlist_sub(j)
-            if(.not. lrotate)then
-              if(k>=16 .and. k<=25)cycle
-              if(k>=10 .and. k<=12)cycle
-            endif
-            select case(k)
-            case(7)
-              vxx(sub_i)=ots(j,i)
-            case(8)
-              vyy(sub_i)=ots(j,i)
-            case(9)
-              vzz(sub_i)=ots(j,i)
-            case(10)
-              oxx(sub_i)=ots(j,i)
-            case(11)
-              oyy(sub_i)=ots(j,i)
-            case(12)
-              ozz(sub_i)=ots(j,i)
-            case(13)
-              q1(sub_i)=ots(j,i)
-            case(14)
-              q2(sub_i)=ots(j,i)
-            case(15)
-              q3(sub_i)=ots(j,i)
-            end select
-          enddo
-        endif
-      endif
-    enddo
-  else !if not idrank=0
-    call irecv_world_iarr(ltype,isend_nparticle(idrank),0, &
-     120+idrank,irequest_recv(1))
-    call irecv_world_iarr(atmbook,isend_nparticle(idrank),0, &
-     120+idrank+1,irequest_recv(1))
-    call irecv_world_farr(xxx,isend_nparticle(idrank),0, &
-     120+idrank+2,irequest_recv(2))
-    call irecv_world_farr(yyy,isend_nparticle(idrank),0, &
-     120+idrank+3,irequest_recv(3))
-    call irecv_world_farr(zzz,isend_nparticle(idrank),0, &
-     120+idrank+4,irequest_recv(4))
-    do j=1,nxyzlist_sub
-      k=xyzlist_sub(j)
-      select case(k)
-      case(7)
-        call irecv_world_farr(vxx,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(8)
-        call irecv_world_farr(vyy,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(9)
-        call irecv_world_farr(vzz,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(10)
-        call irecv_world_farr(oxx,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(11)
-        call irecv_world_farr(oyy,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(12)
-        call irecv_world_farr(ozz,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(13)
-        call irecv_world_farr(q1,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(14)
-        call irecv_world_farr(q2,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      case(15)
-        call irecv_world_farr(q3,isend_nparticle(idrank),0, &
-         120+idrank+4+j,irequest_recv(4+j))
-      end select
-    enddo
-    call waitall_world(irequest_recv(1:isend_nvar),isend_nvar)
   endif
-  
+
+  call bcast_world_i(natms_tot)
+  call get_sync_world
+
+  call bcast_world_iarr(ltype,natms_tot)
+  call bcast_world_farr(xxx,natms_tot)
+  call bcast_world_farr(yyy,natms_tot)
+  call bcast_world_farr(zzz,natms_tot)
+
+  do j=1,nxyzlist_sub
+    k=xyzlist_sub(j)
+    select case(k)
+    case(7)
+      call bcast_world_farr(vxx,natms_tot)
+    case(8)
+      call bcast_world_farr(vyy,natms_tot)
+    case(9)
+      call bcast_world_farr(vzz,natms_tot)
+    case(10)
+      call bcast_world_farr(xxx,natms_tot)
+    case(11)
+      call bcast_world_farr(oyy,natms_tot)
+    case(12)
+      call bcast_world_farr(ozz,natms_tot)
+    case(13)
+      call bcast_world_farr(q1,natms_tot)
+    case(14)
+      call bcast_world_farr(q2,natms_tot)
+    case(15)
+      call bcast_world_farr(q3,natms_tot)
+    end select
+  enddo
+
   call get_sync_world
   
 ! since the data have been sent, we deallocate
@@ -1635,8 +1446,28 @@
   if(allocated(zzs))deallocate(zzs)
   if(allocated(ots))deallocate(ots)
   
-#if 0
-  call print_all_particles(100,'mioprima',1)
+
+  ! Count my atoms, put them in atmbook list
+  natms = 0
+  do i=1,natms_tot
+#ifndef DEOWERN
+    ids=ownernfind_arr(nint(xxx(i)),nint(yyy(i)),nint(zzz(i)), &
+        nx,ny,nz,nbuff,ownern)
+#else
+    ids=ownernfind(nint(xxx(i)),nint(yyy(i)),nint(zzz(i)), &
+        mxrank,gminx,gmaxx,gminy,gmaxy,gminz,gmaxz)
+#endif
+    if (idrank==ids) then
+        natms = natms + 1
+        atmbook(natms) = i
+    endif
+  enddo
+
+  write(6,*) atmbook
+
+
+#if 1
+  call print_all_particles(100,'atomSetup',1)
 #endif
   
 ! compute inverse mass
@@ -1684,7 +1515,8 @@
       call warning(19)
       !transform the rotational matrix in quaternions using an uniform
       !distribution
-      do i=1,natms
+      do myi=1,natms
+        i = atmbook(myi)
         xsubm(1:3)=ZERO
         ysubm(1:3)=ZERO
         zsubm(1:3)=ZERO
@@ -1713,7 +1545,8 @@
       enddo
     else
       !transform the Euler angles to quaternions
-      do i=1,natms
+      do myi=1,natms
+        i = atmbook(myi)
         dmio(1)=q1(i)
         dmio(2)=q2(i)
         dmio(3)=q3(i)
@@ -1740,7 +1573,8 @@
     endif
 #endif
     
-    do i=1,natms
+    do myi=1,natms
+      i = atmbook(myi)
       rnorm=ONE/sqrt(q0(i)**TWO+q1(i)**TWO+q2(i)**TWO+q3(i)**TWO)
       q0(i)=q0(i)*rnorm
       q1(i)=q1(i)*rnorm
@@ -1758,15 +1592,12 @@
     
   endif
   
-! ATTENTION DOMAIN DECOMPOSITION SHOULD BE ADDED HERE AND natms_ext PROPERLY SET  
+  ! ATTENTION DOMAIN DECOMPOSITION SHOULD BE ADDED HERE AND natms_ext PROPERLY SET
+  ! 1) First parallelization with all atoms on all processes FB
   natms_ext=natms
-  
-  
-  
-  return
-  
  end subroutine initialize_map_particles
  
+
  subroutine init_particles_fluid_interaction
   
 !***********************************************************************
@@ -1789,6 +1620,7 @@
   call spherical_template(rdimx(1),nsphere,spherelist,spheredist, &
    nspheredead,spherelistdead)
  
+
  ! initialize isfluid according to the particle presence
   do iatm=1,natms
     i=nint(xxx(iatm))
@@ -2039,10 +1871,8 @@
 !***********************************************************************
  
   implicit none
-  
   integer :: iatm,i,j,k,io,jo,ko,l,imin,imax,jmin,jmax,kmin,kmax
   
-  if(.not. lparticles)return
   
   imin=minx-nbuff
   imax=maxx+nbuff
@@ -2080,8 +1910,6 @@
     
   endif
   
-  return
-  
  end subroutine check_moving_particles
  
  subroutine build_new_isfluid(nstep)
@@ -2097,11 +1925,9 @@
 !***********************************************************************
   
   implicit none
-  
   integer, intent(in) :: nstep
  
-  if(.not. lparticles)return
-  
+
   call initialize_new_isfluid
     
   call check_moving_particles
@@ -2114,8 +1940,6 @@
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
-
-  return
   
  end subroutine build_new_isfluid
  
@@ -2164,8 +1988,6 @@
   call erase_fluids_in_particles(natms,nsphere,spherelist, &
    spheredist,nspheredead,spherelistdead,ltype,xxx,yyy,zzz, &
    vxx,vyy,vzz,rdimx,rdimy,rdimz)
-   
-  return
   
  end subroutine clean_fluid_inside_particle
  
@@ -2267,30 +2089,6 @@
   
  end subroutine compute_psi_sc_particles
  
- subroutine driver_neighborhood_list(newlst,nstepsub)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for driving the neighborhood list construction
-!
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification October 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  logical, intent(in) :: newlst
-  integer, intent(in) :: nstepsub
-  
-  if(lnolink)then
-    call parlst(newlst)
-  else
-    call map_linkcell
-  endif
-  
- end subroutine driver_neighborhood_list
  
  subroutine vertest(newlst,tstep)
       
@@ -2380,13 +2178,10 @@
 !***********************************************************************
   
   implicit none
-
 ! Arguments
-      
   logical,intent(in) :: newlst
   
 ! separation vectors and powers thereof
-  
   real(kind=PRC) :: rsq,xm,ym,zm,rsqcut
   
 ! Loop counters
@@ -2396,6 +2191,7 @@
 
   logical :: lchk(1)
   integer :: ibig(1),idum
+
 
   if(newlst)then
 
@@ -2425,7 +2221,7 @@
       ilentry=0
       do jatm = iatm+1,natms
         k=k+1
-        rsq=xdf(k)**TWO+ydf(k)**TWO+zdf(k)**TWO
+        rsq=xdf(k)**TWO + ydf(k)**TWO + zdf(k)**TWO
         if(rsq<=rsqcut) then
           ilentry=ilentry+1
           if(ilentry.gt.mxlist)then
@@ -2485,8 +2281,6 @@
     tqy(i)=ext_tqy
     tqz(i)=ext_tqz
   end forall
-  
-  return
   
  end subroutine initialize_particle_force
  
@@ -2581,6 +2375,7 @@
     select case(ltpvdw(ivdw))
     case (0)
       return
+
     case (1)
     
     !Weeks-Chandler-Andersen
@@ -3050,14 +2845,14 @@
 !***********************************************************************
 
   implicit none
-  
-  integer :: i
+  integer :: i, myi
   real(kind=PRC) :: temp,tolnce,sigma
   real(kind=PRC), parameter :: tmin=real(1.d-2,kind=PRC)
       
 ! set atomic velocities from gaussian distribution
       
-  do i=1,natms
+  do myi=1,natms
+    i = atmbook(myi)
     sigma=sqrt(tempboltz*init_temp*rmass(ltype(i)))
     vxx(i)=sigma*gauss()
     vyy(i)=sigma*gauss()
@@ -3179,36 +2974,6 @@
   return
       
  end subroutine initialize_integrator_lf
- 
- subroutine integrate_particles_lf(nstepsub)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for driving the particle integration by
-!     Verlet leapfrog
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification October 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer, intent(in) :: nstepsub
-  
-  logical, save :: lfirst=.true.
-  
-  select case(keyint)
-  case (1) 
-    call nve_lf(nstepsub)
-  case default
-    call nve_lf(nstepsub)
-  end select
-  
-  return
-  
- end subroutine integrate_particles_lf
  
  subroutine nve_lf(nstepsub)
 
@@ -4638,92 +4403,6 @@
   
  end subroutine matrix_rotaxis 
  
- subroutine map_linkcell
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for building the the linklist of the linkcells
-!     contained in the subdomain of the process
-!     note: if rcut is too big (or cellsub too small), the linkcell 
-!     cannot be applied
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification October 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  real(kind=PRC) :: rcell(9),cellsub(9),det,rcsq,xdc,ydc,zdc
-  logical :: loutbound(1)
-  
-  integer :: i,ilx,ily,ilz,icell,ix,iy,iz
-  
-  if(lnolink)return
-  
-  call allocate_array_bdf(natms)
-        
-!  real space cut off 
-   rcsq=(rcut+delr)**TWO
-  
-   cellsub(1:9)=ZERO
-   cellsub(1)=real(maxx-minx,kind=PRC)+ONE
-   cellsub(5)=real(maxy-miny,kind=PRC)+ONE
-   cellsub(9)=real(maxz-minz,kind=PRC)+ONE
-  
-   call invert(cellsub,rcell,det)
-   
-   ilx=int(cellsub(1)/(rcut+delr))
-   ily=int(cellsub(5)/(rcut+delr))
-   ilz=int(cellsub(9)/(rcut+delr))
-!     check there are enough link cells
-   lnolink=.false.
-   if(ilx.lt.3)lnolink=.true.
-   if(ily.lt.3)lnolink=.true.
-   if(ilz.lt.3)lnolink=.true.
-   
-   ncells=ilx*ily*ilz
-        
-!  link-cell cutoff for reduced space
-   xdc=real(ilx,kind=PRC)
-   ydc=real(ily,kind=PRC)
-   zdc=real(ilz,kind=PRC)
-        
-!  reduced space coordinates
-   forall(i=1:natms)
-     xdf(i)=rcell(1)*(xxx(i)-minx-HALF)
-     ydf(i)=rcell(5)*(yyy(i)-miny-HALF)
-     zdf(i)=rcell(9)*(zzz(i)-minz-HALF)
-   end forall
-   
-!  fill up linklist
-   nlinklist(1:ncellsmax)=0
-   loutbound=.false.
-   do i=1,natms
-     ix=min(int(xdc*xdf(i)),ilx-1)
-     iy=min(int(ydc*ydf(i)),ily-1)
-     iz=min(int(zdc*zdf(i)),ilz-1)
-     icell=1+ix+ilx*(iy+ily*iz)
-     nlinklist(icell)=nlinklist(icell)+1
-     if(nlinklist(icell)>mslistcell)then
-       loutbound=.true.
-       exit
-     else
-       linklist(icell,nlinklist(icell))=i
-     endif
-   enddo
-   
-   call or_world_larr(loutbound,1)
-   if(loutbound(1))then
-     call warning(22,real(mslistcell,kind=PRC))
-     call warning(15,densvar)
-     call error(23)
-   endif
-   
-   return
-   
-  end subroutine map_linkcell
  
  subroutine pbc_images_centered(imcons,natmssub,cells,cx,cy,cz,xxs,yys,zzs)
       
@@ -4928,52 +4607,39 @@
 !     
 !***********************************************************************
  
-  implicit none
+    implicit none
+    integer, intent(in) :: iosub,itersub
+    character(len=*), intent(in) :: filenam
+
+    character(len=120) :: mynamefile
+    integer :: i,myi
+
+    mynamefile=repeat(' ',120)
+    mynamefile=trim(filenam)//write_fmtnumb(itersub)//'_'//write_fmtnumb(idrank)//'.xyz'
   
-  integer, intent(in) :: iosub,itersub
-  character(len=*), intent(in) :: filenam
-  
-  character(len=120) :: mynamefile
-  integer :: i,j
-  
-  mynamefile=repeat(' ',120)
-  mynamefile=trim(filenam)//write_fmtnumb(itersub)//'.xyz'
-  
-  if(idrank==0) then
-    open(unit=iosub*idrank+23,file=trim(mynamefile),status='replace')
-    write(iosub*idrank+23,'(i8)')natms_tot
-    write(iosub*idrank+23,'(i8)')itersub
-    close(iosub*idrank+23)
-  endif
-  
-  do i=1,natms_tot
-    do j=1,natms
-      if(atmbook(j)==i)then
-        open(unit=iosub*idrank+23,file=trim(mynamefile),status='old', &
-         position='append')
-        write(iosub*idrank+23,'(a8,6f16.8)')'C       ', &
-         xxx(j),yyy(j),zzz(j),vxx(j),vyy(j),vzz(j)
-        close(iosub*idrank+23)
-      endif
+    open(unit=23,file=trim(mynamefile),status='replace')
+    write(23,'(i8)')natms
+    write(23,'(i8)')itersub
+
+    do myi=1,natms
+        i = atmbook(myi)
+        write(23,'(a8,6f16.8)')'C       ', xxx(i),yyy(i),zzz(i),vxx(i),vyy(i),vzz(i)
     enddo
-    call get_sync_world
-  enddo
-  
-  return
-  
+    close(23)
+
  end subroutine print_all_particles
  
+
  subroutine spherical_template(rdimsub,outnum,outlist,outdist, &
   outnumdead,outlistdead)
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for writing all the particles in ASCII format 
-!     for diagnostic purposes always ordered also in parallel
+!     LBsoft subroutine for creating the spherical template (grid approx of a sphere)
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
-!     last modification November 2018
+!     last modification Jan 2019
 !     
 !***********************************************************************
  
@@ -5067,7 +4733,8 @@
       enddo
     enddo
   enddo
-  
+
+
   l=0
   do k=-rmax,rmax
     do j=-rmax,rmax
@@ -5116,14 +4783,7 @@
       endif
     enddo
   enddo
-  
-!  do m=1,outnum
-!    write(6,*)m,icount(m)
-!  enddo
-!  stop
-  
-  return
-  
+
  end subroutine spherical_template
  
  end module particles_mod
