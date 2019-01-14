@@ -61,7 +61,7 @@
   use particles_mod,   only : allocate_particles,lparticles,vertest, &
                         initialize_map_particles,driver_inter_force, &
                         initialize_integrator_lf,initialize_particle_force, &
-                        driver_neighborhood_list, &
+                        parlst, &
                         init_particles_fluid_interaction, &
                         store_old_pos_vel_part,build_new_isfluid
   use write_output_mod,only : write_test_map,lvtkfile,init_output, &
@@ -146,24 +146,22 @@
    ixpbc,iypbc,izpbc,minx,maxx,miny,maxy,minz,maxz)
   
 ! allocate service array
-#ifdef ALLAMAX
-  call allocate_array_buffservice3d(1-nbuff,nx+nbuff,1-nbuff,ny+nbuff, &
-   1-nbuff,nz+nbuff)
-#else
   call allocate_array_buffservice3d(minx-nbuff,maxx+nbuff,miny-nbuff, &
    maxy+nbuff,minz-nbuff,maxz+nbuff)
-#endif
 
-! read input xyz file if necessary
-  call read_input_atom(700,'input.xyz',ltype_inp,x_inp,y_inp,z_inp,o_inp, &
-   lvelocity)
+
+  if(lparticles) then
+    ! read input xyz file if necessary
+    call read_input_atom(700,'input.xyz',ltype_inp,x_inp,y_inp,z_inp,o_inp, &
+        lvelocity)
   
-! allocate particle arrays
-  call allocate_particles(ibctype,tstep)
-  
-! initialize and decompose the particle domain
-  call initialize_map_particles(nxyzlist,xyzlist,ltype_inp,x_inp,y_inp,z_inp, &
-   o_inp,lvelocity)
+    ! allocate particle arrays
+    call allocate_particles(ibctype,tstep)
+
+    ! initialize and decompose the particle domain
+    call initialize_map_particles(nxyzlist,xyzlist,ltype_inp,x_inp,y_inp,z_inp, &
+        o_inp,lvelocity)
+  endif
 
 ! at this point you can deallocate ownern in order to release space
 #ifdef DEOWERN
@@ -209,7 +207,7 @@
 ! interpolate the particle velocity at half timestep back to apply lf
   if(lparticles)then
     call vertest(lnewlst,tstep)
-    call driver_neighborhood_list(lnewlst,nstep)
+    call parlst(lnewlst)
     call initialize_particle_force
     call driver_inter_force(nstep)
     call initialize_integrator_lf

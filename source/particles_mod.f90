@@ -1176,12 +1176,12 @@
   endif
   
   
-#if 1
-  if(mxrank>1)then
-    if(idrank==0)write(6,'(a)')'ATTENTION: MD in parallel is under developing!'
-    call error(-1)
-  endif
+!  if(mxrank>1)then
+!    if(idrank==0)write(6,'(a)')'ATTENTION: MD in parallel is under developing!'
+!    call error(-1)
+!  endif
   
+#if 1
   if(any(ishape(1:ntype)/=0))then
     if(idrank==0)write(6,'(a)')'ATTENTION: non spherical particle part is under developing!'
     call error(-1)
@@ -1464,7 +1464,7 @@
     endif
   enddo
 
-  write(6,*) atmbook
+  write(6,*) "ID=", idrank, atmbook(1:natms)
 
 
 #if 1
@@ -1614,7 +1614,7 @@
  
   implicit none
   
-  integer :: iatm,i,j,k,l
+  integer :: myi, iatm,i,j,k,l
   
   if(.not. lparticles)return
   
@@ -1623,7 +1623,8 @@
  
 
  ! initialize isfluid according to the particle presence
-  do iatm=1,natms
+  do myi=1,natms
+    iatm = atmbook(myi)
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
@@ -1666,10 +1667,9 @@
   stop
 #endif
   
-  return
-  
  end subroutine init_particles_fluid_interaction
  
+
  subroutine apply_particle_bounce_back(nstep)
  
 !***********************************************************************
@@ -1687,7 +1687,7 @@
   
   integer, intent(in) :: nstep
   
-  integer :: iatm,i,j,k,itype
+  integer :: myi, iatm,i,j,k,itype
   real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3)
   
   
@@ -1705,7 +1705,8 @@
     tzb(iatm)=ZERO
   end forall
   
-  do iatm=1,natms
+  do myi=1,natms
+    iatm = atmbook(myi)
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
@@ -1720,6 +1721,8 @@
     qversor(2)=oyy(iatm)
     qversor(3)=ozz(iatm)
     oat=qtrimult(qtemp,qversor,qconj(qtemp))
+
+    
     call particle_bounce_back(nstep,iatm,.true.,lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
@@ -1933,11 +1936,11 @@
     
   call check_moving_particles
   
-  call mapping_new_isfluid(natms,nsphere, &
+  call mapping_new_isfluid(natms,atmbook,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove, &
      xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,xxo,yyo,zzo)
      
-  call particle_delete_fluids(nstep,natms,nsphere, &
+  call particle_delete_fluids(nstep,natms,atmbook,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
@@ -1960,7 +1963,7 @@
   implicit none
   integer, intent(in) :: nstep
   
-  call particle_create_fluids(nstep,natms,nsphere, &
+  call particle_create_fluids(nstep,natms,atmbook,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
