@@ -1373,6 +1373,7 @@
   
   if(idrank==0)then
       do i=1,natms_tot
+          ltype(i)=ltypes(i)
           xxx(i)=xxs(i)
           yyy(i)=yys(i)
           zzz(i)=zzs(i)
