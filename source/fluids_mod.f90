@@ -30,8 +30,10 @@
                    commwait_vel_component,commexch_isfluid, &
                    commwait_isfluid
 
+#ifdef MPI           
  use mpi_comm, only : mpisendpops, mpirecvpops, mpibounceback, mpisend_hvar, mpirecv_hvar, &
                         mpisend_isfluid, mpirecv_isfluid
+#endif                
 
  
  implicit none
