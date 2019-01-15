@@ -3231,6 +3231,8 @@
 
   call commrpop(aoptpR,lparticles,isfluid)
 #endif
+#else
+  call manage_bc_pop_selfcomm(aoptpR,lparticles)
 #endif
 
 
@@ -3282,6 +3284,8 @@
 
   call commrpop(aoptpB,lparticles,isfluid)
 #endif
+#else
+  call manage_bc_pop_selfcomm(aoptpB,lparticles)
 #endif
   
 !! #ifdef ALLAMAX
