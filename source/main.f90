@@ -72,8 +72,9 @@
   use statistic_mod,   only : statistic_driver
   use io_mod
   
+#ifdef MPI
   use mpi_comm, only : mpiInit
-
+#endif
   implicit none
   
   integer :: IVAL=1
@@ -113,7 +114,9 @@
   call setupcom(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
    miny,maxy,minz,maxz,lsingle_fluid)
 
+#ifdef MPI
   call mpiInit(nx,ny,nz, ibctype)
+#endif
 
 ! initialize output files
   call init_output()

@@ -381,8 +381,9 @@
   implicit none
   
   integer, intent(in) :: mxlen
-  character(len=mxlen), intent(inout), dimension(narr) :: buffer
   integer, intent(in) :: narr
+  character(len=mxlen), intent(inout), dimension(narr) :: argument
+  
   
   return
   
