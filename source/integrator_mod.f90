@@ -195,7 +195,7 @@
     if(ldiagnostic)call end_timing2("MD","vertest")
     
     if(ldiagnostic)call start_timing2("MD","driver_nlist")
-    call parlst(newlst)
+    if(newlst) call parlst(newlst)
     if(ldiagnostic)call end_timing2("MD","driver_nlist")
     
     if(ldiagnostic)call start_timing2("MD","driver_inter_f")

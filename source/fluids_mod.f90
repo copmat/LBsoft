@@ -7834,7 +7834,9 @@
 !******************END PART TO MANAGE THE BOUNCEBACK********************
 
 !******************START PART TO MANAGE THE COPY WALL*******************
+#define CYCLE_OUT_INTERVAL(x, a,b) if ((x)<(a) .or. (x)>(b)) cycle
  
+
  subroutine compute_densities_wall
  
 !***********************************************************************
@@ -9088,6 +9090,51 @@
  end subroutine compute_grad_on_lattice
 
 !*********START PART TO MANAGE THE INTERACTION WITH PARTICLES***********
+ subroutine helper_init_particle_2_isfluid(isub,jsub,ksub, nspheres, spherelists, isInternal)
+ implicit none
+ integer, intent(in) :: isub,jsub,ksub,nspheres
+ integer, allocatable, dimension(:,:), intent(in) :: spherelists
+ logical, intent(in) :: isInternal
+ integer :: i,j,k,l
+ integer :: imin,imax,jmin,jmax,kmin,kmax
+
+ imin=minx-nbuff
+ imax=maxx+nbuff
+ jmin=miny-nbuff
+ jmax=maxy+nbuff
+ kmin=minz-nbuff
+ kmax=maxz+nbuff
+
+
+ do l=1,nspheres
+  i=isub+spherelists(1,l)
+  j=jsub+spherelists(2,l)
+  k=ksub+spherelists(3,l)
+  !apply periodic conditions if necessary
+  i=pimage(ixpbc,i,nx)
+  j=pimage(iypbc,j,ny)
+  k=pimage(izpbc,k,nz)
+
+  CYCLE_OUT_INTERVAL(i, imin, imax)
+  CYCLE_OUT_INTERVAL(j, jmin, jmax)
+  CYCLE_OUT_INTERVAL(k, kmin, kmax)
+
+  if (isInternal) then
+    if(isfluid(i,j,k)/=4)isfluid(i,j,k)=2
+  else
+    isfluid(i,j,k)=4
+  endif
+
+  rhoR(i,j,k)=MINDENS
+  if (.not. lsingle_fluid) then
+    rhoB(i,j,k)=MINDENS
+  endif
+  u(i,j,k)=ZERO
+  v(i,j,k)=ZERO
+  w(i,j,k)=ZERO
+ enddo
+ end subroutine helper_init_particle_2_isfluid
+
 
  subroutine init_particle_2_isfluid(isub,jsub,ksub,nspheres, &
   spherelists,spheredists,nspheredeads,spherelistdeads)
@@ -9110,109 +9157,22 @@
   integer, allocatable, dimension(:,:), intent(in) :: spherelistdeads
   real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
   
-  integer :: i,j,k,l
-  integer :: imin,imax,jmin,jmax,kmin,kmax
-  
-  imin=minx-nbuff
-  imax=maxx+nbuff
-  jmin=miny-nbuff
-  jmax=maxy+nbuff
-  kmin=minz-nbuff
-  kmax=maxz+nbuff
-  
-  
-  
-  if(lsingle_fluid)then
-    do l=1,nspheres
-      i=isub+spherelists(1,l)
-      j=jsub+spherelists(2,l)
-      k=ksub+spherelists(3,l)
-      !apply periodic conditions if necessary
-      i=pimage(ixpbc,i,nx)
-      j=pimage(iypbc,j,ny)
-      k=pimage(izpbc,k,nz)
-      if(i<imin .or. i>imax)cycle
-      if(j<jmin .or. j>jmax)cycle
-      if(k<kmin .or. k>kmax)cycle
-      if(isfluid(i,j,k)/=4)isfluid(i,j,k)=2
-      rhoR(i,j,k)=MINDENS
-      u(i,j,k)=ZERO
-      v(i,j,k)=ZERO
-      w(i,j,k)=ZERO
-    enddo
-    do l=1,nspheredeads
-      i=isub+spherelistdeads(1,l)
-      j=jsub+spherelistdeads(2,l)
-      k=ksub+spherelistdeads(3,l)
-      !apply periodic conditions if necessary
-      i=pimage(ixpbc,i,nx)
-      j=pimage(iypbc,j,ny)
-      k=pimage(izpbc,k,nz)
-      if(i<imin .or. i>imax)cycle
-      if(j<jmin .or. j>jmax)cycle
-      if(k<kmin .or. k>kmax)cycle
-      isfluid(i,j,k)=4
-      rhoR(i,j,k)=MINDENS
-      u(i,j,k)=ZERO
-      v(i,j,k)=ZERO
-      w(i,j,k)=ZERO
-    enddo
+
+    call helper_init_particle_2_isfluid(isub,jsub,ksub,nspheres, spherelists, .true.)
+    call helper_init_particle_2_isfluid(isub,jsub,ksub,nspheredeads, spherelistdeads, .false.)
+
     isfluid(isub,jsub,ksub)=5
     rhoR(isub,jsub,ksub)=MINDENS
     u(isub,jsub,ksub)=ZERO
     v(isub,jsub,ksub)=ZERO
     w(isub,jsub,ksub)=ZERO
-  else
-    do l=1,nspheres
-      i=isub+spherelists(1,l)
-      j=jsub+spherelists(2,l)
-      k=ksub+spherelists(3,l)
-      !apply periodic conditions if necessary
-      i=pimage(ixpbc,i,nx)
-      j=pimage(iypbc,j,ny)
-      k=pimage(izpbc,k,nz)
-      if(i<imin .or. i>imax)cycle
-      if(j<jmin .or. j>jmax)cycle
-      if(k<kmin .or. k>kmax)cycle
-      if(isfluid(i,j,k)/=4)isfluid(i,j,k)=2
-      rhoR(i,j,k)=MINDENS
-      rhoB(i,j,k)=MINDENS
-      u(i,j,k)=ZERO
-      v(i,j,k)=ZERO
-      w(i,j,k)=ZERO
-    enddo
-    do l=1,nspheredeads
-      i=isub+spherelistdeads(1,l)
-      j=jsub+spherelistdeads(2,l)
-      k=ksub+spherelistdeads(3,l)
-      !apply periodic conditions if necessary
-      i=pimage(ixpbc,i,nx)
-      j=pimage(iypbc,j,ny)
-      k=pimage(izpbc,k,nz)
-      if(i<imin .or. i>imax)cycle
-      if(j<jmin .or. j>jmax)cycle
-      if(k<kmin .or. k>kmax)cycle
-      isfluid(i,j,k)=4
-      rhoR(i,j,k)=MINDENS
-      rhoB(i,j,k)=MINDENS
-      u(i,j,k)=ZERO
-      v(i,j,k)=ZERO
-      w(i,j,k)=ZERO
-    enddo
-    isfluid(isub,jsub,ksub)=5
-    rhoR(isub,jsub,ksub)=MINDENS
-    rhoB(isub,jsub,ksub)=MINDENS
-    u(isub,jsub,ksub)=ZERO
-    v(isub,jsub,ksub)=ZERO
-    w(isub,jsub,ksub)=ZERO
-  endif
-  
-  
-  
-  return
-  
+
+    if(.not. lsingle_fluid)then
+     rhoB(isub,jsub,ksub)=MINDENS
+    endif
  end subroutine init_particle_2_isfluid
  
+
  subroutine particle_bounce_back(nstep,iatm,lown,lrotate,isub,jsub,ksub,nspheres, &
   spherelists,spheredists,rdimx,rdimy,rdimz,xx,yy,zz,vx,vy,vz,&
   fx,fy,fz,ox,oy,oz,tx,ty,tz)
@@ -10653,7 +10613,7 @@
  end subroutine particle_delete_fluids
  
 
-#define CYCLE_OUT_INTERVAL(x, a,b) if ((x)<(a) .or. (x)>(b)) cycle
+
 
   subroutine compute_onebelt_density(i,j,k, Rsum, Dsum)
     implicit none

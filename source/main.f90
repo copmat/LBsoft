@@ -211,7 +211,7 @@
 ! interpolate the particle velocity at half timestep back to apply lf
   if(lparticles)then
     call vertest(lnewlst,tstep)
-    call parlst(lnewlst)
+    if(lnewlst) call parlst(lnewlst)
     call initialize_particle_force
     call driver_inter_force(nstep)
     call initialize_integrator_lf

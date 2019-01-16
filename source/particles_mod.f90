@@ -2164,10 +2164,8 @@
       end forall
     endif
   endif
-      
-  return
-  
  end subroutine vertest
+
  
  subroutine parlst(newlst)
   
@@ -2189,7 +2187,7 @@
   real(kind=PRC) :: rsq,xm,ym,zm,rsqcut
   
 ! Loop counters
-  integer :: iatm,ii,i
+  integer :: iatm,ii,i, myi, myj
   integer :: k,jatm
   integer :: itype,ilentry
 
@@ -2197,7 +2195,7 @@
   integer :: ibig(1),idum
 
 
-  if(newlst)then
+  if(.not. newlst) return
 
     lchk=.false.
     ibig=0
@@ -2209,10 +2207,12 @@
     lentry(1:msatms)=0
     
     ii = 0
-    do iatm = 1,natms
-      ii=iatm
+    do myi = 1,natms
+      iatm = atmbook(myi)
+      ii=myi
       k=0
-      do jatm = iatm+1,natms
+      do myj = myi+1,natms
+        jatm = atmbook(myj)
         k=k+1
         xdf(k)=xxx(jatm)-xxx(iatm)
         ydf(k)=yyy(jatm)-yyy(iatm)
@@ -2223,7 +2223,8 @@
       
       k=0
       ilentry=0
-      do jatm = iatm+1,natms
+      do myj = myi+1,natms
+        jatm = atmbook(myj)
         k=k+1
         rsq=xdf(k)**TWO + ydf(k)**TWO + zdf(k)**TWO
         if(rsq<=rsqcut) then
@@ -2240,6 +2241,8 @@
         lentry(ii)=ilentry
       enddo
       
+      write(6,*) myi, 'list',list(1:ilentry,ii),'for',iatm
+
     enddo
   
     
@@ -2250,12 +2253,9 @@
       call warning(23,real(ibig(1),kind=PRC))
       call error(21)
     endif
-  endif
-
-  return
-
  end subroutine parlst
  
+
  subroutine initialize_particle_force
  
 !***********************************************************************
@@ -2324,19 +2324,14 @@
 !***********************************************************************
 
   implicit none
-  
   integer, intent(in) :: nstepsub
-  
   real(kind=PRC), parameter :: tol=real(1.d-4,kind=PRC)
   integer :: i
   
   call compute_inter_force(lentry,list)
-  
   call compute_sidewall_force(nstepsub)
-  
-  return
-  
  end subroutine driver_inter_force
+
  
  subroutine compute_inter_force(lentrysub,listsub)
   
@@ -2363,7 +2358,7 @@
   
 ! Loop counters
   integer :: iatm,ii,i,j,ivdw,itype,jtype,iimax,xcm,ycm,zcm
-  integer :: k,jatm
+  integer :: k,jatm, myi
   integer :: ilentry
   
   real(kind=PRC), parameter :: s2rmin=TWO**(ONE/SIX)
@@ -2592,12 +2587,13 @@
     rparcap=rpar+ONE/TEN
     
   
-    do iatm = 1,natms
+    do myi = 1,natms
+      iatm = atmbook(myi)
       itype=ltype(iatm)
       if(all(mskvdw(1:ntpvdw,itype)/=ivdw))cycle
       ii = 0
-      do k = 1,lentrysub(iatm)
-        jatm=listsub(k,iatm)
+      do k = 1,lentrysub(myi)
+        jatm=listsub(k,myi)
         jtype=ltype(jatm)
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
@@ -2610,12 +2606,13 @@
       call pbc_images(imcon,iimax,cell,xdf,ydf,zdf)
       
       ii = 0
-      do k = 1,lentrysub(iatm)
-        jatm=listsub(k,iatm)
+      do k = 1,lentrysub(myi)
+        jatm=listsub(k,myi)
         jtype=ltype(jatm)
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
         rsq=xdf(ii)**TWO+ydf(ii)**TWO+zdf(ii)**TWO
+
         if(rsq<=mxrsqcut) then
           rrr=sqrt(rsq)
           if(rrr<=rmin)then
@@ -2634,6 +2631,7 @@
             fzz(iatm)=fzz(iatm)-ggg*zdf(ii)/rrr
             fzz(jatm)=fzz(jatm)+ggg*zdf(ii)/rrr
           endif
+
           if(llubrication)then
             if(rrr<=rparcut)then
               ux=xdf(ii)/rrr
@@ -2662,7 +2660,9 @@
               fzz(jatm)=fzz(jatm)+lubfactor*(rdimx(jtype)**FOUR)*uz* &
                (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
             endif 
+
           endif
+
         endif
       enddo
     enddo
@@ -2718,7 +2718,7 @@
   
   integer, intent(in) :: nstepsub
   
-  integer :: iatm,itype
+  integer :: iatm,itype, myi
   real(kind=PRC) :: inflimit,suplimit(3),vmin,gmin,vvv,ggg,rrr,rlimit, &
    suprcup(3)
   logical, dimension(1) :: ltest
@@ -2737,8 +2737,8 @@
   suprcup(2)=cell(5)-ONE-HALF
   suprcup(3)=cell(9)-ONE-HALF
   
-  do iatm=1,natms
-    
+  do myi=1,natms
+    iatm = atmbook(myi)
     itype=ltype(iatm)
     if(ixpbc==0) then
       if(xxx(iatm)-rdimx(itype)<=inflimit)then
@@ -2833,10 +2833,9 @@
   call or_world_larr(ltest,1)
   if(ltest(1))call warning(49)
   
-  return
-  
  end subroutine compute_sidewall_force
  
+
  subroutine init_velocity()
       
 !***********************************************************************
@@ -2956,8 +2955,8 @@
 !***********************************************************************
 
   implicit none
-  
   integer :: i
+  
   
   if(lvv)return
   
@@ -2967,18 +2966,17 @@
   case (1) 
 ! report the atoms velocity to half timestep back for leap frog
     forall(i=1:natms)      
-      vxx(i)=vxx(i)-HALF*tstepatm*rmass(ltype(i))*fxx(i)
-      vyy(i)=vyy(i)-HALF*tstepatm*rmass(ltype(i))*fyy(i)
-      vzz(i)=vzz(i)-HALF*tstepatm*rmass(ltype(i))*fzz(i)
+      vxx(atmbook(i))=vxx(atmbook(i))-HALF*tstepatm*rmass(ltype(atmbook(i)))*fxx(atmbook(i))
+      vyy(atmbook(i))=vyy(atmbook(i))-HALF*tstepatm*rmass(ltype(atmbook(i)))*fyy(i)
+      vzz(atmbook(i))=vzz(atmbook(i))-HALF*tstepatm*rmass(ltype(atmbook(i)))*fzz(atmbook(i))
     end forall
+
   case default
     return
   end select
-  
-  return
-      
  end subroutine initialize_integrator_lf
  
+
  subroutine nve_lf(nstepsub)
 
 !***********************************************************************
