@@ -2863,10 +2863,7 @@
   enddo
   
   if(init_temp>tmin)call vscaleg()
-  
-  return
-  
-  end subroutine init_velocity
+ end subroutine init_velocity
   
   
  subroutine store_old_pos_vel_part
@@ -2882,22 +2879,21 @@
 !     
 !***********************************************************************
   
-  integer :: i
+  integer :: i, myi
   
   ! store initial values of position and velocity    
-  forall(i=1:natms_ext)
+  do myi=1,natms
+    i = atmbook(myi)
     xxo(i)=xxx(i)
     yyo(i)=yyy(i)
     zzo(i)=zzz(i)
     vxo(i)=vxx(i)
     vyo(i)=vyy(i)
     vzo(i)=vzz(i)
-  end forall
-  
-  return
-  
+  enddo
  end subroutine store_old_pos_vel_part
   
+
  subroutine vscaleg()
 
 !*********************************************************************
@@ -2991,12 +2987,10 @@
 !***********************************************************************
 
   implicit none
-  
   integer, intent(in) :: nstepsub
-
   integer, parameter :: nfailmax=10
   integer, dimension(nfailmax) :: fail
-  integer :: i,j,k,itype,itq
+  integer :: i,j,k,itype,itq, myi
   logical :: ltest(1)
   real(kind=PRC) :: trx,try,trz,delx,dely,delz,engrotbuff(1)
   
@@ -3010,6 +3004,7 @@
 ! working arrays
   real(kind=PRC), allocatable :: bxx(:),byy(:),bzz(:)
   
+
 ! allocate working arrays
   fail(1:nfailmax)=0
   
@@ -3030,7 +3025,8 @@
   if(ltest(1))call error(28)
       
 ! move atoms by leapfrog algorithm    
-  forall(i=1:natms)
+  do myi=1,natms
+    i = atmbook(myi)
 !   update velocities       
     bxx(i)=vxx(i)+tstepatm*rmass(ltype(i))*fxx(i)
     byy(i)=vyy(i)+tstepatm*rmass(ltype(i))*fyy(i)
@@ -3039,10 +3035,11 @@
     xxx(i)=xxo(i)+tstepatm*bxx(i)
     yyy(i)=yyo(i)+tstepatm*byy(i)
     zzz(i)=zzo(i)+tstepatm*bzz(i)    
-  end forall
+  enddo
   
 #if 1
-  do i=1,natms
+  do myi=1,natms
+    i = atmbook(myi)
     if(abs(bxx(i))>ONE .or. abs(byy(i))>ONE .or. abs(bzz(i))>ONE )then
       write(6,*)'WARNING - velocity cap applied at step ',nstepsub
       if(bxx(i)>cssq)bxx(i)=cssq
@@ -3057,11 +3054,12 @@
 #endif
   
 ! calculate full timestep velocity
-  forall(i=1:natms)
+  do myi=1,natms
+    i = atmbook(myi)
     vxx(i)=HALF*(vxx(i)+bxx(i))
     vyy(i)=HALF*(vyy(i)+byy(i))
     vzz(i)=HALF*(vzz(i)+bzz(i))
-  end forall
+  enddo
   
 ! calculate kinetic energy at time step n
   call getkin(engke)
@@ -3070,11 +3068,12 @@
   call pbc_images_centered(imcon,natms,cell,cx,cy,cz,xxx,yyy,zzz)
     
 ! restore free atom half step velocity   
-  forall(i=1:natms)
+  do myi=1,natms
+    i = atmbook(myi)
     vxx(i)=bxx(i)
     vyy(i)=byy(i)
     vzz(i)=bzz(i)
-  end forall
+  enddo
   
   
 ! rigid body motion
@@ -3092,24 +3091,17 @@
 !   compute the total rotational kinetic energy
     call sum_world_farr(engrotbuff,1)
     engrot=HALF*engrotbuff(1)
-    
   endif
   
 ! deallocate work arrays
   deallocate (bxx,byy,bzz,stat=fail(2))
-  
-  return
-      
  end subroutine nve_lf
+
  
  subroutine rot_midstep_impl_lf(engrotsum)
- 
   implicit none
-  
   real(kind=PRC), intent(inout) :: engrotsum
-  
-  integer :: i,itq,itype
-  
+  integer :: i,itq,itype, myi
   real(kind=PRC), parameter :: onefive=real(1.5d0,kind=PRC)
   
 ! working variables
@@ -3117,14 +3109,14 @@
   real(kind=PRC) :: oqx,oqy,oqz
   real(kind=PRC) :: opx,opy,opz
   real(kind=PRC) :: trx,try,trz
-  
   real(kind=PRC) :: eps,rnorm,myrot(9)
-  
   real(kind=PRC) :: qn0,qn1,qn2,qn3
   real(kind=PRC) :: qn0a,qn1a,qn2a,qn3a
   real(kind=PRC) :: dq0,dq1,dq2,dq3
   
-  do i=1,natms
+
+  do myi=1,natms
+      i = atmbook(myi)
       itype=ltype(i)
       
       !current rotational matrix 
@@ -3136,7 +3128,6 @@
       opz=ozz(i)
       
 !     compute angular velocity increment of one step
-      
       trx=(tqx(i)*myrot(1)+tqy(i)*myrot(4)+tqz(i)*myrot(7))/rotinx(itype)+ &
        (rotiny(itype)-rotinz(itype))*opy*opz/rotinx(itype)
       try=(tqx(i)*myrot(2)+tqy(i)*myrot(5)+tqz(i)*myrot(8))/rotiny(itype)+ &
@@ -3149,14 +3140,12 @@
       delz=tstepatm*trz
       
 !     angular velocity at time step n
-
       opx=oxx(i)+delx*HALF
       opy=oyy(i)+dely*HALF
       opz=ozz(i)+delz*HALF
       
       
 !     add its contribution to the total rotational kinetic energy at time step n
-
       engrotsum=engrotsum+(rotinx(itype)*opx**TWO+ &
        rotiny(itype)*opy**TWO+ &
        rotinz(itype)*opz**TWO)
@@ -3198,7 +3187,6 @@
       eps=real(1.0d9,kind=PRC)
   
       do while((itq.lt.mxquat).and.(eps.gt.sqquattol))
-      
         itq=itq+1
         
 !       compute derivative at n+1/2
@@ -3220,7 +3208,6 @@
         qn3a=qn3a*rnorm
         
 !      convergence test 
-          
         eps=((qn0a-qn0)**TWO+(qn1a-qn1)**TWO+(qn2a-qn2)**TWO+ &
          (qn3a-qn3)**TWO)*tstepatm**TWO
               
@@ -3228,11 +3215,9 @@
         qn1=qn1a
         qn2=qn2a
         qn3=qn3a
-          
       enddo
       
 ! store new quaternions
-      
       q0(i)=q0(i)+dq0*tstepatm
       q1(i)=q1(i)+dq1*tstepatm
       q2(i)=q2(i)+dq2*tstepatm
@@ -3243,12 +3228,9 @@
       q1(i)=q1(i)*rnorm
       q2(i)=q2(i)*rnorm
       q3(i)=q3(i)*rnorm
-    
     enddo
-  
-  return
-  
  end subroutine rot_midstep_impl_lf
+
  
  subroutine rot_fullstep_impl_lf(engrotsum)
  
@@ -4171,22 +4153,20 @@
 !***********************************************************************
   
   implicit none
-  
   real(kind=PRC), intent(out) :: engkes
-  
-  integer :: i
+  integer :: i, myi
+
   
   engkes=ZERO
   
-  do i=1,natms
+  do myi=1,natms
+    i = atmbook(myi)
     engkes=engkes+weight(ltype(i))*(vxx(i)**TWO+vyy(i)**TWO+vzz(i)**TWO)
   enddo
   
   engkes=HALF*engkes
-
-  return
-  
  end subroutine getkin
+
  
  subroutine rotmat_2_quat(rot,q0s,q1s,q2s,q3s)
  
