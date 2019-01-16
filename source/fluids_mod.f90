@@ -5086,11 +5086,9 @@
 #ifdef MPI
     call commwait_isfluid(isfluid)
 #endif
-  
-  
-  return
-  
+
  end subroutine driver_bc_isfluid
+
 
  subroutine driver_bc_densities
  
@@ -8884,7 +8882,6 @@
 !***********************************************************************
  
   implicit none
-  
   logical, intent(in) :: lrotate
   integer, intent(in) :: nstep,i,j,k
   real(kind=PRC), intent(in) :: vxs,vys,vzs
@@ -8892,26 +8889,10 @@
   real(kind=PRC), allocatable, dimension(:,:,:) :: rhosub
   real(kind=PRC), allocatable, dimension(:,:,:) :: psisub
   
-  real(kind=PRC), parameter :: onesixth=ONE/SIX
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  
-  integer :: ii,jj,kk,io,jo,ko
-  real(kind=PRC) :: vx,vy,vz,theta,modr
-  real(kind=PRC), dimension(3) :: rtemp
-  
-  vx=vxs
-  vy=vys
-  vz=vzs
-  rtemp=rversor
-  
-  theta=acos(dot(otemp,rtemp))
-  
+
   psisub(i,j,k)=rhosub(i,j,k)
-  
-  
-  return
-  
  end subroutine particle_to_node_sc
+
  
  subroutine compute_fluid_force_sc
  
@@ -10439,7 +10420,7 @@
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xo,yo,zo
   real(kind=PRC), allocatable, dimension(:), intent(in) :: rdimx,rdimy,rdimz
   
-  integer :: i,j,k,l,m,isub,jsub,ksub,iatm,io,jo,ko,itype
+  integer :: i,j,k,l,m,isub,jsub,ksub,iatm,myi, io,jo,ko,itype
   integer :: ii,jj,kk,ishift,jshift,kshift
   integer, save :: imin,imax,jmin,jmax,kmin,kmax
   logical, save :: lfirst=.true.
@@ -10457,12 +10438,14 @@
   endif
   
   !delete fluid 
-  do iatm=1,natmssub
+  do myi=1,natmssub
+    iatm=atmbook(myi)
     if(.not. lmoved(iatm))cycle
     itype=ltype(iatm)
     isub=nint(xx(iatm))
     jsub=nint(yy(iatm))
     ksub=nint(zz(iatm))
+
     if(lsingle_fluid)then
       do l=1,nspheres
         i=isub+spherelists(1,l)
@@ -10500,6 +10483,7 @@
           endif
         endif
       enddo
+
       do l=1,nspheredeads
         i=isub+spherelistdeads(1,l)
         j=jsub+spherelistdeads(2,l)
@@ -10536,6 +10520,7 @@
           endif
         endif
       enddo
+
     else
       do l=1,nspheres
         i=isub+spherelists(1,l)
@@ -11203,6 +11188,41 @@ end subroutine compute_secbelt_density_twofluids
   
  end subroutine erase_fluids_in_particles
  
+  subroutine helper_mapping_new_isfluid(isub,jsub,ksub, nspheres, spherelists, value)
+ implicit none
+ integer, intent(in) :: isub,jsub,ksub,nspheres, value
+ integer, allocatable, dimension(:,:), intent(in) :: spherelists
+  integer, save :: imin,imax,jmin,jmax,kmin,kmax
+  logical, save :: lfirst=.true.
+  integer :: l, i,j,k
+
+
+  if(lfirst)then
+    lfirst=.false.
+    imin=minx-1
+    imax=maxx+1
+    jmin=miny-1
+    jmax=maxy+1
+    kmin=minz-1
+    kmax=maxz+1
+  endif
+
+      do l=1,nspheres
+      i=isub+spherelists(1,l)
+      j=jsub+spherelists(2,l)
+      k=ksub+spherelists(3,l)
+      !apply periodic conditions if necessary
+      i=pimage(ixpbc,i,nx)
+      j=pimage(iypbc,j,ny)
+      k=pimage(izpbc,k,nz)
+      if(i<imin .or. i>imax)cycle
+      if(j<jmin .or. j>jmax)cycle
+      if(k<kmin .or. k>kmax)cycle
+      new_isfluid(i,j,k)= value
+    enddo
+ end subroutine helper_mapping_new_isfluid
+
+
  subroutine mapping_new_isfluid(natmssub,atmbook,nspheres,spherelists, &
    spheredists,nspheredeads,spherelistdeads,lmoved,xx,yy,zz, &
    vx,vy,vz,fx,fy,fz,xo,yo,zo)
@@ -11230,22 +11250,8 @@ end subroutine compute_secbelt_density_twofluids
   real(kind=PRC), allocatable, dimension(:), intent(inout) :: fx,fy,fz
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xo,yo,zo
   
-  integer :: myi, i,j,k,l,m,isub,jsub,ksub,iatm,io,jo,ko,ishift,jshift,kshift
-  integer, save :: imin,imax,jmin,jmax,kmin,kmax
-  logical, save :: lfirst=.true.
-  logical :: lfind,ltest(1)
-  real(kind=PRC) :: Rsum,Bsum,Dsum,myu,myv,myw
+  integer :: myi, isub,jsub,ksub, iatm
   
-
-  if(lfirst)then
-    lfirst=.false.
-    imin=minx-1
-    imax=maxx+1
-    jmin=miny-1
-    jmax=maxy+1
-    kmin=minz-1
-    kmax=maxz+1
-  endif
   
   !delete fluid 
   do myi=1,natmssub
@@ -11253,35 +11259,13 @@ end subroutine compute_secbelt_density_twofluids
     isub=nint(xx(iatm))
     jsub=nint(yy(iatm))
     ksub=nint(zz(iatm))
-    do l=1,nspheres
-      i=isub+spherelists(1,l)
-      j=jsub+spherelists(2,l)
-      k=ksub+spherelists(3,l)
-      !apply periodic conditions if necessary
-      i=pimage(ixpbc,i,nx)
-      j=pimage(iypbc,j,ny)
-      k=pimage(izpbc,k,nz)
-      if(i<imin .or. i>imax)cycle
-      if(j<jmin .or. j>jmax)cycle
-      if(k<kmin .or. k>kmax)cycle
-      new_isfluid(i,j,k)=2
-    enddo
-    do l=1,nspheredeads
-      i=isub+spherelistdeads(1,l)
-      j=jsub+spherelistdeads(2,l)
-      k=ksub+spherelistdeads(3,l)
-      !apply periodic conditions if necessary
-      i=pimage(ixpbc,i,nx)
-      j=pimage(iypbc,j,ny)
-      k=pimage(izpbc,k,nz)
-      if(i<imin .or. i>imax)cycle
-      if(j<jmin .or. j>jmax)cycle
-      if(k<kmin .or. k>kmax)cycle
-      new_isfluid(i,j,k)=4
-    enddo
+
+    call helper_mapping_new_isfluid(isub,jsub,ksub, nspheres, spherelists, 2)
+
+    call helper_mapping_new_isfluid(isub,jsub,ksub, nspheredeads, spherelistdeads, 4)
+
     new_isfluid(isub,jsub,ksub)=5
   enddo
-  
  end subroutine mapping_new_isfluid
 
  

@@ -2269,25 +2269,27 @@
 !***********************************************************************
 
   implicit none
+  integer :: i, myi
   
-  integer :: i
-  
-  forall(i=1:natms)
+  do myi = 1,natms
+    i = atmbook(myi)
     fxx(i)=ext_fxx
     fyy(i)=ext_fyy
     fzz(i)=ext_fzz
-  end forall
+  enddo
   
   if(.not. lrotate)return
+
   !initialize also the torque of forces
-  forall(i=1:natms)
+  do myi = 1,natms
+    i = atmbook(myi)
     tqx(i)=ext_tqx
     tqy(i)=ext_tqy
     tqz(i)=ext_tqz
-  end forall
-  
+  enddo
  end subroutine initialize_particle_force
  
+
  subroutine initialize_particle_energy
  
 !***********************************************************************
