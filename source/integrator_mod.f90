@@ -161,7 +161,6 @@
     call initialize_particle_force
     call build_new_isfluid(nstep)
     if(ldiagnostic)call end_timing2("LB","build_new_isfluid")
-    
   endif
   
   if(ldiagnostic)call start_timing2("LB","initialize_force")
@@ -191,18 +190,17 @@
     
     newlst=.false.
     if(ldiagnostic)call start_timing2("MD","vertest")
-    call vertest(newlst,tstep)
+    call vertest(newlst)
     if(ldiagnostic)call end_timing2("MD","vertest")
     
     if(ldiagnostic)call start_timing2("MD","driver_nlist")
-    if(newlst) call parlst(newlst)
+    if(newlst) call parlst
     if(ldiagnostic)call end_timing2("MD","driver_nlist")
     
     if(ldiagnostic)call start_timing2("MD","driver_inter_f")
     call initialize_particle_energy
     call driver_inter_force(nstep)
     if(ldiagnostic)call end_timing2("MD","driver_inter_f")
-    
   endif
   
   if(lpair_SC .or. lparticles)then
@@ -242,7 +240,6 @@
   endif
   
   if(lparticles)then
-    
     if(ldiagnostic)call start_timing2("IO","write_xyz")
     call write_xyz(nstep)
     if(ldiagnostic)call end_timing2("IO","write_xyz")
@@ -273,7 +270,6 @@
       call merge_particle_energies
       if(ldiagnostic)call end_timing2("MD","integrate_lf")
 !    endif
-    
   endif
   
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")

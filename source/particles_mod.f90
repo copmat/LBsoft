@@ -2094,7 +2094,7 @@
  end subroutine compute_psi_sc_particles
  
  
- subroutine vertest(newlst,tstep)
+ subroutine vertest(newlst)
       
 !***********************************************************************
 !     
@@ -2107,45 +2107,48 @@
 !***********************************************************************
   
   implicit none
-  
   logical, intent(out) :: newlst
-  
   logical, save :: newjob=.true.
-  integer :: i,j,k,moved(1),ibuff
+  integer :: myi, i,moved(1)
   integer :: fail=0
-  real(kind=PRC) :: rmax,dr,tstep
-      
+  real(kind=PRC) :: rmax,dr
   real(kind=PRC), allocatable, save :: xold(:),yold(:),zold(:)
   
+
   if((natms+mxrank-1)/mxrank.gt.msatms)call error(24)
       
   if(newjob)then
 !   set up initial arrays 
     allocate (xold(msatms),yold(msatms),zold(msatms),stat=fail)
     if(fail.ne.0)call error(25)
-    forall(i=1:natms)
+
+    do myi=1,natms
+      i = atmbook(myi)
       xold(i)=ZERO
       yold(i)=ZERO
       zold(i)=ZERO
-    end forall
+    enddo
+
     newjob=.false.
     newlst=.true.
-  else
+  endif
     
 !   integrate velocities 
-    forall(i=1:natms)
+    do myi=1,natms
+      i = atmbook(myi)
       xold(i)=xold(i)+vxx(i)
       yold(i)=yold(i)+vyy(i)
       zold(i)=zold(i)+vzz(i)
-    end forall
+    enddo
     
 !   maximum displacement 
     rmax=(delr/TWO)**TWO
     
 !   test atomic displacements
     moved(1)=0
-    do i=1,natms
-      dr=tstep**2*(xold(i)**2+yold(i)**2+zold(i)**2)
+    do myi=1,natms
+      i = atmbook(myi)
+      dr=tstepatm**2*(xold(i)**2+yold(i)**2+zold(i)**2)
       if(dr.gt.rmax)moved(1)=moved(1)+1
     enddo
         
@@ -2155,19 +2158,19 @@
 !   test for new verlet list
     newlst=(moved(1).ge.2)
         
-!     update stored positions
+!   update stored positions
     if(newlst)then
-      forall(i=1:natms)
+      do myi=1,natms
+        i = atmbook(myi)
         xold(i)=ZERO
         yold(i)=ZERO
         zold(i)=ZERO
-      end forall
+      enddo
     endif
-  endif
  end subroutine vertest
 
  
- subroutine parlst(newlst)
+ subroutine parlst
   
 !***********************************************************************
 !     
@@ -2180,9 +2183,6 @@
 !***********************************************************************
   
   implicit none
-! Arguments
-  logical,intent(in) :: newlst
-  
 ! separation vectors and powers thereof
   real(kind=PRC) :: rsq,xm,ym,zm,rsqcut
   
@@ -2190,12 +2190,10 @@
   integer :: iatm,ii,i, myi, myj
   integer :: k,jatm
   integer :: itype,ilentry
-
   logical :: lchk(1)
   integer :: ibig(1),idum
 
 
-  if(.not. newlst) return
 
     lchk=.false.
     ibig=0
@@ -2241,7 +2239,7 @@
         lentry(ii)=ilentry
       enddo
       
-      write(6,*) myi, 'list',list(1:ilentry,ii),'for',iatm
+      write(6,*) myi, 'list:',list(1:ilentry,ii),' for',iatm
 
     enddo
   
@@ -2308,11 +2306,9 @@
   engcfg=ZERO
   engke=ZERO
   engtot=ZERO
-  
-  return
-  
  end subroutine initialize_particle_energy
  
+
  subroutine driver_inter_force(nstepsub)
  
 !***********************************************************************
@@ -2742,6 +2738,7 @@
   do myi=1,natms
     iatm = atmbook(myi)
     itype=ltype(iatm)
+
     if(ixpbc==0) then
       if(xxx(iatm)-rdimx(itype)<=inflimit)then
         rrr=xxx(iatm)-rdimx(itype)
@@ -2755,7 +2752,8 @@
         endif
         engcfg=engcfg+vvv
         fxx(iatm)=fxx(iatm)+ggg
-      endif  
+      endif
+
       if(xxx(iatm)+rdimx(itype)>=suplimit(1))then
         rrr=xxx(iatm)+rdimx(itype)
         if(rrr>=suprcup(1))then
@@ -2784,7 +2782,8 @@
         endif
         engcfg=engcfg+vvv
         fyy(iatm)=fyy(iatm)+ggg
-      endif  
+      endif
+
       if(yyy(iatm)+rdimy(itype)>=suplimit(2))then
         rrr=yyy(iatm)+rdimy(itype)
         if(rrr>=suprcup(2))then
@@ -2814,7 +2813,8 @@
         endif
         engcfg=engcfg+vvv
         fzz(iatm)=fzz(iatm)+ggg
-      endif  
+      endif
+
       if(zzz(iatm)+rdimz(itype)>=suplimit(3))then
         rrr=zzz(iatm)+rdimz(itype)
         if(rrr>=suprcup(3))then

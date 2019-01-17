@@ -2123,14 +2123,11 @@
 !***********************************************************************
   
   implicit none
-  
   integer, intent(in) :: itemp1
   
   LBintegrator = itemp1
-  
-  return
-  
  end subroutine set_LBintegrator_type
+
  
  subroutine set_initial_dist_type(itemp1)
  
@@ -2527,12 +2524,10 @@
 !***********************************************************************
   
   implicit none
-  
+#ifdef DIAGNHVAR
   integer, save :: iter=0
   
   iter=iter+1
-  
-#ifdef DIAGNHVAR
   if(iter.eq.NDIAGNHVAR)call print_all_hvar(1320,'testhvar',iter, &
    rhoR,u,v,w)
 #endif
@@ -2546,6 +2541,7 @@
     call collision_fluids_BGK(rhoB,u,v,w,omega,f00B,f01B,&
      f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
      f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+
   case (1)
     call convert_fluid_force_to_velshifted
     call collision_fluids_EDM(rhoR,u,v,w,fuR,fvR,fwR,omega,f00R,f01R,&
@@ -2555,13 +2551,12 @@
     call collision_fluids_EDM(rhoB,u,v,w,fuB,fvB,fwB,omega,f00B,f01B,&
      f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
      f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+
   case default
     call error(14)
   end select
-  
-  return
-  
  end subroutine driver_collision_fluids
+
  
  subroutine collision_fluids_BGK(rhosub,usub,vsub,wsub,omegas,f00sub,f01sub,&
   f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
@@ -2663,11 +2658,9 @@
      (equil_pop18(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f18sub(i,j,k))
   end forall
-  
-  return
-  
  end subroutine collision_fluids_BGK
  
+
  subroutine collision_fluids_EDM(rhosub,usub,vsub,wsub,fusub,fvsub, &
   fwsub,omegas,f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,&
   f08sub,f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub, &
@@ -7999,7 +7992,6 @@
   endif
   
   if(lsingle_fluid)then
-    
     where(isfluid(io:ie,jo:je,ko:ke)<3 .and. isfluid(io:ie,jo:je,ko:ke)>5)
       psiR(io:ie,jo:je,ko:ke)=rhoR(io:ie,jo:je,ko:ke)
     elsewhere
@@ -8007,7 +7999,6 @@
     endwhere
     
   else
-    
     where(isfluid(io:ie,jo:je,ko:ke)<3 .and. isfluid(io:ie,jo:je,ko:ke)>5)
       psiR(io:ie,jo:je,ko:ke)=rhoR(io:ie,jo:je,ko:ke)
       psiB(io:ie,jo:je,ko:ke)=rhoB(io:ie,jo:je,ko:ke)
@@ -8017,10 +8008,8 @@
     endwhere
     
   endif
-  
-  return
-  
  end subroutine compute_psi_sc
+
  
  subroutine compute_sc_particle_interact(nstep,iatm,lown, &
   lrotate,isub,jsub,ksub,nspheres,spherelists,spheredists,rdimx,rdimy, &
@@ -8095,11 +8084,13 @@
         modr=modulvec(rtemp)
         rtemp(1:3)=rtemp(1:3)/modr
       endif
+
       if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
        k>=kmin .and. k<=kmax)then
         call node_to_particle_sc(lrotate,nstep,i,j,k,rtemp, &
            otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR)
       endif
+
       !the fluid bounce back is local so I have to do it
       if(i==ii.and.j==jj.and.k==kk)then
         if(i<imin .or. i>imax)cycle
@@ -9309,21 +9300,21 @@
   return
   
  end subroutine particle_bounce_back
-  
+
  subroutine node_to_particle_bounce_back(nstep,i,j,k,vx,vy,vz,fx,fy,fz, &
   rhosub,aoptp)
- 
+
 !***********************************************************************
-!     
-!     LBsoft subroutine to apply the bounce back of the fluid 
+!
+!     LBsoft subroutine to apply the bounce back of the fluid
 !     on a particle surface node
-!     
+!
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
 !     last modification November 2018
-!     
+!
 !***********************************************************************
- 
+
   implicit none
   
   integer, intent(in) :: nstep,i,j,k
@@ -9331,142 +9322,41 @@
   real(kind=PRC), intent(inout) :: fx,fy,fz
   real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub
   type(REALPTR), dimension(0:links):: aoptp
-  
-  real(kind=PRC), parameter :: onesixth=ONE/SIX
+
   real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
   real(kind=PRC) :: f2p
-  
-  
-  
-  !force on particle fx fy fz
-  !eq. 11.2 from page 437 Kruger's book "the lattice boltzmann method"
+  integer :: ii,jj,kk, iloop,indlow,indhig
 
-    if(isfluid(i+ex(1),j,k)==1)then
-      f2p=TWO*real(aoptp(2)%p(i+ex(1),j,k),kind=PRC)- &
-       p(2)*pref_bouzidi*rhosub(i+ex(1),j,k)*(dex(2)*vx)
-      fx=fx+f2p*dex(2)
-    endif
-    
-    if(isfluid(i+ex(2),j,k)==1)then
-      f2p=TWO*real(aoptp(1)%p(i+ex(2),j,k),kind=PRC)- &
-       p(1)*pref_bouzidi*rhosub(i+ex(2),j,k)*(dex(1)*vx)
-      fx=fx+f2p*dex(1)
-    endif
-    
-    if(isfluid(i,j+ey(3),k)==1)then
-      f2p=TWO*real(aoptp(4)%p(i,j+ey(3),k),kind=PRC)- &
-       p(4)*pref_bouzidi*rhosub(i,j+ey(3),k)*(dey(4)*vy)
-      fy=fy+f2p*dey(4)
-    endif
-    
-    if(isfluid(i,j+ey(4),k)==1)then
-      f2p=TWO*real(aoptp(3)%p(i,j+ey(4),k),kind=PRC)- &
-       p(3)*pref_bouzidi*rhosub(i,j+ey(4),k)*(dey(3)*vy)
-      fy=fy+f2p*dey(3)
-    endif
-    
-    if(isfluid(i,j,k+ez(5))==1)then
-      f2p=TWO*real(aoptp(6)%p(i,j,k+ez(5)),kind=PRC)- &
-       p(6)*pref_bouzidi*rhosub(i,j,k+ez(5))*(dez(6)*vz)
-      fz=fz+f2p*dez(6)
-    endif
-    
-    if(isfluid(i,j,k+ez(6))==1)then
-      f2p=TWO*real(aoptp(5)%p(i,j,k+ez(6)),kind=PRC)- &
-       p(5)*pref_bouzidi*rhosub(i,j,k+ez(6))*(dez(5)*vz)
-      fz=fz+f2p*dez(5)
-    endif
-    
-    if(isfluid(i+ex(7),j+ey(7),k)==1)then
-      f2p=TWO*real(aoptp(8)%p(i+ex(7),j+ey(7),k),kind=PRC)- &
-       p(8)*pref_bouzidi*rhosub(i+ex(7),j+ey(7),k)*(dex(8)*vx+dey(8)*vy)
-      fx=fx+f2p*dex(8)
-      fy=fy+f2p*dey(8)
-    endif
-    
-    if(isfluid(i+ex(8),j+ey(8),k)==1)then
-      f2p=TWO*real(aoptp(7)%p(i+ex(8),j+ey(8),k),kind=PRC)- &
-       p(7)*pref_bouzidi*rhosub(i+ex(8),j+ey(8),k)*(dex(7)*vx+dey(7)*vy)
-      fx=fx+f2p*dex(7)
-      fy=fy+f2p*dey(7)
-    endif
-    
-    if(isfluid(i+ex(9),j+ey(9),k)==1)then
-      f2p=TWO*real(aoptp(10)%p(i+ex(9),j+ey(9),k),kind=PRC)- &
-       p(10)*pref_bouzidi*rhosub(i+ex(9),j+ey(9),k)*(dex(10)*vx+dey(10)*vy)
-      fx=fx+f2p*dex(10)
-      fy=fy+f2p*dey(10)
-    endif
-    
-    if(isfluid(i+ex(10),j+ey(10),k)==1)then
-      f2p=TWO*real(aoptp(9)%p(i+ex(10),j+ey(10),k),kind=PRC)- &
-       p(9)*pref_bouzidi*rhosub(i+ex(10),j+ey(10),k)*(dex(9)*vx+dey(9)*vy)
-      fx=fx+f2p*dex(9)
-      fy=fy+f2p*dey(9)
-    endif
-    
-    if(isfluid(i+ex(11),j,k+ez(11))==1)then
-      f2p=TWO*real(aoptp(12)%p(i+ex(11),j,k+ez(11)),kind=PRC)- &
-       p(12)*pref_bouzidi*rhosub(i+ex(11),j,k+ez(11))*(dex(12)*vx+dez(12)*vz)
-      fx=fx+f2p*dex(12)
-      fz=fz+f2p*dez(12)
-    endif
-    
-    if(isfluid(i+ex(12),j,k+ez(12))==1)then
-      f2p=TWO*real(aoptp(11)%p(i+ex(12),j,k+ez(12)),kind=PRC)- &
-       p(11)*pref_bouzidi*rhosub(i+ex(12),j,k+ez(12))*(dex(11)*vx+dez(11)*vz)
-      fx=fx+f2p*dex(11)
-      fz=fz+f2p*dez(11)
-    endif
-    
-    if(isfluid(i+ex(13),j,k+ez(13))==1)then
-      f2p=TWO*real(aoptp(14)%p(i+ex(13),j,k+ez(13)),kind=PRC)- &
-       p(14)*pref_bouzidi*rhosub(i+ex(13),j,k+ez(13))*(dex(14)*vx+dez(14)*vz)
-      fx=fx+f2p*dex(14)
-      fz=fz+f2p*dez(14)
-    endif
-    
-    if(isfluid(i+ex(14),j,k+ez(14))==1)then
-      f2p=TWO*real(aoptp(13)%p(i+ex(14),j,k+ez(14)),kind=PRC)- &
-       p(13)*pref_bouzidi*rhosub(i+ex(14),j,k+ez(14))*(dex(13)*vx+dez(13)*vz)
-      fx=fx+f2p*dex(13)
-      fz=fz+f2p*dez(13)
-    endif
-    
-    if(isfluid(i,j+ey(15),k+ez(15))==1)then
-      f2p=TWO*real(aoptp(16)%p(i,j+ey(15),k+ez(15)),kind=PRC)- &
-       p(16)*pref_bouzidi*rhosub(i,j+ey(15),k+ez(15))*(dey(16)*vy+dez(16)*vz)
-      fy=fy+f2p*dey(16)
-      fz=fz+f2p*dez(16)
-    endif
-    
-    if(isfluid(i,j+ey(16),k+ez(16))==1)then
-      f2p=TWO*real(aoptp(15)%p(i,j+ey(16),k+ez(16)),kind=PRC)- &
-       p(15)*pref_bouzidi*rhosub(i,j+ey(16),k+ez(16))*(dey(15)*vy+dez(15)*vz)
-      fy=fy+f2p*dey(15)
-      fz=fz+f2p*dez(15)
-    endif
-    
-    if(isfluid(i,j+ey(17),k+ez(17))==1)then
-      f2p=TWO*real(aoptp(18)%p(i,j+ey(17),k+ez(17)),kind=PRC)- &
-       p(18)*pref_bouzidi*rhosub(i,j+ey(17),k+ez(17))*(dey(18)*vy+dez(18)*vz)
-      fy=fy+f2p*dey(18)
-      fz=fz+f2p*dez(18)
-    endif
-    
-    if(isfluid(i,j+ey(18),k+ez(18))==1)then
-      f2p=TWO*real(aoptp(17)%p(i,j+ey(18),k+ez(18)),kind=PRC)- &
-       p(17)*pref_bouzidi*rhosub(i,j+ey(18),k+ez(18))*(dey(17)*vy+dez(17)*vz)
-      fy=fy+f2p*dey(17)
-      fz=fz+f2p*dez(17)
+
+  do iloop = 1, 9
+    indlow = iloop*2 - 1
+    indhig = iloop*2
+
+    !force on particle fx fy fz
+    !eq. 11.2 from page 437 Kruger's book "the lattice boltzmann method"
+
+    ii = i+ex(indlow); jj=j+ey(indlow); kk=k+ez(indlow)
+    if(isfluid(ii,jj,kk)==1)then
+        f2p=TWO*real(aoptp(indhig)%p(ii,jj,kk),kind=PRC)- &
+            p(indhig)*pref_bouzidi*rhosub(ii,jj,kk )*(dex(indhig)*vx + dey(indhig)*vy + dez(indhig)*vz)
+        fx=fx+f2p*dex(indhig)
+        fy=fy+f2p*dey(indhig)
+        fz=fz+f2p*dez(indhig)
     endif
 
-   
-  return
+    ii = i+ex(indhig); jj=j+ey(indhig); kk=k+ez(indhig)
+    if(isfluid(ii,jj,kk)==1)then
+        f2p=TWO*real(aoptp(indlow)%p(ii,jj,kk),kind=PRC)- &
+            p(indlow)*pref_bouzidi*rhosub(ii,jj,kk )*(dex(indlow)*vx + dey(indlow)*vy + dez(indlow)*vz)
+        fx=fx+f2p*dex(indlow)
+        fy=fy+f2p*dey(indlow)
+        fz=fz+f2p*dez(indlow)
+    endif
+  enddo
+
+ end subroutine node_to_particle_bounce_back
   
-  end subroutine node_to_particle_bounce_back
-  
-  subroutine node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rversor, &
+ subroutine node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rversor, &
    otemp,vxs,vys,vzs,fx,fy,fz,tx,ty,tz,rhosub,aoptp)
  
 !***********************************************************************
@@ -9610,7 +9500,7 @@
   
  end subroutine node_to_particle_bounce_back_bc2
  
-  subroutine node_to_particle_bounce_back_bc(lrotate,nstep,i,j,k,rversor, &
+ subroutine node_to_particle_bounce_back_bc(lrotate,nstep,i,j,k,rversor, &
    otemp,vxs,vys,vzs,fx,fy,fz,tx,ty,tz,rhosub,aoptp)
  
 !***********************************************************************
@@ -10387,6 +10277,7 @@
   
  end subroutine particle_to_node_bounce_back_bc
 
+
  subroutine helper_particle_delete_fluids(iatm,itype, isub,jsub,ksub, nspheres,spherelists, lrotate, &
     rdimx,rdimy,rdimz, xx,yy,zz, fx,fy,fz, tx,ty,tz)
    implicit none
@@ -10472,7 +10363,7 @@
         endif
       enddo
 
-  end subroutine helper_particle_delete_fluids
+ end subroutine helper_particle_delete_fluids
 
 
  subroutine particle_delete_fluids(nstep,natmssub,atmbook,nspheres,spherelists, &
@@ -10530,7 +10421,7 @@
  
 
 
-  subroutine compute_onebelt_density(i,j,k, Rsum, Dsum)
+ subroutine compute_onebelt_density(i,j,k, Rsum, Dsum)
     implicit none
     real(kind=PRC), intent(out) :: Rsum,Dsum
     integer, intent(in) :: i,j,k
@@ -10554,7 +10445,7 @@
     if (Dsum /= ZERO) Rsum=Rsum/Dsum
 end subroutine compute_onebelt_density
 
-  subroutine compute_onebelt_density_twofluids(i,j,k, Rsum, Bsum, Dsum)
+ subroutine compute_onebelt_density_twofluids(i,j,k, Rsum, Bsum, Dsum)
     implicit none
     real(kind=PRC), intent(out) :: Rsum,Bsum,Dsum
     integer, intent(in) :: i,j,k
@@ -10582,7 +10473,7 @@ end subroutine compute_onebelt_density
     endif
 end subroutine compute_onebelt_density_twofluids
 
-subroutine compute_secbelt_density(i,j,k, Rsum, Dsum)
+ subroutine compute_secbelt_density(i,j,k, Rsum, Dsum)
     implicit none
     real(kind=PRC), intent(out) :: Rsum,Dsum
     integer, intent(in) :: i,j,k
@@ -10605,7 +10496,7 @@ subroutine compute_secbelt_density(i,j,k, Rsum, Dsum)
     if (Dsum /= ZERO) Rsum=Rsum/Dsum
 end subroutine compute_secbelt_density
 
-subroutine compute_secbelt_density_twofluids(i,j,k, Rsum, Bsum, Dsum)
+ subroutine compute_secbelt_density_twofluids(i,j,k, Rsum, Bsum, Dsum)
     implicit none
     real(kind=PRC), intent(out) :: Rsum,Bsum,Dsum
     integer, intent(in) :: i,j,k
@@ -10925,11 +10816,9 @@ end subroutine compute_secbelt_density_twofluids
   
   call or_world_larr(ltest,1)
   if(ltest(1))call error(34)
-  
-  return
-  
  end subroutine particle_create_fluids
  
+
  subroutine erase_fluids_in_particles(natmssub,nspheres,spherelists, &
    spheredists,nspheredeads,spherelistdeads,ltype,xx,yy,zz,vx,vy,vz, &
    rdimx,rdimy,rdimz)
@@ -11118,7 +11007,7 @@ end subroutine compute_secbelt_density_twofluids
   
  end subroutine erase_fluids_in_particles
  
-  subroutine fill_new_isfluid_inlist(isub,jsub,ksub, nspheres, spherelists, value)
+ subroutine fill_new_isfluid_inlist(isub,jsub,ksub, nspheres, spherelists, value)
  implicit none
  integer, intent(in) :: isub,jsub,ksub,nspheres, value
  integer, allocatable, dimension(:,:), intent(in) :: spherelists
@@ -11240,17 +11129,16 @@ end subroutine compute_secbelt_density_twofluids
 !***********************************************************************
  
   implicit none
-  
   integer :: i,j,k
+  
   
   forall(i=minx-nbuff:maxx+nbuff,j=miny-nbuff:maxy+nbuff,k=minz-nbuff:maxz+nbuff)
     isfluid(i,j,k)=new_isfluid(i,j,k)
   end forall
-  
-  return
-  
+
  end subroutine update_isfluid
  
+
  subroutine initialize_newnode_fluid(i,j,k,rhosub,usub,vsub,wsub,aoptp)
  
 !***********************************************************************
