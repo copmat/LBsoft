@@ -1691,19 +1691,21 @@
   real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3)
   
   
-  forall(iatm=1:natms_ext)
+  do myi=1,natms
+    iatm = atmbook(myi)
     fxb(iatm)=ZERO
     fyb(iatm)=ZERO
     fzb(iatm)=ZERO
-  end forall
+  enddo
   
   if(lrotate)then
   
-  forall(iatm=1:natms_ext)
+  do myi=1,natms
+    iatm = atmbook(myi)
     txb(iatm)=ZERO
     tyb(iatm)=ZERO
     tzb(iatm)=ZERO
-  end forall
+  enddo
   
   do myi=1,natms
     iatm = atmbook(myi)
@@ -2119,7 +2121,7 @@
       
   if(newjob)then
 !   set up initial arrays 
-    allocate (xold(msatms),yold(msatms),zold(msatms),stat=fail)
+    allocate (xold(mxatms),yold(mxatms),zold(mxatms),stat=fail)
     if(fail.ne.0)call error(25)
 
     do myi=1,natms
