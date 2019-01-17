@@ -10387,6 +10387,93 @@
   
  end subroutine particle_to_node_bounce_back_bc
 
+ subroutine helper_particle_delete_fluids(iatm,itype, isub,jsub,ksub, nspheres,spherelists, lrotate, &
+    rdimx,rdimy,rdimz, xx,yy,zz, fx,fy,fz, tx,ty,tz)
+   implicit none
+   integer, intent(in) :: iatm,itype, isub,jsub,ksub,nspheres
+   integer, allocatable, dimension(:,:), intent(in) :: spherelists
+   logical, intent(in) :: lrotate
+   real(kind=PRC), allocatable, dimension(:), intent(in) :: rdimx,rdimy,rdimz
+   real(kind=PRC), allocatable, dimension(:), intent(in) :: xx,yy,zz
+   real(kind=PRC), allocatable, dimension(:), intent(inout) :: fx,fy,fz
+   real(kind=PRC), allocatable, dimension(:), intent(inout) :: tx,ty,tz
+   real(kind=PRC) :: rtemp(3), ftemp(3), modr
+   integer :: l, i,j,k, ii,jj,kk
+   integer, save :: imin,imax,jmin,jmax,kmin,kmax
+  logical, save :: lfirst=.true.
+
+
+  if(lfirst)then
+    lfirst=.false.
+    imin=minx
+    imax=maxx
+    jmin=miny
+    jmax=maxy
+    kmin=minz
+    kmax=maxz
+  endif
+
+    do l=1,nspheres
+        i=isub+spherelists(1,l)
+        j=jsub+spherelists(2,l)
+        k=ksub+spherelists(3,l)
+
+        ii=i
+        jj=j
+        kk=k
+
+        !apply periodic conditions if necessary
+        i=pimage(ixpbc,i,nx)
+        j=pimage(iypbc,j,ny)
+        k=pimage(izpbc,k,nz)
+
+        CYCLE_OUT_INTERVAL(i, imin, imax)
+        CYCLE_OUT_INTERVAL(j, jmin, jmax)
+        CYCLE_OUT_INTERVAL(k, kmin, kmax)
+
+        if(isfluid(i,j,k)==1 .and. new_isfluid(i,j,k)/=1)then
+          !fluid node is trasformed to solid
+          !formula taken from eq. 18 of PRE 83, 046707 (2011)
+
+          if (lsingle_fluid) then
+            fx(iatm)=fx(iatm)+rhoR(i,j,k)*u(i,j,k)
+            fy(iatm)=fy(iatm)+rhoR(i,j,k)*v(i,j,k)
+            fz(iatm)=fz(iatm)+rhoR(i,j,k)*w(i,j,k)
+            if(lrotate)then
+                ftemp(1)=rhoR(i,j,k)*u(i,j,k)
+                ftemp(2)=rhoR(i,j,k)*v(i,j,k)
+                ftemp(3)=rhoR(i,j,k)*w(i,j,k)
+            endif
+          else
+            fx(iatm)=fx(iatm)+(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
+            fy(iatm)=fy(iatm)+(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
+            fz(iatm)=fz(iatm)+(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
+            if(lrotate)then
+                ftemp(1)=(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
+                ftemp(2)=(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
+                ftemp(3)=(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
+            endif
+          endif
+
+          if(lrotate)then
+            rtemp(1)=real(ii,kind=PRC)-xx(iatm)
+            rtemp(2)=real(jj,kind=PRC)-yy(iatm)
+            rtemp(3)=real(kk,kind=PRC)-zz(iatm)
+
+            modr=modulvec(rtemp)
+            rtemp(1:3)=rdimx(itype)/modr*rtemp(1:3)
+
+            !add the rotational force contribution
+            tx(iatm)=tx(iatm)+xcross(rtemp,ftemp)
+            ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
+            tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
+          endif
+
+        endif
+      enddo
+
+  end subroutine helper_particle_delete_fluids
+
 
  subroutine particle_delete_fluids(nstep,natmssub,atmbook,nspheres,spherelists, &
    spheredists,nspheredeads,spherelistdeads,lmoved,lrotate,ltype,xx,yy,zz, &
@@ -10419,185 +10506,28 @@
   real(kind=PRC), allocatable, dimension(:), intent(inout) :: tx,ty,tz
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xo,yo,zo
   real(kind=PRC), allocatable, dimension(:), intent(in) :: rdimx,rdimy,rdimz
+  integer :: isub,jsub,ksub, iatm,myi, itype
   
-  integer :: i,j,k,l,m,isub,jsub,ksub,iatm,myi, io,jo,ko,itype
-  integer :: ii,jj,kk,ishift,jshift,kshift
-  integer, save :: imin,imax,jmin,jmax,kmin,kmax
-  logical, save :: lfirst=.true.
-  logical :: lfind,ltest(1)
-  real(kind=PRC) :: Rsum,Bsum,Dsum,myu,myv,myw,ftemp(3),rtemp(3),modr
-  
-  if(lfirst)then
-    lfirst=.false.
-    imin=minx
-    imax=maxx
-    jmin=miny
-    jmax=maxy
-    kmin=minz
-    kmax=maxz
-  endif
   
   !delete fluid 
   do myi=1,natmssub
     iatm=atmbook(myi)
     if(.not. lmoved(iatm))cycle
-    itype=ltype(iatm)
+
     isub=nint(xx(iatm))
     jsub=nint(yy(iatm))
     ksub=nint(zz(iatm))
 
-    if(lsingle_fluid)then
-      do l=1,nspheres
-        i=isub+spherelists(1,l)
-        j=jsub+spherelists(2,l)
-        k=ksub+spherelists(3,l)
-        ii=i
-        jj=j
-        kk=k
-        !apply periodic conditions if necessary
-        i=pimage(ixpbc,i,nx)
-        j=pimage(iypbc,j,ny)
-        k=pimage(izpbc,k,nz)
-        if(i<imin .or. i>imax)cycle
-        if(j<jmin .or. j>jmax)cycle
-        if(k<kmin .or. k>kmax)cycle
-        if(isfluid(i,j,k)==1 .and. new_isfluid(i,j,k)/=1)then
-          !fluid node is trasformed to solid
-          !formula taken from eq. 18 of PRE 83, 046707 (2011)
-          fx(iatm)=fx(iatm)+rhoR(i,j,k)*u(i,j,k)
-          fy(iatm)=fy(iatm)+rhoR(i,j,k)*v(i,j,k)
-          fz(iatm)=fz(iatm)+rhoR(i,j,k)*w(i,j,k)
-          if(lrotate)then
-            ftemp(1)=rhoR(i,j,k)*u(i,j,k)
-            ftemp(2)=rhoR(i,j,k)*v(i,j,k)
-            ftemp(3)=rhoR(i,j,k)*w(i,j,k)
-            rtemp(1)=real(ii,kind=PRC)-xx(iatm)
-            rtemp(2)=real(jj,kind=PRC)-yy(iatm)
-            rtemp(3)=real(kk,kind=PRC)-zz(iatm)
-            modr=modulvec(rtemp)
-            rtemp(1:3)=rdimx(itype)/modr*rtemp(1:3)
-            !add the rotational force contribution  
-            tx(iatm)=tx(iatm)+xcross(rtemp,ftemp)
-            ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
-            tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
-          endif
-        endif
-      enddo
+    itype=ltype(iatm)
 
-      do l=1,nspheredeads
-        i=isub+spherelistdeads(1,l)
-        j=jsub+spherelistdeads(2,l)
-        k=ksub+spherelistdeads(3,l)
-        ii=i
-        jj=j
-        kk=k
-        !apply periodic conditions if necessary
-        i=pimage(ixpbc,i,nx)
-        j=pimage(iypbc,j,ny)
-        k=pimage(izpbc,k,nz)
-        if(i<imin .or. i>imax)cycle
-        if(j<jmin .or. j>jmax)cycle
-        if(k<kmin .or. k>kmax)cycle
-        if(isfluid(i,j,k)==1 .and. new_isfluid(i,j,k)/=1)then
-          !fluid node is trasformed to solid
-          !formula taken from eq. 18 of PRE 83, 046707 (2011)
-          fx(iatm)=fx(iatm)+rhoR(i,j,k)*u(i,j,k)
-          fy(iatm)=fy(iatm)+rhoR(i,j,k)*v(i,j,k)
-          fz(iatm)=fz(iatm)+rhoR(i,j,k)*w(i,j,k)
-          if(lrotate)then
-            ftemp(1)=rhoR(i,j,k)*u(i,j,k)
-            ftemp(2)=rhoR(i,j,k)*v(i,j,k)
-            ftemp(3)=rhoR(i,j,k)*w(i,j,k)
-            rtemp(1)=real(ii,kind=PRC)-xx(iatm)
-            rtemp(2)=real(jj,kind=PRC)-yy(iatm)
-            rtemp(3)=real(kk,kind=PRC)-zz(iatm)
-            modr=modulvec(rtemp)
-            rtemp(1:3)=rdimx(itype)/modr*rtemp(1:3)
-            !add the rotational force contribution  
-            tx(iatm)=tx(iatm)+xcross(rtemp,ftemp)
-            ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
-            tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
-          endif
-        endif
-      enddo
-
-    else
-      do l=1,nspheres
-        i=isub+spherelists(1,l)
-        j=jsub+spherelists(2,l)
-        k=ksub+spherelists(3,l)
-        ii=i
-        jj=j
-        kk=k
-        !apply periodic conditions if necessary
-        i=pimage(ixpbc,i,nx)
-        j=pimage(iypbc,j,ny)
-        k=pimage(izpbc,k,nz)
-        if(i<imin .or. i>imax)cycle
-        if(j<jmin .or. j>jmax)cycle
-        if(k<kmin .or. k>kmax)cycle
-        if(isfluid(i,j,k)==1 .and. new_isfluid(i,j,k)/=1)then
-          !fluid node is trasformed to solid node
-          !formula taken from eq. 18 of PRE 83, 046707 (2011)
-          fx(iatm)=fx(iatm)+(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
-          fy(iatm)=fy(iatm)+(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
-          fz(iatm)=fz(iatm)+(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
-          if(lrotate)then
-            ftemp(1)=(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
-            ftemp(2)=(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
-            ftemp(3)=(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
-            rtemp(1)=real(ii,kind=PRC)-xx(iatm)
-            rtemp(2)=real(jj,kind=PRC)-yy(iatm)
-            rtemp(3)=real(kk,kind=PRC)-zz(iatm)
-            modr=modulvec(rtemp)
-            rtemp(1:3)=rdimx(itype)/modr*rtemp(1:3)
-            tx(iatm)=tx(iatm)+xcross(rtemp,ftemp)
-            ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
-            tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
-          endif
-        endif
-      enddo
-      do l=1,nspheredeads
-        i=isub+spherelistdeads(1,l)
-        j=jsub+spherelistdeads(2,l)
-        k=ksub+spherelistdeads(3,l)
-        ii=i
-        jj=j
-        kk=k
-        !apply periodic conditions if necessary
-        i=pimage(ixpbc,i,nx)
-        j=pimage(iypbc,j,ny)
-        k=pimage(izpbc,k,nz)
-        if(i<imin .or. i>imax)cycle
-        if(j<jmin .or. j>jmax)cycle
-        if(k<kmin .or. k>kmax)cycle
-        if(isfluid(i,j,k)==1 .and. new_isfluid(i,j,k)/=1)then
-          !fluid node is trasformed to solid node
-          !formula taken from eq. 18 of PRE 83, 046707 (2011)
-          fx(iatm)=fx(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
-          fy(iatm)=fy(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
-          fz(iatm)=fz(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
-          if(lrotate)then
-            ftemp(1)=(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
-            ftemp(2)=(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
-            ftemp(3)=(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
-            rtemp(1)=real(ii,kind=PRC)-xx(iatm)
-            rtemp(2)=real(jj,kind=PRC)-yy(iatm)
-            rtemp(3)=real(kk,kind=PRC)-zz(iatm)
-            modr=modulvec(rtemp)
-            rtemp(1:3)=rdimx(itype)/modr*rtemp(1:3)
-            tx(iatm)=tx(iatm)+xcross(rtemp,ftemp)
-            ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
-            tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
-          endif
-        endif
-      enddo
-    endif
+    call helper_particle_delete_fluids(iatm,itype, isub,jsub,ksub, nspheres, spherelists, lrotate, &
+        rdimx,rdimy,rdimz, xx,yy,zz, fx,fy,fz,tx,ty,tz)
+    call helper_particle_delete_fluids(iatm,itype, isub,jsub,ksub, nspheredeads, spherelistdeads, lrotate, &
+        rdimx,rdimy,rdimz, xx,yy,zz, fx,fy,fz,tx,ty,tz)
   enddo
   
  end subroutine particle_delete_fluids
  
-
 
 
   subroutine compute_onebelt_density(i,j,k, Rsum, Dsum)
@@ -11188,7 +11118,7 @@ end subroutine compute_secbelt_density_twofluids
   
  end subroutine erase_fluids_in_particles
  
-  subroutine helper_mapping_new_isfluid(isub,jsub,ksub, nspheres, spherelists, value)
+  subroutine fill_new_isfluid_inlist(isub,jsub,ksub, nspheres, spherelists, value)
  implicit none
  integer, intent(in) :: isub,jsub,ksub,nspheres, value
  integer, allocatable, dimension(:,:), intent(in) :: spherelists
@@ -11207,20 +11137,23 @@ end subroutine compute_secbelt_density_twofluids
     kmax=maxz+1
   endif
 
-      do l=1,nspheres
+  do l=1,nspheres
       i=isub+spherelists(1,l)
       j=jsub+spherelists(2,l)
       k=ksub+spherelists(3,l)
+
       !apply periodic conditions if necessary
       i=pimage(ixpbc,i,nx)
       j=pimage(iypbc,j,ny)
       k=pimage(izpbc,k,nz)
-      if(i<imin .or. i>imax)cycle
-      if(j<jmin .or. j>jmax)cycle
-      if(k<kmin .or. k>kmax)cycle
+
+      CYCLE_OUT_INTERVAL(i, imin, imax)
+      CYCLE_OUT_INTERVAL(j, jmin, jmax)
+      CYCLE_OUT_INTERVAL(k, kmin, kmax)
+
       new_isfluid(i,j,k)= value
-    enddo
- end subroutine helper_mapping_new_isfluid
+  enddo
+ end subroutine fill_new_isfluid_inlist
 
 
  subroutine mapping_new_isfluid(natmssub,atmbook,nspheres,spherelists, &
@@ -11260,9 +11193,9 @@ end subroutine compute_secbelt_density_twofluids
     jsub=nint(yy(iatm))
     ksub=nint(zz(iatm))
 
-    call helper_mapping_new_isfluid(isub,jsub,ksub, nspheres, spherelists, 2)
+    call fill_new_isfluid_inlist(isub,jsub,ksub, nspheres, spherelists, 2)
 
-    call helper_mapping_new_isfluid(isub,jsub,ksub, nspheredeads, spherelistdeads, 4)
+    call fill_new_isfluid_inlist(isub,jsub,ksub, nspheredeads, spherelistdeads, 4)
 
     new_isfluid(isub,jsub,ksub)=5
   enddo
