@@ -9091,6 +9091,8 @@
   CYCLE_OUT_INTERVAL(j, jmin, jmax)
   CYCLE_OUT_INTERVAL(k, kmin, kmax)
 
+  write (6,*) __FILE__,__LINE__, "i,j,k=", i,j,k
+
   if (isInternal) then
     if(isfluid(i,j,k)/=4)isfluid(i,j,k)=2
   else
@@ -9109,7 +9111,7 @@
 
 
  subroutine init_particle_2_isfluid(isub,jsub,ksub,nspheres, &
-  spherelists,spheredists,nspheredeads,spherelistdeads)
+  spherelists,spheredists,nspheredeads,spherelistdeads, isInternal)
   
 !***********************************************************************
 !     
@@ -9128,11 +9130,13 @@
   integer, allocatable, dimension(:,:), intent(in) :: spherelists
   integer, allocatable, dimension(:,:), intent(in) :: spherelistdeads
   real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
+  logical, intent(in) :: isInternal
   
 
     call helper_init_particle_2_isfluid(isub,jsub,ksub,nspheres, spherelists, .true.)
     call helper_init_particle_2_isfluid(isub,jsub,ksub,nspheredeads, spherelistdeads, .false.)
 
+   if (isInternal) then
     isfluid(isub,jsub,ksub)=5
     rhoR(isub,jsub,ksub)=MINDENS
     u(isub,jsub,ksub)=ZERO
@@ -9142,6 +9146,7 @@
     if(.not. lsingle_fluid)then
      rhoB(isub,jsub,ksub)=MINDENS
     endif
+   endif
  end subroutine init_particle_2_isfluid
  
 
@@ -9209,6 +9214,7 @@
       i=pimage(ixpbc,i,nx)
       j=pimage(iypbc,j,ny)
       k=pimage(izpbc,k,nz)
+
       if(lrotate)then
         rtemp(1)=real(ii,kind=PRC)-xx
         rtemp(2)=real(jj,kind=PRC)-yy
@@ -9221,6 +9227,7 @@
         call node_to_particle_bounce_back_bc(lrotate,nstep,i,j,k,rtemp, &
            otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR)
       endif
+
       !the fluid bounce back is local so I have to do it
       if(i==ii.and.j==jj.and.k==kk)then
         if(i<imin .or. i>imax)cycle
@@ -9240,6 +9247,7 @@
            otemp,vx,vy,vz,rhoR,aoptpR)
         endif
       endif
+
     enddo
     
   else
@@ -9254,6 +9262,7 @@
       i=pimage(ixpbc,i,nx)
       j=pimage(iypbc,j,ny)
       k=pimage(izpbc,k,nz)
+
       if(lrotate)then
         rtemp(1)=real(ii,kind=PRC)-xx
         rtemp(2)=real(jj,kind=PRC)-yy
@@ -9261,6 +9270,7 @@
         modr=modulvec(rtemp)
         rtemp(1:3)=rdimx/modr*rtemp(1:3)
       endif
+
       if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
        k>=kmin .and. k<=kmax)then
         call node_to_particle_bounce_back_bc(lrotate,nstep,i,j,k,rtemp, &
@@ -9268,6 +9278,7 @@
         call node_to_particle_bounce_back_bc(lrotate,nstep,i,j,k,rtemp, &
          otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoB,aoptpB)
       endif
+
       !the fluid bounce back is local so I have to do it
       if(i==ii.and.j==jj.and.k==kk)then
         if(i<imin .or. i>imax)cycle
@@ -9293,6 +9304,7 @@
            otemp,vx,vy,vz,rhoB,aoptpB)
         endif
       endif
+
     enddo
   endif
   
@@ -10403,6 +10415,7 @@
   !delete fluid 
   do myi=1,natmssub
     iatm=atmbook(myi)
+    write (6,*) __FILE__,__LINE__, "iatm=",iatm
     if(.not. lmoved(iatm))cycle
 
     isub=nint(xx(iatm))
@@ -10579,6 +10592,7 @@ end subroutine compute_secbelt_density_twofluids
   ltest(1)=.false.
   do myi=1,natmssub
     iatm=atmbook(myi)
+    write (6,*) __FILE__,__LINE__, "iatm=",iatm
     itype=ltype(iatm)
     isub=nint(xx(iatm))
     jsub=nint(yy(iatm))
@@ -11078,6 +11092,7 @@ end subroutine compute_secbelt_density_twofluids
   !delete fluid 
   do myi=1,natmssub
     iatm=atmbook(myi)
+    write (6,*) __FILE__,__LINE__, "iatm=",iatm
     isub=nint(xx(iatm))
     jsub=nint(yy(iatm))
     ksub=nint(zz(iatm))

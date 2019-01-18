@@ -1333,7 +1333,7 @@
   real(kind=PRC), allocatable, dimension(:,:) :: ots
   logical, intent(in) :: lvelocity
   
-  integer :: i,j,k,l,iatm,ids,idrank_sub,itype, myi
+  integer :: i,j,k,l,iatm,ids,idrank_sub,itype, myi, num_ext
   logical :: ltest(1),lqinput
   integer, dimension(0:mxrank-1) :: isend_nparticle
   integer :: isend_nvar
@@ -1449,7 +1449,9 @@
   
 
   ! Count my atoms, put them in atmbook list
-  natms = 0
+  ! Also count halo atoms, at end of atmbook
+  natms = 0; num_ext = 0
+
   do i=1,natms_tot
 #ifndef DEOWERN
     ids=ownernfind_arr(nint(xxx(i)),nint(yyy(i)),nint(zzz(i)), &
@@ -1461,11 +1463,12 @@
     if (idrank==ids) then
         natms = natms + 1
         atmbook(natms) = i
+    else
+        call checkIfExtAtom(i, num_ext)
     endif
   enddo
 
   write(6,*) "ID=", idrank, atmbook(1:natms)
-
 
 #if 1
   call print_all_particles(100,'atomSetup',1)
@@ -1576,6 +1579,7 @@
     
     do myi=1,natms
       i = atmbook(myi)
+	  write (6,*) __FILE__,__LINE__, "i=", i
       rnorm=ONE/sqrt(q0(i)**TWO+q1(i)**TWO+q2(i)**TWO+q3(i)**TWO)
       q0(i)=q0(i)*rnorm
       q1(i)=q1(i)*rnorm
@@ -1595,9 +1599,57 @@
   
   ! ATTENTION DOMAIN DECOMPOSITION SHOULD BE ADDED HERE AND natms_ext PROPERLY SET
   ! 1) First parallelization with all atoms on all processes FB
-  natms_ext=natms
+  do iatm=1, num_ext
+    atmbook(natms+iatm) = atmbook(mxatms - num_ext + iatm)
+  enddo
+  natms_ext= natms + num_ext
+
+  do myi=1,natms_ext
+      i = atmbook(myi)
+      write (6,*) __FILE__,__LINE__, "i=", i
+  enddo
  end subroutine initialize_map_particles
  
+
+ subroutine checkIfExtAtom(i, num_ext)
+  implicit none
+  integer, intent(in) :: i
+  integer, intent(inout) :: num_ext
+  real(kind=PRC) :: radius
+  integer :: extrema(3,4)
+  integer :: ids, c
+
+  radius = floor(rdimx(1))+1
+  extrema(:,1) = [ nint(xxx(i)-radius), nint(yyy(i)-radius), nint(zzz(i)-radius) ]
+  extrema(:,2) = [ nint(xxx(i)+radius), nint(yyy(i)+radius), nint(zzz(i)+radius) ]
+  extrema(:,3) = [ pimage(ixpbc, extrema(1,1),nx), pimage(iypbc, extrema(2,1),ny), pimage(izpbc, extrema(3,1),nz) ]
+  extrema(:,4) = [ pimage(ixpbc, extrema(1,2),nx), pimage(iypbc, extrema(2,2),ny), pimage(izpbc, extrema(3,2),nz) ]
+
+  do c = 1,4
+    if (extrema(1,c) < 0) extrema(1,c)=0
+    if (extrema(2,c) < 0) extrema(2,c)=0
+    if (extrema(3,c) < 0) extrema(3,c)=0
+
+    if (extrema(1,c) > nx+1) extrema(1,c)=nx+1
+    if (extrema(2,c) > ny+1) extrema(2,c)=ny+1
+    if (extrema(3,c) > nz+1) extrema(3,c)=nz+1
+
+#ifndef DEOWERN
+    ids=ownernfind_arr(extrema(1,c),extrema(2,c),extrema(3,c), &
+        nx,ny,nz,nbuff,ownern)
+#else
+    ids=ownernfind(extrema(1,c),extrema(2,c),extrema(3,c), &
+        mxrank,gminx,gmaxx,gminy,gmaxy,gminz,gmaxz)
+#endif
+
+    if (idrank==ids) then
+        atmbook(mxatms - num_ext) = i
+        num_ext = num_ext + 1
+        exit
+    endif
+  enddo
+
+ end subroutine checkIfExtAtom
 
  subroutine init_particles_fluid_interaction
   
@@ -1613,7 +1665,6 @@
 !***********************************************************************
  
   implicit none
-  
   integer :: myi, iatm,i,j,k,l
   
   if(.not. lparticles)return
@@ -1623,13 +1674,14 @@
  
 
  ! initialize isfluid according to the particle presence
-  do myi=1,natms
+  do myi=1,natms_ext
     iatm = atmbook(myi)
+	write (6,*) __FILE__,__LINE__, "iatm=", iatm
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
     call init_particle_2_isfluid(i,j,k,nsphere,spherelist,spheredist, &
-     nspheredead,spherelistdead)
+     nspheredead,spherelistdead, i <= natms)
   enddo
   
  !push the isfluid communication if necessary
@@ -1684,7 +1736,6 @@
 !***********************************************************************
  
   implicit none
-  
   integer, intent(in) :: nstep
   
   integer :: myi, iatm,i,j,k,itype
@@ -1693,6 +1744,7 @@
   
   do myi=1,natms
     iatm = atmbook(myi)
+	 write (6,*) __FILE__,__LINE__, "iatm=", iatm
     fxb(iatm)=ZERO
     fyb(iatm)=ZERO
     fzb(iatm)=ZERO
@@ -1702,13 +1754,15 @@
   
   do myi=1,natms
     iatm = atmbook(myi)
+	 write (6,*) __FILE__,__LINE__, "iatm=", iatm
     txb(iatm)=ZERO
     tyb(iatm)=ZERO
     tzb(iatm)=ZERO
   enddo
   
-  do myi=1,natms
+  do myi=1,natms_ext
     iatm = atmbook(myi)
+	write (6,*) __FILE__,__LINE__, "iatm=", iatm
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
@@ -1723,33 +1777,8 @@
     qversor(2)=oyy(iatm)
     qversor(3)=ozz(iatm)
     oat=qtrimult(qtemp,qversor,qconj(qtemp))
-
     
-    call particle_bounce_back(nstep,iatm,.true.,lrotate,i,j,k,nsphere, &
-     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
-     xxx(iatm),yyy(iatm),zzz(iatm), &
-     vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxb(iatm),fyb(iatm),fzb(iatm),oat(1),oat(2),oat(3), &
-     txb(iatm),tyb(iatm),tzb(iatm))
-  enddo
-  
-  
-  do iatm=natms+1,natms_ext
-    i=nint(xxx(iatm))
-    j=nint(yyy(iatm))
-    k=nint(zzz(iatm))
-    itype=ltype(iatm)
-    !transform oxx oyy ozz from body ref to world ref
-    qtemp(0)=q0(iatm)
-    qtemp(1)=q1(iatm)
-    qtemp(2)=q2(iatm)
-    qtemp(3)=q3(iatm)
-    qversor(0)=ZERO
-    qversor(1)=oxx(iatm)
-    qversor(2)=oyy(iatm)
-    qversor(3)=ozz(iatm)
-    oat=qtrimult(qtemp,qversor,qconj(qtemp))
-    call particle_bounce_back(nstep,iatm,.false.,lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(nstep,iatm,myi<=natms,lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
@@ -1759,37 +1788,23 @@
   
   else
   
-  do iatm=1,natms
+  do iatm=1,natms_ext
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
     itype=ltype(iatm)
-    call particle_bounce_back(nstep,iatm,.true.,lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(nstep,iatm,myi<=natms,lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm))
   enddo
-  
-  
-  do iatm=natms+1,natms_ext
-    i=nint(xxx(iatm))
-    j=nint(yyy(iatm))
-    k=nint(zzz(iatm))
-    itype=ltype(iatm)
-    call particle_bounce_back(nstep,iatm,.false.,lrotate,i,j,k,nsphere, &
-     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
-     xxx(iatm),yyy(iatm),zzz(iatm), &
-     vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxb(iatm),fyb(iatm),fzb(iatm))
-  enddo
-  
+
   endif
-  
-  return
-  
+
  end subroutine apply_particle_bounce_back
  
+
  subroutine force_particle_bounce_back()
  
 !***********************************************************************
@@ -2150,6 +2165,7 @@
     moved(1)=0
     do myi=1,natms
       i = atmbook(myi)
+	  write (6,*) __FILE__,__LINE__, "i=", i
       dr=tstepatm**2*(xold(i)**2+yold(i)**2+zold(i)**2)
       if(dr.gt.rmax)moved(1)=moved(1)+1
     enddo
@@ -2209,10 +2225,12 @@
     ii = 0
     do myi = 1,natms
       iatm = atmbook(myi)
+	 write (6,*) __FILE__,__LINE__, "iatm=", iatm
       ii=myi
       k=0
       do myj = myi+1,natms
         jatm = atmbook(myj)
+	 write (6,*) __FILE__,__LINE__, "jatm=", jatm
         k=k+1
         xdf(k)=xxx(jatm)-xxx(iatm)
         ydf(k)=yyy(jatm)-yyy(iatm)
@@ -2225,6 +2243,7 @@
       ilentry=0
       do myj = myi+1,natms
         jatm = atmbook(myj)
+	 write (6,*) __FILE__,__LINE__, "jatm=", jatm
         k=k+1
         rsq=xdf(k)**TWO + ydf(k)**TWO + zdf(k)**TWO
         if(rsq<=rsqcut) then
@@ -2273,6 +2292,7 @@
   
   do myi = 1,natms
     i = atmbook(myi)
+	 write (6,*) __FILE__,__LINE__, "i=", i
     fxx(i)=ext_fxx
     fyy(i)=ext_fyy
     fzz(i)=ext_fzz
@@ -2283,7 +2303,7 @@
   !initialize also the torque of forces
   do myi = 1,natms
     i = atmbook(myi)
-    tqx(i)=ext_tqx
+	tqx(i)=ext_tqx
     tqy(i)=ext_tqy
     tqz(i)=ext_tqz
   enddo
@@ -2589,6 +2609,7 @@
   
     do myi = 1,natms
       iatm = atmbook(myi)
+	 write (6,*) __FILE__,__LINE__, "iatm=", iatm
       itype=ltype(iatm)
       if(all(mskvdw(1:ntpvdw,itype)/=ivdw))cycle
       ii = 0
@@ -2739,6 +2760,7 @@
   
   do myi=1,natms
     iatm = atmbook(myi)
+	 write (6,*) __FILE__,__LINE__, "iatm=", iatm
     itype=ltype(iatm)
 
     if(ixpbc==0) then
@@ -2860,6 +2882,7 @@
       
   do myi=1,natms
     i = atmbook(myi)
+	write (6,*) __FILE__,__LINE__, "i=", i
     sigma=sqrt(tempboltz*init_temp*rmass(ltype(i)))
     vxx(i)=sigma*gauss()
     vyy(i)=sigma*gauss()
@@ -2888,6 +2911,7 @@
   ! store initial values of position and velocity    
   do myi=1,natms
     i = atmbook(myi)
+	 write (6,*) __FILE__,__LINE__, "i=", i
     xxo(i)=xxx(i)
     yyo(i)=yyy(i)
     zzo(i)=zzz(i)
@@ -2912,11 +2936,10 @@
 !***********************************************************************
       
   implicit none
-  
-  integer :: i
-      
+  integer :: i, myi
   real(kind=PRC) :: buffer(1),sumke,ratio_temp,mytemp,ratio_sigma
   
+
 ! compute kinetic energy
   call getkin(sumke)
   
@@ -2931,15 +2954,15 @@
   ratio_temp=init_temp/mytemp  
   ratio_sigma=sqrt(init_temp/mytemp)
   
-  forall (i=1:natms)
+  do myi=1,natms
+     i = atmbook(myi)
+	 write (6,*) __FILE__,__LINE__, "i=", i
      vxx(i)=ratio_sigma*vxx(i)
      vyy(i)=ratio_sigma*vyy(i)
      vzz(i)=ratio_sigma*vzz(i)
-  end forall
-  
-  return
-      
+  enddo
  end subroutine vscaleg
+
  
  subroutine initialize_integrator_lf()
 
@@ -2955,7 +2978,7 @@
 !***********************************************************************
 
   implicit none
-  integer :: i
+  integer :: i, myi,ltypeloc
   
   
   if(lvv)return
@@ -2965,11 +2988,14 @@
   select case(keyint)
   case (1) 
 ! report the atoms velocity to half timestep back for leap frog
-    forall(i=1:natms)      
-      vxx(atmbook(i))=vxx(atmbook(i))-HALF*tstepatm*rmass(ltype(atmbook(i)))*fxx(atmbook(i))
-      vyy(atmbook(i))=vyy(atmbook(i))-HALF*tstepatm*rmass(ltype(atmbook(i)))*fyy(i)
-      vzz(atmbook(i))=vzz(atmbook(i))-HALF*tstepatm*rmass(ltype(atmbook(i)))*fzz(atmbook(i))
-    end forall
+    do myi=1,natms
+      i = atmbook(myi)
+	 write (6,*) __FILE__,__LINE__, "i=", i
+      ltypeloc = ltype(i)
+      vxx(i)=vxx(i)-HALF*tstepatm*rmass(ltypeloc)*fxx(i)
+      vyy(i)=vyy(i)-HALF*tstepatm*rmass(ltypeloc)*fyy(i)
+      vzz(i)=vzz(i)-HALF*tstepatm*rmass(ltypeloc)*fzz(i)
+    enddo
 
   case default
     return
@@ -3031,6 +3057,7 @@
 ! move atoms by leapfrog algorithm    
   do myi=1,natms
     i = atmbook(myi)
+	 write (6,*) __FILE__,__LINE__, "i=", i
 !   update velocities       
     bxx(i)=vxx(i)+tstepatm*rmass(ltype(i))*fxx(i)
     byy(i)=vyy(i)+tstepatm*rmass(ltype(i))*fyy(i)
@@ -3044,6 +3071,7 @@
 #if 1
   do myi=1,natms
     i = atmbook(myi)
+	 write (6,*) __FILE__,__LINE__, "i=", i
     if(abs(bxx(i))>ONE .or. abs(byy(i))>ONE .or. abs(bzz(i))>ONE )then
       write(6,*)'WARNING - velocity cap applied at step ',nstepsub
       if(bxx(i)>cssq)bxx(i)=cssq
@@ -3060,6 +3088,7 @@
 ! calculate full timestep velocity
   do myi=1,natms
     i = atmbook(myi)
+	 write (6,*) __FILE__,__LINE__, "i=", i
     vxx(i)=HALF*(vxx(i)+bxx(i))
     vyy(i)=HALF*(vyy(i)+byy(i))
     vzz(i)=HALF*(vzz(i)+bzz(i))
@@ -3074,6 +3103,7 @@
 ! restore free atom half step velocity   
   do myi=1,natms
     i = atmbook(myi)
+	 write (6,*) __FILE__,__LINE__, "i=", i
     vxx(i)=bxx(i)
     vyy(i)=byy(i)
     vzz(i)=bzz(i)
@@ -3121,6 +3151,7 @@
 
   do myi=1,natms
       i = atmbook(myi)
+	 write (6,*) __FILE__,__LINE__, "i=", i
       itype=ltype(i)
       
       !current rotational matrix 
@@ -4165,6 +4196,7 @@
   
   do myi=1,natms
     i = atmbook(myi)
+	 write (6,*) __FILE__,__LINE__, "i=", i
     engkes=engkes+weight(ltype(i))*(vxx(i)**TWO+vyy(i)**TWO+vzz(i)**TWO)
   enddo
   
