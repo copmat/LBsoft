@@ -10833,7 +10833,7 @@ end subroutine compute_secbelt_density_twofluids
  end subroutine particle_create_fluids
  
 
- subroutine erase_fluids_in_particles(natmssub,nspheres,spherelists, &
+ subroutine erase_fluids_in_particles(natmssub,atmbook,nspheres,spherelists, &
    spheredists,nspheredeads,spherelistdeads,ltype,xx,yy,zz,vx,vy,vz, &
    rdimx,rdimy,rdimz)
   
@@ -10849,8 +10849,8 @@ end subroutine compute_secbelt_density_twofluids
 !***********************************************************************
   
   implicit none
-  
   integer, intent(in) :: natmssub,nspheres,nspheredeads
+  integer, allocatable, intent(in) :: atmbook(:)
   integer, allocatable, dimension(:,:), intent(in) :: spherelists, &
    spherelistdeads
   real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
@@ -10860,7 +10860,7 @@ end subroutine compute_secbelt_density_twofluids
   real(kind=PRC), allocatable, dimension(:), intent(in) :: rdimx,rdimy,rdimz
   
   integer :: i,j,k,l,ll,isub,jsub,ksub,iatm,io,jo,ko,itype
-  integer :: ishift,jshift,kshift
+  integer :: ishift,jshift,kshift, myi
   integer, save :: imin,imax,jmin,jmax,kmin,kmax
   logical, save :: lfirst=.true.
   real(kind=PRC) :: Rsum,Bsum,Dsum,ii,jj,kk,eps,Usum,Vsum,Wsum
@@ -10877,7 +10877,9 @@ end subroutine compute_secbelt_density_twofluids
   endif
   
   if(lsingle_fluid)then
-    do iatm=1,natmssub
+    do myi=1,natmssub
+      iatm=atmbook(myi)
+      write (6,*) __FILE__,__LINE__, "iatm=",iatm
       itype=ltype(iatm)
       isub=nint(xx(iatm))
       jsub=nint(yy(iatm))
@@ -10943,7 +10945,9 @@ end subroutine compute_secbelt_density_twofluids
       w(isub,jsub,ksub)=ZERO
     enddo
   else
-    do iatm=1,natmssub
+    do myi=1,natmssub
+      iatm=atmbook(myi)
+      write (6,*) __FILE__,__LINE__, "iatm=",iatm
       itype=ltype(iatm)
       isub=nint(xx(iatm))
       jsub=nint(yy(iatm))
@@ -11016,10 +11020,8 @@ end subroutine compute_secbelt_density_twofluids
       w(isub,jsub,ksub)=ZERO
     enddo
   endif
-  
-  return
-  
  end subroutine erase_fluids_in_particles
+
  
  subroutine fill_new_isfluid_inlist(isub,jsub,ksub, nspheres, spherelists, value)
  implicit none

@@ -2006,7 +2006,7 @@
   
   if(.not. lparticles)return
  
-  call erase_fluids_in_particles(natms,nsphere,spherelist, &
+  call erase_fluids_in_particles(natms,atmbook, nsphere,spherelist, &
    spheredist,nspheredead,spherelistdead,ltype,xxx,yyy,zzz, &
    vxx,vyy,vzz,rdimx,rdimy,rdimz)
   
