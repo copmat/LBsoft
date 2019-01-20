@@ -1468,7 +1468,12 @@
     endif
   enddo
 
-  write(6,*) "ID=", idrank, atmbook(1:natms)
+  ! ATTENTION DOMAIN DECOMPOSITION SHOULD BE ADDED HERE AND natms_ext PROPERLY SET
+  ! 1) First parallelization with all atoms on all processes FB
+  do iatm=1, num_ext
+    atmbook(natms+iatm) = atmbook(mxatms - num_ext + iatm)
+  enddo
+  natms_ext= natms + num_ext
 
 #if 1
   call print_all_particles(100,'atomSetup',1)
@@ -1519,7 +1524,7 @@
       call warning(19)
       !transform the rotational matrix in quaternions using an uniform
       !distribution
-      do myi=1,natms
+      do myi=1,natms_ext
         i = atmbook(myi)
         xsubm(1:3)=ZERO
         ysubm(1:3)=ZERO
@@ -1549,7 +1554,7 @@
       enddo
     else
       !transform the Euler angles to quaternions
-      do myi=1,natms
+      do myi=1,natms_ext
         i = atmbook(myi)
         dmio(1)=q1(i)
         dmio(2)=q2(i)
@@ -1577,7 +1582,7 @@
     endif
 #endif
     
-    do myi=1,natms
+    do myi=1,natms_ext
       i = atmbook(myi)
 	  write (6,*) __FILE__,__LINE__, "i=", i
       rnorm=ONE/sqrt(q0(i)**TWO+q1(i)**TWO+q2(i)**TWO+q3(i)**TWO)
@@ -1597,16 +1602,9 @@
     
   endif
   
-  ! ATTENTION DOMAIN DECOMPOSITION SHOULD BE ADDED HERE AND natms_ext PROPERLY SET
-  ! 1) First parallelization with all atoms on all processes FB
-  do iatm=1, num_ext
-    atmbook(natms+iatm) = atmbook(mxatms - num_ext + iatm)
-  enddo
-  natms_ext= natms + num_ext
-
   do myi=1,natms_ext
       i = atmbook(myi)
-      write (6,*) __FILE__,__LINE__, "i=", i
+      write (6,*) __FILE__,__LINE__, "i=", i, i<=natms
   enddo
  end subroutine initialize_map_particles
  
@@ -1742,9 +1740,9 @@
   real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3)
   
   
-  do myi=1,natms
+  do myi=1,natms_ext
     iatm = atmbook(myi)
-	 write (6,*) __FILE__,__LINE__, "iatm=", iatm
+	write (6,*) __FILE__,__LINE__, "iatm=", iatm
     fxb(iatm)=ZERO
     fyb(iatm)=ZERO
     fzb(iatm)=ZERO
@@ -1752,17 +1750,13 @@
   
   if(lrotate)then
   
-  do myi=1,natms
-    iatm = atmbook(myi)
-	 write (6,*) __FILE__,__LINE__, "iatm=", iatm
-    txb(iatm)=ZERO
-    tyb(iatm)=ZERO
-    tzb(iatm)=ZERO
-  enddo
-  
   do myi=1,natms_ext
     iatm = atmbook(myi)
 	write (6,*) __FILE__,__LINE__, "iatm=", iatm
+    txb(iatm)=ZERO
+    tyb(iatm)=ZERO
+    tzb(iatm)=ZERO
+
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
@@ -1778,7 +1772,7 @@
     qversor(3)=ozz(iatm)
     oat=qtrimult(qtemp,qversor,qconj(qtemp))
     
-    call particle_bounce_back(nstep,iatm,myi<=natms,lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
@@ -1788,12 +1782,14 @@
   
   else
   
-  do iatm=1,natms_ext
+  do myi=1,natms_ext
+    iatm = atmbook(myi)
+    write (6,*) __FILE__,__LINE__, "iatm=", iatm
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
     itype=ltype(iatm)
-    call particle_bounce_back(nstep,iatm,myi<=natms,lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
@@ -2026,15 +2022,14 @@
 !***********************************************************************
   
   implicit none
-  
   integer, intent(in) :: nstep
-  
   integer :: iatm,i,j,k,itype
   real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3)
   
+
   if(lrotate)then
   
-  do iatm=1,natms
+  do iatm=1,natms_ext
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
@@ -2047,29 +2042,7 @@
     qversor(0:3)=ZERO
     qversor(1)=ONE
     oat=qtrimult(qtemp,qversor,qconj(qtemp))
-    call compute_sc_particle_interact(nstep,iatm,.true.,lrotate,i,j,k,nsphere, &
-     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
-     xxx(iatm),yyy(iatm),zzz(iatm), &
-     vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxx(iatm),fyy(iatm),fzz(iatm),oat(1),oat(2),oat(3), &
-     tqx(iatm),tqy(iatm),tqz(iatm))
-  enddo
-  
-  
-  do iatm=natms+1,natms_ext
-    i=nint(xxx(iatm))
-    j=nint(yyy(iatm))
-    k=nint(zzz(iatm))
-    itype=ltype(iatm)
-    !transform xversor from body ref to world ref
-    qtemp(0)=q0(iatm)
-    qtemp(1)=q1(iatm)
-    qtemp(2)=q2(iatm)
-    qtemp(3)=q3(iatm)
-    qversor(0:3)=ZERO
-    qversor(1)=ONE
-    oat=qtrimult(qtemp,qversor,qconj(qtemp))
-    call compute_sc_particle_interact(nstep,iatm,.false.,lrotate,i,j,k,nsphere, &
+    call compute_sc_particle_interact(nstep,iatm, i<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
@@ -2084,19 +2057,7 @@
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
     itype=ltype(iatm)
-    call compute_sc_particle_interact(nstep,iatm,.true.,lrotate,i,j,k,nsphere, &
-     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
-     xxx(iatm),yyy(iatm),zzz(iatm), &
-     vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxx(iatm),fyy(iatm),fzz(iatm))
-  enddo
-  
-  do iatm=natms+1,natms_ext
-    i=nint(xxx(iatm))
-    j=nint(yyy(iatm))
-    k=nint(zzz(iatm))
-    itype=ltype(iatm)
-    call compute_sc_particle_interact(nstep,iatm,.false.,lrotate,i,j,k,nsphere, &
+    call compute_sc_particle_interact(nstep,iatm,i<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
@@ -2104,10 +2065,6 @@
   enddo
   
   endif
-     
-  
-  return
-  
  end subroutine compute_psi_sc_particles
  
  
@@ -2148,6 +2105,8 @@
 
     newjob=.false.
     newlst=.true.
+
+    return
   endif
     
 !   integrate velocities 

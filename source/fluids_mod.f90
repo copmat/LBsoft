@@ -9313,61 +9313,6 @@
   
  end subroutine particle_bounce_back
 
- subroutine node_to_particle_bounce_back(nstep,i,j,k,vx,vy,vz,fx,fy,fz, &
-  rhosub,aoptp)
-
-!***********************************************************************
-!
-!     LBsoft subroutine to apply the bounce back of the fluid
-!     on a particle surface node
-!
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification November 2018
-!
-!***********************************************************************
-
-  implicit none
-  
-  integer, intent(in) :: nstep,i,j,k
-  real(kind=PRC), intent(in) :: vx,vy,vz
-  real(kind=PRC), intent(inout) :: fx,fy,fz
-  real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub
-  type(REALPTR), dimension(0:links):: aoptp
-
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  real(kind=PRC) :: f2p
-  integer :: ii,jj,kk, iloop,indlow,indhig
-
-
-  do iloop = 1, 9
-    indlow = iloop*2 - 1
-    indhig = iloop*2
-
-    !force on particle fx fy fz
-    !eq. 11.2 from page 437 Kruger's book "the lattice boltzmann method"
-
-    ii = i+ex(indlow); jj=j+ey(indlow); kk=k+ez(indlow)
-    if(isfluid(ii,jj,kk)==1)then
-        f2p=TWO*real(aoptp(indhig)%p(ii,jj,kk),kind=PRC)- &
-            p(indhig)*pref_bouzidi*rhosub(ii,jj,kk )*(dex(indhig)*vx + dey(indhig)*vy + dez(indhig)*vz)
-        fx=fx+f2p*dex(indhig)
-        fy=fy+f2p*dey(indhig)
-        fz=fz+f2p*dez(indhig)
-    endif
-
-    ii = i+ex(indhig); jj=j+ey(indhig); kk=k+ez(indhig)
-    if(isfluid(ii,jj,kk)==1)then
-        f2p=TWO*real(aoptp(indlow)%p(ii,jj,kk),kind=PRC)- &
-            p(indlow)*pref_bouzidi*rhosub(ii,jj,kk )*(dex(indlow)*vx + dey(indlow)*vy + dez(indlow)*vz)
-        fx=fx+f2p*dex(indlow)
-        fy=fy+f2p*dey(indlow)
-        fz=fz+f2p*dez(indlow)
-    endif
-  enddo
-
- end subroutine node_to_particle_bounce_back
-  
  subroutine node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rversor, &
    otemp,vxs,vys,vzs,fx,fy,fz,tx,ty,tz,rhosub,aoptp)
  
