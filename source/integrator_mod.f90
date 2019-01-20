@@ -143,17 +143,16 @@
 !***********************************************************************
  
   implicit none
-  
   real(kind=PRC), intent(inout) :: mytime
-  
   real(kind=PRC) :: new_time
-  
   real(kind=PRC)::myrho,myu,myv,myw
   logical :: ltest
   integer :: itemp,jtemp,ktemp,i,j,k,l,m,ii,jj,kk,i2,j2,k2,i3,j3,k3
   integer(kind=IPRC) :: i4
   logical :: newlst
   
+
+  write (6,*) __FILE__,__LINE__
   new_time = real(nstep,kind=PRC)*tstep
   
   if(lparticles)then

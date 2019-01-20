@@ -1604,7 +1604,7 @@
   
   do myi=1,natms_ext
       i = atmbook(myi)
-      write (6,*) __FILE__,__LINE__, "i=", i, i<=natms
+      write (6,*) __FILE__,__LINE__, "i=", i, myi<=natms
   enddo
  end subroutine initialize_map_particles
  
@@ -1679,7 +1679,7 @@
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
     call init_particle_2_isfluid(i,j,k,nsphere,spherelist,spheredist, &
-     nspheredead,spherelistdead, i <= natms)
+     nspheredead,spherelistdead, myi <= natms)
   enddo
   
  !push the isfluid communication if necessary
@@ -2046,7 +2046,7 @@
     qversor(0:3)=ZERO
     qversor(1)=ONE
     oat=qtrimult(qtemp,qversor,qconj(qtemp))
-    call compute_sc_particle_interact(nstep,iatm, i<=natms, lrotate,i,j,k,nsphere, &
+    call compute_sc_particle_interact(nstep,iatm, iatm<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
@@ -2061,7 +2061,7 @@
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
     itype=ltype(iatm)
-    call compute_sc_particle_interact(nstep,iatm,i<=natms, lrotate,i,j,k,nsphere, &
+    call compute_sc_particle_interact(nstep,iatm,iatm<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &

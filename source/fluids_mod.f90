@@ -3398,13 +3398,13 @@
 !***********************************************************************
   
   implicit none
-  
   integer :: i,j,k,l
-  
   real(kind=PRC) :: ddx,ddy,ddz,ddxB,ddyB,ddzB
-  
   integer, intent(in) :: nstep
   
+  write (6,*) __FILE__,__LINE__, "HERE"
+  flush(6)
+
   !compute density and accumulate mass flux
   
   !red fluid
@@ -3602,7 +3602,17 @@
       v(i,j,k)    = f18R(i,j,k)*ddy + v(i,j,k)
       w(i,j,k)    = f18R(i,j,k)*ddz + w(i,j,k)
     end forall
-    
+
+    do k=minz,maxz
+     do j=miny,maxy
+      do i=minx,maxx
+        if(rhoR(i,j,k)==ZERO .and. isfluid(i,j,k)==1)then
+            write (6,*) __FILE__,__LINE__, "zero rho at:i,j,k=", i,j,k,  rhoR(i,j,k)
+        endif
+      enddo
+     enddo
+    enddo
+
     !compute speed from mass flux
     forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
       u(i,j,k) = u(i,j,k)/rhoR(i,j,k)
@@ -3887,10 +3897,8 @@
     v(i,j,k) = v(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
     w(i,j,k) = w(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
   end forall
-  
-  return
- 
  end subroutine moments_fluids
+
  
  subroutine probe_red_moments_in_node(i,j,k,dtemp1,dtemp2,dtemp3,dtemp4)
  
