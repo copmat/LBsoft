@@ -9224,7 +9224,7 @@
       endif
       if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
        k>=kmin .and. k<=kmax)then
-        call node_to_particle_bounce_back_bc(lrotate,nstep,i,j,k,rtemp, &
+        call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
            otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR)
       endif
 
@@ -9398,9 +9398,9 @@
         ftemp(1)=f2p*dex(indhig)
         ftemp(2)=f2p*dey(indhig)
         ftemp(3)=f2p*dez(indhig)
-        tx=tx+xcross(rtemp,ftemp)
-        ty=ty+ycross(rtemp,ftemp)
-        tz=tz+zcross(rtemp,ftemp)
+        tx=tx+xcross(rtemp,ftemp) * abs(dex(indhig))
+        ty=ty+ycross(rtemp,ftemp) * abs(dey(indhig))
+        tz=tz+zcross(rtemp,ftemp) * abs(dez(indhig))
       endif
     endif
   endif
@@ -9446,9 +9446,9 @@
         ftemp(1)=f2p*dex(indlow)
         ftemp(2)=f2p*dey(indlow)
         ftemp(3)=f2p*dez(indlow)
-        tx=tx+xcross(rtemp,ftemp)
-        ty=ty+ycross(rtemp,ftemp)
-        tz=tz+zcross(rtemp,ftemp)
+        tx=tx+xcross(rtemp,ftemp) * abs(dex(indlow))
+        ty=ty+ycross(rtemp,ftemp) * abs(dey(indlow))
+        tz=tz+zcross(rtemp,ftemp) * abs(dez(indlow))
       endif
     endif
   endif
