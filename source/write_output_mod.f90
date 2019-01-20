@@ -22,7 +22,7 @@
  use particles_mod,  only : natms,xxx,yyy,zzz,lparticles,cell, &
   ishape,lrotate,natms,natms_tot,q0,q1,q2,q3,vxx,vyy,vzz, &
   take_rotversorx,take_rotversory,take_rotversorz, &
-  clean_fluid_inside_particle,q2eul
+  clean_fluid_inside_particle,q2eul, atmbook, natms_ext
  
   private
   
@@ -1095,14 +1095,11 @@
 !***********************************************************************
 
   implicit none
-  
-  integer :: i,j
-  
+  integer :: i,j,myi
   integer, parameter :: ioxyz=280
-  
   character(len=8), parameter :: mystring8='C       '
-  
   real(kind=PRC) :: dtemp(3)
+  
   
   if(.not.lparticles)return
   
@@ -1122,15 +1119,17 @@
       open(ioxyz,file='restart.xyz',status='old',action='write', &
        position='append')
       if(lrotate)then
-        do i=1,natms
+        do myi=1,natms_ext
+          i = atmbook(myi)
           call q2eul((/q0(i),q1(i),q2(i),q3(i)/),dtemp(1),dtemp(3),dtemp(2))
-          write(ioxyz,'(a8,9g16.8)')mystring8,xxx(i),yyy(i),zzz(i), &
-           vxx(i),vyy(i),vzz(i),dtemp(1:3)
+          write(ioxyz,'(a8,9g16.8,i10)')mystring8,xxx(i),yyy(i),zzz(i), &
+           vxx(i),vyy(i),vzz(i),dtemp(1:3),i
         enddo
       else
-        do i=1,natms
-          write(ioxyz,'(a8,6g16.8)')mystring8,xxx(i),yyy(i),zzz(i), &
-           vxx(i),vyy(i),vzz(i)
+        do myi=1,natms
+          i = atmbook(myi)
+          write(ioxyz,'(a8,6g16.8,i10)')mystring8,xxx(i),yyy(i),zzz(i), &
+           vxx(i),vyy(i),vzz(i),i
         enddo
       endif
       close(ioxyz)

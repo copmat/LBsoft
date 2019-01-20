@@ -864,12 +864,14 @@
   
   implicit none
   
-  integer :: i
+  integer :: i, myi
   real(kind=PRC) :: dtemp(3)
   
   dtemp(1:3)=ZERO
   
-  do i=1,natms
+  do myi=1,natms
+    i = atmbook(myi)
+    write (6,*) __FILE__,__LINE__, "i=", i
     dtemp(1)=dtemp(1)+fxx(i)
     dtemp(2)=dtemp(2)+fyy(i)
     dtemp(3)=dtemp(3)+fzz(i)
@@ -882,11 +884,9 @@
   meanpfx=dtemp(1)/real(natms_tot,kind=PRC)
   meanpfy=dtemp(2)/real(natms_tot,kind=PRC)
   meanpfz=dtemp(3)/real(natms_tot,kind=PRC)
-  
-  return
-  
  end subroutine compute_mean_particle_force
  
+
  subroutine allocate_particle_features()
  
 !***********************************************************************
@@ -1815,21 +1815,24 @@
 !***********************************************************************
  
   implicit none
+  integer :: iatm, myi
   
-  integer :: iatm
-  
+
   !f(t) = (f(t+1/2)+f(t-1/2))/2
-  forall(iatm=1:natms)
+  do myi=1,natms
+    iatm = atmbook(myi)
     fxx(iatm)=fxx(iatm)+(fxb(iatm)+fxbo(iatm))*HALF
     fyy(iatm)=fyy(iatm)+(fyb(iatm)+fybo(iatm))*HALF
     fzz(iatm)=fzz(iatm)+(fzb(iatm)+fzbo(iatm))*HALF
-  end forall
+  enddo
   
-  forall(iatm=1:natms)
+  do myi=1,natms
+    iatm = atmbook(myi)
+    write (6,*) __FILE__,__LINE__, "iatm=", iatm
     fxbo(iatm)=fxb(iatm)
     fybo(iatm)=fyb(iatm)
     fzbo(iatm)=fzb(iatm)
-  end forall
+  enddo
   
   if(.not. lrotate)return
   
@@ -1838,21 +1841,22 @@
 !  forall(iatm=1:natms,abs(tzb(iatm))>0.1d0)tzb(iatm)=tzb(iatm)/abs(tzb(iatm))*0.1d0
   
   !f(t) = (f(t+1/2)+f(t-1/2))/2
-  forall(iatm=1:natms)
+  do myi=1,natms
+    iatm = atmbook(myi)
     tqx(iatm)=tqx(iatm)+(txb(iatm)+txbo(iatm))*HALF
     tqy(iatm)=tqy(iatm)+(tyb(iatm)+tybo(iatm))*HALF
     tqz(iatm)=tqz(iatm)+(tzb(iatm)+tzbo(iatm))*HALF
-  end forall
+  enddo
   
-  forall(iatm=1:natms)
+  do myi=1,natms
+    iatm = atmbook(myi)
+    write (6,*) __FILE__,__LINE__, "iatm=", iatm
     txbo(iatm)=txb(iatm)
     tybo(iatm)=tyb(iatm)
     tzbo(iatm)=tzb(iatm)
-  end forall
-  
-  return
-  
+  enddo
  end subroutine force_particle_bounce_back
+
  
  subroutine merge_particle_force()
  
@@ -2870,7 +2874,7 @@
   ! store initial values of position and velocity    
   do myi=1,natms
     i = atmbook(myi)
-	 write (6,*) __FILE__,__LINE__, "i=", i
+    write (6,*) __FILE__,__LINE__, "i=", i
     xxo(i)=xxx(i)
     yyo(i)=yyy(i)
     zzo(i)=zzz(i)

@@ -9226,6 +9226,9 @@
        k>=kmin .and. k<=kmax)then
         call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
            otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR)
+        write(6,*) __FILE__,__LINE__, "v=", vx,vy,vz
+        write(6,*) __FILE__,__LINE__, "f=", fx,fy,fz
+        write(6,*) __FILE__,__LINE__, "t=", tx,ty,tz
       endif
 
       !the fluid bounce back is local so I have to do it
