@@ -3402,8 +3402,7 @@
   real(kind=PRC) :: ddx,ddy,ddz,ddxB,ddyB,ddzB
   integer, intent(in) :: nstep
   
-  write (6,*) __FILE__,__LINE__, "HERE"
-  flush(6)
+
 
   !compute density and accumulate mass flux
   
@@ -3607,7 +3606,7 @@
      do j=miny,maxy
       do i=minx,maxx
         if(rhoR(i,j,k)==ZERO .and. isfluid(i,j,k)==1)then
-            write (6,*) __FILE__,__LINE__, "zero rho at:i,j,k=", i,j,k,  rhoR(i,j,k)
+            write (6,*) "zero rho at:i,j,k=", i,j,k,  rhoR(i,j,k)
         endif
       enddo
      enddo
@@ -7833,8 +7832,6 @@
 !******************END PART TO MANAGE THE BOUNCEBACK********************
 
 !******************START PART TO MANAGE THE COPY WALL*******************
-#define CYCLE_OUT_INTERVAL(x, a,b) if ((x)<(a) .or. (x)>(b)) cycle
- 
 
  subroutine compute_densities_wall
  
@@ -7850,15 +7847,12 @@
 !***********************************************************************
  
   implicit none
-  
   integer :: i,j,k,l,ishift,jshift,kshift
   REAL(kind=PRC) :: dsum1,dsum2
   REAL(kind=PRC) :: isum
-  
   logical :: ltest(1)=.false.
   
   
-   
    if(lsingle_fluid)then
      do k=minz-1,maxz+1
        do j=miny-1,maxy+1
@@ -9099,8 +9093,6 @@
   CYCLE_OUT_INTERVAL(j, jmin, jmax)
   CYCLE_OUT_INTERVAL(k, kmin, kmax)
 
-  write (6,*) __FILE__,__LINE__, "i,j,k=", i,j,k
-
   if (isInternal) then
     if(isfluid(i,j,k)/=4)isfluid(i,j,k)=2
   else
@@ -9158,7 +9150,7 @@
  end subroutine init_particle_2_isfluid
  
 
- subroutine particle_bounce_back(nstep,iatm,lown,lrotate,isub,jsub,ksub,nspheres, &
+ subroutine particle_bounce_back(debug, nstep,iatm,lown,lrotate,isub,jsub,ksub,nspheres, &
   spherelists,spheredists,rdimx,rdimy,rdimz,xx,yy,zz,vx,vy,vz,&
   fx,fy,fz,ox,oy,oz,tx,ty,tz)
   
@@ -9175,7 +9167,7 @@
   
   implicit none
   
-  logical, intent(in) :: lown,lrotate
+  logical, intent(in) :: lown,lrotate, debug
   integer, intent(in) :: nstep,iatm,isub,jsub,ksub,nspheres
   integer, allocatable, dimension(:,:), intent(in) :: spherelists
   real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
@@ -9233,10 +9225,10 @@
       if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
        k>=kmin .and. k<=kmax)then
         call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
-           otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR)
-        write(6,*) __FILE__,__LINE__, "v=", vx,vy,vz
-        write(6,*) __FILE__,__LINE__, "f=", fx,fy,fz
-        write(6,*) __FILE__,__LINE__, "t=", tx,ty,tz
+           otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug)
+        write(6,*) __FILE__,__LINE__, "i,j,k=", i,j,k
+        write(6,*) __FILE__,__LINE__, "f    =", fx,fy,fz
+        write(6,*) __FILE__,__LINE__, "t    =", tx,ty,tz
       endif
 
       !the fluid bounce back is local so I have to do it
@@ -9318,14 +9310,11 @@
 
     enddo
   endif
-  
-  
-  return
-  
  end subroutine particle_bounce_back
 
+
  subroutine node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rversor, &
-   otemp,vxs,vys,vzs,fx,fy,fz,tx,ty,tz,rhosub,aoptp)
+   otemp,vxs,vys,vzs,fx,fy,fz,tx,ty,tz,rhosub,aoptp, debug)
  
 !***********************************************************************
 !     
@@ -9340,7 +9329,7 @@
  
   implicit none
   
-  logical, intent(in) :: lrotate
+  logical, intent(in) :: lrotate, debug
   integer, intent(in) :: nstep,i,j,k
   real(kind=PRC), intent(in) :: vxs,vys,vzs
   real(kind=PRC), intent(in), dimension(3) :: rversor,otemp
@@ -9384,10 +9373,16 @@
   jo=pimage(iypbc,jo,ny)
   ko=pimage(izpbc,ko,nz)
 
-  if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
-   kk>=minz .and. kk<=maxz)then
-    if(io>=minx .and. io<=maxx .and. jo>=miny .and. jo<=maxy .and. &
-     ko>=minz .and. ko<=maxz)then
+  if(ii>=minx-1 .and. ii<=maxx+1 .and. jj>=miny-1 .and. jj<=maxy+1 .and. &
+   kk>=minz-1 .and. kk<=maxz+1)then
+    if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
+     ko>=minz-1 .and. ko<=maxz+1)then
+
+     if (debug) then
+       write (6,*) __FILE__,__LINE__, "ii,=",ii,jj,kk, "io,=",io,jo,ko, &
+           "isfluid low=", isfluid(ii,jj,kk), &
+           "isfluid high=",isfluid(io,jo,ko)
+     endif
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
       if(lrotate)then
         rtemp=rversor
@@ -9412,10 +9407,16 @@
         tx=tx+xcross(rtemp,ftemp) * abs(dex(indhig))
         ty=ty+ycross(rtemp,ftemp) * abs(dey(indhig))
         tz=tz+zcross(rtemp,ftemp) * abs(dez(indhig))
+
+        if (debug) then
+          write (6,*) __FILE__,__LINE__, "comp=", indlow,indhig, &
+              "f=", fx,fy,fz, "t=", tx,ty,tz
+        endif
       endif
     endif
   endif
   endif
+
 
   ii=i+ex(indhig)
   jj=j+ey(indhig)
@@ -9431,10 +9432,15 @@
   jo=pimage(iypbc,jo,ny)
   ko=pimage(izpbc,ko,nz)
 
-  if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
-   kk>=minz .and. kk<=maxz)then
-    if(io>=minx .and. io<=maxx .and. jo>=miny .and. jo<=maxy .and. &
-     ko>=minz .and. ko<=maxz)then
+  if(ii>=minx-1 .and. ii<=maxx+1 .and. jj>=miny-1 .and. jj<=maxy+1 .and. &
+   kk>=minz-1 .and. kk<=maxz+1)then
+    if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
+     ko>=minz-1 .and. ko<=maxz+1)then
+
+     if (debug) then
+       write (6,*) __FILE__,__LINE__, "isfluid low=", isfluid(ii,jj,kk), &
+           "isfluid high=",isfluid(io,jo,ko)
+     endif
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
       if(lrotate)then
         rtemp=rversor
@@ -9460,6 +9466,11 @@
         tx=tx+xcross(rtemp,ftemp) * abs(dex(indlow))
         ty=ty+ycross(rtemp,ftemp) * abs(dey(indlow))
         tz=tz+zcross(rtemp,ftemp) * abs(dez(indlow))
+
+        if (debug) then
+          write (6,*) __FILE__,__LINE__, "comp=", indhig,indlow, &
+              "f=", fx,fy,fz, "t=", tx,ty,tz
+        endif
       endif
     endif
   endif
@@ -10994,8 +11005,8 @@ end subroutine compute_secbelt_density_twofluids
     imax=maxx+1
     jmin=miny-1
     jmax=maxy+1
-    kmin=minz-1
-    kmax=maxz+1
+    kmin=minz-nbuff
+    kmax=maxz+nbuff
   endif
 
   do l=1,nspheres
@@ -11017,7 +11028,7 @@ end subroutine compute_secbelt_density_twofluids
  end subroutine fill_new_isfluid_inlist
 
 
- subroutine mapping_new_isfluid(natmssub,atmbook,nspheres,spherelists, &
+ subroutine mapping_new_isfluid(natmssub,natms_ext,atmbook,nspheres,spherelists, &
    spheredists,nspheredeads,spherelistdeads,lmoved,xx,yy,zz, &
    vx,vy,vz,fx,fy,fz,xo,yo,zo)
   
@@ -11033,22 +11044,21 @@ end subroutine compute_secbelt_density_twofluids
 !***********************************************************************
   
   implicit none
-  integer, intent(in) :: natmssub,nspheres,nspheredeads
+  integer, intent(in) :: natmssub,natms_ext, nspheres,nspheredeads
   integer, allocatable, intent(in) :: atmbook(:)
   integer, allocatable, dimension(:,:), intent(in) :: spherelists, &
    spherelistdeads
   real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
-  logical(kind=1), allocatable, dimension(:), intent(in) :: lmoved
+  logical(kind=1),allocatable, dimension(:), intent(in) :: lmoved
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xx,yy,zz
   real(kind=PRC), allocatable, dimension(:), intent(in) :: vx,vy,vz
   real(kind=PRC), allocatable, dimension(:), intent(inout) :: fx,fy,fz
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xo,yo,zo
-  
-  integer :: myi, isub,jsub,ksub, iatm
+  integer :: myi, isub,jsub,ksub, iatm, i,j,k, iofile(2)
   
   
   !delete fluid 
-  do myi=1,natmssub
+  do myi=1,natms_ext
     iatm=atmbook(myi)
     write (6,*) __FILE__,__LINE__, "iatm=",iatm
     isub=nint(xx(iatm))
@@ -11059,8 +11069,14 @@ end subroutine compute_secbelt_density_twofluids
 
     call fill_new_isfluid_inlist(isub,jsub,ksub, nspheredeads, spherelistdeads, 4)
 
+    CYCLE_OUT_INTERVAL(isub, minx-nbuff, maxx+nbuff)
+    CYCLE_OUT_INTERVAL(jsub, miny-nbuff, maxy+nbuff)
+    CYCLE_OUT_INTERVAL(ksub, minz-nbuff, maxz+nbuff)
+
+    ! Fill internal atoms
     new_isfluid(isub,jsub,ksub)=5
   enddo
+
  end subroutine mapping_new_isfluid
 
  
@@ -11108,7 +11124,6 @@ end subroutine compute_secbelt_density_twofluids
   forall(i=minx-nbuff:maxx+nbuff,j=miny-nbuff:maxy+nbuff,k=minz-nbuff:maxz+nbuff)
     isfluid(i,j,k)=new_isfluid(i,j,k)
   end forall
-
  end subroutine update_isfluid
  
 

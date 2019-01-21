@@ -49,7 +49,7 @@
                    particle_delete_fluids,particle_create_fluids, &
                    erase_fluids_in_particles,lunique_omega,omega, &
                    omega_to_viscosity,viscR,pimage,opp, &
-                   compute_sc_particle_interact
+                   compute_sc_particle_interact, new_isfluid
 
  
  implicit none
@@ -1615,7 +1615,11 @@
   integer, intent(inout) :: num_ext
   real(kind=PRC) :: radius
   integer :: extrema(3,4)
-  integer :: ids, c
+  integer :: ids, c, onEnterNum
+
+
+
+  onEnterNum = num_ext
 
   radius = floor(rdimx(1))+1
   extrema(:,1) = [ nint(xxx(i)-radius), nint(yyy(i)-radius), nint(zzz(i)-radius) ]
@@ -1628,26 +1632,21 @@
     if (extrema(2,c) < 0) extrema(2,c)=0
     if (extrema(3,c) < 0) extrema(3,c)=0
 
-    if (extrema(1,c) > nx+1) extrema(1,c)=nx+1
-    if (extrema(2,c) > ny+1) extrema(2,c)=ny+1
-    if (extrema(3,c) > nz+1) extrema(3,c)=nz+1
+    if (extrema(1,c) > nx+nbuff) extrema(1,c)=nx+nbuff
+    if (extrema(2,c) > ny+nbuff) extrema(2,c)=ny+nbuff
+    if (extrema(3,c) > nz+nbuff) extrema(3,c)=nz+nbuff
 
-#ifndef DEOWERN
-    ids=ownernfind_arr(extrema(1,c),extrema(2,c),extrema(3,c), &
-        nx,ny,nz,nbuff,ownern)
-#else
-    ids=ownernfind(extrema(1,c),extrema(2,c),extrema(3,c), &
-        mxrank,gminx,gmaxx,gminy,gmaxy,gminz,gmaxz)
-#endif
+    CYCLE_OUT_INTERVAL(extrema(1,c), minx-nbuff, maxx+nbuff)
+    CYCLE_OUT_INTERVAL(extrema(2,c), miny-nbuff, maxy+nbuff)
+    CYCLE_OUT_INTERVAL(extrema(3,c), minz-nbuff, maxz+nbuff)
 
-    if (idrank==ids) then
-        atmbook(mxatms - num_ext) = i
-        num_ext = num_ext + 1
-        exit
-    endif
+    atmbook(mxatms - num_ext) = i
+    num_ext = num_ext + 1
+    exit
   enddo
 
  end subroutine checkIfExtAtom
+
 
  subroutine init_particles_fluid_interaction
   
@@ -1735,11 +1734,11 @@
  
   implicit none
   integer, intent(in) :: nstep
-  
   integer :: myi, iatm,i,j,k,itype
   real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3)
-  
-  
+
+
+
   do myi=1,natms_ext
     iatm = atmbook(myi)
 	write (6,*) __FILE__,__LINE__, "iatm=", iatm
@@ -1752,7 +1751,7 @@
   
   do myi=1,natms_ext
     iatm = atmbook(myi)
-	write (6,*) __FILE__,__LINE__, "iatm=", iatm
+
     txb(iatm)=ZERO
     tyb(iatm)=ZERO
     tzb(iatm)=ZERO
@@ -1772,28 +1771,35 @@
     qversor(3)=ozz(iatm)
     oat=qtrimult(qtemp,qversor,qconj(qtemp))
     
-    call particle_bounce_back(nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(iatm==2, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm),oat(1),oat(2),oat(3), &
      txb(iatm),tyb(iatm),tzb(iatm))
+
+     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
+        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
+        "t=", txb(iatm),tyb(iatm),tzb(iatm)
   enddo
   
   else
   
   do myi=1,natms_ext
     iatm = atmbook(myi)
-    write (6,*) __FILE__,__LINE__, "iatm=", iatm
+
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
     itype=ltype(iatm)
-    call particle_bounce_back(nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(.false., nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm))
+
+     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
+        "f=", fxb(iatm),fyb(iatm),fzb(iatm)
   enddo
 
   endif
@@ -1871,12 +1877,39 @@
 !***********************************************************************
   
   implicit none
+  integer :: iatm, myi
+
+  write(6,*) __FILE__,__LINE__, fxb(1:natms_tot)
+  flush(6)
+
+  call sum_world_farr(fxb, natms_tot)
+
+  call sum_world_farr(fyb, natms_tot)
+  call sum_world_farr(fzb, natms_tot)
+  call sum_world_farr(txb, natms_tot)
+  call sum_world_farr(tyb, natms_tot)
+  call sum_world_farr(tzb, natms_tot)
   
-  !SHOULD BE ADDED FOR MPI
-  
-  return
+  do myi=natms+1,natms_ext
+    iatm = atmbook(myi)
+    fxb(iatm) = 0
+    fyb(iatm) = 0
+    fzb(iatm) = 0
+    txb(iatm) = 0
+    tyb(iatm) = 0
+    tzb(iatm) = 0
+  enddo
+
+
+  do myi=1,natms_ext
+    iatm = atmbook(myi)
+    write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
+        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
+        "t=", txb(iatm),tyb(iatm),tzb(iatm)
+  enddo
   
  end subroutine merge_particle_force
+
   
  subroutine check_moving_particles
   
@@ -1953,7 +1986,7 @@
     
   call check_moving_particles
   
-  call mapping_new_isfluid(natms,atmbook,nsphere, &
+  call mapping_new_isfluid(natms,natms_ext,atmbook,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove, &
      xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,xxo,yyo,zzo)
      
