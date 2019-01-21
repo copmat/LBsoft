@@ -1,3 +1,4 @@
+#define CYCLE_OUT_INTERVAL(x, a,b) if ((x)<(a) .or. (x)>(b)) cycle
 
 #define IPRC 4
 #define LPRC 4
