@@ -29,7 +29,9 @@
                         probe_red_moments_in_node,print_all_pops, &
                         print_all_pops_center,driver_bc_pop_selfcomm, &
                         print_all_pops_area_shpere,ex,ey,ez,pimage, &
-                        ixpbc,iypbc,izpbc,nx,ny,nz,opp
+                        ixpbc,iypbc,izpbc,nx,ny,nz,opp, &
+                        aoptpR,print_all_pops2
+
  use particles_mod,    only : parlst,lparticles, &
                         vertest,initialize_particle_force, &
                         driver_inter_force,nve_lf, &
@@ -152,9 +154,10 @@
   logical :: newlst
   
 
-  write (6,*) __FILE__,__LINE__
   new_time = real(nstep,kind=PRC)*tstep
   
+  call print_all_pops2(100,"startINT-159",0, aoptpR)
+
   if(lparticles)then
     if(ldiagnostic)call start_timing2("LB","build_new_isfluid")
     call initialize_particle_force
@@ -170,10 +173,14 @@
   call moments_fluids(nstep)
   if(ldiagnostic)call end_timing2("LB","moments_fluids")
   
+  call print_all_pops2(100,"startINT-176",0, aoptpR)
+
   if(ldiagnostic)call start_timing2("LB","driver_bc_densities")
   call driver_bc_densities
   if(ldiagnostic)call end_timing2("LB","driver_bc_densities")
   
+  call print_all_pops2(100,"startINT-182",0, aoptpR)
+
   if(ldiagnostic)call start_timing2("LB","driver_bc_velocities")
   call driver_bc_velocities
   if(ldiagnostic)call end_timing2("LB","driver_bc_velocities")
@@ -201,7 +208,7 @@
     call driver_inter_force(nstep)
     if(ldiagnostic)call end_timing2("MD","driver_inter_f")
   endif
-  
+
   if(lpair_SC .or. lparticles)then
     if(ldiagnostic)call start_timing2("LB","compute_densities_wall")
     call compute_densities_wall

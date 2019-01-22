@@ -356,8 +356,7 @@
  public :: pimage
  public :: omega_to_viscosity
  public :: compute_sc_particle_interact
- public :: setTest
- public :: checkTest
+ public :: setTest, checkTest, print_all_pops2
 
  contains
  
@@ -9188,12 +9187,12 @@
   
   if(lfirst)then
     lfirst=.false.
-    imin=minx-1
-    imax=maxx+1
-    jmin=miny-1
-    jmax=maxy+1
-    kmin=minz-1
-    kmax=maxz+1
+    imin=minx
+    imax=maxx
+    jmin=miny
+    jmax=maxy
+    kmin=minz
+    kmax=maxz
   endif
   
   if(lrotate)then
@@ -9341,7 +9340,7 @@
   real(kind=PRC), parameter :: onesixth=ONE/SIX
   real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
   real(kind=PRC) :: f2p,vx,vy,vz
-  real(kind=PRC), dimension(3) :: rtemp,ftemp
+  real(kind=PRC), dimension(3) :: rtemp,ftemp, ttemp
   
   integer :: ii,jj,kk,io,jo,ko, iloop,indlow,indhig
   
@@ -9378,11 +9377,6 @@
     if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
      ko>=minz-1 .and. ko<=maxz+1)then
 
-     if (debug) then
-       write (6,*) __FILE__,__LINE__, "ii,=",ii,jj,kk, "io,=",io,jo,ko, &
-           "isfluid low=", isfluid(ii,jj,kk), &
-           "isfluid high=",isfluid(io,jo,ko)
-     endif
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
       if(lrotate)then
         rtemp=rversor
@@ -9394,23 +9388,29 @@
         vz=vzs+zcross(otemp,rtemp)
       endif
 
-      f2p=TWO*real(aoptp(indhig)%p(ii,jj,kk),kind=PRC)- &
+      f2p = TWO * aoptp(indhig)%p(ii,jj,kk)- &
        p(indhig)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(indhig)*vx+dey(indhig)*vy+dez(indhig)*vz)
-      fx=fx+f2p*dex(indhig)
-      fy=fy+f2p*dey(indhig)
-      fz=fz+f2p*dez(indhig)
+
+      ftemp(1) = f2p*dex(indhig)
+      ftemp(2) = f2p*dey(indhig)
+      ftemp(3) = f2p*dez(indhig)
+
+      fx = fx + ftemp(1)
+      fy = fy + ftemp(2)
+      fz = fz + ftemp(3)
 
       if(lrotate)then
-        ftemp(1)=f2p*dex(indhig)
-        ftemp(2)=f2p*dey(indhig)
-        ftemp(3)=f2p*dez(indhig)
-        tx=tx+xcross(rtemp,ftemp) * abs(dex(indhig))
-        ty=ty+ycross(rtemp,ftemp) * abs(dey(indhig))
-        tz=tz+zcross(rtemp,ftemp) * abs(dez(indhig))
+        ttemp(1) = xcross(rtemp,ftemp) * abs(dex(indhig))
+        ttemp(2) = ycross(rtemp,ftemp) * abs(dey(indhig))
+        ttemp(3) = zcross(rtemp,ftemp) * abs(dez(indhig))
+        tx = tx + ttemp(1)
+        ty = ty + ttemp(2)
+        tz = tz + ttemp(3)
 
         if (debug) then
-          write (6,*) __FILE__,__LINE__, "comp=", indlow,indhig, &
-              "f=", fx,fy,fz, "t=", tx,ty,tz
+          write (6,*) __FILE__,__LINE__, i,j,k, "pop=", indlow,indhig, &
+              "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p
+          write (6,*) __FILE__,__LINE__, "ii,jj,kk=", ii,jj,kk, aoptp(indhig)%p(ii,jj,kk), rhosub(ii,jj,kk)
         endif
       endif
     endif
@@ -9437,10 +9437,6 @@
     if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
      ko>=minz-1 .and. ko<=maxz+1)then
 
-     if (debug) then
-       write (6,*) __FILE__,__LINE__, "isfluid low=", isfluid(ii,jj,kk), &
-           "isfluid high=",isfluid(io,jo,ko)
-     endif
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
       if(lrotate)then
         rtemp=rversor
@@ -9452,24 +9448,29 @@
         vz=vzs+zcross(otemp,rtemp)
       endif
 
-      f2p=TWO*real(aoptp(indlow)%p(ii,jj,kk),kind=PRC)- &
+      f2p = TWO * aoptp(indlow)%p(ii,jj,kk) - &
        p(indlow)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(indlow)*vx+dey(indlow)*vy+dez(indlow)*vz)
 
-      fx=fx+f2p*dex(indlow)
-      fy=fy+f2p*dey(indlow)
-      fz=fz+f2p*dez(indlow)
+      ftemp(1) = f2p*dex(indlow)
+      ftemp(2) = f2p*dey(indlow)
+      ftemp(3) = f2p*dez(indlow)
+
+      fx = fx + ftemp(1)
+      fy = fy + ftemp(2)
+      fz = fz + ftemp(3)
 
       if(lrotate)then
-        ftemp(1)=f2p*dex(indlow)
-        ftemp(2)=f2p*dey(indlow)
-        ftemp(3)=f2p*dez(indlow)
-        tx=tx+xcross(rtemp,ftemp) * abs(dex(indlow))
-        ty=ty+ycross(rtemp,ftemp) * abs(dey(indlow))
-        tz=tz+zcross(rtemp,ftemp) * abs(dez(indlow))
+        ttemp(1) = xcross(rtemp,ftemp) * abs(dex(indlow))
+        ttemp(2) = ycross(rtemp,ftemp) * abs(dey(indlow))
+        ttemp(3) = zcross(rtemp,ftemp) * abs(dez(indlow))
+        tx = tx + ttemp(1)
+        ty = ty + ttemp(2)
+        tz = tz + ttemp(3)
 
         if (debug) then
-          write (6,*) __FILE__,__LINE__, "comp=", indhig,indlow, &
-              "f=", fx,fy,fz, "t=", tx,ty,tz
+          write (6,*) __FILE__,__LINE__, i,j,k, "pop=", indhig,indlow, &
+              "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p
+          write (6,*) __FILE__,__LINE__, aoptp(indlow)%p(ii,jj,kk), rhosub(ii,jj,kk)
         endif
       endif
     endif
@@ -12031,6 +12032,53 @@ end subroutine compute_secbelt_density_twofluids
         enddo
     end subroutine checkTest
 
+
+  subroutine print_all_pops2(iosub,filenam,itersub,aoptp)
+  implicit none
+  integer, intent(in) :: iosub,itersub
+  character(len=*), intent(in) :: filenam
+  type(REALPTR), dimension(0:links):: aoptp
+  character(len=120) :: mynamefile, mynamefile1
+  integer :: i,j,k,l, iosub1
+
+
+
+  mynamefile=repeat(' ',120)
+  mynamefile=trim(filenam)//write_fmtnumb(idrank)//'.dat'
+
+  mynamefile1=repeat(' ',120)
+  mynamefile1=trim(filenam)//write_fmtnumb(idrank)//'.dat1'
+  iosub1 = iosub + 1
+
+
+    open(unit=iosub, file=trim(mynamefile), status='replace')
+    open(unit=iosub1,file=trim(mynamefile1),status='replace')
+
+  do k=0,nz+1
+    do j=0,ny+1
+      do i=0,nx+1
+        if(minx-1<=i .and. i<=maxx+1) then
+        if(miny-1<=j .and. k<=maxy+1) then
+        if(minz-1<=k .and. k<=maxz+1) then
+          do l=0,links
+            write(iosub,*)i,j,k,l,aoptp(l)%p(i,j,k)
+          enddo
+
+          write(iosub1,*) i,j,k, rhoR(i,j,k),u(i,j,k), &
+                v(i,j,k),w(i,j,k),isfluid(i,j,k)
+        endif
+        endif
+        endif
+
+      enddo
+    enddo
+  enddo
+
+    close(iosub)
+
+  return
+
+ end subroutine print_all_pops2
 
 
  end module fluids_mod

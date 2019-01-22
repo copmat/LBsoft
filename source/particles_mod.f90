@@ -49,7 +49,7 @@
                    particle_delete_fluids,particle_create_fluids, &
                    erase_fluids_in_particles,lunique_omega,omega, &
                    omega_to_viscosity,viscR,pimage,opp, &
-                   compute_sc_particle_interact, new_isfluid
+                   compute_sc_particle_interact
 
  
  implicit none
@@ -1196,8 +1196,8 @@
   
 #endif
   
-  allocate(lentry(msatms),stat=istat(23))
-  allocate(list(mxlist,msatms),stat=istat(24))
+  allocate(lentry(mxatms),stat=istat(23))
+  allocate(list(mxlist,mxatms),stat=istat(24))
 
   
   ltest=.false.
@@ -1270,8 +1270,8 @@
     tzbo(1:mxatms)=ZERO
   endif
   
-  lentry(1:msatms)=0
-  list(1:mxlist,1:msatms)=0
+  lentry(1:mxatms)=0
+  list(1:mxlist,1:mxatms)=0
  end subroutine allocate_particles
  
 
@@ -1738,7 +1738,6 @@
   real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3)
 
 
-
   do myi=1,natms_ext
     iatm = atmbook(myi)
 	write (6,*) __FILE__,__LINE__, "iatm=", iatm
@@ -1771,7 +1770,7 @@
     qversor(3)=ozz(iatm)
     oat=qtrimult(qtemp,qversor,qconj(qtemp))
     
-    call particle_bounce_back(iatm==2, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(iatm==1, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
@@ -2122,11 +2121,12 @@
   logical, save :: newjob=.true.
   integer :: myi, i,moved(1)
   integer :: fail=0
-  real(kind=PRC) :: rmax,dr
+  real(kind=PRC) :: rmax,dr, checkSpace
   real(kind=PRC), allocatable, save :: xold(:),yold(:),zold(:)
   
 
-  if((natms+mxrank-1)/mxrank.gt.msatms)call error(24)
+  checkSpace = (natms+mxrank-1)/mxrank
+  if(checkSpace > mxatms) call error(24)
       
   if(newjob)then
 !   set up initial arrays 
@@ -2216,7 +2216,7 @@
     
     call allocate_array_bdf(natms)
     
-    lentry(1:msatms)=0
+    lentry(1:mxatms)=0
     
     ii = 0
     do myi = 1,natms
