@@ -356,7 +356,7 @@
  public :: pimage
  public :: omega_to_viscosity
  public :: compute_sc_particle_interact
- public :: setTest, checkTest, print_all_pops2
+ public :: setTest, checkTest, print_all_pops2, print_all_pops3
 
  contains
  
@@ -12076,9 +12076,42 @@ end subroutine compute_secbelt_density_twofluids
 
     close(iosub)
 
-  return
-
  end subroutine print_all_pops2
+
+
+
+ subroutine print_all_pops3(iosub,filenam,itersub,aoptp)
+  implicit none
+  integer, intent(in) :: iosub,itersub
+  character(len=*), intent(in) :: filenam
+  type(REALPTR), dimension(0:links):: aoptp
+  character(len=120) :: mynamefile, mynamefile1
+  integer :: i,j,k,l
+
+
+
+  mynamefile=repeat(' ',120)
+  mynamefile=trim(filenam)//write_fmtnumb(idrank)//'.check.dat'
+
+
+  open(unit=iosub, file=trim(mynamefile), status='replace')
+
+  k = 16
+  if(minz-1<=k .and. k<=maxz+1) then
+    do j=miny-1,maxy+1
+      do i=minx-1,maxx+1
+        do l=0,links
+          write(iosub,*) i,j,k,l,aoptp(l)%p(i,j,k)
+        enddo
+        write(iosub,*) i,j,k, rhoR(i,j,k), u(i,j,k),v(i,j,k),w(i,j,k), isfluid(i,j,k)
+      enddo
+    enddo
+  endif
+
+    close(iosub)
+
+ end subroutine print_all_pops3
+
 
 
  end module fluids_mod
