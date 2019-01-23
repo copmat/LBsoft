@@ -139,7 +139,7 @@
    izpbc,minx,maxx,miny,maxy,minz,maxz)
    
 ! initialize isfluid and bcfluid (type of node and bc adopted)
-  call initialize_isfluid_bcfluid(lvtkfile)
+  call initialize_isfluid_bcfluid(lvtkfile, lparticles)
   
 ! allocate pointers for managing bc hvar and pops within the same process 
 ! ONLY if it is necessary

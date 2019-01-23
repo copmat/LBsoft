@@ -1377,6 +1377,7 @@
           xxx(i)=xxs(i)
           yyy(i)=yys(i)
           zzz(i)=zzs(i)
+
           if(nxyzlist_sub>0)then
             do j=1,nxyzlist_sub
               k=xyzlist_sub(j)
@@ -1403,6 +1404,7 @@
             enddo
           endif
 
+          write (6,*) __FILE__,__LINE__, "i=", i, "v=", vxx(i),vyy(i),vzz(i)
       enddo
   endif
 
@@ -1413,6 +1415,12 @@
   call bcast_world_farr(xxx,natms_tot)
   call bcast_world_farr(yyy,natms_tot)
   call bcast_world_farr(zzz,natms_tot)
+
+
+! Initialize linear momentum if not given in xyz file
+  if (idrank==0) then
+    if(linit_temp)call init_velocity
+  endif
 
   do j=1,nxyzlist_sub
     k=xyzlist_sub(j)
@@ -1490,9 +1498,7 @@
   else
     degfre=THREE*real(natms,kind=PRC)
   endif
-  
-! initialize linear momentum if not given in xyz file
-  if(linit_temp)call init_velocity
+
   
 ! start the initialization of the rotation part
   
@@ -1604,7 +1610,7 @@
   
   do myi=1,natms_ext
       i = atmbook(myi)
-      write (6,*) __FILE__,__LINE__, "i=", i, myi<=natms
+      write (6,*) __FILE__,__LINE__, "i=", i, myi<=natms, "v=", vxx(i),vyy(i),vzz(i)
   enddo
  end subroutine initialize_map_particles
  

@@ -30,7 +30,7 @@
                         print_all_pops_center,driver_bc_pop_selfcomm, &
                         print_all_pops_area_shpere,ex,ey,ez,pimage, &
                         ixpbc,iypbc,izpbc,nx,ny,nz,opp, &
-                        aoptpR,print_all_pops3
+                        aoptpR, driver_bc_pops
 
  use particles_mod,    only : parlst,lparticles, &
                         vertest,initialize_particle_force, &
@@ -156,8 +156,6 @@
 
   new_time = real(nstep,kind=PRC)*tstep
   
-  call print_all_pops3(100,"startINT-159",0, aoptpR)
-
   if(lparticles)then
     if(ldiagnostic)call start_timing2("LB","build_new_isfluid")
     call initialize_particle_force
@@ -173,13 +171,10 @@
   call moments_fluids(nstep)
   if(ldiagnostic)call end_timing2("LB","moments_fluids")
   
-  call print_all_pops3(100,"startINT-176",0, aoptpR)
-
   if(ldiagnostic)call start_timing2("LB","driver_bc_densities")
   call driver_bc_densities
   if(ldiagnostic)call end_timing2("LB","driver_bc_densities")
   
-
   if(ldiagnostic)call start_timing2("LB","driver_bc_velocities")
   call driver_bc_velocities
   if(ldiagnostic)call end_timing2("LB","driver_bc_velocities")
@@ -230,10 +225,6 @@
     if(ldiagnostic)call end_timing2("LB","compute_force_sc")
   endif
   
-  if(ldiagnostic)call start_timing2("IO","write_vtk_frame")
-  call write_vtk_frame(nstep)
-  if(ldiagnostic)call end_timing2("IO","write_vtk_frame")
-  
   if(ldiagnostic)call start_timing2("LB","collision_fluids")
   call driver_collision_fluids
   if(ldiagnostic)call end_timing2("LB","collision_fluids")
@@ -245,6 +236,8 @@
   endif
   
   if(lparticles)then
+    call driver_bc_pops
+
     if(ldiagnostic)call start_timing2("IO","write_xyz")
     call write_xyz(nstep)
     if(ldiagnostic)call end_timing2("IO","write_xyz")
@@ -260,23 +253,16 @@
     call compute_mean_particle_force
     
     call store_old_pos_vel_part
-!    if(lvv)then
-!      if(ldiagnostic)call start_timing2("MD","integrate_vv")
-!      call integrate_particles_vv(1,nstep)
-!      if(ldiagnostic)call end_timing2("MD","integrate_vv")
-!
-!      if(ldiagnostic)call start_timing2("MD","integrate_vv")
-!      call integrate_particles_vv(2,nstep)
-!      call merge_particle_energies
-!      if(ldiagnostic)call end_timing2("MD","integrate_vv")
-!    else
       if(ldiagnostic)call start_timing2("MD","integrate_lf")
       call nve_lf(nstep)
       call merge_particle_energies
       if(ldiagnostic)call end_timing2("MD","integrate_lf")
-!    endif
   endif
-  
+
+  if(ldiagnostic)call start_timing2("IO","write_vtk_frame")
+   call write_vtk_frame(nstep)
+  if(ldiagnostic)call end_timing2("IO","write_vtk_frame")
+
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
   call driver_streaming_fluids(lparticles)
   if(ldiagnostic)call end_timing2("LB","streaming_fluids")

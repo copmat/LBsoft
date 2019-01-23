@@ -32,7 +32,7 @@
 
 #ifdef MPI           
  use mpi_comm, only : mpisendpops, mpirecvpops, mpibounceback, mpisend_hvar, mpirecv_hvar, &
-                        mpisend_isfluid, mpirecv_isfluid
+                        mpisend_isfluid, mpirecv_isfluid, mpisendrecvhalopops
 #endif                
 
  
@@ -357,6 +357,7 @@
  public :: omega_to_viscosity
  public :: compute_sc_particle_interact
  public :: setTest, checkTest, print_all_pops2, print_all_pops3
+ public :: driver_bc_pops
 
  contains
  
@@ -794,7 +795,7 @@
   
  end subroutine
  
- subroutine initialize_isfluid_bcfluid(lvtkfilesub)
+ subroutine initialize_isfluid_bcfluid(lvtkfilesub, lparticles)
  
 !***********************************************************************
 !     
@@ -808,7 +809,7 @@
  
   implicit none
   
-  logical, intent(in) :: lvtkfilesub
+  logical, intent(in) :: lvtkfilesub, lparticles
   
   integer :: i,j,k,l,idir,ishift,jshift,kshift,ll
   
@@ -1300,17 +1301,16 @@
      lexch_dens=.true.
    endif
    
-   if(lvtkfilesub .and. mxrank>1)then
+   if((lvtkfilesub .or. lparticles) .and. mxrank>1)then
      lexch_dens=.true.
      lexch_u=.true.
      lexch_v=.true.
      lexch_w=.true.
    endif
-   
-  return
-  
+
  end subroutine initialize_isfluid_bcfluid
  
+
  subroutine initialize_fluids
  
 !***********************************************************************
@@ -5068,12 +5068,10 @@
   Logical, save   :: isFirst = .true.
 
 #ifdef ALLAFAB
-    if(lexch_dens)then
-        call mpisend_isfluid(isfluid, isFirst)
-        call mpirecv_isfluid(isfluid)
+    call mpisend_isfluid(isfluid, isFirst)
+    call mpirecv_isfluid(isfluid)
 
-        isFirst = .false.
-    endif
+    isFirst = .false.
     return
 #endif
   
@@ -5132,9 +5130,8 @@
 #endif
   endif
   
-  return
-  
  end subroutine driver_bc_densities
+
  
  subroutine initialiaze_manage_bc_isfluid_selfcomm()
  
@@ -5495,7 +5492,6 @@
   implicit none
   Logical, save   :: isFirst = .true.
 
- 
   if(lexch_u)then
 #ifdef MPI
 #ifdef ALLAFAB
@@ -5763,7 +5759,17 @@
   return
   
  end function pimage
+
  
+ subroutine driver_bc_pops()
+  implicit none
+
+  call mpisendrecvHALOpops(aoptpR)
+  if(lsingle_fluid)return
+
+  call mpisendrecvHALOpops(aoptpB)
+ end subroutine driver_bc_pops
+
 !******************END PART TO MANAGE THE PERIODIC BC*******************
  
 !*****************START PART TO MANAGE THE BOUNCEBACK*******************
@@ -9226,8 +9232,6 @@
         call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
            otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug)
         write(6,*) __FILE__,__LINE__, "i,j,k=", i,j,k
-        write(6,*) __FILE__,__LINE__, "f    =", fx,fy,fz
-        write(6,*) __FILE__,__LINE__, "t    =", tx,ty,tz
       endif
 
       !the fluid bounce back is local so I have to do it
@@ -9408,9 +9412,10 @@
         tz = tz + ttemp(3)
 
         if (debug) then
-          write (6,*) __FILE__,__LINE__, i,j,k, "pop=", indlow,indhig, &
+          write (6,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
               "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p
-          write (6,*) __FILE__,__LINE__, "ii,jj,kk=", ii,jj,kk, aoptp(indhig)%p(ii,jj,kk), rhosub(ii,jj,kk)
+          write (6,*) __FILE__,__LINE__, "pop",aoptp(indhig)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
+                "v", vx,vy,vz, vxs,vys,vzs
         endif
       endif
     endif
@@ -9468,9 +9473,10 @@
         tz = tz + ttemp(3)
 
         if (debug) then
-          write (6,*) __FILE__,__LINE__, i,j,k, "pop=", indhig,indlow, &
+          write (6,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
               "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p
-          write (6,*) __FILE__,__LINE__, aoptp(indlow)%p(ii,jj,kk), rhosub(ii,jj,kk)
+          write (6,*) __FILE__,__LINE__, "pop",aoptp(indlow)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
+                "v", vx,vy,vz, vxs,vys,vzs
         endif
       endif
     endif
@@ -12096,7 +12102,7 @@ end subroutine compute_secbelt_density_twofluids
 
   open(unit=iosub, file=trim(mynamefile), status='replace')
 
-  k = 16
+  do k = 16, 17
   if(minz-1<=k .and. k<=maxz+1) then
     do j=miny-1,maxy+1
       do i=minx-1,maxx+1
@@ -12107,6 +12113,8 @@ end subroutine compute_secbelt_density_twofluids
       enddo
     enddo
   endif
+
+  enddo
 
     close(iosub)
 
