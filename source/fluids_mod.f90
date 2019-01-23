@@ -9231,7 +9231,7 @@
        k>=kmin .and. k<=kmax)then
         call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
            otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug)
-        write(6,*) __FILE__,__LINE__, "i,j,k=", i,j,k
+!        write(6,*) __FILE__,__LINE__, "i,j,k=", i,j,k
       endif
 
       !the fluid bounce back is local so I have to do it
@@ -9411,12 +9411,12 @@
         ty = ty + ttemp(2)
         tz = tz + ttemp(3)
 
-        if (debug) then
-          write (6,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
-              "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p
-          write (6,*) __FILE__,__LINE__, "pop",aoptp(indhig)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
-                "v", vx,vy,vz, vxs,vys,vzs
-        endif
+!        if (debug) then
+!          write (6,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
+!              "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p
+!          write (6,*) __FILE__,__LINE__, "pop",aoptp(indhig)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
+!                "v", vx,vy,vz, vxs,vys,vzs
+!        endif
       endif
     endif
   endif
@@ -9472,12 +9472,12 @@
         ty = ty + ttemp(2)
         tz = tz + ttemp(3)
 
-        if (debug) then
-          write (6,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
-              "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p
-          write (6,*) __FILE__,__LINE__, "pop",aoptp(indlow)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
-                "v", vx,vy,vz, vxs,vys,vzs
-        endif
+!        if (debug) then
+!          write (6,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
+!              "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p
+!          write (6,*) __FILE__,__LINE__, "pop",aoptp(indlow)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
+!                "v", vx,vy,vz, vxs,vys,vzs
+!        endif
       endif
     endif
   endif

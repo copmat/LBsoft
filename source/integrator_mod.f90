@@ -43,7 +43,8 @@
                         merge_particle_force,build_new_isfluid, &
                         compute_mean_particle_force,rdimx,rdimy,rdimz, &
                         nsphere,compute_psi_sc_particles, &
-                        spherelist
+                        spherelist,restore_particles
+
  use write_output_mod, only : write_vtk_frame,write_xyz
  
  implicit none
@@ -253,10 +254,13 @@
     call compute_mean_particle_force
     
     call store_old_pos_vel_part
-      if(ldiagnostic)call start_timing2("MD","integrate_lf")
-      call nve_lf(nstep)
-      call merge_particle_energies
-      if(ldiagnostic)call end_timing2("MD","integrate_lf")
+
+    if(ldiagnostic)call start_timing2("MD","integrate_lf")
+    call nve_lf(nstep)
+    call merge_particle_energies
+    if(ldiagnostic)call end_timing2("MD","integrate_lf")
+
+    call restore_particles
   endif
 
   if(ldiagnostic)call start_timing2("IO","write_vtk_frame")

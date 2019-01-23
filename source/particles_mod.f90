@@ -376,7 +376,7 @@
  public :: set_value_ext_force_particles
  public :: set_value_ext_torque_particles
  public :: q2eul
- public :: compute_psi_sc_particles
+ public :: compute_psi_sc_particles, restore_particles
  
  contains
  
@@ -1432,7 +1432,7 @@
     case(9)
       call bcast_world_farr(vzz,natms_tot)
     case(10)
-      call bcast_world_farr(xxx,natms_tot)
+      call bcast_world_farr(oxx,natms_tot)
     case(11)
       call bcast_world_farr(oyy,natms_tot)
     case(12)
@@ -1783,9 +1783,9 @@
      fxb(iatm),fyb(iatm),fzb(iatm),oat(1),oat(2),oat(3), &
      txb(iatm),tyb(iatm),tzb(iatm))
 
-     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
-        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
-        "t=", txb(iatm),tyb(iatm),tzb(iatm)
+!     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
+!        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
+!        "t=", txb(iatm),tyb(iatm),tzb(iatm)
   enddo
   
   else
@@ -1803,8 +1803,8 @@
      vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm))
 
-     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
-        "f=", fxb(iatm),fyb(iatm),fzb(iatm)
+!     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
+!        "f=", fxb(iatm),fyb(iatm),fzb(iatm)
   enddo
 
   endif
@@ -1888,7 +1888,6 @@
   flush(6)
 
   call sum_world_farr(fxb, natms_tot)
-
   call sum_world_farr(fyb, natms_tot)
   call sum_world_farr(fzb, natms_tot)
   call sum_world_farr(txb, natms_tot)
@@ -4806,4 +4805,59 @@
 
  end subroutine spherical_template
  
+ subroutine restore_particles
+  implicit none
+  integer :: i, myi
+
+
+  do myi=natms+1,natms_ext
+    i = atmbook(myi)
+    xxx(i) = 0
+    yyy(i) = 0
+    zzz(i) = 0
+    vxx(i) = 0
+    vyy(i) = 0
+    vzz(i) = 0
+
+    q0(i) = 0
+    q1(i) = 0
+    q2(i) = 0
+    q3(i) = 0
+
+    xxo(i) = 0
+    yyo(i) = 0
+    zzo(i) = 0
+    vxo(i) = 0
+    vyo(i) = 0
+    vzo(i) = 0
+  enddo
+
+  call sum_world_farr(xxx,natms_tot)
+  call sum_world_farr(yyy,natms_tot)
+  call sum_world_farr(zzz,natms_tot)
+  call sum_world_farr(vxx,natms_tot)
+  call sum_world_farr(vyy,natms_tot)
+  call sum_world_farr(vzz,natms_tot)
+
+  call sum_world_farr(xxo,natms_tot)
+  call sum_world_farr(yyo,natms_tot)
+  call sum_world_farr(zzo,natms_tot)
+  call sum_world_farr(vxo,natms_tot)
+  call sum_world_farr(vyo,natms_tot)
+  call sum_world_farr(vzo,natms_tot)
+
+  call sum_world_farr(q0,natms_tot)
+  call sum_world_farr(q1,natms_tot)
+  call sum_world_farr(q2,natms_tot)
+  call sum_world_farr(q3,natms_tot)
+
+
+  do myi=1,natms_ext
+    i = atmbook(myi)
+    write (6,*) __FILE__,__LINE__, myi <= natms, "i=", i, &
+        "f=", fxb(i),fyb(i),fzb(i), &
+        "t=", txb(i),tyb(i),tzb(i)
+  enddo
+ end subroutine restore_particles
+
  end module particles_mod
