@@ -608,7 +608,8 @@
     if(mxrank==1)then
       call write_vtp_file(181,'outatm',nstepsub)
     else
-      call error(11)
+!      call error(11)
+       write (6,*) "Skipping in Parallel"
     endif
   endif
   
@@ -1119,7 +1120,7 @@
       open(ioxyz,file='restart.xyz',status='old',action='write', &
        position='append')
       if(lrotate)then
-        do myi=1,natms_ext
+        do myi=1,natms
           i = atmbook(myi)
           call q2eul((/q0(i),q1(i),q2(i),q3(i)/),dtemp(1),dtemp(3),dtemp(2))
           write(ioxyz,'(a8,9g16.8,i10)')mystring8,xxx(i),yyy(i),zzz(i), &

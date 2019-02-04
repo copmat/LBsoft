@@ -9215,6 +9215,7 @@
       ii=i
       jj=j
       kk=k
+
       !apply periodic conditions if necessary
       i=pimage(ixpbc,i,nx)
       j=pimage(iypbc,j,ny)
@@ -9365,16 +9366,16 @@
   ii=i+ex(indlow)
   jj=j+ey(indlow)
   kk=k+ez(indlow)
-  ii=pimage(ixpbc,ii,nx)
-  jj=pimage(iypbc,jj,ny)
-  kk=pimage(izpbc,kk,nz)
+!  ii=pimage(ixpbc,ii,nx)
+!  jj=pimage(iypbc,jj,ny)
+!  kk=pimage(izpbc,kk,nz)
 
   io=i+ex(indhig)
   jo=j+ey(indhig)
   ko=k+ez(indhig)
-  io=pimage(ixpbc,io,nx)
-  jo=pimage(iypbc,jo,ny)
-  ko=pimage(izpbc,ko,nz)
+!  io=pimage(ixpbc,io,nx)
+!  jo=pimage(iypbc,jo,ny)
+!  ko=pimage(izpbc,ko,nz)
 
   if(ii>=minx-1 .and. ii<=maxx+1 .and. jj>=miny-1 .and. jj<=maxy+1 .and. &
    kk>=minz-1 .and. kk<=maxz+1)then
@@ -9426,16 +9427,16 @@
   ii=i+ex(indhig)
   jj=j+ey(indhig)
   kk=k+ez(indhig)
-  ii=pimage(ixpbc,ii,nx)
-  jj=pimage(iypbc,jj,ny)
-  kk=pimage(izpbc,kk,nz)
+!  ii=pimage(ixpbc,ii,nx)
+!  jj=pimage(iypbc,jj,ny)
+!  kk=pimage(izpbc,kk,nz)
 
   io=i+ex(indlow)
   jo=j+ey(indlow)
   ko=k+ez(indlow)
-  io=pimage(ixpbc,io,nx)
-  jo=pimage(iypbc,jo,ny)
-  ko=pimage(izpbc,ko,nz)
+!  io=pimage(ixpbc,io,nx)
+!  jo=pimage(iypbc,jo,ny)
+!  ko=pimage(izpbc,ko,nz)
 
   if(ii>=minx-1 .and. ii<=maxx+1 .and. jj>=miny-1 .and. jj<=maxy+1 .and. &
    kk>=minz-1 .and. kk<=maxz+1)then
@@ -10389,7 +10390,6 @@
   !delete fluid 
   do myi=1,natmssub
     iatm=atmbook(myi)
-    write (6,*) __FILE__,__LINE__, "iatm=",iatm
     if(.not. lmoved(iatm))cycle
 
     isub=nint(xx(iatm))
@@ -10420,9 +10420,9 @@
         ishift=i+exd3q27(l)
         jshift=j+eyd3q27(l)
         kshift=k+ezd3q27(l)
-        ishift=pimage(ixpbc,ishift,nx)
-        jshift=pimage(iypbc,jshift,ny)
-        kshift=pimage(izpbc,kshift,nz)
+!        ishift=pimage(ixpbc,ishift,nx)
+!        jshift=pimage(iypbc,jshift,ny)
+!        kshift=pimage(izpbc,kshift,nz)
         if(isfluid(ishift,jshift,kshift)==1 .and. &
             new_isfluid(ishift,jshift,kshift)==1)then
             Rsum=Rsum+rhoR(ishift,jshift,kshift)
@@ -10444,9 +10444,9 @@ end subroutine compute_onebelt_density
         ishift=i+exd3q27(l)
         jshift=j+eyd3q27(l)
         kshift=k+ezd3q27(l)
-        ishift=pimage(ixpbc,ishift,nx)
-        jshift=pimage(iypbc,jshift,ny)
-        kshift=pimage(izpbc,kshift,nz)
+!        ishift=pimage(ixpbc,ishift,nx)
+!        jshift=pimage(iypbc,jshift,ny)
+!        kshift=pimage(izpbc,kshift,nz)
         if(isfluid(ishift,jshift,kshift)==1 .and. &
             new_isfluid(ishift,jshift,kshift)==1)then
             Rsum=Rsum+rhoR(ishift,jshift,kshift)
@@ -10566,7 +10566,6 @@ end subroutine compute_secbelt_density_twofluids
   ltest(1)=.false.
   do myi=1,natmssub
     iatm=atmbook(myi)
-    write (6,*) __FILE__,__LINE__, "iatm=",iatm
     itype=ltype(iatm)
     isub=nint(xx(iatm))
     jsub=nint(yy(iatm))
@@ -10588,11 +10587,12 @@ end subroutine compute_secbelt_density_twofluids
           i=pimage(ixpbc,i,nx)
           j=pimage(iypbc,j,ny)
           k=pimage(izpbc,k,nz)
-          if(new_isfluid(i,j,k)==1 .and. isfluid(i,j,k)/=1)then
-            CYCLE_OUT_INTERVAL(i, imin, imax)
-            CYCLE_OUT_INTERVAL(j, jmin, jmax)
-            CYCLE_OUT_INTERVAL(k, kmin, kmax)
 
+          CYCLE_OUT_INTERVAL(i, imin, imax)
+          CYCLE_OUT_INTERVAL(j, jmin, jmax)
+          CYCLE_OUT_INTERVAL(k, kmin, kmax)
+
+          if(new_isfluid(i,j,k)==1 .and. isfluid(i,j,k)/=1)then
             !solid node is trasformed to fluid node
             call compute_onebelt_density(i,j,k, Rsum, Dsum)
             if(Dsum==ZERO)then
@@ -10642,11 +10642,11 @@ end subroutine compute_secbelt_density_twofluids
           i=pimage(ixpbc,i,nx)
           j=pimage(iypbc,j,ny)
           k=pimage(izpbc,k,nz)
-          if(new_isfluid(i,j,k)==1 .and. isfluid(i,j,k)/=1)then
-            CYCLE_OUT_INTERVAL(i, imin, imax)
-            CYCLE_OUT_INTERVAL(j, jmin, jmax)
-            CYCLE_OUT_INTERVAL(k, kmin, kmax)
 
+          CYCLE_OUT_INTERVAL(i, imin, imax)
+          CYCLE_OUT_INTERVAL(j, jmin, jmax)
+          CYCLE_OUT_INTERVAL(k, kmin, kmax)
+          if(new_isfluid(i,j,k)==1 .and. isfluid(i,j,k)/=1)then
             !solid node is trasformed to fluid node
             call compute_onebelt_density(i,j,k, Rsum, Dsum)
             if(Dsum==ZERO)then
@@ -10853,11 +10853,15 @@ end subroutine compute_secbelt_density_twofluids
   if(lsingle_fluid)then
     do myi=1,natmssub
       iatm=atmbook(myi)
-      write (6,*) __FILE__,__LINE__, "iatm=",iatm
       itype=ltype(iatm)
       isub=nint(xx(iatm))
       jsub=nint(yy(iatm))
       ksub=nint(zz(iatm))
+
+      CYCLE_OUT_INTERVAL(isub, imin, imax)
+      CYCLE_OUT_INTERVAL(jsub, jmin, jmax)
+      CYCLE_OUT_INTERVAL(ksub, kmin, kmax)
+
       do l=1,nspheres
         i=isub+spherelists(1,l)
         j=jsub+spherelists(2,l)
@@ -10866,9 +10870,9 @@ end subroutine compute_secbelt_density_twofluids
         jj=real(j,kind=PRC)
         kk=real(k,kind=PRC)
         !apply periodic conditions if necessary
-        i=pimage(ixpbc,i,nx)
-        j=pimage(iypbc,j,ny)
-        k=pimage(izpbc,k,nz)
+!        i=pimage(ixpbc,i,nx)
+!        j=pimage(iypbc,j,ny)
+!        k=pimage(izpbc,k,nz)
         if(i<imin .or. i>imax)cycle
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle
@@ -10902,9 +10906,9 @@ end subroutine compute_secbelt_density_twofluids
         j=jsub+spherelistdeads(2,l)
         k=ksub+spherelistdeads(3,l)
         !apply periodic conditions if necessary
-        i=pimage(ixpbc,i,nx)
-        j=pimage(iypbc,j,ny)
-        k=pimage(izpbc,k,nz)
+!        i=pimage(ixpbc,i,nx)
+!        j=pimage(iypbc,j,ny)
+!        k=pimage(izpbc,k,nz)
         if(i<imin .or. i>imax)cycle
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle
@@ -10921,7 +10925,6 @@ end subroutine compute_secbelt_density_twofluids
   else
     do myi=1,natmssub
       iatm=atmbook(myi)
-      write (6,*) __FILE__,__LINE__, "iatm=",iatm
       itype=ltype(iatm)
       isub=nint(xx(iatm))
       jsub=nint(yy(iatm))
@@ -11067,7 +11070,6 @@ end subroutine compute_secbelt_density_twofluids
   !delete fluid 
   do myi=1,natms_ext
     iatm=atmbook(myi)
-    write (6,*) __FILE__,__LINE__, "iatm=",iatm
     isub=nint(xx(iatm))
     jsub=nint(yy(iatm))
     ksub=nint(zz(iatm))
