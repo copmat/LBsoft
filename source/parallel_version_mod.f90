@@ -63,7 +63,7 @@
  public :: max_world_iarr
  public :: max_world_farr
  public :: and_world_larr
- public :: or_world_larr
+ public :: or_world_larr, or1_world_larr
  public :: irecv_world_i
  public :: irecv_world_f
  public :: irecv_world_l
@@ -87,6 +87,11 @@
  logical, save :: afbuffer=.false.
  logical, save :: adbuffer=.false.
  logical, save :: albuffer=.false.
+
+ logical, allocatable, dimension(:), save :: lbuffer1
+ logical, save :: albuffer1=.false.
+ integer, save :: nlbuffer1
+
  integer, parameter :: nincrement=100
  
  contains
@@ -1003,6 +1008,54 @@
   
  end subroutine or_world_larr
  
+ subroutine allocate_lbuffer1(narr)
+  implicit none
+  integer, intent(in) :: narr
+
+
+  if(albuffer1)then
+    if(narr>nlbuffer1)then
+      deallocate(lbuffer1)
+      nlbuffer1=narr+nincrement
+      allocate(lbuffer1(nlbuffer1))
+    endif
+  else
+    nlbuffer1=narr+nincrement
+    allocate(lbuffer1(nlbuffer1))
+    albuffer1=.true.
+  endif
+ end subroutine allocate_lbuffer1
+
+ subroutine or1_world_larr(argument,narr,buffersub)
+  implicit none
+  logical(kind=1), intent(inout), dimension(narr) :: argument
+  integer, intent(in) :: narr
+  logical, intent(inout), dimension(narr), optional :: buffersub
+  logical, allocatable, dimension(:) :: temp
+
+  integer ier
+
+  if(present(buffersub))then
+    call MPI_ALLREDUCE(argument,buffersub,narr,MY_LOGICAL, &
+      MPI_LOR,MPI_COMM_WORLD,ier)
+      argument(1:narr) = buffersub(1:narr)
+  else
+    call allocate_lbuffer(narr)
+    allocate(temp(narr))
+    temp(1:narr) = argument(1:narr)
+
+    call MPI_ALLREDUCE(temp,lbuffer,narr,MY_LOGICAL, &
+      MPI_LOR,MPI_COMM_WORLD,ier)
+
+    argument(1:narr) = lbuffer(1:narr)
+    deallocate(temp)
+  endif
+
+#if ADDSYNC==1
+  call get_sync_world
+#endif
+ end subroutine or1_world_larr
+
  subroutine irecv_world_i(argument,idsource,tag,irequest)
  
 !***********************************************************************

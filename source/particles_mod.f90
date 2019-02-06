@@ -22,7 +22,8 @@
                    get_sync_world,isend_world_farr,bcast_world_iarr, &
                    waitall_world,irecv_world_farr,isend_world_iarr, &
                    irecv_world_iarr,max_world_iarr,sum_world_iarr, &
-                   sum_world_farr, bcast_world_i, bcast_world_farr
+                   sum_world_farr, bcast_world_i, bcast_world_farr, &
+                   or1_world_larr
 
  use error_mod
  use aop_mod
@@ -1587,6 +1588,7 @@
     
     do myi=1,natms_ext
       i = atmbook(myi)
+      write (6,*) __FILE__,__LINE__, "i=", i, myi<=natms, xxx(i),yyy(i),zzz(i), vxx(i),vyy(i),vzz(i)
       rnorm=ONE/sqrt(q0(i)**TWO+q1(i)**TWO+q2(i)**TWO+q3(i)**TWO)
       q0(i)=q0(i)*rnorm
       q1(i)=q1(i)*rnorm
@@ -1906,47 +1908,54 @@
 !***********************************************************************
  
   implicit none
-  integer :: iatm,i,j,k,io,jo,ko,l,imin,imax,jmin,jmax,kmin,kmax
+  integer :: iatm,myi, i
   
-  
-  imin=minx-nbuff
-  imax=maxx+nbuff
-  jmin=miny-nbuff
-  jmax=maxy+nbuff
-  kmin=minz-nbuff
-  kmax=maxz+nbuff
-  
-  ! check all the particle centers if they are moved
-  where(nint(xxx(1:natms_ext))/=nint(xxo(1:natms_ext)).or. &
-   nint(yyy(1:natms_ext))/=nint(yyo(1:natms_ext)) .or. &
-   nint(zzz(1:natms_ext))/=nint(zzo(1:natms_ext)))
-    lmove(1:natms_ext)=.true.
-  elsewhere
-    lmove(1:natms_ext)=.false.
-  end where
-  
-  if(mxrank>1)then
-    !check if the particle is leaving the sub domain
-    forall(i=1:natms,lmove(i))
-      lmove_dom(i)=(nint(xxx(i))<minx .or. nint(xxx(i))>maxx .or. &
-       nint(yyy(i))<miny .or. nint(yyy(i))>maxy .or. &
-       nint(zzz(i))<minz .or. nint(zzz(i))>maxz)
-    end forall
-    
-    !check if the particle is entering in the sub domain
-    !NOTE: particle in the halo are from natms+1 up to natms_ext
-    if(natms_ext>=natms+1)then
-      forall(i=natms+1:natms_ext,lmove(i))
-        lmove_dom(i)=(nint(xxx(i))>=minx .and. nint(xxx(i))<=maxx .and. &
-         nint(yyy(i))>=miny .and. nint(yyy(i))<=maxy .and. &
-         nint(zzz(i))>=minz .and. nint(zzz(i))<=maxz)
-      end forall
+
+  lmove(1:natms_tot) = .false.
+
+  do myi=1,natms
+    iatm=atmbook(myi)
+    if (nint(xxx(iatm)) /= nint(xxo(iatm)) .or. &
+        nint(yyy(iatm)) /= nint(yyo(iatm)) .or. &
+        nint(zzz(iatm)) /= nint(zzo(iatm))) then
+      lmove(iatm) = .true.
     endif
-    
-  endif
+  enddo
   
+  call or1_world_larr(lmove, natms_tot)
+
+!  SERIAL VERSION
+! ! check all the particle centers if they are moved
+! where(nint(xxx(1:natms_ext))/=nint(xxo(1:natms_ext)).or. &
+!  nint(yyy(1:natms_ext))/=nint(yyo(1:natms_ext)) .or. &
+!  nint(zzz(1:natms_ext))/=nint(zzo(1:natms_ext)))
+!   lmove(1:natms_ext)=.true.
+! elsewhere
+!   lmove(1:natms_ext)=.false.
+! end where
+! if(mxrank>1)then
+!   !check if the particle is leaving the sub domain
+!   forall(i=1:natms,lmove(i))
+!     lmove_dom(i)=(nint(xxx(i))<minx .or. nint(xxx(i))>maxx .or. &
+!      nint(yyy(i))<miny .or. nint(yyy(i))>maxy .or. &
+!      nint(zzz(i))<minz .or. nint(zzz(i))>maxz)
+!   end forall
+!   !check if the particle is entering in the sub domain
+!   !NOTE: particle in the halo are from natms+1 up to natms_ext
+!   if(natms_ext>=natms+1)then
+!     forall(i=natms+1:natms_ext,lmove(i))
+!       lmove_dom(i)=(nint(xxx(i))>=minx .and. nint(xxx(i))<=maxx .and. &
+!        nint(yyy(i))>=miny .and. nint(yyy(i))<=maxy .and. &
+!        nint(zzz(i))>=minz .and. nint(zzz(i))<=maxz)
+!     end forall
+!   endif
+! endif
+!endif
+  
+!  write (6,*) __FILE__,__LINE__, "lmove=", lmove(1:natms_ext)
  end subroutine check_moving_particles
  
+
  subroutine build_new_isfluid(nstep)
   
 !***********************************************************************
@@ -1971,7 +1980,7 @@
      spherelist,spheredist,nspheredead,spherelistdead,lmove, &
      xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,xxo,yyo,zzo)
      
-  call particle_delete_fluids(nstep,natms,atmbook,nsphere, &
+  call particle_delete_fluids(nstep,natms_ext,atmbook,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
@@ -1994,7 +2003,7 @@
   implicit none
   integer, intent(in) :: nstep
   
-  call particle_create_fluids(nstep,natms,atmbook,nsphere, &
+  call particle_create_fluids(nstep,natms_ext,atmbook,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
@@ -2338,9 +2347,9 @@
 !***********************************************************************
   
   implicit none
-
   integer, allocatable, dimension(:), intent(in) :: lentrysub
   integer, allocatable, dimension(:,:), intent(in) :: listsub
+
   
 ! separation vectors and powers thereof
   
@@ -2604,6 +2613,12 @@
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
         rsq=xdf(ii)**TWO+ydf(ii)**TWO+zdf(ii)**TWO
+
+        ! FABIO: MPI HACK
+        if (rsq <= ZERO) then
+            write (6,*) __FILE__,__LINE__, "idrank=",idrank, "rsq=", rsq
+            rsq = 0.5
+        endif
 
         if(rsq<=mxrsqcut) then
           rrr=sqrt(rsq)
@@ -4766,11 +4781,20 @@
  
  subroutine restore_particles
   implicit none
-  integer :: i, myi
+  integer :: i, myi, iatm, ids, num_ext
+  logical(kind=1), dimension(natms_tot) :: mine
 
 
-  do myi=natms+1,natms_ext
-    i = atmbook(myi)
+!  if (mxrank==1) return
+
+  mine(:) = .false.
+  do myi=1,natms
+      i = atmbook(myi)
+      mine(i) = .true.
+  enddo
+
+  forall(i=1:natms_tot, .not. mine(i))
+    ! Erase atoms by others
     xxx(i) = 0
     yyy(i) = 0
     zzz(i) = 0
@@ -4789,7 +4813,7 @@
     vxo(i) = 0
     vyo(i) = 0
     vzo(i) = 0
-  enddo
+  end forall
 
   call sum_world_farr(xxx,natms_tot)
   call sum_world_farr(yyy,natms_tot)
@@ -4809,6 +4833,38 @@
   call sum_world_farr(q1,natms_tot)
   call sum_world_farr(q2,natms_tot)
   call sum_world_farr(q3,natms_tot)
+
+
+  ! Count my atoms, put them in atmbook list
+  ! Also count halo atoms, at end of atmbook
+  natms = 0; num_ext = 0
+
+  do i=1,natms_tot
+#ifndef DEOWERN
+    ids=ownernfind_arr(nint(xxx(i)),nint(yyy(i)),nint(zzz(i)), &
+        nx,ny,nz,nbuff,ownern)
+#else
+    ids=ownernfind(nint(xxx(i)),nint(yyy(i)),nint(zzz(i)), &
+        mxrank,gminx,gmaxx,gminy,gmaxy,gminz,gmaxz)
+#endif
+    if (idrank==ids) then
+        natms = natms + 1
+        atmbook(natms) = i
+    else
+        call checkIfExtAtom(i, num_ext)
+    endif
+  enddo
+
+  ! 1) First parallelization with all atoms on all processes FB
+  do iatm=1, num_ext
+    atmbook(natms+iatm) = atmbook(mxatms - num_ext + iatm)
+  enddo
+  natms_ext= natms + num_ext
+
+!  do myi=1,natms_ext
+!      i = atmbook(myi)
+!      write (6,*) __FILE__,__LINE__, "i=", i, myi<=natms, xxx(i),yyy(i),zzz(i)
+!  enddo
 
  end subroutine restore_particles
 

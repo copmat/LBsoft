@@ -445,7 +445,7 @@
     lredo=.false.
     dtemp1=rand_noseeded(i,j,k,l+kk)
     dtemp2=rand_noseeded(i,j,k,l+1+kk)
-    if (dtemp1*dtemp2 == 0.0) then
+    if (dtemp1 == 0.0) then
         lredo = .true.
         cycle
     endif

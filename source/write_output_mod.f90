@@ -607,9 +607,9 @@
   if(lparticles)then
     if(mxrank==1)then
       call write_vtp_file(181,'outatm',nstepsub)
-    else
+!    else
 !      call error(11)
-       write (6,*) "Skipping in Parallel"
+!       write (6,*) "Skipping in Parallel"
     endif
   endif
   
