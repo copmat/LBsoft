@@ -356,7 +356,7 @@
  public :: pimage
  public :: omega_to_viscosity
  public :: compute_sc_particle_interact
- public :: setTest, checkTest, print_all_pops2, print_all_pops3
+ public :: setTest, checkTest, print_all_pops2
  public :: driver_bc_pops
 
  contains
@@ -404,7 +404,6 @@
      endif
      
      allocate(bcfluid(ix:mynx,iy:myny,iz:mynz),stat=istat(99))
-     write(6,*) __FILE__,__LINE__, "rhoR bounds:", ix,mynx, iy,myny, iz,mynz
      allocate(rhoR(ix:mynx,iy:myny,iz:mynz),stat=istat(2))
 
      allocate(u(ix:mynx,iy:myny,iz:mynz),stat=istat(3))
@@ -7860,9 +7859,9 @@
   
   
    if(lsingle_fluid)then
-     do k=minz-1,maxz+1
-       do j=miny-1,maxy+1
-         do i=minx-1,maxx+1
+     do k=minz,maxz
+       do j=miny,maxy
+         do i=minx,maxx
            if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
              dsum1=ZERO
              isum=ZERO
@@ -7876,6 +7875,7 @@
                endif
              enddo
              if(isum==ZERO)then
+               write (6,*) "compute_densities_wall] zero isum @",  i,j,k
                dsum1=ZERO
                isum=ZERO
                do l=1,ndouble
@@ -7906,9 +7906,9 @@
        enddo
      enddo
    else
-     do k=minz-1,maxz+1
-       do j=miny-1,maxy+1
-         do i=minx-1,maxx+1
+     do k=minz,maxz
+       do j=miny,maxy
+         do i=minx,maxx
            if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
              dsum1=ZERO
              dsum2=ZERO
@@ -9233,7 +9233,7 @@
        k>=minz .and. k<=maxz)then
         call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
            otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug,iatm)
-        write(iatm*1000+idrank,*) __FILE__,__LINE__, "i,j,k=", i,j,k
+        if (debug) write(iatm*1000+idrank,*) __FILE__,__LINE__, "i,j,k=", i,j,k
       endif
 
       !the fluid bounce back is local so I have to do it
@@ -12053,76 +12053,38 @@ end subroutine compute_secbelt_density_twofluids
 
 
   mynamefile=repeat(' ',120)
-  mynamefile=trim(filenam)//write_fmtnumb(idrank)//'.dat'
+  mynamefile=trim(filenam)//write_fmtnumb(itersub)//'.'//write_fmtnumb(idrank)//'.dat'
 
   mynamefile1=repeat(' ',120)
-  mynamefile1=trim(filenam)//write_fmtnumb(idrank)//'.dat1'
+  mynamefile1=trim(filenam)//write_fmtnumb(itersub)//'.'//write_fmtnumb(idrank)//'.dat1'
   iosub1 = iosub + 1
 
 
     open(unit=iosub, file=trim(mynamefile), status='replace')
     open(unit=iosub1,file=trim(mynamefile1),status='replace')
 
-  do k=0,nz+1
-    do j=0,ny+1
-      do i=0,nx+1
-        if(minx-1<=i .and. i<=maxx+1) then
-        if(miny-1<=j .and. k<=maxy+1) then
-        if(minz-1<=k .and. k<=maxz+1) then
+  do k=minz,maxz
+    do j=miny,maxy
+      do i=minx,maxx
+!        if(minx-1<=i .and. i<=maxx+1) then
+!        if(miny-1<=j .and. k<=maxy+1) then
+!        if(minz-1<=k .and. k<=maxz+1) then
           do l=0,links
             write(iosub,*)i,j,k,l,aoptp(l)%p(i,j,k)
           enddo
 
           write(iosub1,*) i,j,k, rhoR(i,j,k),u(i,j,k), &
                 v(i,j,k),w(i,j,k),isfluid(i,j,k)
-        endif
-        endif
-        endif
+!        endif
+!        endif
+!        endif
 
       enddo
     enddo
   enddo
 
     close(iosub)
+    close(iosub1)
 
  end subroutine print_all_pops2
-
-
-
- subroutine print_all_pops3(iosub,filenam,itersub,aoptp)
-  implicit none
-  integer, intent(in) :: iosub,itersub
-  character(len=*), intent(in) :: filenam
-  type(REALPTR), dimension(0:links):: aoptp
-  character(len=120) :: mynamefile, mynamefile1
-  integer :: i,j,k,l
-
-
-
-  mynamefile=repeat(' ',120)
-  mynamefile=trim(filenam)//write_fmtnumb(idrank)//'.check.dat'
-
-
-  open(unit=iosub, file=trim(mynamefile), status='replace')
-
-  do k = 16, 17
-  if(minz-1<=k .and. k<=maxz+1) then
-    do j=miny-1,maxy+1
-      do i=minx-1,maxx+1
-        do l=0,links
-          write(iosub,*) i,j,k,l,aoptp(l)%p(i,j,k)
-        enddo
-        write(iosub,*) i,j,k, rhoR(i,j,k), u(i,j,k),v(i,j,k),w(i,j,k), isfluid(i,j,k)
-      enddo
-    enddo
-  endif
-
-  enddo
-
-    close(iosub)
-
- end subroutine print_all_pops3
-
-
-
  end module fluids_mod

@@ -1106,11 +1106,11 @@ contains
     buf_sendrecv1( 19*ldimyz+1 : 20*ldimyz, 1) = RESHAPE(rho(maxx, miny:maxy,minz:maxz), [ ldimyz ] )
     buf_sendrecv2( 19*ldimyz+1 : 20*ldimyz, 1) = RESHAPE(rho(minx, miny:maxy,minz:maxz), [ ldimyz ] )
 
-    call MPI_SENDRECV( buf_sendrecv1(1,1), 19*ldimyz, MPI_DOUBLE, neigh(1), id_rank+halotag,  &
-                       buf_sendrecv1(1,2), 19*ldimyz, MPI_DOUBLE, neigh(2), neigh(2)+halotag, &
+    call MPI_SENDRECV( buf_sendrecv1(1,1), 20*ldimyz, MPI_DOUBLE, neigh(1), id_rank+halotag,  &
+                       buf_sendrecv1(1,2), 20*ldimyz, MPI_DOUBLE, neigh(2), neigh(2)+halotag, &
         cube_comm, statusVar, ierr)
-    call MPI_SENDRECV( buf_sendrecv2(1,1), 19*ldimyz, MPI_DOUBLE, neigh(2), id_rank+halotag,  &
-                       buf_sendrecv2(1,2), 19*ldimyz, MPI_DOUBLE, neigh(1), neigh(1)+halotag, &
+    call MPI_SENDRECV( buf_sendrecv2(1,1), 20*ldimyz, MPI_DOUBLE, neigh(2), id_rank+halotag,  &
+                       buf_sendrecv2(1,2), 20*ldimyz, MPI_DOUBLE, neigh(1), neigh(1)+halotag, &
         cube_comm, statusVar, ierr)
 
     if (neigh(2) /= MPI_PROC_NULL) then
