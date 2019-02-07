@@ -1414,9 +1414,14 @@
   call bcast_world_farr(yyy,natms_tot)
   call bcast_world_farr(zzz,natms_tot)
 
+! compute inverse mass
+  do itype=1,ntype
+    rmass(itype)=ONE/weight(itype)
+  enddo
 
 ! Initialize linear momentum if not given in xyz file
   if (idrank==0) then
+    natms = natms_tot
     if(linit_temp)call init_velocity
   endif
 
@@ -1484,11 +1489,6 @@
 #if 1
   call print_all_particles(100,'atomSetup',1)
 #endif
-  
-! compute inverse mass
-  do itype=1,ntype
-    rmass(itype)=ONE/weight(itype)
-  enddo
   
 ! total degree of freedom of particles
   if(lrotate)then
@@ -2865,8 +2865,8 @@
       
 ! set atomic velocities from gaussian distribution
       
-  do myi=1,natms
-    i = atmbook(myi)
+  ! MPI: This is called only from rank==0, so skip atmbook
+  do i=1,natms
     sigma=sqrt(tempboltz*init_temp*rmass(ltype(i)))
     vxx(i)=sigma*gauss()
     vyy(i)=sigma*gauss()
