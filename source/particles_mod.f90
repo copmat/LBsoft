@@ -1767,7 +1767,7 @@
     qversor(3)=ozz(iatm)
     oat=qtrimult(qtemp,qversor,qconj(qtemp))
     
-    call particle_bounce_back(.true., nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(.false., nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &

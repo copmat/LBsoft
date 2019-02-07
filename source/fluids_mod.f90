@@ -9242,17 +9242,17 @@
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle
         call particle_to_node_bounce_back_bc(lrotate,nstep,i,j,k,rtemp, &
-         otemp,vx,vy,vz,rhoR,aoptpR)
+         otemp,vx,vy,vz,rhoR,aoptpR, .true.,iatm)
       else
         if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
          k>=kmin .and. k<=kmax)then
           call particle_to_node_bounce_back_bc(lrotate,nstep,i,j,k,rtemp, &
-           otemp,vx,vy,vz,rhoR,aoptpR)
+           otemp,vx,vy,vz,rhoR,aoptpR, .true.,iatm)
         endif
         if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
          kk>=kmin .and. kk<=kmax)then
           call particle_to_node_bounce_back_bc(lrotate,nstep,ii,jj,kk,rtemp, &
-           otemp,vx,vy,vz,rhoR,aoptpR)
+           otemp,vx,vy,vz,rhoR,aoptpR, .true.,iatm)
         endif
       endif
 
@@ -9293,23 +9293,23 @@
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle
         call particle_to_node_bounce_back_bc(lrotate,nstep,i,j,k,rtemp, &
-         otemp,vx,vy,vz,rhoR,aoptpR)
+         otemp,vx,vy,vz,rhoR,aoptpR, debug,iatm)
         call particle_to_node_bounce_back_bc(lrotate,nstep,i,j,k,rtemp, &
-         otemp,vx,vy,vz,rhoB,aoptpB)
+         otemp,vx,vy,vz,rhoB,aoptpB, debug,iatm)
       else
         if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
          k>=kmin .and. k<=kmax)then
           call particle_to_node_bounce_back_bc(lrotate,nstep,i,j,k,rtemp, &
-           otemp,vx,vy,vz,rhoR,aoptpR)
+           otemp,vx,vy,vz,rhoR,aoptpR, debug,iatm)
           call particle_to_node_bounce_back_bc(lrotate,nstep,i,j,k,rtemp, &
-           otemp,vx,vy,vz,rhoB,aoptpB)
+           otemp,vx,vy,vz,rhoB,aoptpB, debug,iatm)
         endif
         if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
          kk>=kmin .and. kk<=kmax)then
           call particle_to_node_bounce_back_bc(lrotate,nstep,ii,jj,kk,rtemp, &
-           otemp,vx,vy,vz,rhoR,aoptpR)
+           otemp,vx,vy,vz,rhoR,aoptpR, debug,iatm)
           call particle_to_node_bounce_back_bc(lrotate,nstep,ii,jj,kk,rtemp, &
-           otemp,vx,vy,vz,rhoB,aoptpB)
+           otemp,vx,vy,vz,rhoB,aoptpB, debug,iatm)
         endif
       endif
 
@@ -10149,7 +10149,7 @@
  end subroutine node_to_particle_bounce_back_bc
 
  subroutine particle_to_node_bounce_back_bc(lrotate,nstep,i,j,k,rversor, &
-   otemp,vxs,vys,vzs,rhosub,aoptp)
+   otemp,vxs,vys,vzs,rhosub,aoptp, debug,iatm)
  
 !***********************************************************************
 !     
@@ -10164,8 +10164,8 @@
  
   implicit none
   
-  logical, intent(in) :: lrotate
-  integer, intent(in) :: nstep,i,j,k
+  logical, intent(in) :: lrotate, debug
+  integer, intent(in) :: nstep,i,j,k,iatm
   real(kind=PRC), intent(in) :: vxs,vys,vzs
   real(kind=PRC), intent(in), dimension(3) :: rversor,otemp
   real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub
@@ -10197,33 +10197,38 @@
   ii=i+ex(indlow)
   jj=j+ey(indlow)
   kk=k+ez(indlow)
-  ii=pimage(ixpbc,ii,nx)
-  jj=pimage(iypbc,jj,ny)
-  kk=pimage(izpbc,kk,nz)
+!  ii=pimage(ixpbc,ii,nx)
+!  jj=pimage(iypbc,jj,ny)
+!  kk=pimage(izpbc,kk,nz)
 
   io=i+ex(indhig)
   jo=j+ey(indhig)
   ko=k+ez(indhig)
-  io=pimage(ixpbc,io,nx)
-  jo=pimage(iypbc,jo,ny)
-  ko=pimage(izpbc,ko,nz)
+!  io=pimage(ixpbc,io,nx)
+!  jo=pimage(iypbc,jo,ny)
+!  ko=pimage(izpbc,ko,nz)
 
-  if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
-   kk>=minz .and. kk<=maxz)then
-    if(io>=minx .and. io<=maxx .and. jo>=miny .and. jo<=maxy .and. &
-     ko>=minz .and. ko<=maxz)then
+  if(ii>=minx-1 .and. ii<=maxx+1 .and. jj>=miny-1 .and. jj<=maxy+1 .and. &
+   kk>=minz-1 .and. kk<=maxz+1)then
+    if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
+     ko>=minz-1 .and. ko<=maxz+1)then
        if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
 	      if(lrotate)then
-		rtemp=rversor
-		rtemp(1)=rtemp(1)+HALF*dex(indlow)
-		rtemp(2)=rtemp(2)+HALF*dey(indlow)
-		rtemp(3)=rtemp(3)+HALF*dez(indlow)
-		vx=vxs+xcross(otemp,rtemp)
-		vy=vys+ycross(otemp,rtemp)
-		vz=vzs+zcross(otemp,rtemp)
+            rtemp=rversor
+            rtemp(1)=rtemp(1)+HALF*dex(indlow)
+            rtemp(2)=rtemp(2)+HALF*dey(indlow)
+            rtemp(3)=rtemp(3)+HALF*dez(indlow)
+            vx=vxs+xcross(otemp,rtemp)
+            vy=vys+ycross(otemp,rtemp)
+            vz=vzs+zcross(otemp,rtemp)
 	      endif
 	      aoptp(indlow)%p(i,j,k)=real(aoptp(indhig)%p(ii,jj,kk),kind=PRC)- &
 	       p(indhig)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(indhig)*vx+dey(indhig)*vy+dez(indhig)*vz)
+           if (debug) then
+             write (iatm*1000+100+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indlow,indhig, &
+                 "pop",aoptp(indhig)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
+                 "->pop low", aoptp(indlow)%p(i,j,k)
+           endif
        endif
     endif
   endif
@@ -10231,33 +10236,38 @@
   ii=i+ex(indhig)
   jj=j+ey(indhig)
   kk=k+ez(indhig)
-  ii=pimage(ixpbc,ii,nx)
-  jj=pimage(iypbc,jj,ny)
-  kk=pimage(izpbc,kk,nz)
+!  ii=pimage(ixpbc,ii,nx)
+!  jj=pimage(iypbc,jj,ny)
+!  kk=pimage(izpbc,kk,nz)
 
   io=i+ex(indlow)
   jo=j+ey(indlow)
   ko=k+ez(indlow)
-  io=pimage(ixpbc,io,nx)
-  jo=pimage(iypbc,jo,ny)
-  ko=pimage(izpbc,ko,nz)
+!  io=pimage(ixpbc,io,nx)
+!  jo=pimage(iypbc,jo,ny)
+!  ko=pimage(izpbc,ko,nz)
 
-  if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
-   kk>=minz .and. kk<=maxz)then
-    if(io>=minx .and. io<=maxx .and. jo>=miny .and. jo<=maxy .and. &
-     ko>=minz .and. ko<=maxz)then
+  if(ii>=minx-1 .and. ii<=maxx+1 .and. jj>=miny-1 .and. jj<=maxy+1 .and. &
+   kk>=minz-1 .and. kk<=maxz+1)then
+    if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
+     ko>=minz-1 .and. ko<=maxz+1)then
        if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
 	      if(lrotate)then
-		rtemp=rversor
-		rtemp(1)=rtemp(1)+HALF*dex(indhig)
-		rtemp(2)=rtemp(2)+HALF*dey(indhig)
-		rtemp(3)=rtemp(3)+HALF*dez(indhig)
-		vx=vxs+xcross(otemp,rtemp)
-		vy=vys+ycross(otemp,rtemp)
-		vz=vzs+zcross(otemp,rtemp)
+            rtemp=rversor
+            rtemp(1)=rtemp(1)+HALF*dex(indhig)
+            rtemp(2)=rtemp(2)+HALF*dey(indhig)
+            rtemp(3)=rtemp(3)+HALF*dez(indhig)
+            vx=vxs+xcross(otemp,rtemp)
+            vy=vys+ycross(otemp,rtemp)
+            vz=vzs+zcross(otemp,rtemp)
 	      endif
 	      aoptp(indhig)%p(i,j,k)=real(aoptp(indlow)%p(ii,jj,kk),kind=PRC)- &
 	       p(indlow)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(indlow)*vx+dey(indlow)*vy+dez(indlow)*vz)
+	      if (debug) then
+             write (iatm*1000+100+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
+                 "pop",aoptp(indlow)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
+                 "->pop low", aoptp(indhig)%p(i,j,k)
+           endif
        endif
     endif
   endif
