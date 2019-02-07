@@ -1747,7 +1747,7 @@
   
   do myi=1,natms_ext
     iatm = atmbook(myi)
-!    write (6,*) __FILE__,__LINE__, "iatm=", iatm
+    write (6,*) __FILE__,__LINE__, "iatm=", iatm
     txb(iatm)=ZERO
     tyb(iatm)=ZERO
     tzb(iatm)=ZERO
@@ -1767,16 +1767,16 @@
     qversor(3)=ozz(iatm)
     oat=qtrimult(qtemp,qversor,qconj(qtemp))
     
-    call particle_bounce_back(iatm==5, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(.true., nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm),oat(1),oat(2),oat(3), &
      txb(iatm),tyb(iatm),tzb(iatm))
 
-!     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
-!        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
-!        "t=", txb(iatm),tyb(iatm),tzb(iatm)
+     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
+        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
+        "t=", txb(iatm),tyb(iatm),tzb(iatm)
   enddo
   
   else
@@ -1889,6 +1889,13 @@
     txb(iatm) = 0
     tyb(iatm) = 0
     tzb(iatm) = 0
+  enddo
+
+  do myi=1,natms_ext
+    iatm = atmbook(myi)
+    write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
+        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
+        "t=", txb(iatm),tyb(iatm),tzb(iatm)
   enddo
 
  end subroutine merge_particle_force

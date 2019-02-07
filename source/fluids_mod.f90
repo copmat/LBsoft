@@ -404,6 +404,7 @@
      endif
      
      allocate(bcfluid(ix:mynx,iy:myny,iz:mynz),stat=istat(99))
+     write(6,*) __FILE__,__LINE__, "rhoR bounds:", ix,mynx, iy,myny, iz,mynz
      allocate(rhoR(ix:mynx,iy:myny,iz:mynz),stat=istat(2))
 
      allocate(u(ix:mynx,iy:myny,iz:mynz),stat=istat(3))
@@ -5764,10 +5765,10 @@
  subroutine driver_bc_pops()
   implicit none
 
-  call mpisendrecvHALOpops(aoptpR)
+  call mpisendrecvHALOpops(aoptpR, rhoR)
   if(lsingle_fluid)return
 
-  call mpisendrecvHALOpops(aoptpB)
+  call mpisendrecvHALOpops(aoptpB, rhoB)
  end subroutine driver_bc_pops
 
 !******************END PART TO MANAGE THE PERIODIC BC*******************
@@ -9193,12 +9194,12 @@
   
   if(lfirst)then
     lfirst=.false.
-    imin=minx
-    imax=maxx
-    jmin=miny
-    jmax=maxy
-    kmin=minz
-    kmax=maxz
+    imin=minx-1
+    imax=maxx+1
+    jmin=miny-1
+    jmax=maxy+1
+    kmin=minz-1
+    kmax=maxz+1
   endif
   
   if(lrotate)then
@@ -9229,10 +9230,10 @@
         rtemp(1:3)=rdimx/modr*rtemp(1:3)
       endif
       if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
-       k>=kmin .and. k<=kmax)then
+       k>=minz .and. k<=maxz)then
         call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
-           otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug)
-!        write(6,*) __FILE__,__LINE__, "i,j,k=", i,j,k
+           otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug,iatm)
+        write(iatm*1000+idrank,*) __FILE__,__LINE__, "i,j,k=", i,j,k
       endif
 
       !the fluid bounce back is local so I have to do it
@@ -9318,7 +9319,7 @@
 
 
  subroutine node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rversor, &
-   otemp,vxs,vys,vzs,fx,fy,fz,tx,ty,tz,rhosub,aoptp, debug)
+   otemp,vxs,vys,vzs,fx,fy,fz,tx,ty,tz,rhosub,aoptp, debug,iatm)
  
 !***********************************************************************
 !     
@@ -9334,7 +9335,7 @@
   implicit none
   
   logical, intent(in) :: lrotate, debug
-  integer, intent(in) :: nstep,i,j,k
+  integer, intent(in) :: nstep,i,j,k,iatm
   real(kind=PRC), intent(in) :: vxs,vys,vzs
   real(kind=PRC), intent(in), dimension(3) :: rversor,otemp
   real(kind=PRC), intent(inout) :: fx,fy,fz
@@ -9412,12 +9413,12 @@
         ty = ty + ttemp(2)
         tz = tz + ttemp(3)
 
-!        if (debug) then
-!          write (6,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
-!              "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p
-!          write (6,*) __FILE__,__LINE__, "pop",aoptp(indhig)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
-!                "v", vx,vy,vz, vxs,vys,vzs
-!        endif
+        if (debug) then
+          write (iatm*1000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indlow,indhig, &
+              "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p, &
+              "pop",aoptp(indhig)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
+              "v", vx,vy,vz, vxs,vys,vzs
+        endif
       endif
     endif
   endif
@@ -9473,12 +9474,12 @@
         ty = ty + ttemp(2)
         tz = tz + ttemp(3)
 
-!        if (debug) then
-!          write (6,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
-!              "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p
-!          write (6,*) __FILE__,__LINE__, "pop",aoptp(indlow)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
-!                "v", vx,vy,vz, vxs,vys,vzs
-!        endif
+        if (debug) then
+          write (iatm*1000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
+              "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p, &
+              "pop",aoptp(indlow)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
+              "v", vx,vy,vz, vxs,vys,vzs
+        endif
       endif
     endif
   endif
@@ -10858,9 +10859,9 @@ end subroutine compute_secbelt_density_twofluids
       jsub=nint(yy(iatm))
       ksub=nint(zz(iatm))
 
-      CYCLE_OUT_INTERVAL(isub, imin, imax)
-      CYCLE_OUT_INTERVAL(jsub, jmin, jmax)
-      CYCLE_OUT_INTERVAL(ksub, kmin, kmax)
+!      CYCLE_OUT_INTERVAL(isub, imin, imax)
+!      CYCLE_OUT_INTERVAL(jsub, jmin, jmax)
+!      CYCLE_OUT_INTERVAL(ksub, kmin, kmax)
 
       do l=1,nspheres
         i=isub+spherelists(1,l)
@@ -10870,9 +10871,9 @@ end subroutine compute_secbelt_density_twofluids
         jj=real(j,kind=PRC)
         kk=real(k,kind=PRC)
         !apply periodic conditions if necessary
-!        i=pimage(ixpbc,i,nx)
-!        j=pimage(iypbc,j,ny)
-!        k=pimage(izpbc,k,nz)
+        i=pimage(ixpbc,i,nx)
+        j=pimage(iypbc,j,ny)
+        k=pimage(izpbc,k,nz)
         if(i<imin .or. i>imax)cycle
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle
@@ -10906,9 +10907,9 @@ end subroutine compute_secbelt_density_twofluids
         j=jsub+spherelistdeads(2,l)
         k=ksub+spherelistdeads(3,l)
         !apply periodic conditions if necessary
-!        i=pimage(ixpbc,i,nx)
-!        j=pimage(iypbc,j,ny)
-!        k=pimage(izpbc,k,nz)
+        i=pimage(ixpbc,i,nx)
+        j=pimage(iypbc,j,ny)
+        k=pimage(izpbc,k,nz)
         if(i<imin .or. i>imax)cycle
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle

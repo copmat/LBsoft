@@ -228,24 +228,24 @@ contains
     ldimyz = ldims(2) * ldims(3)
     ldimxz = ldims(1) * ldims(3)
     ldimxy = ldims(1) * ldims(2)
-    allocate( buf_sendrecv1(ldimyz * 19, 2 ) )     !! Parallel planes
-    allocate( buf_sendrecv2(ldimyz * 19, 2 ) )
-    allocate( buf_sendrecv3(ldimxz * 19, 2 ) )
-    allocate( buf_sendrecv4(ldimxz * 19, 2 ) )
-    allocate( buf_sendrecv5(ldimxy * 19, 2 ) )
-    allocate( buf_sendrecv6(ldimxy * 19, 2 ) )
-    allocate( buf_sendrecv7 (ldims(3), 2 ) )                    !! Diag lines forall z
-    allocate( buf_sendrecv8 (ldims(3), 2 ) )
-    allocate( buf_sendrecv9 (ldims(3), 2 ) )
-    allocate( buf_sendrecv10(ldims(3), 2 ) )
-    allocate( buf_sendrecv11(ldims(2), 2 ) )                  !! Diag lines forall y
-    allocate( buf_sendrecv12(ldims(2), 2 ) )
-    allocate( buf_sendrecv13(ldims(2), 2 ) )
-    allocate( buf_sendrecv14(ldims(2), 2 ) )
-    allocate( buf_sendrecv15(ldims(1), 2 ) )                    !! Diag lines forall x
-    allocate( buf_sendrecv16(ldims(1), 2 ) )
-    allocate( buf_sendrecv17(ldims(1), 2 ) )
-    allocate( buf_sendrecv18(ldims(1), 2 ) )
+    allocate( buf_sendrecv1(ldimyz * 20, 2 ) )     !! Parallel planes
+    allocate( buf_sendrecv2(ldimyz * 20, 2 ) )
+    allocate( buf_sendrecv3(ldimxz * 20, 2 ) )
+    allocate( buf_sendrecv4(ldimxz * 20, 2 ) )
+    allocate( buf_sendrecv5(ldimxy * 20, 2 ) )
+    allocate( buf_sendrecv6(ldimxy * 20, 2 ) )
+    allocate( buf_sendrecv7 (ldims(3) * 20, 2 ) )                    !! Diag lines forall z
+    allocate( buf_sendrecv8 (ldims(3) * 20, 2 ) )
+    allocate( buf_sendrecv9 (ldims(3) * 20, 2 ) )
+    allocate( buf_sendrecv10(ldims(3) * 20, 2 ) )
+    allocate( buf_sendrecv11(ldims(2) * 20, 2 ) )                  !! Diag lines forall y
+    allocate( buf_sendrecv12(ldims(2) * 20, 2 ) )
+    allocate( buf_sendrecv13(ldims(2) * 20, 2 ) )
+    allocate( buf_sendrecv14(ldims(2) * 20, 2 ) )
+    allocate( buf_sendrecv15(ldims(1) * 20, 2 ) )                    !! Diag lines forall x
+    allocate( buf_sendrecv16(ldims(1) * 20, 2 ) )
+    allocate( buf_sendrecv17(ldims(1) * 20, 2 ) )
+    allocate( buf_sendrecv18(ldims(1) * 20, 2 ) )
 
     allocate( buf_sendrecv1_hvar(ldimyz, 2 ) )     !! Parallel planes
     allocate( buf_sendrecv2_hvar(ldimyz, 2 ) )
@@ -1091,9 +1091,10 @@ contains
     end subroutine mpirecv_isfluid
 
 
-    subroutine mpisendrecvhalopops(aoptp)
+    subroutine mpisendrecvhalopops(aoptp, rho)
     implicit none
-    type(REALPTR), dimension(0:npop), intent(in)   :: aoptp
+    type(REALPTR), dimension(0:npop), intent(in) :: aoptp
+    REAL(KIND=PRC), dimension(:,:,:), allocatable :: rho
     integer         :: statusVar(MPI_STATUS_SIZE), i
 
 
@@ -1102,9 +1103,11 @@ contains
         buf_sendrecv1( i*ldimyz+1 : (i+1)*ldimyz, 1) = RESHAPE(aoptp(i)%p(maxx, miny:maxy,minz:maxz), [ ldimyz ] )
         buf_sendrecv2( i*ldimyz+1 : (i+1)*ldimyz, 1) = RESHAPE(aoptp(i)%p(minx, miny:maxy,minz:maxz), [ ldimyz ] )
     enddo
+    buf_sendrecv1( 19*ldimyz+1 : 20*ldimyz, 1) = RESHAPE(rho(maxx, miny:maxy,minz:maxz), [ ldimyz ] )
+    buf_sendrecv2( 19*ldimyz+1 : 20*ldimyz, 1) = RESHAPE(rho(minx, miny:maxy,minz:maxz), [ ldimyz ] )
 
-    call MPI_SENDRECV(  buf_sendrecv1(1,1), 19*ldimyz, MPI_DOUBLE, neigh(1), id_rank+halotag,   &
-                        buf_sendrecv1(1,2), 19*ldimyz, MPI_DOUBLE, neigh(2), neigh(2)+halotag, &
+    call MPI_SENDRECV( buf_sendrecv1(1,1), 19*ldimyz, MPI_DOUBLE, neigh(1), id_rank+halotag,  &
+                       buf_sendrecv1(1,2), 19*ldimyz, MPI_DOUBLE, neigh(2), neigh(2)+halotag, &
         cube_comm, statusVar, ierr)
     call MPI_SENDRECV( buf_sendrecv2(1,1), 19*ldimyz, MPI_DOUBLE, neigh(2), id_rank+halotag,  &
                        buf_sendrecv2(1,2), 19*ldimyz, MPI_DOUBLE, neigh(1), neigh(1)+halotag, &
@@ -1114,12 +1117,43 @@ contains
       do i=0,18
         aoptp(i)%p(minx-1, miny:maxy,minz:maxz) = RESHAPE(buf_sendrecv1(i*ldimyz+1:(i+1)*ldimyz, 2), [ ldims(2),ldims(3) ])
       enddo
+      rho(minx-1, miny:maxy,minz:maxz) = RESHAPE(buf_sendrecv1(19*ldimyz+1 : 20*ldimyz, 2), [ ldims(2),ldims(3) ])
     endif
 
     if (neigh(1) /= MPI_PROC_NULL) then
       do i=0,18
-        aoptp(i)%p(maxx+1,miny:maxy,minz:maxz) = RESHAPE(buf_sendrecv2(i*ldimyz+1:(i+1)*ldimyz, 2), [ ldims(2),ldims(3) ])
+        aoptp(i)%p(maxx+1, miny:maxy,minz:maxz) = RESHAPE(buf_sendrecv2(i*ldimyz+1:(i+1)*ldimyz, 2), [ ldims(2),ldims(3) ])
       enddo
+      rho(maxx+1, miny:maxy,minz:maxz) = RESHAPE(buf_sendrecv2(19*ldimyz+1 : 20*ldimyz, 2), [ ldims(2),ldims(3) ])
+    endif
+
+    ! Y axis
+    do i=0,18
+        buf_sendrecv3( i*ldimxz+1 : (i+1)*ldimxz, 1) = RESHAPE(aoptp(i)%p(minx:maxx, maxy, minz:maxz), [ ldimxz ] )
+        buf_sendrecv4( i*ldimxz+1 : (i+1)*ldimxz, 1) = RESHAPE(aoptp(i)%p(minx:maxx, miny, minz:maxz), [ ldimxz ] )
+    enddo
+    buf_sendrecv3( 19*ldimxz+1 : 20*ldimxz, 1) = RESHAPE(rho(minx:maxx, maxy, minz:maxz), [ ldimxz ] )
+    buf_sendrecv4( 19*ldimxz+1 : 20*ldimxz, 1) = RESHAPE(rho(minx:maxx, miny, minz:maxz), [ ldimxz ] )
+
+    call MPI_SENDRECV( buf_sendrecv3(1,1), 20*ldimxz, MPI_DOUBLE, neigh(3), id_rank+halotag,  &
+                       buf_sendrecv3(1,2), 20*ldimxz, MPI_DOUBLE, neigh(4), neigh(4)+halotag, &
+        cube_comm, statusVar, ierr)
+    call MPI_SENDRECV( buf_sendrecv4(1,1), 20*ldimxz, MPI_DOUBLE, neigh(4), id_rank+halotag,  &
+                       buf_sendrecv4(1,2), 20*ldimxz, MPI_DOUBLE, neigh(3), neigh(3)+halotag, &
+        cube_comm, statusVar, ierr)
+
+    if (neigh(4) /= MPI_PROC_NULL) then
+      do i=0,18
+        aoptp(i)%p(minx:maxx, miny-1, minz:maxz) = RESHAPE(buf_sendrecv3(i*ldimxz+1:(i+1)*ldimxz, 2), [ ldims(1),ldims(3) ])
+      enddo
+      rho(minx:maxx, miny-1, minz:maxz) = RESHAPE(buf_sendrecv3(19*ldimxz+1 : 20*ldimxz, 2), [ ldims(1),ldims(3) ])
+    endif
+
+    if (neigh(3) /= MPI_PROC_NULL) then
+      do i=0,18
+        aoptp(i)%p(minx:maxx, maxy+1, minz:maxz) = RESHAPE(buf_sendrecv4(i*ldimxz+1:(i+1)*ldimxz, 2), [ ldims(1),ldims(3) ])
+      enddo
+      rho(minx:maxx, maxy+1, minz:maxz) = RESHAPE(buf_sendrecv4(19*ldimxz+1 : 20*ldimxz, 2), [ ldims(1),ldims(3) ])
     endif
 
     ! Z axis
@@ -1127,25 +1161,196 @@ contains
         buf_sendrecv5( i*ldimxy+1:(i+1)*ldimxy, 1) = RESHAPE(aoptp(i)%p(minx:maxx, miny:maxy, maxz), [ ldimxy ] )
         buf_sendrecv6( i*ldimxy+1:(i+1)*ldimxy, 1) = RESHAPE(aoptp(i)%p(minx:maxx, miny:maxy, minz), [ ldimxy ] )
     enddo
+    buf_sendrecv5( 19*ldimxy+1:20*ldimxy, 1) = RESHAPE(rho(minx:maxx, miny:maxy, maxz), [ ldimxy ] )
+    buf_sendrecv6( 19*ldimxy+1:20*ldimxy, 1) = RESHAPE(rho(minx:maxx, miny:maxy, minz), [ ldimxy ] )
 
-    call MPI_SENDRECV(  buf_sendrecv5(1,1), 19*ldimxy, MPI_DOUBLE, neigh(5), id_rank+halotag,   &
-                        buf_sendrecv5(1,2), 19*ldimxy, MPI_DOUBLE, neigh(6), neigh(6)+halotag, &
+    call MPI_SENDRECV( buf_sendrecv5(1,1), 20*ldimxy, MPI_DOUBLE, neigh(5), id_rank+halotag,  &
+                       buf_sendrecv5(1,2), 20*ldimxy, MPI_DOUBLE, neigh(6), neigh(6)+halotag, &
         cube_comm, statusVar, ierr)
-    call MPI_SENDRECV( buf_sendrecv6(1,1), 19*ldimxy, MPI_DOUBLE, neigh(6), id_rank+halotag,  &
-                       buf_sendrecv6(1,2), 19*ldimxy, MPI_DOUBLE, neigh(5), neigh(5)+halotag, &
+    call MPI_SENDRECV( buf_sendrecv6(1,1), 20*ldimxy, MPI_DOUBLE, neigh(6), id_rank+halotag,  &
+                       buf_sendrecv6(1,2), 20*ldimxy, MPI_DOUBLE, neigh(5), neigh(5)+halotag, &
         cube_comm, statusVar, ierr)
 
     if (neigh(6) /= MPI_PROC_NULL) then
       do i=0,18
         aoptp(i)%p(minx:maxx, miny:maxy, minz-1) = RESHAPE(buf_sendrecv5(i*ldimxy+1:(i+1)*ldimxy, 2), [ ldims(1),ldims(2) ])
       enddo
+      rho(minx:maxx, miny:maxy, minz-1) = RESHAPE(buf_sendrecv5(19*ldimxy+1:20*ldimxy, 2), [ ldims(1),ldims(2) ])
     endif
 
     if (neigh(5) /= MPI_PROC_NULL) then
       do i=0,18
         aoptp(i)%p(minx:maxx, miny:maxy, maxz+1) = RESHAPE(buf_sendrecv6(i*ldimxy+1:(i+1)*ldimxy, 2), [ ldims(1),ldims(2) ])
       enddo
+      rho(minx:maxx, miny:maxy, maxz+1) = RESHAPE(buf_sendrecv6(19*ldimxy+1:20*ldimxy, 2), [ ldims(1),ldims(2) ])
     endif
+
+    ! Z edges
+    do i=0,18
+        buf_sendrecv7 (i*ldims(3)+1:(i+1)*ldims(3), 1) = aoptp(i)%p(maxx,maxy, minz:maxz)
+        buf_sendrecv8 (i*ldims(3)+1:(i+1)*ldims(3), 1) = aoptp(i)%p(minx,miny, minz:maxz)
+        buf_sendrecv9 (i*ldims(3)+1:(i+1)*ldims(3), 1) = aoptp(i)%p(minx,maxy, minz:maxz)
+        buf_sendrecv10(i*ldims(3)+1:(i+1)*ldims(3), 1) = aoptp(i)%p(maxx,miny, minz:maxz)
+    enddo
+    buf_sendrecv7 (19*ldims(3)+1:20*ldims(3), 1) = rho(maxx,maxy, minz:maxz)
+    buf_sendrecv8 (19*ldims(3)+1:20*ldims(3), 1) = rho(minx,miny, minz:maxz)
+    buf_sendrecv9 (19*ldims(3)+1:20*ldims(3), 1) = rho(minx,maxy, minz:maxz)
+    buf_sendrecv10(19*ldims(3)+1:20*ldims(3), 1) = rho(maxx,miny, minz:maxz)
+
+    call MPI_SENDRECV( buf_sendrecv7 (1,1), 20*ldims(3), MPI_DOUBLE, neigh(7), id_rank+halotag, &
+                       buf_sendrecv7 (1,2), 20*ldims(3), MPI_DOUBLE, neigh(8), neigh(8)+halotag, &
+        cube_comm, statusVar, ierr)
+    call MPI_SENDRECV( buf_sendrecv8 (1,1), 20*ldims(3), MPI_DOUBLE, neigh(8), id_rank+halotag, &
+                       buf_sendrecv8 (1,2), 20*ldims(3), MPI_DOUBLE, neigh(7), neigh(7)+halotag, &
+        cube_comm, statusVar, ierr)
+    call MPI_SENDRECV( buf_sendrecv9 (1,1), 20*ldims(3), MPI_DOUBLE, neigh(9), id_rank+halotag, &
+                       buf_sendrecv9 (1,2), 20*ldims(3), MPI_DOUBLE, neigh(10), neigh(10)+halotag, &
+        cube_comm, statusVar, ierr)
+    call MPI_SENDRECV( buf_sendrecv10(1,1), 20*ldims(3), MPI_DOUBLE, neigh(10),id_rank+halotag, &
+                       buf_sendrecv10(1,2), 20*ldims(3), MPI_DOUBLE, neigh(9), neigh(9)+halotag, &
+        cube_comm, statusVar, ierr)
+
+    ! Y edges
+    do i=0,18
+        buf_sendrecv11(i*ldims(2)+1:(i+1)*ldims(2), 1) = aoptp(i)%p(maxx, miny:maxy, maxz)
+        buf_sendrecv12(i*ldims(2)+1:(i+1)*ldims(2), 1) = aoptp(i)%p(minx, miny:maxy, minz)
+        buf_sendrecv13(i*ldims(2)+1:(i+1)*ldims(2), 1) = aoptp(i)%p(minx, miny:maxy, maxz)
+        buf_sendrecv14(i*ldims(2)+1:(i+1)*ldims(2), 1) = aoptp(i)%p(maxx, miny:maxy, minz)
+    enddo
+    buf_sendrecv11(19*ldims(2)+1:20*ldims(2), 1) = rho(maxx, miny:maxy, maxz)
+    buf_sendrecv12(19*ldims(2)+1:20*ldims(2), 1) = rho(minx, miny:maxy, minz)
+    buf_sendrecv13(19*ldims(2)+1:20*ldims(2), 1) = rho(minx, miny:maxy, maxz)
+    buf_sendrecv14(19*ldims(2)+1:20*ldims(2), 1) = rho(maxx, miny:maxy, minz)
+
+    call MPI_SENDRECV( buf_sendrecv11(1,1), 20*ldims(2), MPI_DOUBLE, neigh(11), id_rank+halotag, &
+                       buf_sendrecv11(1,2), 20*ldims(2), MPI_DOUBLE, neigh(12), neigh(12)+halotag, &
+        cube_comm, statusVar, ierr)
+    call MPI_SENDRECV( buf_sendrecv12(1,1), 20*ldims(2), MPI_DOUBLE, neigh(12), id_rank+halotag, &
+                       buf_sendrecv12(1,2), 20*ldims(2), MPI_DOUBLE, neigh(11), neigh(11)+halotag, &
+        cube_comm, statusVar, ierr)
+    call MPI_SENDRECV( buf_sendrecv13(1,1), 20*ldims(2), MPI_DOUBLE, neigh(13), id_rank+halotag, &
+                       buf_sendrecv13(1,2), 20*ldims(2), MPI_DOUBLE, neigh(14), neigh(14)+halotag, &
+        cube_comm, statusVar, ierr)
+    call MPI_SENDRECV( buf_sendrecv14(1,1), 20*ldims(2), MPI_DOUBLE, neigh(14), id_rank+halotag, &
+                       buf_sendrecv14(1,2), 20*ldims(2), MPI_DOUBLE, neigh(13), neigh(13)+halotag, &
+        cube_comm, statusVar, ierr)
+
+    ! X edges
+    do i=0,18
+        buf_sendrecv15(i*ldims(1)+1:(i+1)*ldims(1), 1) = aoptp(i)%p(minx:maxx, maxy, maxz)
+        buf_sendrecv16(i*ldims(1)+1:(i+1)*ldims(1), 1) = aoptp(i)%p(minx:maxx, miny, minz)
+        buf_sendrecv17(i*ldims(1)+1:(i+1)*ldims(1), 1) = aoptp(i)%p(minx:maxx, miny, maxz)
+        buf_sendrecv18(i*ldims(1)+1:(i+1)*ldims(1), 1) = aoptp(i)%p(minx:maxx, maxy, minz)
+    enddo
+    buf_sendrecv15(19*ldims(1)+1:20*ldims(1), 1) = rho(minx:maxx, maxy, maxz)
+    buf_sendrecv16(19*ldims(1)+1:20*ldims(1), 1) = rho(minx:maxx, miny, minz)
+    buf_sendrecv17(19*ldims(1)+1:20*ldims(1), 1) = rho(minx:maxx, miny, maxz)
+    buf_sendrecv18(19*ldims(1)+1:20*ldims(1), 1) = rho(minx:maxx, maxy, minz)
+
+    call MPI_SENDRECV( buf_sendrecv15(1,1), 20*ldims(1), MPI_DOUBLE, neigh(15), id_rank+halotag, &
+                       buf_sendrecv15(1,2), 20*ldims(1), MPI_DOUBLE, neigh(16), neigh(16)+halotag, &
+        cube_comm, statusVar, ierr)
+    call MPI_SENDRECV( buf_sendrecv16(1,1), 20*ldims(1), MPI_DOUBLE, neigh(16), id_rank+halotag, &
+                       buf_sendrecv16(1,2), 20*ldims(1), MPI_DOUBLE, neigh(15), neigh(15)+halotag, &
+        cube_comm, statusVar, ierr)
+    call MPI_SENDRECV( buf_sendrecv17(1,1), 20*ldims(1), MPI_DOUBLE, neigh(17), id_rank+halotag, &
+                       buf_sendrecv17(1,2), 20*ldims(1), MPI_DOUBLE, neigh(18), neigh(18)+halotag, &
+        cube_comm, statusVar, ierr)
+    call MPI_SENDRECV( buf_sendrecv18(1,1), 20*ldims(1), MPI_DOUBLE, neigh(18), id_rank+halotag, &
+                       buf_sendrecv18(1,2), 20*ldims(1), MPI_DOUBLE, neigh(17), neigh(17)+halotag, &
+        cube_comm, statusVar, ierr)
+
+    ! +1,+1 & -1,-1
+    if (neigh(8) /= MPI_PROC_NULL) then
+      do i=0,18
+        aoptp(i)%p(minx-1,miny-1, minz:maxz) = buf_sendrecv7(i*ldims(3)+1:(i+1)*ldims(3),2)
+      enddo
+      rho(minx-1,miny-1, minz:maxz) = buf_sendrecv7(19*ldims(3)+1:20*ldims(3),2)
+    endif
+
+    if (neigh(7) /= MPI_PROC_NULL) then
+      do i=0,18
+        aoptp(i)%p(maxx+1,maxy+1, minz:maxz) = buf_sendrecv8(i*ldims(3)+1:(i+1)*ldims(3),2)
+      enddo
+      rho(maxx+1,maxy+1, minz:maxz) = buf_sendrecv8(19*ldims(3)+1:20*ldims(3),2)
+    endif
+
+    ! -1,+1 & +1,-1
+    if (neigh(10) /= MPI_PROC_NULL) then
+      do i=0,18
+        aoptp(i)%p(maxx+1,miny-1, minz:maxz) = buf_sendrecv9(i*ldims(3)+1:(i+1)*ldims(3),2)
+      enddo
+      rho(maxx+1,miny-1, minz:maxz) = buf_sendrecv9(19*ldims(3)+1:20*ldims(3),2)
+    endif
+
+    if (neigh(9) /= MPI_PROC_NULL) then
+      do i=0,18
+        aoptp(i)%p(minx-1,maxy+1, minz:maxz) = buf_sendrecv10(i*ldims(3)+1:(i+1)*ldims(3),2)
+      enddo
+      rho(minx-1,maxy+1, minz:maxz) = buf_sendrecv10(19*ldims(3)+1:20*ldims(3),2)
+    endif
+
+
+    ! 1,0,1 & -1,0,-1
+    if (neigh(12) /= MPI_PROC_NULL) then
+      do i=0,18
+        aoptp(i)%p(minx-1,miny:maxy, minz-1) = buf_sendrecv11(i*ldims(2)+1:(i+1)*ldims(2),2)
+      enddo
+      rho(minx-1,miny:maxy, minz-1) = buf_sendrecv11(19*ldims(2)+1:20*ldims(2),2)
+    endif
+
+    if (neigh(11) /= MPI_PROC_NULL) then
+      do i=0,18
+        aoptp(i)%p(maxx+1,miny:maxy, maxz+1) = buf_sendrecv12(i*ldims(2)+1:(i+1)*ldims(2),2)
+      enddo
+      rho(maxx+1,miny:maxy, maxz+1) = buf_sendrecv12(19*ldims(2)+1:20*ldims(2),2)
+    endif
+
+    ! -1,0,1 & 1,0,-1
+    if (neigh(14) /= MPI_PROC_NULL) then
+      do i=0,18
+        aoptp(i)%p(maxx+1,miny:maxy, minz-1) = buf_sendrecv13(i*ldims(2)+1:(i+1)*ldims(2),2)
+      enddo
+      rho(maxx+1,miny:maxy, minz-1) = buf_sendrecv13(19*ldims(2)+1:20*ldims(2),2)
+    endif
+
+    if (neigh(13) /= MPI_PROC_NULL) then
+      do i=0,18
+        aoptp(i)%p(minx-1,miny:maxy, maxz+1) = buf_sendrecv14(i*ldims(2)+1:(i+1)*ldims(2),2)
+      enddo
+      rho(minx-1,miny:maxy, maxz+1) = buf_sendrecv14(19*ldims(2)+1:20*ldims(2),2)
+    endif
+
+    ! 0,1,1 & 0,-1,-1
+    if (neigh(16) /= MPI_PROC_NULL) then
+      do i=0,18
+        aoptp(i)%p(minx:maxx, miny-1, minz-1) = buf_sendrecv15(i*ldims(1)+1:(i+1)*ldims(1),2)
+      enddo
+      rho(minx:maxx, miny-1, minz-1) = buf_sendrecv15(19*ldims(1)+1:20*ldims(1),2)
+    endif
+
+    if (neigh(15) /= MPI_PROC_NULL) then
+      do i=0,18
+        aoptp(i)%p(minx:maxx, maxy+1, maxz+1) = buf_sendrecv16(i*ldims(1)+1:(i+1)*ldims(1),2)
+      enddo
+      rho(minx:maxx, maxy+1, maxz+1) = buf_sendrecv16(19*ldims(1)+1:20*ldims(1),2)
+    endif
+
+    ! 0,-1,1 & 0,1,-1
+    if (neigh(18) /= MPI_PROC_NULL) then
+      do i=0,18
+        aoptp(i)%p(minx:maxx, maxy+1, minz-1) = buf_sendrecv17(i*ldims(1)+1:(i+1)*ldims(1),2)
+      enddo
+      rho(minx:maxx, maxy+1, minz-1) = buf_sendrecv17(19*ldims(1)+1:20*ldims(1),2)
+    endif
+
+    if (neigh(17) /= MPI_PROC_NULL) then
+      do i=0,18
+        aoptp(i)%p(minx:maxx, miny-1, maxz+1) = buf_sendrecv18(i*ldims(1)+1:(i+1)*ldims(1),2)
+      enddo
+      rho(minx:maxx, miny-1, maxz+1) = buf_sendrecv18(19*ldims(1)+1:20*ldims(1),2)
+    endif
+
 
     end subroutine mpisendrecvhalopops
 

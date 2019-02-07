@@ -20,8 +20,9 @@ BEGIN { max = -1.0E+300 }
 	val = myabs($f - buf[NR-rows])
 	if (max < val) {
 		max = val
+		maxline = NR-rows
 		if (verbose) print NR, $f, buf[NR-rows], "max =", max
 	}
 }
-END { print max }
+END { print max, "line:", maxline }
 '
