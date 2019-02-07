@@ -24,5 +24,5 @@ BEGIN { max = -1.0E+300 }
 		if (verbose) print NR, $f, buf[NR-rows], "max =", max
 	}
 }
-END { print max, "line:", maxline }
+END { print "col=",f, "maxErr=", max, "@line:", maxline }
 '
