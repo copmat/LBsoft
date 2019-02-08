@@ -1588,7 +1588,7 @@
     
     do myi=1,natms_ext
       i = atmbook(myi)
-      write (6,*) __FILE__,__LINE__, "i=", i, myi<=natms, xxx(i),yyy(i),zzz(i), vxx(i),vyy(i),vzz(i)
+!      write (6,*) __FILE__,__LINE__, "i=", i, myi<=natms, xxx(i),yyy(i),zzz(i), vxx(i),vyy(i),vzz(i)
       rnorm=ONE/sqrt(q0(i)**TWO+q1(i)**TWO+q2(i)**TWO+q3(i)**TWO)
       q0(i)=q0(i)*rnorm
       q1(i)=q1(i)*rnorm
@@ -1747,7 +1747,7 @@
   
   do myi=1,natms_ext
     iatm = atmbook(myi)
-    write (6,*) __FILE__,__LINE__, "iatm=", iatm
+!    write (6,*) __FILE__,__LINE__, "iatm=", iatm
     txb(iatm)=ZERO
     tyb(iatm)=ZERO
     tzb(iatm)=ZERO
@@ -1774,9 +1774,9 @@
      fxb(iatm),fyb(iatm),fzb(iatm),oat(1),oat(2),oat(3), &
      txb(iatm),tyb(iatm),tzb(iatm))
 
-     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
-        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
-        "t=", txb(iatm),tyb(iatm),tzb(iatm)
+!     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
+!        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
+!        "t=", txb(iatm),tyb(iatm),tzb(iatm)
   enddo
   
   else
@@ -1893,9 +1893,9 @@
 
   do myi=1,natms_ext
     iatm = atmbook(myi)
-    write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
-        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
-        "t=", txb(iatm),tyb(iatm),tzb(iatm)
+!    write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
+!        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
+!        "t=", txb(iatm),tyb(iatm),tzb(iatm)
   enddo
 
  end subroutine merge_particle_force
