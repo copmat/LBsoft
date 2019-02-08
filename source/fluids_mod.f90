@@ -9242,17 +9242,17 @@
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle
         call particle_to_node_bounce_back_bc(lrotate,nstep,i,j,k,rtemp, &
-         otemp,vx,vy,vz,rhoR,aoptpR, .true.,iatm)
+         otemp,vx,vy,vz,rhoR,aoptpR, debug,iatm)
       else
         if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
          k>=kmin .and. k<=kmax)then
           call particle_to_node_bounce_back_bc(lrotate,nstep,i,j,k,rtemp, &
-           otemp,vx,vy,vz,rhoR,aoptpR, .true.,iatm)
+           otemp,vx,vy,vz,rhoR,aoptpR, debug,iatm)
         endif
         if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
          kk>=kmin .and. kk<=kmax)then
           call particle_to_node_bounce_back_bc(lrotate,nstep,ii,jj,kk,rtemp, &
-           otemp,vx,vy,vz,rhoR,aoptpR, .true.,iatm)
+           otemp,vx,vy,vz,rhoR,aoptpR, debug,iatm)
         endif
       endif
 
@@ -12073,9 +12073,9 @@ end subroutine compute_secbelt_density_twofluids
     open(unit=iosub, file=trim(mynamefile), status='replace')
     open(unit=iosub1,file=trim(mynamefile1),status='replace')
 
-  do k=minz,maxz
-    do j=miny,maxy
-      do i=minx,maxx
+  do k=minz-1,maxz+1
+    do j=miny-1,maxy+1
+      do i=minx-1,maxx+1
 !        if(minx-1<=i .and. i<=maxx+1) then
 !        if(miny-1<=j .and. k<=maxy+1) then
 !        if(minz-1<=k .and. k<=maxz+1) then

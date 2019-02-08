@@ -30,7 +30,7 @@
                         print_all_pops_center,driver_bc_pop_selfcomm, &
                         print_all_pops_area_shpere,ex,ey,ez,pimage, &
                         ixpbc,iypbc,izpbc,nx,ny,nz,opp, &
-                        aoptpR, driver_bc_pops
+                        aoptpR, driver_bc_pops, print_all_pops2
 
  use particles_mod,    only : parlst,lparticles, &
                         vertest,initialize_particle_force, &
@@ -204,11 +204,16 @@
     if(ldiagnostic)call end_timing2("MD","driver_inter_f")
   endif
 
+!  call print_all_pops2(131, "aft_inter_force", nstep, aoptpR)
+
   if(lpair_SC .or. lparticles)then
+    call driver_bc_pops
+
     if(ldiagnostic)call start_timing2("LB","compute_densities_wall")
     call compute_densities_wall
     if(ldiagnostic)call end_timing2("LB","compute_densities_wall")
   endif
+!  call print_all_pops2(131, "aft_densities_wall", nstep, aoptpR)
     
   if(lpair_SC)then
     if(ldiagnostic)call start_timing2("LB","compute_psi_sc")
@@ -236,8 +241,12 @@
     if(ldiagnostic)call end_timing2("LB","apply_bback_pop_hf")
   endif
   
+!  call print_all_pops2(131, "bef_driver_bc_pops", nstep, aoptpR)
+
   if(lparticles)then
     call driver_bc_pops
+
+!    call print_all_pops2(131, "aft_driver_bc_pops", nstep, aoptpR)
 
     if(ldiagnostic)call start_timing2("IO","write_xyz")
     call write_xyz(nstep)
@@ -247,6 +256,8 @@
     call apply_particle_bounce_back(nstep)
     if(ldiagnostic)call end_timing2("LB","apply_part_bback")
     
+!    call print_all_pops2(131, "aft_part_bb", nstep, aoptpR)
+
     call merge_particle_force
     
     call force_particle_bounce_back
@@ -267,16 +278,24 @@
    call write_vtk_frame(nstep)
   if(ldiagnostic)call end_timing2("IO","write_vtk_frame")
 
+!  call print_all_pops2(131, "bef_driver_bc_pops2", nstep, aoptpR)
+
+  call driver_bc_pops
+!  call print_all_pops2(131, "bef_streaming_fluids", nstep, aoptpR)
+
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
   call driver_streaming_fluids(lparticles)
   if(ldiagnostic)call end_timing2("LB","streaming_fluids")
   
+!  call print_all_pops2(131, "bef_apply_bounceback_pop", nstep, aoptpR)
   if(.not.lbc_halfway)then
     if(ldiagnostic)call start_timing2("LB","apply_bback_pop")
     call driver_apply_bounceback_pop
     if(ldiagnostic)call end_timing2("LB","apply_bback_pop")
   endif
   
+!  call print_all_pops2(131, "aft_apply_bounceback_pop", nstep, aoptpR)
+
   mytime = new_time
   
   return
