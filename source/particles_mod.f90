@@ -50,7 +50,7 @@
                    particle_delete_fluids,particle_create_fluids, &
                    erase_fluids_in_particles,lunique_omega,omega, &
                    omega_to_viscosity,viscR,pimage,opp, &
-                   compute_sc_particle_interact
+                   compute_sc_particle_interact, driver_bc_pops, driver_bc_densities
 
  
  implicit none
@@ -1881,6 +1881,12 @@
   call sum_world_farr(tyb, natms_tot)
   call sum_world_farr(tzb, natms_tot)
   
+  do iatm=1,natms_tot
+    write (6,*) __FILE__,__LINE__, "iatm=", iatm, &
+        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
+        "t=", txb(iatm),tyb(iatm),tzb(iatm)
+  enddo
+
   do myi=natms+1,natms_ext
     iatm = atmbook(myi)
     fxb(iatm) = 0
@@ -1891,12 +1897,12 @@
     tzb(iatm) = 0
   enddo
 
-  do myi=1,natms_ext
-    iatm = atmbook(myi)
+!  do myi=1,natms_ext
+!    iatm = atmbook(myi)
 !    write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
 !        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
 !        "t=", txb(iatm),tyb(iatm),tzb(iatm)
-  enddo
+!  enddo
 
  end subroutine merge_particle_force
 
@@ -1994,7 +2000,7 @@
   
  end subroutine build_new_isfluid
  
- subroutine inter_part_and_grid(nstep)
+ subroutine inter_part_and_grid(nstep, lparticles)
   
 !***********************************************************************
 !     
@@ -2009,11 +2015,15 @@
  
   implicit none
   integer, intent(in) :: nstep
+  logical, intent(in) :: lparticles
   
   call particle_create_fluids(nstep,natms_ext,atmbook,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
+
+  call driver_bc_densities
+  call driver_bc_pops(lparticles)
 
   call update_isfluid
   call driver_bc_isfluid

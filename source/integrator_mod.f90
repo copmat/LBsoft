@@ -186,7 +186,7 @@
   
   if(lparticles)then
     if(ldiagnostic)call start_timing2("MD","inter_part_and_grid")
-    call inter_part_and_grid(nstep)
+    call inter_part_and_grid(nstep, lparticles)
     if(ldiagnostic)call end_timing2("MD","inter_part_and_grid")
     
     newlst=.false.
@@ -207,7 +207,7 @@
 !  call print_all_pops2(131, "aft_inter_force", nstep, aoptpR)
 
   if(lpair_SC .or. lparticles)then
-    call driver_bc_pops
+    ! Solved in inter_part_and_grid) call driver_bc_pops
 
     if(ldiagnostic)call start_timing2("LB","compute_densities_wall")
     call compute_densities_wall
@@ -244,7 +244,7 @@
 !  call print_all_pops2(131, "bef_driver_bc_pops", nstep, aoptpR)
 
   if(lparticles)then
-    call driver_bc_pops
+    call driver_bc_pops(lparticles)
 
 !    call print_all_pops2(131, "aft_driver_bc_pops", nstep, aoptpR)
 
@@ -272,16 +272,13 @@
     if(ldiagnostic)call end_timing2("MD","integrate_lf")
 
     call restore_particles
+
+    call driver_bc_pops(lparticles)
   endif
 
   if(ldiagnostic)call start_timing2("IO","write_vtk_frame")
    call write_vtk_frame(nstep)
   if(ldiagnostic)call end_timing2("IO","write_vtk_frame")
-
-!  call print_all_pops2(131, "bef_driver_bc_pops2", nstep, aoptpR)
-
-  call driver_bc_pops
-!  call print_all_pops2(131, "bef_streaming_fluids", nstep, aoptpR)
 
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
   call driver_streaming_fluids(lparticles)

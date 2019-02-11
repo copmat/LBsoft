@@ -5761,14 +5761,14 @@
  end function pimage
 
  
- subroutine driver_bc_pops()
+ subroutine driver_bc_pops_NOK()
   implicit none
 
   call mpisendrecvHALOpops(aoptpR, rhoR)
   if(lsingle_fluid)return
 
   call mpisendrecvHALOpops(aoptpB, rhoB)
- end subroutine driver_bc_pops
+ end subroutine driver_bc_pops_NOK
 
 !******************END PART TO MANAGE THE PERIODIC BC*******************
  
@@ -9233,7 +9233,7 @@
        k>=minz .and. k<=maxz)then
         call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
            otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug,iatm)
-        if (debug) write(iatm*1000+idrank,*) __FILE__,__LINE__, "i,j,k=", i,j,k
+        if (debug) write(iatm*1000+10+idrank,*) __FILE__,__LINE__, "i,j,k=", i,j,k
       endif
 
       !the fluid bounce back is local so I have to do it
@@ -12073,9 +12073,9 @@ end subroutine compute_secbelt_density_twofluids
     open(unit=iosub, file=trim(mynamefile), status='replace')
     open(unit=iosub1,file=trim(mynamefile1),status='replace')
 
-  do k=minz-1,maxz+1
-    do j=miny-1,maxy+1
-      do i=minx-1,maxx+1
+  do k=minz,maxz
+    do j=miny,maxy
+      do i=minx,maxx
 !        if(minx-1<=i .and. i<=maxx+1) then
 !        if(miny-1<=j .and. k<=maxy+1) then
 !        if(minz-1<=k .and. k<=maxz+1) then
@@ -12097,4 +12097,39 @@ end subroutine compute_secbelt_density_twofluids
     close(iosub1)
 
  end subroutine print_all_pops2
+
+
+ subroutine driver_bc_pops(lparticles)
+ implicit none
+ logical, intent(in) :: lparticles
+
+
+#ifdef MPI
+  call commspop(aoptpR)
+#endif
+
+
+#ifdef MPI
+  call manage_bc_pop_selfcomm(aoptpR,lparticles)
+
+  call commrpop(aoptpR,lparticles,isfluid)
+#else
+  call manage_bc_pop_selfcomm(aoptpR,lparticles)
+#endif
+
+ if(lsingle_fluid)return
+
+#ifdef MPI
+  call commspop(aoptpB)
+#endif
+
+#ifdef MPI
+  call manage_bc_pop_selfcomm(aoptpB,lparticles)
+
+  call commrpop(aoptpB,lparticles,isfluid)
+#else
+  call manage_bc_pop_selfcomm(aoptpB,lparticles)
+#endif
+ end subroutine driver_bc_pops
+
  end module fluids_mod
