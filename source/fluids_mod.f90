@@ -357,7 +357,7 @@
  public :: omega_to_viscosity
  public :: compute_sc_particle_interact
  public :: setTest, checkTest, print_all_pops2
- public :: driver_bc_pops
+ public :: driver_bc_pops, driver_bc_pops_NOK
 
  contains
  
@@ -9194,12 +9194,12 @@
   
   if(lfirst)then
     lfirst=.false.
-    imin=minx-1
-    imax=maxx+1
-    jmin=miny-1
-    jmax=maxy+1
-    kmin=minz-1
-    kmax=maxz+1
+    imin=minx
+    imax=maxx
+    jmin=miny
+    jmax=maxy
+    kmin=minz
+    kmax=maxz
   endif
   
   if(lrotate)then
@@ -10621,6 +10621,9 @@ end subroutine compute_secbelt_density_twofluids
             u(i,j,k)=myu
             v(i,j,k)=myv
             w(i,j,k)=myw
+
+            write (6,*) "particle_create_fluids", i,j,k, "rho",rhoR(i,j,k)
+
             !formula taken from eq. 25 of PRE 83, 046707 (2011)
             call initialize_newnode_fluid(i,j,k,Rsum,myu,myv,myw,aoptpR)
             !formula taken from eq. 26 of PRE 83, 046707 (2011)

@@ -50,7 +50,8 @@
                    particle_delete_fluids,particle_create_fluids, &
                    erase_fluids_in_particles,lunique_omega,omega, &
                    omega_to_viscosity,viscR,pimage,opp, &
-                   compute_sc_particle_interact, driver_bc_pops, driver_bc_densities
+                   compute_sc_particle_interact, driver_bc_pops, driver_bc_densities, &
+                   driver_bc_pops_NOK
 
  
  implicit none
@@ -1613,7 +1614,7 @@
   integer, intent(in) :: i
   integer, intent(inout) :: num_ext
   real(kind=PRC) :: radius
-  integer :: extrema(3,4)
+  integer :: extrema(3,8), xm,ym,zm, xp,yp,zp
   integer :: ids, c, onEnterNum
 
 
@@ -1621,23 +1622,35 @@
   onEnterNum = num_ext
 
   radius = floor(rdimx(1))+1
-  extrema(:,1) = [ nint(xxx(i)-radius), nint(yyy(i)-radius), nint(zzz(i)-radius) ]
-  extrema(:,2) = [ nint(xxx(i)+radius), nint(yyy(i)+radius), nint(zzz(i)+radius) ]
-  extrema(:,3) = [ pimage(ixpbc, extrema(1,1),nx), pimage(iypbc, extrema(2,1),ny), pimage(izpbc, extrema(3,1),nz) ]
-  extrema(:,4) = [ pimage(ixpbc, extrema(1,2),nx), pimage(iypbc, extrema(2,2),ny), pimage(izpbc, extrema(3,2),nz) ]
 
-  do c = 1,4
-    if (extrema(1,c) < 0) extrema(1,c)=0
-    if (extrema(2,c) < 0) extrema(2,c)=0
-    if (extrema(3,c) < 0) extrema(3,c)=0
+  xm = pimage(ixpbc, nint(xxx(i)-radius), nx)
+  xp = pimage(ixpbc, nint(xxx(i)+radius), nx)
+  ym = pimage(iypbc, nint(yyy(i)-radius), ny)
+  yp = pimage(iypbc, nint(yyy(i)+radius), ny)
+  zm = pimage(izpbc, nint(zzz(i)-radius), nz)
+  zp = pimage(izpbc, nint(zzz(i)+radius), nz)
 
-    if (extrema(1,c) > nx+nbuff) extrema(1,c)=nx+nbuff
-    if (extrema(2,c) > ny+nbuff) extrema(2,c)=ny+nbuff
-    if (extrema(3,c) > nz+nbuff) extrema(3,c)=nz+nbuff
+  extrema(:,1) = [ xm, ym, zm ]
+  extrema(:,2) = [ xm, ym, zp ]
+  extrema(:,3) = [ xm, yp, zm ]
+  extrema(:,4) = [ xm, yp, zp ]
+  extrema(:,5) = [ xp, ym, zm ]
+  extrema(:,6) = [ xp, ym, zp ]
+  extrema(:,7) = [ xp, yp, zm ]
+  extrema(:,8) = [ xp, yp, zp ]
 
-    CYCLE_OUT_INTERVAL(extrema(1,c), minx-nbuff, maxx+nbuff)
-    CYCLE_OUT_INTERVAL(extrema(2,c), miny-nbuff, maxy+nbuff)
-    CYCLE_OUT_INTERVAL(extrema(3,c), minz-nbuff, maxz+nbuff)
+  do c = 1,8
+!    if (extrema(1,c) < 0) extrema(1,c)=0
+!    if (extrema(2,c) < 0) extrema(2,c)=0
+!    if (extrema(3,c) < 0) extrema(3,c)=0
+!
+!    if (extrema(1,c) > nx+nbuff) extrema(1,c)=nx+nbuff
+!    if (extrema(2,c) > ny+nbuff) extrema(2,c)=ny+nbuff
+!    if (extrema(3,c) > nz+nbuff) extrema(3,c)=nz+nbuff
+
+    CYCLE_OUT_INTERVAL(extrema(1,c), minx-1, maxx+1)
+    CYCLE_OUT_INTERVAL(extrema(2,c), miny-1, maxy+1)
+    CYCLE_OUT_INTERVAL(extrema(3,c), minz-1, maxz+1)
 
     atmbook(mxatms - num_ext) = i
     num_ext = num_ext + 1
@@ -1767,16 +1780,16 @@
     qversor(3)=ozz(iatm)
     oat=qtrimult(qtemp,qversor,qconj(qtemp))
     
-    call particle_bounce_back(.false., nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(.true., nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm),oat(1),oat(2),oat(3), &
      txb(iatm),tyb(iatm),tzb(iatm))
 
-!     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
-!        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
-!        "t=", txb(iatm),tyb(iatm),tzb(iatm)
+     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
+        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
+        "t=", txb(iatm),tyb(iatm),tzb(iatm)
   enddo
   
   else
@@ -2023,7 +2036,8 @@
      rdimx,rdimy,rdimz)
 
   call driver_bc_densities
-  call driver_bc_pops(lparticles)
+  ! call driver_bc_pops(.false.)
+  call driver_bc_pops_NOK
 
   call update_isfluid
   call driver_bc_isfluid
