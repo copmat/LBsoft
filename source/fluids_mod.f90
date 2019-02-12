@@ -35,6 +35,8 @@
                         mpisend_isfluid, mpirecv_isfluid, mpisendrecvhalopops
 #endif                
 
+ use qsort_mod
+
  
  implicit none
  
@@ -9191,6 +9193,9 @@
   real(kind=PRC) :: vxt,vyt,vzt,modr,ftx,fty,ftz
   real(kind=PRC), dimension(3) :: rtemp,otemp,ftemp
   
+  type (group), dimension(10000) :: A
+  integer ::    nA = 0
+
   
   if(lfirst)then
     lfirst=.false.
@@ -9232,7 +9237,7 @@
       if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
        k>=minz .and. k<=maxz)then
         call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
-           otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug,iatm)
+           otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug,iatm, A, nA)
         if (debug) write(iatm*10000+100+idrank,*) __FILE__,__LINE__, "i,j,k=", i,j,k
       endif
 
@@ -9258,6 +9263,15 @@
 
     enddo
     
+    if (debug) then
+      do i= 1, nA
+        write(iatm*10000+150+idrank,*) __FILE__,__LINE__, "i,j,k=", A(i)%i,A(i)%j,A(i)%k, "f=", A(i)%f, "t=",A(i)%t
+      enddo
+      call QSort(A,nA)
+      do i= 1, nA
+        write(iatm*10000+170+idrank,*) __FILE__,__LINE__, "i,j,k=", A(i)%i,A(i)%j,A(i)%k, "f=", A(i)%f, "t=",A(i)%t
+      enddo
+    endif
   else
     do l=1,nspheres
       i=isub+spherelists(1,l)
@@ -9319,7 +9333,7 @@
 
 
  subroutine node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rversor, &
-   otemp,vxs,vys,vzs,fx,fy,fz,tx,ty,tz,rhosub,aoptp, debug,iatm)
+   otemp,vxs,vys,vzs,fx,fy,fz,tx,ty,tz,rhosub,aoptp, debug,iatm, A,nA)
  
 !***********************************************************************
 !     
@@ -9349,6 +9363,9 @@
   real(kind=PRC), dimension(3) :: rtemp,ftemp, ttemp
   
   integer :: ii,jj,kk,io,jo,ko, iloop,indlow,indhig
+  type (group), dimension(10000) :: A
+  integer :: nA
+
   
   vx=vxs
   vy=vys
@@ -9414,6 +9431,12 @@
         tz = tz + ttemp(3)
 
         if (debug) then
+          nA = nA + 1
+          A(nA)%f = ftemp
+          A(nA)%t = ttemp
+          A(nA)%i = ii
+          A(nA)%j = jj
+          A(nA)%k = kk
           write (iatm*10000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indlow,indhig, &
               "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p, &
               "pop",aoptp(indhig)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
@@ -9475,6 +9498,12 @@
         tz = tz + ttemp(3)
 
         if (debug) then
+          nA = nA + 1
+          A(nA)%f = ftemp
+          A(nA)%t = ttemp
+          A(nA)%i = ii
+          A(nA)%j = jj
+          A(nA)%k = kk
           write (iatm*10000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
               "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p, &
               "pop",aoptp(indlow)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
