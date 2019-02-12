@@ -10264,7 +10264,7 @@
 	      aoptp(indhig)%p(i,j,k)=real(aoptp(indlow)%p(ii,jj,kk),kind=PRC)- &
 	       p(indlow)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(indlow)*vx+dey(indlow)*vy+dez(indlow)*vz)
 	      if (debug) then
-             write (iatm*10000+100+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
+             write (iatm*10000+1000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
                  "pop",aoptp(indlow)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
                  "->pop low", aoptp(indhig)%p(i,j,k)
            endif
