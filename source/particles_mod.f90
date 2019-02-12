@@ -1621,7 +1621,7 @@
 
   onEnterNum = num_ext
 
-  radius = floor(rdimx(1))+1
+  radius = floor(rdimx(1))
 
   xm = pimage(ixpbc, nint(xxx(i)-radius), nx)
   xp = pimage(ixpbc, nint(xxx(i)+radius), nx)

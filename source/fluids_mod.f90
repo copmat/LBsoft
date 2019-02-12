@@ -9233,7 +9233,7 @@
        k>=minz .and. k<=maxz)then
         call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
            otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug,iatm)
-        if (debug) write(iatm*1000+10+idrank,*) __FILE__,__LINE__, "i,j,k=", i,j,k
+        if (debug) write(iatm*10000+100+idrank,*) __FILE__,__LINE__, "i,j,k=", i,j,k
       endif
 
       !the fluid bounce back is local so I have to do it
@@ -9414,7 +9414,7 @@
         tz = tz + ttemp(3)
 
         if (debug) then
-          write (iatm*1000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indlow,indhig, &
+          write (iatm*10000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indlow,indhig, &
               "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p, &
               "pop",aoptp(indhig)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
               "v", vx,vy,vz, vxs,vys,vzs
@@ -9475,7 +9475,7 @@
         tz = tz + ttemp(3)
 
         if (debug) then
-          write (iatm*1000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
+          write (iatm*10000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
               "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p, &
               "pop",aoptp(indlow)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
               "v", vx,vy,vz, vxs,vys,vzs
@@ -10225,7 +10225,7 @@
 	      aoptp(indlow)%p(i,j,k)=real(aoptp(indhig)%p(ii,jj,kk),kind=PRC)- &
 	       p(indhig)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(indhig)*vx+dey(indhig)*vy+dez(indhig)*vz)
            if (debug) then
-             write (iatm*1000+100+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indlow,indhig, &
+             write (iatm*10000+1000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indlow,indhig, &
                  "pop",aoptp(indhig)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
                  "->pop low", aoptp(indlow)%p(i,j,k)
            endif
@@ -10264,7 +10264,7 @@
 	      aoptp(indhig)%p(i,j,k)=real(aoptp(indlow)%p(ii,jj,kk),kind=PRC)- &
 	       p(indlow)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(indlow)*vx+dey(indlow)*vy+dez(indlow)*vz)
 	      if (debug) then
-             write (iatm*1000+100+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
+             write (iatm*10000+100+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
                  "pop",aoptp(indlow)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
                  "->pop low", aoptp(indhig)%p(i,j,k)
            endif
