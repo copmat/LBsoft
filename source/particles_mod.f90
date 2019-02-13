@@ -52,7 +52,6 @@
                    omega_to_viscosity,viscR,pimage,opp, &
                    compute_sc_particle_interact, driver_bc_pops, driver_bc_densities, &
                    driver_bc_pops_NOK
-
  
  implicit none
  
@@ -1753,6 +1752,16 @@
   integer :: myi, iatm,i,j,k,itype
   real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3)
 
+#define DEBUG_FORCEINT
+#ifdef DEBUG_FORCEINT
+  character(len=120) :: mynamefile
+  real(kind=PRC), allocatable, dimension(:,:,:) :: forceInt
+  integer   :: l
+
+
+  allocate(forceInt(natms_tot, nsphere, 6))
+        forceInt(:,:,:) = ZERO
+#endif
 
   do myi=1,natms_ext
     iatm = atmbook(myi)
@@ -1789,7 +1798,7 @@
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxb(iatm),fyb(iatm),fzb(iatm),oat(1),oat(2),oat(3), &
+     fxb(iatm),fyb(iatm),fzb(iatm), forceInt, oat(1),oat(2),oat(3), &
      txb(iatm),tyb(iatm),tzb(iatm))
 
      write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
@@ -1810,7 +1819,7 @@
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxb(iatm),fyb(iatm),fzb(iatm))
+     fxb(iatm),fyb(iatm),fzb(iatm), forceInt)
 
 !     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
 !        "f=", fxb(iatm),fyb(iatm),fzb(iatm)
@@ -1818,6 +1827,26 @@
 
   endif
 
+#ifdef DEBUG_FORCEINT
+  call sum_world_farr(forceInt, natms_tot * nsphere * 6)
+
+  if (idrank == 0) then
+      do i= 1, natms_tot
+        mynamefile = repeat(' ',120)
+        mynamefile = "presort.atom" // write_fmtnumb(i) // '.iter' // &
+            write_fmtnumb(nstep) // '.rank'//write_fmtnumb(idrank)//'.dat'
+        open(unit=1001, file=trim(mynamefile), status='replace')
+
+        do l=1,nsphere
+            write(1001,*) __FILE__,__LINE__, l, "f=", forceInt(i, l, 1),      &
+                forceInt(i, l, 2),forceInt(i, l, 3), "t=", forceInt(i, l, 4), &
+                forceInt(i, l, 5), forceInt(i, l, 6)
+        enddo
+
+        close(1001)
+      enddo
+  endif
+#endif
  end subroutine apply_particle_bounce_back
  
 

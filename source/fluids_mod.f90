@@ -35,8 +35,6 @@
                         mpisend_isfluid, mpirecv_isfluid, mpisendrecvhalopops
 #endif                
 
- use qsort_mod
-
  
  implicit none
  
@@ -9160,7 +9158,7 @@
 
  subroutine particle_bounce_back(debug, nstep,iatm,lown,lrotate,isub,jsub,ksub,nspheres, &
   spherelists,spheredists,rdimx,rdimy,rdimz,xx,yy,zz,vx,vy,vz,&
-  fx,fy,fz,ox,oy,oz,tx,ty,tz)
+  fx,fy,fz, A, ox,oy,oz,tx,ty,tz)
   
 !***********************************************************************
 !     
@@ -9193,10 +9191,8 @@
   real(kind=PRC) :: vxt,vyt,vzt,modr,ftx,fty,ftz
   real(kind=PRC), dimension(3) :: rtemp,otemp,ftemp
   
-  type (group), dimension(100000) :: A
-  integer ::    nA
-  character(len=120) :: mynamefile
-  integer, save :: iter=0
+  real(kind=PRC), allocatable, dimension(:,:,:) :: A
+
 
 
 
@@ -9216,8 +9212,6 @@
     otemp(3)=oz
   endif
   
-  nA = 0
-
   if(lsingle_fluid)then
     do l=1,nspheres
       i=isub+spherelists(1,l)
@@ -9242,7 +9236,7 @@
       if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
        k>=minz .and. k<=maxz)then
         call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
-           otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug,iatm, A, nA)
+           otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug,iatm, A, l)
         if (debug) write(iatm*10000+100+idrank,*) __FILE__,__LINE__, "i,j,k=", i,j,k
       endif
 
@@ -9267,30 +9261,6 @@
       endif
 
     enddo
-    
-    if (debug) then
-      iter=iter+1
-
-      mynamefile = repeat(' ',120)
-      mynamefile = "presort.atom" // write_fmtnumb(iatm) // '.iter' // &
-            write_fmtnumb(iter) // '.rank'//write_fmtnumb(idrank)//'.dat'
-      open(unit=1001, file=trim(mynamefile), status='replace')
-      do i= 1, nA
-        write(1001,*) __FILE__,__LINE__, A(i)%i,A(i)%j,A(i)%k, "f=", A(i)%f, "t=",A(i)%t
-      enddo
-      close(1001)
-
-      call QSort(A,nA)
-
-      mynamefile = repeat(' ',120)
-      mynamefile = "sort.atom" // write_fmtnumb(iatm) // '.iter' // &
-            write_fmtnumb(iter) // '.rank'//write_fmtnumb(idrank)//'.dat'
-      open(unit=1001, file=trim(mynamefile), status='replace')
-      do i= 1, nA
-        write(1001,*) __FILE__,__LINE__, A(i)%i,A(i)%j,A(i)%k, "f=", A(i)%f, "t=",A(i)%t
-      enddo
-      close(1001)
-    endif
   else
     do l=1,nspheres
       i=isub+spherelists(1,l)
@@ -9352,7 +9322,7 @@
 
 
  subroutine node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rversor, &
-   otemp,vxs,vys,vzs,fx,fy,fz,tx,ty,tz,rhosub,aoptp, debug,iatm, A,nA)
+   otemp,vxs,vys,vzs,fx,fy,fz,tx,ty,tz,rhosub,aoptp, debug,iatm, A, l)
  
 !***********************************************************************
 !     
@@ -9368,7 +9338,7 @@
   implicit none
   
   logical, intent(in) :: lrotate, debug
-  integer, intent(in) :: nstep,i,j,k,iatm
+  integer, intent(in) :: nstep,i,j,k,iatm, l
   real(kind=PRC), intent(in) :: vxs,vys,vzs
   real(kind=PRC), intent(in), dimension(3) :: rversor,otemp
   real(kind=PRC), intent(inout) :: fx,fy,fz
@@ -9382,8 +9352,7 @@
   real(kind=PRC), dimension(3) :: rtemp,ftemp, ttemp
   
   integer :: ii,jj,kk,io,jo,ko, iloop,indlow,indhig
-  type (group), dimension(100000) :: A
-  integer :: nA
+  real(kind=PRC), allocatable, dimension(:,:,:) :: A
 
   
   vx=vxs
@@ -9450,12 +9419,13 @@
         tz = tz + ttemp(3)
 
         if (debug) then
-          nA = nA + 1
-          A(nA)%f = ftemp
-          A(nA)%t = ttemp
-          A(nA)%i = ii
-          A(nA)%j = jj
-          A(nA)%k = kk
+          A(iatm, l, 1) = A(iatm, l, 1) + ftemp(1)
+          A(iatm, l, 2) = A(iatm, l, 2) + ftemp(2)
+          A(iatm, l, 3) = A(iatm, l, 3) + ftemp(3)
+          A(iatm, l, 4) = A(iatm, l, 4) + ttemp(1)
+          A(iatm, l, 5) = A(iatm, l, 5) + ttemp(2)
+          A(iatm, l, 6) = A(iatm, l, 6) + ttemp(3)
+!          A(nA)%val = ii + 100*jj + 10000*kk + 1000000*indlow
           write (iatm*10000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indlow,indhig, &
               "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p, &
               "pop",aoptp(indhig)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
@@ -9517,12 +9487,12 @@
         tz = tz + ttemp(3)
 
         if (debug) then
-          nA = nA + 1
-          A(nA)%f = ftemp
-          A(nA)%t = ttemp
-          A(nA)%i = ii
-          A(nA)%j = jj
-          A(nA)%k = kk
+          A(iatm, l, 1) = A(iatm, l, 1) + ftemp(1)
+          A(iatm, l, 2) = A(iatm, l, 2) + ftemp(2)
+          A(iatm, l, 3) = A(iatm, l, 3) + ftemp(3)
+          A(iatm, l, 4) = A(iatm, l, 4) + ttemp(1)
+          A(iatm, l, 5) = A(iatm, l, 5) + ttemp(2)
+          A(iatm, l, 6) = A(iatm, l, 6) + ttemp(3)
           write (iatm*10000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
               "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p, &
               "pop",aoptp(indlow)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
@@ -12112,6 +12082,7 @@ end subroutine compute_secbelt_density_twofluids
   integer :: i,j,k,l, iosub1
 
 
+  return
 
   mynamefile=repeat(' ',120)
   mynamefile=trim(filenam)//write_fmtnumb(itersub)//'.'//write_fmtnumb(idrank)//'.dat'
