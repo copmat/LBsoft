@@ -1608,6 +1608,15 @@
   endif
  end subroutine initialize_map_particles
  
+ pure function clamp(x, ub, isPer)
+  implicit none
+  integer, intent(in) :: x, ub, isPer
+  integer :: clamp
+
+  if(isPer /= 1) return
+
+  clamp = modulo(x-1, ub) + 1
+ end function clamp
 
  subroutine checkIfExtAtom(i, num_ext)
   implicit none
@@ -1623,12 +1632,15 @@
 
   radius = floor(rdimx(1))
 
-  xm = pimage(ixpbc, nint(xxx(i)-radius), nx)
-  xp = pimage(ixpbc, nint(xxx(i)+radius), nx)
-  ym = pimage(iypbc, nint(yyy(i)-radius), ny)
-  yp = pimage(iypbc, nint(yyy(i)+radius), ny)
-  zm = pimage(izpbc, nint(zzz(i)-radius), nz)
-  zp = pimage(izpbc, nint(zzz(i)+radius), nz)
+  xm = clamp(nint(xxx(i)-radius), nx, ixpbc)
+  xp = clamp(nint(xxx(i)+radius), nx, ixpbc)
+  ym = clamp(nint(yyy(i)-radius), ny, iypbc)
+  yp = clamp(nint(yyy(i)+radius), ny, iypbc)
+  zm = clamp(nint(zzz(i)-radius), nz, izpbc)
+  zp = clamp(nint(zzz(i)+radius), nz, izpbc)
+
+!  write (6,*) "check) atom  =", xxx(i),    yyy(i),    zzz(i)
+!  write (6,*) "check) bounds=", xm,xp,     ym,yp,     zm,zp
 
   extrema(:,1) = [ xm, ym, zm ]
   extrema(:,2) = [ xm, ym, zp ]
@@ -1640,20 +1652,13 @@
   extrema(:,8) = [ xp, yp, zp ]
 
   do c = 1,8
-!    if (extrema(1,c) < 0) extrema(1,c)=0
-!    if (extrema(2,c) < 0) extrema(2,c)=0
-!    if (extrema(3,c) < 0) extrema(3,c)=0
-!
-!    if (extrema(1,c) > nx+nbuff) extrema(1,c)=nx+nbuff
-!    if (extrema(2,c) > ny+nbuff) extrema(2,c)=ny+nbuff
-!    if (extrema(3,c) > nz+nbuff) extrema(3,c)=nz+nbuff
-
     CYCLE_OUT_INTERVAL(extrema(1,c), minx-1, maxx+1)
     CYCLE_OUT_INTERVAL(extrema(2,c), miny-1, maxy+1)
     CYCLE_OUT_INTERVAL(extrema(3,c), minz-1, maxz+1)
 
     atmbook(mxatms - num_ext) = i
     num_ext = num_ext + 1
+!    write (6,*) "check) Atom=",i, " Taken at c=", c
     exit
   enddo
 

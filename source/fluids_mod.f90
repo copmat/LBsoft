@@ -9193,10 +9193,13 @@
   real(kind=PRC) :: vxt,vyt,vzt,modr,ftx,fty,ftz
   real(kind=PRC), dimension(3) :: rtemp,otemp,ftemp
   
-  type (group), dimension(10000) :: A
-  integer ::    nA = 0
+  type (group), dimension(100000) :: A
+  integer ::    nA
+  character(len=120) :: mynamefile
+  integer, save :: iter=0
 
-  
+
+
   if(lfirst)then
     lfirst=.false.
     imin=minx
@@ -9213,6 +9216,8 @@
     otemp(3)=oz
   endif
   
+  nA = 0
+
   if(lsingle_fluid)then
     do l=1,nspheres
       i=isub+spherelists(1,l)
@@ -9264,13 +9269,27 @@
     enddo
     
     if (debug) then
+      iter=iter+1
+
+      mynamefile = repeat(' ',120)
+      mynamefile = "presort.atom" // write_fmtnumb(iatm) // '.iter' // &
+            write_fmtnumb(iter) // '.rank'//write_fmtnumb(idrank)//'.dat'
+      open(unit=1001, file=trim(mynamefile), status='replace')
       do i= 1, nA
-        write(iatm*10000+150+idrank,*) __FILE__,__LINE__, "i,j,k=", A(i)%i,A(i)%j,A(i)%k, "f=", A(i)%f, "t=",A(i)%t
+        write(1001,*) __FILE__,__LINE__, A(i)%i,A(i)%j,A(i)%k, "f=", A(i)%f, "t=",A(i)%t
       enddo
+      close(1001)
+
       call QSort(A,nA)
+
+      mynamefile = repeat(' ',120)
+      mynamefile = "sort.atom" // write_fmtnumb(iatm) // '.iter' // &
+            write_fmtnumb(iter) // '.rank'//write_fmtnumb(idrank)//'.dat'
+      open(unit=1001, file=trim(mynamefile), status='replace')
       do i= 1, nA
-        write(iatm*10000+170+idrank,*) __FILE__,__LINE__, "i,j,k=", A(i)%i,A(i)%j,A(i)%k, "f=", A(i)%f, "t=",A(i)%t
+        write(1001,*) __FILE__,__LINE__, A(i)%i,A(i)%j,A(i)%k, "f=", A(i)%f, "t=",A(i)%t
       enddo
+      close(1001)
     endif
   else
     do l=1,nspheres
@@ -9363,7 +9382,7 @@
   real(kind=PRC), dimension(3) :: rtemp,ftemp, ttemp
   
   integer :: ii,jj,kk,io,jo,ko, iloop,indlow,indhig
-  type (group), dimension(10000) :: A
+  type (group), dimension(100000) :: A
   integer :: nA
 
   
