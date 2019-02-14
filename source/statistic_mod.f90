@@ -162,7 +162,13 @@
     statdata(31)=engrot
     
 !   particle temperature as ratio of KbT
-    statdata(20)=TWO*(engke+engrot)/(tempboltz*degfre)
+    if (degfre == 0) then
+      write (6,*) "tempboltz, degfre=", tempboltz, degfre
+      flush(6)
+    else
+      statdata(20)=TWO*(engke+engrot)/(tempboltz*degfre)
+    endif
+
     dtemp(1)=ZERO
     do i=1,natms
       dtemp(1)=max(dtemp(1),vxx(i)**TWO+vyy(i)**TWO+vzz(i)**TWO)

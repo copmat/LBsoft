@@ -1607,60 +1607,75 @@
   endif
  end subroutine initialize_map_particles
  
- pure function clamp(x, ub, isPer)
+ pure function wrap(x, ub, isPer)
   implicit none
   integer, intent(in) :: x, ub, isPer
-  integer :: clamp
+  integer :: wrap
 
   if(isPer /= 1) return
 
-  clamp = modulo(x-1, ub) + 1
- end function clamp
+  wrap = modulo(x-1, ub) + 1
+ end function wrap
+
+ pure function isRangeOK(x, r, lb,ub,globDim, isPer, label)
+  implicit none
+  integer, intent(in) :: x, lb,ub, isPer,globDim
+  real(kind=PRC), intent(in) :: r
+  character, intent(in) :: label
+  logical(1) :: isRangeOK
+  integer :: xm, xp, mid
+
+  isRangeOK = .true.
+
+  xm = x - r
+  xp = x + r
+
+  if (xm < 1) then
+    mid = wrap(xm, globDim, isPer)
+    if (mid<=ub .or. lb<=globDim) then
+        return
+    endif
+    xm = 1
+  endif
+
+  if (xp > globDim) then
+    mid = wrap(xp, globDim, isPer)
+    if (lb<=mid) then
+        return
+    endif
+    xp = globDim
+  endif
+
+  isRangeOK = .false.
+  if (lb > xp) return
+  if (xm > ub) return
+
+  isRangeOK = .true.
+ end  function isRangeOK
+
 
  subroutine checkIfExtAtom(i, num_ext)
   implicit none
   integer, intent(in) :: i
   integer, intent(inout) :: num_ext
   real(kind=PRC) :: radius
-  integer :: extrema(3,8), xm,ym,zm, xp,yp,zp
-  integer :: ids, c, onEnterNum
+  integer :: center
 
-
-
-  onEnterNum = num_ext
 
   radius = floor(rdimx(1))
+  center = nint(xxx(i))
+  if (.not. isRangeOK(center, radius, minx-1, maxx+1,nx, ixpbc,'x')) return
 
-  xm = clamp(nint(xxx(i)-radius), nx, ixpbc)
-  xp = clamp(nint(xxx(i)+radius), nx, ixpbc)
-  ym = clamp(nint(yyy(i)-radius), ny, iypbc)
-  yp = clamp(nint(yyy(i)+radius), ny, iypbc)
-  zm = clamp(nint(zzz(i)-radius), nz, izpbc)
-  zp = clamp(nint(zzz(i)+radius), nz, izpbc)
+  radius = floor(rdimx(1))
+  center = nint(yyy(i))
+  if (.not. isRangeOK(center, radius, miny-1, maxy+1,ny, iypbc,'y')) return
 
-!  write (6,*) "check) atom  =", xxx(i),    yyy(i),    zzz(i)
-!  write (6,*) "check) bounds=", xm,xp,     ym,yp,     zm,zp
+  radius = floor(rdimx(1))
+  center = nint(zzz(i))
+  if (.not. isRangeOK(center, radius, minz-1, maxz+1,nz, izpbc,'z')) return
 
-  extrema(:,1) = [ xm, ym, zm ]
-  extrema(:,2) = [ xm, ym, zp ]
-  extrema(:,3) = [ xm, yp, zm ]
-  extrema(:,4) = [ xm, yp, zp ]
-  extrema(:,5) = [ xp, ym, zm ]
-  extrema(:,6) = [ xp, ym, zp ]
-  extrema(:,7) = [ xp, yp, zm ]
-  extrema(:,8) = [ xp, yp, zp ]
-
-  do c = 1,8
-    CYCLE_OUT_INTERVAL(extrema(1,c), minx-1, maxx+1)
-    CYCLE_OUT_INTERVAL(extrema(2,c), miny-1, maxy+1)
-    CYCLE_OUT_INTERVAL(extrema(3,c), minz-1, maxz+1)
-
-    atmbook(mxatms - num_ext) = i
-    num_ext = num_ext + 1
-!    write (6,*) "check) Atom=",i, " Taken at c=", c
-    exit
-  enddo
-
+  atmbook(mxatms - num_ext) = i
+  num_ext = num_ext + 1
  end subroutine checkIfExtAtom
 
 

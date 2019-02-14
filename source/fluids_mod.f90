@@ -9234,7 +9234,7 @@
         rtemp(1:3)=rdimx/modr*rtemp(1:3)
       endif
       if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
-       k>=minz .and. k<=maxz)then
+       k>=kmin .and. k<=kmax)then
         call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
            otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug,iatm, A, l)
         if (debug) write(iatm*10000+100+idrank,*) __FILE__,__LINE__, "i,j,k=", i,j,k
