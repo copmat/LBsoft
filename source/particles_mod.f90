@@ -3194,6 +3194,7 @@
 ! restore free atom half step velocity   
   do myi=1,natms
     i = atmbook(myi)
+    write (6,*) __FILE__,__LINE__, "iatm=", i, "xyz", xxx(i),yyy(i),zzz(i)
     vxx(i)=bxx(i)
     vyy(i)=byy(i)
     vzz(i)=bzz(i)
@@ -4542,7 +4543,7 @@
   real(kind=PRC), intent(in) :: cells(9),cx,cy,cz
   real(kind=PRC), allocatable, dimension(:) :: xxs,yys,zzs
 
-  integer :: i
+  integer :: i, myi
   real(kind=PRC) aaa,bbb,ccc
   
   select case(imcons)
@@ -4550,61 +4551,68 @@
     return
   case(1)
     aaa=ONE/cells(1)
-    forall(i=1:natmssub)
+    do myi=1,natmssub
+      i = atmbook(myi)
       xxs(i)=xxs(i)-cx
       xxs(i)=xxs(i)-cell(1)*nint(aaa*xxs(i))+cx
-    end forall
+    enddo
   case(2)
     bbb=ONE/cells(5)
-    forall(i=1:natmssub)
+    do myi=1,natmssub
+      i = atmbook(myi)
       yys(i)=yys(i)-cy
       yys(i)=yys(i)-cell(5)*nint(bbb*yys(i))+cy
-    end forall
+    enddo
   case(3)
     aaa=ONE/cells(1)
     bbb=ONE/cells(5)
-    forall(i=1:natmssub)
+    do myi=1,natmssub
+      i = atmbook(myi)
       xxs(i)=xxs(i)-cx
       yys(i)=yys(i)-cy
       xxs(i)=xxs(i)-cell(1)*nint(aaa*xxs(i))+cx
       yys(i)=yys(i)-cell(5)*nint(bbb*yys(i))+cy
-    end forall
+    enddo
   case(4)
     ccc=ONE/cells(9)
-    forall(i=1:natmssub)
+    do myi=1,natmssub
+      i = atmbook(myi)
       zzs(i)=zzs(i)-cz
       zzs(i)=zzs(i)-cell(9)*nint(ccc*zzs(i))+cz
-    end forall
+    enddo
   case(5)
     aaa=ONE/cells(1)
     ccc=ONE/cells(9)
-    forall(i=1:natmssub)
+    do myi=1,natmssub
+      i = atmbook(myi)
       xxs(i)=xxs(i)-cx
       zzs(i)=zzs(i)-cz
       xxs(i)=xxs(i)-cell(1)*nint(aaa*xxs(i))+cx
       zzs(i)=zzs(i)-cell(9)*nint(ccc*zzs(i))+cz
-    end forall
+    enddo
   case(6)
     bbb=ONE/cells(5)
     ccc=ONE/cells(9)
-    forall(i=1:natmssub)
+    do myi=1,natmssub
+      i = atmbook(myi)
       yys(i)=yys(i)-cy
       zzs(i)=zzs(i)-cz
       yys(i)=yys(i)-cell(5)*nint(bbb*yys(i))+cy
       zzs(i)=zzs(i)-cell(9)*nint(ccc*zzs(i))+cz
-    end forall
+    enddo
   case(7)
     aaa=ONE/cells(1)
     bbb=ONE/cells(5)
     ccc=ONE/cells(9)
-    forall(i=1:natmssub)
+    do myi=1,natmssub
+      i = atmbook(myi)
       xxs(i)=xxs(i)-cx
       yys(i)=yys(i)-cy
       zzs(i)=zzs(i)-cz
       xxs(i)=xxs(i)-cell(1)*nint(aaa*xxs(i))+cx
       yys(i)=yys(i)-cell(5)*nint(bbb*yys(i))+cy
       zzs(i)=zzs(i)-cell(9)*nint(ccc*zzs(i))+cz
-    end forall
+    enddo
   end select
   
   return
