@@ -1809,7 +1809,7 @@
     qversor(3)=ozz(iatm)
     oat=qtrimult(qtemp,qversor,qconj(qtemp))
     
-    call particle_bounce_back(nstep==2, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(nstep==3, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
@@ -1914,6 +1914,8 @@
     fxx(iatm)=fxx(iatm)+(fxb(iatm)+fxbo(iatm))*HALF
     fyy(iatm)=fyy(iatm)+(fyb(iatm)+fybo(iatm))*HALF
     fzz(iatm)=fzz(iatm)+(fzb(iatm)+fzbo(iatm))*HALF
+    write (6,*) __FILE__,__LINE__, "iatm=", iatm, "f", fxx(iatm),fyy(iatm),fzz(iatm), &
+        "fo", fxbo(iatm),fybo(iatm),fzbo(iatm)
   enddo
   
   do myi=1,natms
@@ -1935,6 +1937,8 @@
     tqx(iatm)=tqx(iatm)+(txb(iatm)+txbo(iatm))*HALF
     tqy(iatm)=tqy(iatm)+(tyb(iatm)+tybo(iatm))*HALF
     tqz(iatm)=tqz(iatm)+(tzb(iatm)+tzbo(iatm))*HALF
+    write (6,*) __FILE__,__LINE__, "iatm=", iatm, "t", tqx(iatm),tqy(iatm),tqz(iatm), &
+        "to", txbo(iatm),tybo(iatm),tzbo(iatm)
   enddo
   
   do myi=1,natms
