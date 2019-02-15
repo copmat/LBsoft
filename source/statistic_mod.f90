@@ -163,8 +163,7 @@
     
 !   particle temperature as ratio of KbT
     if (degfre == 0) then
-      write (6,*) "tempboltz, degfre=", tempboltz, degfre
-      flush(6)
+      statdata(20) = ZERO
     else
       statdata(20)=TWO*(engke+engrot)/(tempboltz*degfre)
     endif

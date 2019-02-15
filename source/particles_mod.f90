@@ -1767,7 +1767,7 @@
   integer :: myi, iatm,i,j,k,itype
   real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3)
 
-#define DEBUG_FORCEINT
+
 #ifdef DEBUG_FORCEINT
   character(len=120) :: mynamefile
   real(kind=PRC), allocatable, dimension(:,:,:) :: forceInt
@@ -1809,16 +1809,16 @@
     qversor(3)=ozz(iatm)
     oat=qtrimult(qtemp,qversor,qconj(qtemp))
     
-    call particle_bounce_back(.true., nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(nstep==2, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm), forceInt, oat(1),oat(2),oat(3), &
      txb(iatm),tyb(iatm),tzb(iatm))
 
-     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
-        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
-        "t=", txb(iatm),tyb(iatm),tzb(iatm)
+!     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
+!        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
+!        "t=", txb(iatm),tyb(iatm),tzb(iatm)
   enddo
   
   else
@@ -1859,6 +1859,32 @@
         enddo
 
         close(1001)
+
+        fxb(i) = ZERO
+        fyb(i) = ZERO
+        fzb(i) = ZERO
+        txb(i) = ZERO
+        tyb(i) = ZERO
+        tzb(i) = ZERO
+        do l=1,nsphere
+            fxb(i) = fxb(i) + forceInt(i, l, 1)
+            fyb(i) = fyb(i) + forceInt(i, l, 2)
+            fzb(i) = fzb(i) + forceInt(i, l, 3)
+            txb(i) = txb(i) + forceInt(i, l, 4)
+            tyb(i) = tyb(i) + forceInt(i, l, 5)
+            tzb(i) = tzb(i) + forceInt(i, l, 6)
+        enddo
+      enddo
+  else
+      ! Zero out other Procs
+      do myi=1,natms_ext
+         iatm = atmbook(myi)
+         fxb(iatm) = 0
+         fyb(iatm) = 0
+         fzb(iatm) = 0
+         txb(iatm) = 0
+         tyb(iatm) = 0
+         tzb(iatm) = 0
       enddo
   endif
 #endif
@@ -1935,13 +1961,22 @@
   implicit none
   integer :: iatm, myi
 
-
+#ifdef DEBUG_FORCEINT
+  ! We can better broadcast from Proc 0
   call sum_world_farr(fxb, natms_tot)
   call sum_world_farr(fyb, natms_tot)
   call sum_world_farr(fzb, natms_tot)
   call sum_world_farr(txb, natms_tot)
   call sum_world_farr(tyb, natms_tot)
   call sum_world_farr(tzb, natms_tot)
+#else
+  call sum_world_farr(fxb, natms_tot)
+  call sum_world_farr(fyb, natms_tot)
+  call sum_world_farr(fzb, natms_tot)
+  call sum_world_farr(txb, natms_tot)
+  call sum_world_farr(tyb, natms_tot)
+  call sum_world_farr(tzb, natms_tot)
+#endif
   
   do iatm=1,natms_tot
     write (6,*) __FILE__,__LINE__, "iatm=", iatm, &
@@ -1958,13 +1993,6 @@
     tyb(iatm) = 0
     tzb(iatm) = 0
   enddo
-
-!  do myi=1,natms_ext
-!    iatm = atmbook(myi)
-!    write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
-!        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
-!        "t=", txb(iatm),tyb(iatm),tzb(iatm)
-!  enddo
 
  end subroutine merge_particle_force
 
@@ -2195,6 +2223,9 @@
   real(kind=PRC) :: rmax,dr, checkSpace
   real(kind=PRC), allocatable, save :: xold(:),yold(:),zold(:)
   
+
+
+  return
 
   checkSpace = (natms+mxrank-1)/mxrank
   if(checkSpace > mxatms) call error(24)
@@ -3126,6 +3157,8 @@
     xxx(i)=xxo(i)+tstepatm*bxx(i)
     yyy(i)=yyo(i)+tstepatm*byy(i)
     zzz(i)=zzo(i)+tstepatm*bzz(i)
+    write (6,*) __FILE__,__LINE__, "iatm=", i, "xyz", xxx(i),yyy(i),zzz(i), &
+        "xxo", xxo(i),yyo(i),zzo(i)
   enddo
   
 #if 1
@@ -4893,6 +4926,18 @@
     vxo(i) = 0
     vyo(i) = 0
     vzo(i) = 0
+
+    oxx(i) = ZERO
+    oyy(i) = ZERO
+    ozz(i) = ZERO
+
+    fxbo(i) = ZERO
+    fybo(i) = ZERO
+    fzbo(i) = ZERO
+
+    txbo(i) = ZERO
+    tybo(i) = ZERO
+    tzbo(i) = ZERO
   end forall
 
   call sum_world_farr(xxx,natms_tot)
@@ -4913,6 +4958,18 @@
   call sum_world_farr(q1,natms_tot)
   call sum_world_farr(q2,natms_tot)
   call sum_world_farr(q3,natms_tot)
+
+  call sum_world_farr(oxx,natms_tot)
+  call sum_world_farr(oyy,natms_tot)
+  call sum_world_farr(ozz,natms_tot)
+
+  call sum_world_farr(fxbo,natms_tot)
+  call sum_world_farr(fybo,natms_tot)
+  call sum_world_farr(fzbo,natms_tot)
+
+  call sum_world_farr(txbo,natms_tot)
+  call sum_world_farr(tybo,natms_tot)
+  call sum_world_farr(tzbo,natms_tot)
 
 
   ! Count my atoms, put them in atmbook list

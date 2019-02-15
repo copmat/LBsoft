@@ -9237,7 +9237,8 @@
        k>=kmin .and. k<=kmax)then
         call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
            otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug,iatm, A, l)
-        if (debug) write(iatm*10000+100+idrank,*) __FILE__,__LINE__, "i,j,k=", i,j,k
+        if (debug) write(iatm*10000+100+idrank,*) __FILE__,__LINE__, "i,j,k=", i,j,k, "xx,..", xx,yy,zz, &
+                "vx,..",vx,vy,vz, rtemp,otemp
       endif
 
       !the fluid bounce back is local so I have to do it
@@ -9418,14 +9419,15 @@
         ty = ty + ttemp(2)
         tz = tz + ttemp(3)
 
-        if (debug) then
+#ifdef DEBUG_FORCEINT
           A(iatm, l, 1) = A(iatm, l, 1) + ftemp(1)
           A(iatm, l, 2) = A(iatm, l, 2) + ftemp(2)
           A(iatm, l, 3) = A(iatm, l, 3) + ftemp(3)
           A(iatm, l, 4) = A(iatm, l, 4) + ttemp(1)
           A(iatm, l, 5) = A(iatm, l, 5) + ttemp(2)
           A(iatm, l, 6) = A(iatm, l, 6) + ttemp(3)
-!          A(nA)%val = ii + 100*jj + 10000*kk + 1000000*indlow
+#endif
+        if (debug) then
           write (iatm*10000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indlow,indhig, &
               "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p, &
               "pop",aoptp(indhig)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
@@ -9486,13 +9488,15 @@
         ty = ty + ttemp(2)
         tz = tz + ttemp(3)
 
-        if (debug) then
+#ifdef DEBUG_FORCEINT
           A(iatm, l, 1) = A(iatm, l, 1) + ftemp(1)
           A(iatm, l, 2) = A(iatm, l, 2) + ftemp(2)
           A(iatm, l, 3) = A(iatm, l, 3) + ftemp(3)
           A(iatm, l, 4) = A(iatm, l, 4) + ttemp(1)
           A(iatm, l, 5) = A(iatm, l, 5) + ttemp(2)
           A(iatm, l, 6) = A(iatm, l, 6) + ttemp(3)
+#endif
+        if (debug) then
           write (iatm*10000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
               "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p, &
               "pop",aoptp(indlow)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
