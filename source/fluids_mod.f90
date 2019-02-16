@@ -12109,41 +12109,30 @@ end subroutine compute_secbelt_density_twofluids
   integer :: i,j,k,l, iosub1
 
 
-  return
-
   mynamefile=repeat(' ',120)
   mynamefile=trim(filenam)//write_fmtnumb(itersub)//'.'//write_fmtnumb(idrank)//'.dat'
+  open(unit=iosub, file=trim(mynamefile), status='replace')
 
   mynamefile1=repeat(' ',120)
   mynamefile1=trim(filenam)//write_fmtnumb(itersub)//'.'//write_fmtnumb(idrank)//'.dat1'
   iosub1 = iosub + 1
-
-
-    open(unit=iosub, file=trim(mynamefile), status='replace')
-    open(unit=iosub1,file=trim(mynamefile1),status='replace')
+  open(unit=iosub1,file=trim(mynamefile1),status='replace')
 
   do k=minz,maxz
     do j=miny,maxy
       do i=minx,maxx
-!        if(minx-1<=i .and. i<=maxx+1) then
-!        if(miny-1<=j .and. k<=maxy+1) then
-!        if(minz-1<=k .and. k<=maxz+1) then
           do l=0,links
             write(iosub,*)i,j,k,l,aoptp(l)%p(i,j,k)
           enddo
 
           write(iosub1,*) i,j,k, rhoR(i,j,k),u(i,j,k), &
                 v(i,j,k),w(i,j,k),isfluid(i,j,k)
-!        endif
-!        endif
-!        endif
-
       enddo
     enddo
   enddo
 
-    close(iosub)
-    close(iosub1)
+  close(iosub)
+  close(iosub1)
 
  end subroutine print_all_pops2
 
