@@ -292,6 +292,10 @@
   f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R
  real(kind=PRC), save, protected, public, allocatable, target, dimension(:,:,:) :: &
   f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B
+
+
+ integer,save, private :: iounit(3)
+
  
  public :: set_random_dens_fluids
  public :: set_initial_dens_fluids
@@ -9192,6 +9196,7 @@
   real(kind=PRC), dimension(3) :: rtemp,otemp,ftemp
   
   real(kind=PRC), allocatable, dimension(:,:,:) :: A
+  character(len=120) :: mynamefile
 
 
 
@@ -9211,6 +9216,16 @@
     otemp(2)=oy
     otemp(3)=oz
   endif
+
+
+  do l=1,3
+   mynamefile=repeat(' ',120)
+   mynamefile="forceInt.atom"//write_fmtnumb(iatm)//'.step'//write_fmtnumb(l)// & 
+           '.iter'//write_fmtnumb(nstep)//'.'//write_fmtnumb(idrank)//'.dat'
+   iounit(l) = 113 + l
+   open(unit=iounit(l), file=trim(mynamefile), status='replace')
+  enddo
+
   
   if(lsingle_fluid)then
     do l=1,nspheres
@@ -9237,7 +9252,7 @@
        k>=kmin .and. k<=kmax)then
         call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
            otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug,iatm, A, l)
-        if (debug) write(iatm*10000+100+idrank,*) __FILE__,__LINE__, "i,j,k=", i,j,k, "xx,..", xx,yy,zz, &
+        if (debug) write(iounit(1),*) __FILE__,__LINE__, "i,j,k=", i,j,k, "xx,..", xx,yy,zz, &
                 "vx,..",vx,vy,vz, rtemp,otemp
       endif
 
@@ -9319,6 +9334,10 @@
 
     enddo
   endif
+
+  do l=1,3
+   close(iounit(l))
+  enddo
  end subroutine particle_bounce_back
 
 
@@ -9428,7 +9447,7 @@
           A(iatm, l, 6) = A(iatm, l, 6) + ttemp(3)
 #endif
         if (debug) then
-          write (iatm*10000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indlow,indhig, &
+          write (iounit(2),*) __FILE__,__LINE__, ii,jj,kk, "pop=", indlow,indhig, &
               "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p, &
               "pop",aoptp(indhig)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
               "v", vx,vy,vz, vxs,vys,vzs
@@ -9497,7 +9516,7 @@
           A(iatm, l, 6) = A(iatm, l, 6) + ttemp(3)
 #endif
         if (debug) then
-          write (iatm*10000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
+          write (iounit(2),*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
               "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p, &
               "pop",aoptp(indlow)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
               "v", vx,vy,vz, vxs,vys,vzs
@@ -10247,7 +10266,7 @@
 	      aoptp(indlow)%p(i,j,k)=real(aoptp(indhig)%p(ii,jj,kk),kind=PRC)- &
 	       p(indhig)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(indhig)*vx+dey(indhig)*vy+dez(indhig)*vz)
            if (debug) then
-             write (iatm*10000+1000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indlow,indhig, &
+             write (iounit(3),*) __FILE__,__LINE__, ii,jj,kk, "pop=", indlow,indhig, &
                  "pop",aoptp(indhig)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
                  "->pop low", aoptp(indlow)%p(i,j,k)
            endif
@@ -10286,7 +10305,7 @@
 	      aoptp(indhig)%p(i,j,k)=real(aoptp(indlow)%p(ii,jj,kk),kind=PRC)- &
 	       p(indlow)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(indlow)*vx+dey(indlow)*vy+dez(indlow)*vz)
 	      if (debug) then
-             write (iatm*10000+1000+idrank,*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
+             write (iounit(3),*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
                  "pop",aoptp(indlow)%p(ii,jj,kk), "rho",rhosub(ii,jj,kk), &
                  "->pop low", aoptp(indhig)%p(i,j,k)
            endif

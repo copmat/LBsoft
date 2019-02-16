@@ -264,9 +264,9 @@
     
     call print_all_pops2(131, "aft_part_bb", nstep, aoptpR)
 
-    call merge_particle_force
+    call merge_particle_force(nstep)
     
-    call force_particle_bounce_back
+    call force_particle_bounce_back(nstep)
     
     call compute_mean_particle_force
     

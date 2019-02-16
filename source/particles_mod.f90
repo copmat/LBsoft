@@ -33,7 +33,7 @@
                    allocate_array_lbuffservice, &
                    nbuffservice3d,buffservice3d,allocate_array_bdf, &
                    xdf,ydf,zdf,rand_noseeded,linit_seed,gauss_noseeded,&
-                   write_fmtnumb,dcell,invert
+                   write_fmtnumb,dcell,invert, openLogFile
 
  use lbempi_mod,  only : commspop, commrpop, i4find, i4back, &
                    ownern,deallocate_ownern,commexch_dens, &
@@ -1809,7 +1809,7 @@
     qversor(3)=ozz(iatm)
     oat=qtrimult(qtemp,qversor,qconj(qtemp))
     
-    call particle_bounce_back(nstep==3, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(nstep<=10, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
@@ -1877,8 +1877,7 @@
       enddo
   else
       ! Zero out other Procs
-      do myi=1,natms_ext
-         iatm = atmbook(myi)
+      do iatm=1,natms_tot
          fxb(iatm) = 0
          fyb(iatm) = 0
          fzb(iatm) = 0
@@ -1891,7 +1890,7 @@
  end subroutine apply_particle_bounce_back
  
 
- subroutine force_particle_bounce_back()
+ subroutine force_particle_bounce_back(nstep)
  
 !***********************************************************************
 !     
@@ -1905,8 +1904,11 @@
 !***********************************************************************
  
   implicit none
+  integer, intent(in) :: nstep
   integer :: iatm, myi
   
+
+  call OpenLogFile(nstep, "md.timeadv1", 118)
 
   !f(t) = (f(t+1/2)+f(t-1/2))/2
   do myi=1,natms
@@ -1914,8 +1916,8 @@
     fxx(iatm)=fxx(iatm)+(fxb(iatm)+fxbo(iatm))*HALF
     fyy(iatm)=fyy(iatm)+(fyb(iatm)+fybo(iatm))*HALF
     fzz(iatm)=fzz(iatm)+(fzb(iatm)+fzbo(iatm))*HALF
-    write (6,*) __FILE__,__LINE__, "iatm=", iatm, "f", fxx(iatm),fyy(iatm),fzz(iatm), &
-        "fo", fxbo(iatm),fybo(iatm),fzbo(iatm)
+    write (118,*) __FILE__,__LINE__, "iatm=", iatm, "f=", fxx(iatm),fyy(iatm),fzz(iatm), &
+        "fo=", fxbo(iatm),fybo(iatm),fzbo(iatm)
   enddo
   
   do myi=1,natms
@@ -1937,9 +1939,10 @@
     tqx(iatm)=tqx(iatm)+(txb(iatm)+txbo(iatm))*HALF
     tqy(iatm)=tqy(iatm)+(tyb(iatm)+tybo(iatm))*HALF
     tqz(iatm)=tqz(iatm)+(tzb(iatm)+tzbo(iatm))*HALF
-    write (6,*) __FILE__,__LINE__, "iatm=", iatm, "t", tqx(iatm),tqy(iatm),tqz(iatm), &
+    write (118,*) __FILE__,__LINE__, "iatm=", iatm, "t", tqx(iatm),tqy(iatm),tqz(iatm), &
         "to", txbo(iatm),tybo(iatm),tzbo(iatm)
   enddo
+  close(118)
   
   do myi=1,natms
     iatm = atmbook(myi)
@@ -1950,7 +1953,7 @@
  end subroutine force_particle_bounce_back
 
  
- subroutine merge_particle_force()
+ subroutine merge_particle_force(nstep)
  
 !***********************************************************************
 !     
@@ -1963,6 +1966,7 @@
 !***********************************************************************
   
   implicit none
+  integer, intent(in) :: nstep
   integer :: iatm, myi
 
 #ifdef DEBUG_FORCEINT
@@ -1982,11 +1986,13 @@
   call sum_world_farr(tzb, natms_tot)
 #endif
   
+  call openLogFile(nstep, "mergeforce", 118)
   do iatm=1,natms_tot
-    write (6,*) __FILE__,__LINE__, "iatm=", iatm, &
+    write (118,*) __FILE__,__LINE__, "iatm=", iatm, &
         "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
         "t=", txb(iatm),tyb(iatm),tzb(iatm)
   enddo
+  close(118)
 
   do myi=natms+1,natms_ext
     iatm = atmbook(myi)
@@ -3150,6 +3156,8 @@
   call or_world_larr(ltest,1)
   if(ltest(1))call error(28)
       
+  call openLogFile(nstepsub, "nve_lf", 118)
+
 ! move atoms by leapfrog algorithm    
   do myi=1,natms
     i = atmbook(myi)
@@ -3161,7 +3169,9 @@
     xxx(i)=xxo(i)+tstepatm*bxx(i)
     yyy(i)=yyo(i)+tstepatm*byy(i)
     zzz(i)=zzo(i)+tstepatm*bzz(i)
-    write (6,*) __FILE__,__LINE__, "iatm=", i, "xyz", xxx(i),yyy(i),zzz(i), &
+    write (118,*) __FILE__,__LINE__, "iatm=", i, "b =", bxx(i),byy(i),bzz(i), &
+        "f =", fxx(i),fyy(i),fzz(i)
+    write (118,*) __FILE__,__LINE__, "iatm=", i, "xyz", xxx(i),yyy(i),zzz(i), &
         "xxo", xxo(i),yyo(i),zzo(i)
   enddo
   
@@ -3198,12 +3208,13 @@
 ! restore free atom half step velocity   
   do myi=1,natms
     i = atmbook(myi)
-    write (6,*) __FILE__,__LINE__, "iatm=", i, "xyz", xxx(i),yyy(i),zzz(i)
+    write (118,*) __FILE__,__LINE__, "iatm=", i, "xyz", xxx(i),yyy(i),zzz(i)
     vxx(i)=bxx(i)
     vyy(i)=byy(i)
     vzz(i)=bzz(i)
   enddo
   
+  close(118)
   
 ! rigid body motion
   if(lrotate)then
