@@ -1749,7 +1749,7 @@
  end subroutine init_particles_fluid_interaction
  
 
- subroutine apply_particle_bounce_back(nstep)
+ subroutine apply_particle_bounce_back(nstep, debug)
  
 !***********************************************************************
 !     
@@ -1764,6 +1764,7 @@
  
   implicit none
   integer, intent(in) :: nstep
+  logical, intent(in) :: debug
   integer :: myi, iatm,i,j,k,itype
   real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3)
 
@@ -1809,7 +1810,7 @@
     qversor(3)=ozz(iatm)
     oat=qtrimult(qtemp,qversor,qconj(qtemp))
     
-    call particle_bounce_back(nstep<=10, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(debug, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
@@ -1830,7 +1831,7 @@
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
     itype=ltype(iatm)
-    call particle_bounce_back(.false., nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
+    call particle_bounce_back(debug, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
@@ -1847,6 +1848,7 @@
 
   if (idrank == 0) then
       do i= 1, natms_tot
+       if (debug) then
         mynamefile = repeat(' ',120)
         mynamefile = "presort.atom" // write_fmtnumb(i) // '.iter' // &
             write_fmtnumb(nstep) // '.rank'//write_fmtnumb(idrank)//'.dat'
@@ -1859,6 +1861,7 @@
         enddo
 
         close(1001)
+       endif
 
         fxb(i) = ZERO
         fyb(i) = ZERO
@@ -1890,7 +1893,7 @@
  end subroutine apply_particle_bounce_back
  
 
- subroutine force_particle_bounce_back(nstep)
+ subroutine force_particle_bounce_back(nstep, debug)
  
 !***********************************************************************
 !     
@@ -1905,10 +1908,11 @@
  
   implicit none
   integer, intent(in) :: nstep
+  logical, intent(in) :: debug
   integer :: iatm, myi
   
 
-  call OpenLogFile(nstep, "md.timeadv1", 118)
+  if (debug) call OpenLogFile(nstep, "md.timeadv1", 118)
 
   !f(t) = (f(t+1/2)+f(t-1/2))/2
   do myi=1,natms
@@ -1916,7 +1920,7 @@
     fxx(iatm)=fxx(iatm)+(fxb(iatm)+fxbo(iatm))*HALF
     fyy(iatm)=fyy(iatm)+(fyb(iatm)+fybo(iatm))*HALF
     fzz(iatm)=fzz(iatm)+(fzb(iatm)+fzbo(iatm))*HALF
-    write (118,*) __FILE__,__LINE__, "iatm=", iatm, "f=", fxx(iatm),fyy(iatm),fzz(iatm), &
+    if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "f=", fxx(iatm),fyy(iatm),fzz(iatm), &
         "fo=", fxbo(iatm),fybo(iatm),fzbo(iatm)
   enddo
   
@@ -1939,10 +1943,10 @@
     tqx(iatm)=tqx(iatm)+(txb(iatm)+txbo(iatm))*HALF
     tqy(iatm)=tqy(iatm)+(tyb(iatm)+tybo(iatm))*HALF
     tqz(iatm)=tqz(iatm)+(tzb(iatm)+tzbo(iatm))*HALF
-    write (118,*) __FILE__,__LINE__, "iatm=", iatm, "t", tqx(iatm),tqy(iatm),tqz(iatm), &
+    if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "t", tqx(iatm),tqy(iatm),tqz(iatm), &
         "to", txbo(iatm),tybo(iatm),tzbo(iatm)
   enddo
-  close(118)
+  if (debug) close(118)
   
   do myi=1,natms
     iatm = atmbook(myi)
@@ -1953,7 +1957,7 @@
  end subroutine force_particle_bounce_back
 
  
- subroutine merge_particle_force(nstep)
+ subroutine merge_particle_force(nstep, debug)
  
 !***********************************************************************
 !     
@@ -1967,6 +1971,7 @@
   
   implicit none
   integer, intent(in) :: nstep
+  logical, intent(in) :: debug
   integer :: iatm, myi
 
 #ifdef DEBUG_FORCEINT
@@ -1986,13 +1991,13 @@
   call sum_world_farr(tzb, natms_tot)
 #endif
   
-  call openLogFile(nstep, "mergeforce", 118)
+  if (debug) call openLogFile(nstep, "mergeforce", 118)
   do iatm=1,natms_tot
-    write (118,*) __FILE__,__LINE__, "iatm=", iatm, &
+    if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, &
         "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
         "t=", txb(iatm),tyb(iatm),tzb(iatm)
   enddo
-  close(118)
+  if (debug) close(118)
 
   do myi=natms+1,natms_ext
     iatm = atmbook(myi)
@@ -3105,7 +3110,7 @@
  end subroutine initialize_integrator_lf
  
 
- subroutine nve_lf(nstepsub)
+ subroutine nve_lf(nstepsub, debug)
 
 !***********************************************************************
 !     
@@ -3120,6 +3125,7 @@
 
   implicit none
   integer, intent(in) :: nstepsub
+  logical, intent(in) :: debug
   integer, parameter :: nfailmax=10
   integer, dimension(nfailmax) :: fail
   integer :: i,j,k,itype,itq, myi
@@ -3156,7 +3162,7 @@
   call or_world_larr(ltest,1)
   if(ltest(1))call error(28)
       
-  call openLogFile(nstepsub, "nve_lf", 118)
+  if (debug) call openLogFile(nstepsub, "nve_lf", 118)
 
 ! move atoms by leapfrog algorithm    
   do myi=1,natms
@@ -3169,9 +3175,9 @@
     xxx(i)=xxo(i)+tstepatm*bxx(i)
     yyy(i)=yyo(i)+tstepatm*byy(i)
     zzz(i)=zzo(i)+tstepatm*bzz(i)
-    write (118,*) __FILE__,__LINE__, "iatm=", i, "b =", bxx(i),byy(i),bzz(i), &
+    if (debug) write (118,*) __FILE__,__LINE__, "iatm=", i, "b =", bxx(i),byy(i),bzz(i), &
         "f =", fxx(i),fyy(i),fzz(i)
-    write (118,*) __FILE__,__LINE__, "iatm=", i, "xyz", xxx(i),yyy(i),zzz(i), &
+    if (debug) write (118,*) __FILE__,__LINE__, "iatm=", i, "xyz", xxx(i),yyy(i),zzz(i), &
         "xxo", xxo(i),yyo(i),zzo(i)
   enddo
   
@@ -3208,13 +3214,13 @@
 ! restore free atom half step velocity   
   do myi=1,natms
     i = atmbook(myi)
-    write (118,*) __FILE__,__LINE__, "iatm=", i, "xyz", xxx(i),yyy(i),zzz(i)
+    if (debug) write (118,*) __FILE__,__LINE__, "iatm=", i, "xyz", xxx(i),yyy(i),zzz(i)
     vxx(i)=bxx(i)
     vyy(i)=byy(i)
     vzz(i)=bzz(i)
   enddo
   
-  close(118)
+  if (debug) close(118)
   
 ! rigid body motion
   if(lrotate)then

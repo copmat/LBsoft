@@ -9218,13 +9218,15 @@
   endif
 
 
-  do l=1,3
-   mynamefile=repeat(' ',120)
-   mynamefile="forceInt.atom"//write_fmtnumb(iatm)//'.step'//write_fmtnumb(l)// & 
+  if (debug) then
+   do l=1,3
+    mynamefile=repeat(' ',120)
+    mynamefile="forceInt.atom"//write_fmtnumb(iatm)//'.step'//write_fmtnumb(l)// &
            '.iter'//write_fmtnumb(nstep)//'.'//write_fmtnumb(idrank)//'.dat'
-   iounit(l) = 113 + l
-   open(unit=iounit(l), file=trim(mynamefile), status='replace')
-  enddo
+    iounit(l) = 113 + l
+    open(unit=iounit(l), file=trim(mynamefile), status='replace')
+   enddo
+  endif
 
   
   if(lsingle_fluid)then
@@ -9335,9 +9337,11 @@
     enddo
   endif
 
-  do l=1,3
-   close(iounit(l))
-  enddo
+  if (debug) then
+   do l=1,3
+    close(iounit(l))
+   enddo
+  endif
  end subroutine particle_bounce_back
 
 

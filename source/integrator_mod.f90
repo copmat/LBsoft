@@ -154,6 +154,7 @@
   integer :: itemp,jtemp,ktemp,i,j,k,l,m,ii,jj,kk,i2,j2,k2,i3,j3,k3
   integer(kind=IPRC) :: i4
   logical :: newlst
+  logical :: debug
   
 
   new_time = real(nstep,kind=PRC)*tstep
@@ -249,6 +250,8 @@
   call print_all_pops2(131, "bef_driver_bc_pops", nstep, aoptpR)
 
   if(lparticles)then
+    debug = nstep <= 10
+
     ! call driver_bc_pops(lparticles)
     call driver_bc_pops_NOK
 
@@ -259,21 +262,21 @@
     if(ldiagnostic)call end_timing2("IO","write_xyz")
     
     if(ldiagnostic)call start_timing2("LB","apply_part_bback")
-    call apply_particle_bounce_back(nstep)
+    call apply_particle_bounce_back(nstep, debug)
     if(ldiagnostic)call end_timing2("LB","apply_part_bback")
     
     call print_all_pops2(131, "aft_part_bb", nstep, aoptpR)
 
-    call merge_particle_force(nstep)
+    call merge_particle_force(nstep, debug)
     
-    call force_particle_bounce_back(nstep)
+    call force_particle_bounce_back(nstep, debug)
     
     call compute_mean_particle_force
     
     call store_old_pos_vel_part
 
     if(ldiagnostic)call start_timing2("MD","integrate_lf")
-    call nve_lf(nstep)
+    call nve_lf(nstep, debug)
     call merge_particle_energies
     if(ldiagnostic)call end_timing2("MD","integrate_lf")
 
