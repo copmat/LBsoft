@@ -10321,12 +10321,12 @@
  end subroutine particle_to_node_bounce_back_bc
 
 
- subroutine helper_particle_delete_fluids(iatm,itype, isub,jsub,ksub, nspheres,spherelists, lrotate, &
+ subroutine helper_particle_delete_fluids(debug,iatm,itype, isub,jsub,ksub, nspheres,spherelists, lrotate, &
     rdimx,rdimy,rdimz, xx,yy,zz, fx,fy,fz, tx,ty,tz)
    implicit none
    integer, intent(in) :: iatm,itype, isub,jsub,ksub,nspheres
    integer, allocatable, dimension(:,:), intent(in) :: spherelists
-   logical, intent(in) :: lrotate
+   logical, intent(in) :: lrotate, debug
    real(kind=PRC), allocatable, dimension(:), intent(in) :: rdimx,rdimy,rdimz
    real(kind=PRC), allocatable, dimension(:), intent(in) :: xx,yy,zz
    real(kind=PRC), allocatable, dimension(:), intent(inout) :: fx,fy,fz
@@ -10403,13 +10403,19 @@
             tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
           endif
 
+          if (debug) then
+            write (iounit(1),*) __FILE__,__LINE__, i,j,k, "iatm=", iatm, &
+                    "fx,fy,..", fx(iatm),fy(iatm),fz(iatm), "tx,ty,..", tx(iatm),ty(iatm),tz(iatm), &
+                    "rho",rhoR(i,j,k)
+          endif
+
         endif
       enddo
 
  end subroutine helper_particle_delete_fluids
 
 
- subroutine particle_delete_fluids(nstep,natmssub,atmbook,nspheres,spherelists, &
+ subroutine particle_delete_fluids(debug,nstep,natmssub,atmbook,nspheres,spherelists, &
    spheredists,nspheredeads,spherelistdeads,lmoved,lrotate,ltype,xx,yy,zz, &
    vx,vy,vz,fx,fy,fz,tx,ty,tz,xo,yo,zo,rdimx,rdimy,rdimz)
   
@@ -10432,7 +10438,7 @@
    spherelistdeads
   real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
   logical(kind=1), allocatable, dimension(:), intent(in) :: lmoved
-  logical, intent(in) :: lrotate
+  logical, intent(in) :: lrotate, debug
   integer, allocatable, dimension(:), intent(in) :: ltype
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xx,yy,zz
   real(kind=PRC), allocatable, dimension(:), intent(in) :: vx,vy,vz
@@ -10441,6 +10447,7 @@
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xo,yo,zo
   real(kind=PRC), allocatable, dimension(:), intent(in) :: rdimx,rdimy,rdimz
   integer :: isub,jsub,ksub, iatm,myi, itype
+  character(len=120) :: mynamefile
   
   
   !delete fluid 
@@ -10448,16 +10455,26 @@
     iatm=atmbook(myi)
     if(.not. lmoved(iatm))cycle
 
+    if (debug) then
+        mynamefile=repeat(' ',120)
+        mynamefile="del_fl.atom"//write_fmtnumb(iatm)// &
+               '.iter'//write_fmtnumb(nstep)//'.'//write_fmtnumb(idrank)//'.dat'
+        iounit(1) = 113
+        open(unit=iounit(1), file=trim(mynamefile), status='replace')
+    endif
+
     isub=nint(xx(iatm))
     jsub=nint(yy(iatm))
     ksub=nint(zz(iatm))
 
     itype=ltype(iatm)
 
-    call helper_particle_delete_fluids(iatm,itype, isub,jsub,ksub, nspheres, spherelists, lrotate, &
+    call helper_particle_delete_fluids(debug,iatm,itype, isub,jsub,ksub, nspheres, spherelists, lrotate, &
         rdimx,rdimy,rdimz, xx,yy,zz, fx,fy,fz,tx,ty,tz)
-    call helper_particle_delete_fluids(iatm,itype, isub,jsub,ksub, nspheredeads, spherelistdeads, lrotate, &
+    call helper_particle_delete_fluids(debug,iatm,itype, isub,jsub,ksub, nspheredeads, spherelistdeads, lrotate, &
         rdimx,rdimy,rdimz, xx,yy,zz, fx,fy,fz,tx,ty,tz)
+
+    if (debug) close(iounit(1))
   enddo
   
  end subroutine particle_delete_fluids
@@ -10569,7 +10586,7 @@ end subroutine compute_secbelt_density
 end subroutine compute_secbelt_density_twofluids
 
 
- subroutine particle_create_fluids(nstep,natmssub,atmbook,nspheres,spherelists, &
+ subroutine particle_create_fluids(debug,nstep,natmssub,atmbook,nspheres,spherelists, &
    spheredists,nspheredeads,spherelistdeads,lmoved,lrotate,ltype,xx,yy,zz, &
    vx,vy,vz,fx,fy,fz,tx,ty,tz,xo,yo,zo,rdimx,rdimy,rdimz)
   
@@ -10591,7 +10608,7 @@ end subroutine compute_secbelt_density_twofluids
    spherelistdeads
   real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
   logical(kind=1), allocatable, dimension(:), intent(in) :: lmoved
-  logical, intent(in) :: lrotate
+  logical, intent(in) :: lrotate, debug
   integer, allocatable, dimension(:), intent(in) :: ltype
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xx,yy,zz
   real(kind=PRC), allocatable, dimension(:), intent(in) :: vx,vy,vz
@@ -10667,8 +10684,6 @@ end subroutine compute_secbelt_density_twofluids
             v(i,j,k)=myv
             w(i,j,k)=myw
 
-            write (6,*) "particle_create_fluids", i,j,k, "rho",rhoR(i,j,k)
-
             !formula taken from eq. 25 of PRE 83, 046707 (2011)
             call initialize_newnode_fluid(i,j,k,Rsum,myu,myv,myw,aoptpR)
             !formula taken from eq. 26 of PRE 83, 046707 (2011)
@@ -10688,6 +10703,10 @@ end subroutine compute_secbelt_density_twofluids
               ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
               tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
             endif
+
+            if (debug) write (6,*) "particle_create_fluids", " iatm=", iatm, "nstep=",nstep, &
+                 "fx,..", fx(iatm),fy(iatm),fz(iatm), "tx,..", tx(iatm),ty(iatm),tz(iatm), &
+                 "Rsum", Rsum, "v(iatm)=", myu,myv,myw
           endif
         enddo
         do m=1,nspheredeads
@@ -10742,6 +10761,9 @@ end subroutine compute_secbelt_density_twofluids
               ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
               tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
             endif
+            if (debug) write (6,*) "particle_create_fluids", " iatm=", iatm, "nstep=",nstep, &
+                 "fx,..", fx(iatm),fy(iatm),fz(iatm), "tx,..", tx(iatm),ty(iatm),tz(iatm), &
+                 "Rsum", Rsum, "v(iatm)=", myu,myv,myw
           endif
         enddo
         if(ltest(1))exit
@@ -10858,7 +10880,6 @@ end subroutine compute_secbelt_density_twofluids
         enddo
         if(ltest(1))exit
       endif
-    
   enddo
   
   call or_world_larr(ltest,1)
@@ -11098,8 +11119,7 @@ end subroutine compute_secbelt_density_twofluids
 
 
  subroutine mapping_new_isfluid(natmssub,natms_ext,atmbook,nspheres,spherelists, &
-   spheredists,nspheredeads,spherelistdeads,lmoved,xx,yy,zz, &
-   vx,vy,vz,fx,fy,fz,xo,yo,zo)
+   spheredists,nspheredeads,spherelistdeads,lmoved,xx,yy,zz)
   
 !***********************************************************************
 !     
@@ -11120,9 +11140,6 @@ end subroutine compute_secbelt_density_twofluids
   real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
   logical(kind=1),allocatable, dimension(:), intent(in) :: lmoved
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xx,yy,zz
-  real(kind=PRC), allocatable, dimension(:), intent(in) :: vx,vy,vz
-  real(kind=PRC), allocatable, dimension(:), intent(inout) :: fx,fy,fz
-  real(kind=PRC), allocatable, dimension(:), intent(in) :: xo,yo,zo
   integer :: myi, isub,jsub,ksub, iatm, i,j,k, iofile(2)
   
   

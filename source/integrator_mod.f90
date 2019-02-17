@@ -166,7 +166,7 @@
   if(lparticles)then
     if(ldiagnostic)call start_timing2("LB","build_new_isfluid")
     call initialize_particle_force
-    call build_new_isfluid(nstep)
+    call build_new_isfluid(nstep, debug)
     if(ldiagnostic)call end_timing2("LB","build_new_isfluid")
   endif
   
@@ -194,7 +194,7 @@
 
   if(lparticles)then
     if(ldiagnostic)call start_timing2("MD","inter_part_and_grid")
-    call inter_part_and_grid(nstep, lparticles)
+    call inter_part_and_grid(nstep, lparticles, debug)
     if(ldiagnostic)call end_timing2("MD","inter_part_and_grid")
     
     if (debug) call print_all_pops2(131, "aft_inter_part_and_grid", nstep, aoptpR)

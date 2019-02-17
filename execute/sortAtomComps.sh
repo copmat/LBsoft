@@ -12,6 +12,6 @@ do
 	done
 
 	cat mergeforce.iter"$it".*.dat | ./trisort.sh 2 4 1  | uniq > mergeforce.iter"$it".000000.dat.sort
-	cat md.timeadv1.iter"$it".*.dat | ./trisort.sh 2 4 1 > md.timeadv1.iter"$it".000000.dat.sort
+	cat force_particle_bb.iter"$it".*.dat | ./trisort.sh 2 4 1 > force_particle_bb.iter"$it".000000.dat.sort
 	cat nve_lf.iter"$it".*.dat | ./trisort.sh 2 4 1 > nve_lf.iter"$it".000000.dat.sort
 done

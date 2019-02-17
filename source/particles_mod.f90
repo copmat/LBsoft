@@ -1816,10 +1816,6 @@
      vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm), forceInt, oat(1),oat(2),oat(3), &
      txb(iatm),tyb(iatm),tzb(iatm))
-
-!     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
-!        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
-!        "t=", txb(iatm),tyb(iatm),tzb(iatm)
   enddo
   
   else
@@ -1836,9 +1832,6 @@
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm), forceInt)
-
-!     write (6,*) __FILE__,__LINE__, myi <= natms, "iatm=", iatm, &
-!        "f=", fxb(iatm),fyb(iatm),fzb(iatm)
   enddo
 
   endif
@@ -1912,16 +1905,17 @@
   integer :: iatm, myi
   
 
-  if (debug) call OpenLogFile(nstep, "md.timeadv1", 118)
+  if (debug) call OpenLogFile(nstep, "force_particle_bb", 118)
 
   !f(t) = (f(t+1/2)+f(t-1/2))/2
   do myi=1,natms
     iatm = atmbook(myi)
+    if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "f old=", fxx(iatm),fyy(iatm),fzz(iatm), &
+        "fb old=", fxbo(iatm),fybo(iatm),fzbo(iatm)
     fxx(iatm)=fxx(iatm)+(fxb(iatm)+fxbo(iatm))*HALF
     fyy(iatm)=fyy(iatm)+(fyb(iatm)+fybo(iatm))*HALF
     fzz(iatm)=fzz(iatm)+(fzb(iatm)+fzbo(iatm))*HALF
-    if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "f=", fxx(iatm),fyy(iatm),fzz(iatm), &
-        "fo=", fxbo(iatm),fybo(iatm),fzbo(iatm)
+    if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "f new=", fxx(iatm),fyy(iatm),fzz(iatm)
   enddo
   
   do myi=1,natms
@@ -1990,12 +1984,18 @@
   call sum_world_farr(tyb, natms_tot)
   call sum_world_farr(tzb, natms_tot)
 #endif
+
+  call sum_world_farr(fxx, natms_tot)
+  call sum_world_farr(fyy, natms_tot)
+  call sum_world_farr(fzz, natms_tot)
   
   if (debug) call openLogFile(nstep, "mergeforce", 118)
-  do iatm=1,natms_tot
+  do myi=1,natms
+    iatm=atmbook(myi)
     if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, &
-        "f=", fxb(iatm),fyb(iatm),fzb(iatm), &
-        "t=", txb(iatm),tyb(iatm),tzb(iatm)
+        "f=", fxx(iatm),fyy(iatm),fzz(iatm), &
+        "f bb=", fxb(iatm),fyb(iatm),fzb(iatm), &
+        "t bb=", txb(iatm),tyb(iatm),tzb(iatm)
   enddo
   if (debug) close(118)
 
@@ -2074,7 +2074,7 @@
  end subroutine check_moving_particles
  
 
- subroutine build_new_isfluid(nstep)
+ subroutine build_new_isfluid(nstep, debug)
   
 !***********************************************************************
 !     
@@ -2088,6 +2088,7 @@
   
   implicit none
   integer, intent(in) :: nstep
+  logical, intent(in) :: debug
  
 
   call initialize_new_isfluid
@@ -2096,16 +2097,16 @@
   
   call mapping_new_isfluid(natms,natms_ext,atmbook,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove, &
-     xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,xxo,yyo,zzo)
+     xxx,yyy,zzz)
      
-  call particle_delete_fluids(nstep,natms_ext,atmbook,nsphere, &
+  call particle_delete_fluids(debug, nstep,natms_ext,atmbook,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
   
  end subroutine build_new_isfluid
  
- subroutine inter_part_and_grid(nstep, lparticles)
+ subroutine inter_part_and_grid(nstep, lparticles, debug)
   
 !***********************************************************************
 !     
@@ -2120,9 +2121,9 @@
  
   implicit none
   integer, intent(in) :: nstep
-  logical, intent(in) :: lparticles
+  logical, intent(in) :: lparticles, debug
   
-  call particle_create_fluids(nstep,natms_ext,atmbook,nsphere, &
+  call particle_create_fluids(debug, nstep,natms_ext,atmbook,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
@@ -2475,23 +2476,25 @@
   implicit none
   integer, allocatable, dimension(:), intent(in) :: lentrysub
   integer, allocatable, dimension(:,:), intent(in) :: listsub
-
-  
-  if (debug) call OpenLogFile(nstep, "compute_inter_force", 118)
-
 ! separation vectors and powers thereof
-  
   real(kind=PRC) :: rsq,xm,ym,zm,rsqcut,rrr,eps,sig,vvv,ggg,rmin,vmin, &
    kappa,rlimit,gmin,rpar,lubfactor,rparcut,rparcap,rsrparcut,mxrsqcut,&
    ux,uy,uz,visc
-  
 ! Loop counters
   integer :: iatm,ii,i,j,ivdw,itype,jtype,iimax,xcm,ycm,zcm
   integer :: k,jatm, myi
   integer :: ilentry
-  
   real(kind=PRC), parameter :: s2rmin=TWO**(ONE/SIX)
+  logical :: debug
+  integer,save :: nstep = 0
   
+  
+
+
+  nstep = nstep + 1
+  debug = .true.
+  if (debug) call OpenLogFile(nstep, "compute_inter_force", 118)
+
   call allocate_array_bdf(natms)
   
   if(lunique_omega)then
@@ -2502,9 +2505,11 @@
   
     select case(ltpvdw(ivdw))
     case (0)
+      write(6,*) "ivdw=",ivdw, "case1"
       return
 
     case (1)
+    write(6,*) "ivdw=",ivdw, "case1"
     
     !Weeks-Chandler-Andersen
     
@@ -2599,6 +2604,7 @@
     enddo
   
     case (2)
+    write(6,*) "ivdw=",ivdw, "case2"
     
     !Lennard-Jones
     
@@ -2693,6 +2699,7 @@
     enddo
     
     case (3)
+    write(6,*) "ivdw=",ivdw, "case3"
   
     kappa=prmvdw(1,ivdw)
     rmin=prmvdw(2,ivdw)
@@ -2765,6 +2772,8 @@
             fyy(jatm)=fyy(jatm)+ggg*ydf(ii)/rrr
             fzz(iatm)=fzz(iatm)-ggg*zdf(ii)/rrr
             fzz(jatm)=fzz(jatm)+ggg*zdf(ii)/rrr
+            if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "fxx,..", fxx(iatm),fyy(iatm),fzz(iatm), &
+                "jatm=", jatm, "fxx,..", fxx(jatm),fyy(jatm),fzz(jatm)
           endif
 
           if(llubrication)then
@@ -2794,6 +2803,8 @@
                (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
               fzz(jatm)=fzz(jatm)+lubfactor*(rdimx(jtype)**FOUR)*uz* &
                (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
+               if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "fxx,..", fxx(iatm),fyy(iatm),fzz(iatm), &
+                "jatm=", jatm, "fxx,..", fxx(jatm),fyy(jatm),fzz(jatm)
             endif 
 
           endif
@@ -2808,8 +2819,7 @@
   
   enddo
   
-  return
-
+  if (debug) close(118)
  end subroutine compute_inter_force
  
  
