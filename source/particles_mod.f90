@@ -2477,6 +2477,8 @@
   integer, allocatable, dimension(:,:), intent(in) :: listsub
 
   
+  if (debug) call OpenLogFile(nstep, "compute_inter_force", 118)
+
 ! separation vectors and powers thereof
   
   real(kind=PRC) :: rsq,xm,ym,zm,rsqcut,rrr,eps,sig,vvv,ggg,rmin,vmin, &

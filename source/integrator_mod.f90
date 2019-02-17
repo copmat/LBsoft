@@ -158,7 +158,7 @@
   
 
   debug = nstep <= 10
-  debug = modulo(nstep, 500) == 0
+  !debug = modulo(nstep, 500) == 0
 
 
   new_time = real(nstep,kind=PRC)*tstep
