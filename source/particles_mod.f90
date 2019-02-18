@@ -1756,6 +1756,70 @@
  end subroutine init_particles_fluid_interaction
  
 
+ subroutine sortSumm(fxDest,fyDest,fzDest, txDest,tyDest,tzDest, hdrfname, debug, nstep)
+ implicit none
+ real(kind=PRC), allocatable,dimension(:) :: fxDest,fyDest,fzDest, txDest,tyDest,tzDest
+ character(len=*),intent(in) :: hdrfname
+ logical, intent(in) :: debug
+ integer, intent(in) :: nstep
+ integer :: i,l
+ character(len=120) :: mynamefile
+
+
+
+#ifdef DEBUG_FORCEINT
+  call sum_world_farr(forceInt, natms_tot * nsphere * 6)
+
+  if (idrank == 0) then
+      do i= 1, natms_tot
+        if (debug) then
+            mynamefile=repeat(' ',120)
+            mynamefile=hdrfname // write_fmtnumb(i)
+            call openLogFile(nstep, mynamefile, 1001)
+        endif
+
+        do l=1,nsphere
+            write(1001,*) __FILE__,__LINE__, l, "f=", forceInt(i, l, 1),      &
+                forceInt(i, l, 2),forceInt(i, l, 3), "t=", forceInt(i, l, 4), &
+                forceInt(i, l, 5), forceInt(i, l, 6)
+        enddo
+
+        if (debug) close(1001)
+
+
+        fxDest(i) = ZERO
+        fyDest(i) = ZERO
+        fzDest(i) = ZERO
+        txDest(i) = ZERO
+        tyDest(i) = ZERO
+        tzDest(i) = ZERO
+        do l=1,nsphere
+            fxDest(i) = fxDest(i) + forceInt(i, l, 1)
+            fyDest(i) = fyDest(i) + forceInt(i, l, 2)
+            fzDest(i) = fzDest(i) + forceInt(i, l, 3)
+            txDest(i) = txDest(i) + forceInt(i, l, 4)
+            tyDest(i) = tyDest(i) + forceInt(i, l, 5)
+            tzDest(i) = tzDest(i) + forceInt(i, l, 6)
+        enddo
+
+        write(6,*) __FILE__,__LINE__, hdrfname, " atom=", i, "fdest=",fxDest(i),fyDest(i),fzDest(i), &
+                "tdest=",txDest(i),tyDest(i),tzDest(i)
+      enddo
+  else
+      ! Zero out other Procs
+      do i=1,natms_tot
+         fxDest(i) = 0
+         fyDest(i) = 0
+         fzDest(i) = 0
+         txDest(i) = 0
+         tyDest(i) = 0
+         tzDest(i) = 0
+      enddo
+  endif
+#endif
+ end subroutine sortSumm
+
+
  subroutine apply_particle_bounce_back(nstep, debug)
  
 !***********************************************************************
@@ -1841,52 +1905,17 @@
   endif
 
 #ifdef DEBUG_FORCEINT
-  call sum_world_farr(forceInt, natms_tot * nsphere * 6)
+  call sortSumm(fxb,fyb,fzb, txb,tyb,tzb, "presort.atom", debug, nstep)
 
-  if (idrank == 0) then
-      do i= 1, natms_tot
-        if (debug) then
-            mynamefile=repeat(' ',120)
-            mynamefile="presort.atom"//write_fmtnumb(i)
-            call openLogFile(nstep, mynamefile, 1001)
-        endif
-
-        do l=1,nsphere
-            write(1001,*) __FILE__,__LINE__, l, "f=", forceInt(i, l, 1),      &
-                forceInt(i, l, 2),forceInt(i, l, 3), "t=", forceInt(i, l, 4), &
-                forceInt(i, l, 5), forceInt(i, l, 6)
-        enddo
-
-        if (debug) close(1001)
-
-
-        fxb(i) = ZERO
-        fyb(i) = ZERO
-        fzb(i) = ZERO
-        txb(i) = ZERO
-        tyb(i) = ZERO
-        tzb(i) = ZERO
-        do l=1,nsphere
-            fxb(i) = fxb(i) + forceInt(i, l, 1)
-            fyb(i) = fyb(i) + forceInt(i, l, 2)
-            fzb(i) = fzb(i) + forceInt(i, l, 3)
-            txb(i) = txb(i) + forceInt(i, l, 4)
-            tyb(i) = tyb(i) + forceInt(i, l, 5)
-            tzb(i) = tzb(i) + forceInt(i, l, 6)
-        enddo
-      enddo
-  else
-      ! Zero out other Procs
-      do iatm=1,natms_tot
-         fxb(iatm) = 0
-         fyb(iatm) = 0
-         fzb(iatm) = 0
-         txb(iatm) = 0
-         tyb(iatm) = 0
-         tzb(iatm) = 0
-      enddo
-  endif
+  ! We can better broadcast from Proc 0
+  call sum_world_farr(fxb, natms_tot)
+  call sum_world_farr(fyb, natms_tot)
+  call sum_world_farr(fzb, natms_tot)
+  call sum_world_farr(txb, natms_tot)
+  call sum_world_farr(tyb, natms_tot)
+  call sum_world_farr(tzb, natms_tot)
 #endif
+
  end subroutine apply_particle_bounce_back
  
 
@@ -1973,13 +2002,9 @@
   integer :: iatm, myi
 
 #ifdef DEBUG_FORCEINT
-  ! We can better broadcast from Proc 0
-  call sum_world_farr(fxb, natms_tot)
-  call sum_world_farr(fyb, natms_tot)
-  call sum_world_farr(fzb, natms_tot)
-  call sum_world_farr(txb, natms_tot)
-  call sum_world_farr(tyb, natms_tot)
-  call sum_world_farr(tzb, natms_tot)
+    ! Done in apply_particle_bounce_back
+
+    ! fxx,fyy,fzz] done in inter_part_and_grid
 #else
   call sum_world_farr(fxb, natms_tot)
   call sum_world_farr(fyb, natms_tot)
@@ -1987,11 +2012,11 @@
   call sum_world_farr(txb, natms_tot)
   call sum_world_farr(tyb, natms_tot)
   call sum_world_farr(tzb, natms_tot)
-#endif
 
   call sum_world_farr(fxx, natms_tot)
   call sum_world_farr(fyy, natms_tot)
   call sum_world_farr(fzz, natms_tot)
+#endif
   
   if (debug) call openLogFile(nstep, "mergeforce", 118)
   do myi=1,natms
@@ -2128,10 +2153,24 @@
   logical, intent(in) :: lparticles, debug
   
 #ifdef DEBUG_FORCEINT
+  forceInt(:,:,:) = ZERO
+
   call particle_create_fluids(debug, nstep,natms_ext,atmbook,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz, forceInt)
+
+  call sortSumm(fxx,fyy,fzz,tqx,tqy,tqz, "presort_pcf.atom", debug,nstep)
+
+  !call get_sync_world
+
+  ! We can better broadcast from Proc 0
+  call sum_world_farr(fxx, natms_tot)
+  call sum_world_farr(fyy, natms_tot)
+  call sum_world_farr(fzz, natms_tot)
+  call sum_world_farr(tqx, natms_tot)
+  call sum_world_farr(tqy, natms_tot)
+  call sum_world_farr(tqz, natms_tot)
 #else
   call particle_create_fluids(debug, nstep,natms_ext,atmbook,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
@@ -2516,12 +2555,9 @@
   
     select case(ltpvdw(ivdw))
     case (0)
-      write(6,*) "ivdw=",ivdw, "case1"
       return
 
     case (1)
-    write(6,*) "ivdw=",ivdw, "case1"
-    
     !Weeks-Chandler-Andersen
     
     eps=prmvdw(1,ivdw)
@@ -2615,8 +2651,6 @@
     enddo
   
     case (2)
-    write(6,*) "ivdw=",ivdw, "case2"
-    
     !Lennard-Jones
     
     eps=prmvdw(1,ivdw)

@@ -10587,7 +10587,7 @@ end subroutine compute_secbelt_density_twofluids
 
  subroutine particle_create_fluids(debug,nstep,natmssub,atmbook,nspheres,spherelists, &
    spheredists,nspheredeads,spherelistdeads,lmoved,lrotate,ltype,xx,yy,zz, &
-   vx,vy,vz,fx,fy,fz,tx,ty,tz,xo,yo,zo,rdimx,rdimy,rdimz, forceInt)
+   vx,vy,vz,fx,fy,fz,tx,ty,tz,xo,yo,zo,rdimx,rdimy,rdimz, A)
   
 !***********************************************************************
 !     
@@ -10615,19 +10615,17 @@ end subroutine compute_secbelt_density_twofluids
   real(kind=PRC), allocatable, dimension(:), intent(inout) :: tx,ty,tz
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xo,yo,zo
   real(kind=PRC), allocatable, dimension(:), intent(in) :: rdimx,rdimy,rdimz
-  real(kind=PRC), allocatable, dimension(:,:,:), optional :: forceInt
+  real(kind=PRC), allocatable, dimension(:,:,:), optional :: A
   
-  integer :: i,j,k,l,m,isub,jsub,ksub,iatm,io,jo,ko,itype,myi
+  integer :: i,j,k, m,isub,jsub,ksub,iatm,io,jo,ko,itype,myi
   integer :: ii,jj,kk,ishift,jshift,kshift
   integer, save :: imin,imax,jmin,jmax,kmin,kmax
   logical, save :: lfirst=.true.
   logical :: lfind,ltest(1)
-  real(kind=PRC) :: Rsum,Bsum,Dsum,myu,myv,myw,ftemp(3),rtemp(3),modr
+  real(kind=PRC) :: Rsum,Bsum,Dsum,myu,myv,myw,ftemp(3),rtemp(3),modr, ttemp(3)
   real(kind=PRC) :: dtemp1,dtemp2,dtemp3,dtemp4
 #ifdef DEBUG_FORCEINT
   character(len=120) :: mynamefile
-
-  forceInt(:,:,:) = ZERO
 #endif
 
   
@@ -10699,24 +10697,35 @@ end subroutine compute_secbelt_density_twofluids
             !formula taken from eq. 25 of PRE 83, 046707 (2011)
             call initialize_newnode_fluid(i,j,k,Rsum,myu,myv,myw,aoptpR)
             !formula taken from eq. 26 of PRE 83, 046707 (2011)
-            fx(iatm)=fx(iatm)-Rsum*myu
-            fy(iatm)=fy(iatm)-Rsum*myv
-            fz(iatm)=fz(iatm)-Rsum*myw
+            ftemp(1)=-Rsum*myu
+            ftemp(2)=-Rsum*myv
+            ftemp(3)=-Rsum*myw
+
+            fx(iatm)=fx(iatm) + ftemp(1)
+            fy(iatm)=fy(iatm) + ftemp(2)
+            fz(iatm)=fz(iatm) + ftemp(3)
             if(lrotate)then
-              ftemp(1)=-Rsum*myu
-              ftemp(2)=-Rsum*myv
-              ftemp(3)=-Rsum*myw
               rtemp(1)=real(ii,kind=PRC)-xx(iatm)
               rtemp(2)=real(jj,kind=PRC)-yy(iatm)
               rtemp(3)=real(kk,kind=PRC)-zz(iatm)
               modr=modulvec(rtemp)
               rtemp(1:3)=rdimx(itype)/modr*rtemp(1:3)
-              tx(iatm)=tx(iatm)+xcross(rtemp,ftemp)
-              ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
-              tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
+              ttemp(1) = xcross(rtemp,ftemp)
+              ttemp(2) = ycross(rtemp,ftemp)
+              ttemp(3) = zcross(rtemp,ftemp)
+              tx(iatm)=tx(iatm) + ttemp(1)
+              ty(iatm)=ty(iatm) + ttemp(2)
+              tz(iatm)=tz(iatm) + ttemp(3)
             endif
-
-            if (debug) write (117,*) "fx,..", fx(iatm),fy(iatm),fz(iatm), "tx,..", tx(iatm),ty(iatm),tz(iatm), &
+#ifdef DEBUG_FORCEINT
+            A(iatm, m, 1) = A(iatm, m, 1) + ftemp(1)
+            A(iatm, m, 2) = A(iatm, m, 2) + ftemp(2)
+            A(iatm, m, 3) = A(iatm, m, 3) + ftemp(3)
+            A(iatm, m, 4) = A(iatm, m, 4) + ttemp(1)
+            A(iatm, m, 5) = A(iatm, m, 5) + ttemp(2)
+            A(iatm, m, 6) = A(iatm, m, 6) + ttemp(3)
+#endif
+            if (debug) write (117,*) __LINE__, i,j,k, "ftemp", ftemp, "ttemp", ttemp, &
                  "Rsum", Rsum, "v(iatm)=", myu,myv,myw
           endif
         enddo
@@ -10772,7 +10781,15 @@ end subroutine compute_secbelt_density_twofluids
               ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
               tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
             endif
-            if (debug) write (117,*) "fx,..", fx(iatm),fy(iatm),fz(iatm), "tx,..", tx(iatm),ty(iatm),tz(iatm), &
+#ifdef DEBUG_FORCEINT
+            A(iatm, m, 1) = A(iatm, m, 1) + ftemp(1)
+            A(iatm, m, 2) = A(iatm, m, 2) + ftemp(2)
+            A(iatm, m, 3) = A(iatm, m, 3) + ftemp(3)
+            A(iatm, m, 4) = A(iatm, m, 4) + ttemp(1)
+            A(iatm, m, 5) = A(iatm, m, 5) + ttemp(2)
+            A(iatm, m, 6) = A(iatm, m, 6) + ttemp(3)
+#endif
+            if (debug) write (117,*) __LINE__, i,j,k, "ftemp", ftemp, "ttemp", ttemp, &
                  "Rsum", Rsum, "v(iatm)=", myu,myv,myw
           endif
         enddo

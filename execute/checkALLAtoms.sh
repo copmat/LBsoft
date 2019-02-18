@@ -15,6 +15,9 @@ for i in $(seq 1 8); do diff -q atom"$i".step3.iter"$it".sort ../atom"$i".step3.
 echo "Diffing presort"
 for i in $(seq 1 8); do diff -q presort.atom00000"$i".iter"$it".000000.dat ../presort.atom00000"$i".iter"$it".000000.dat ; done
 
+echo "Diffing presort_pcf"
+for i in $(seq 1 8); do diff -q presort_pcf.atom00000"$i".iter"$it".000000.dat ../presort_pcf.atom00000"$i".iter"$it".000000.dat ; done
+
 echo "Diffing part_createfluid"
 for i in $(seq 1 8); do diff -q part_createfluid.atom00000"$i".iter"$it".sort ../part_createfluid.atom00000"$i".iter"$it".mpi; done
 
