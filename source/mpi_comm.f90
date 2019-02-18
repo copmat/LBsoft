@@ -1,14 +1,17 @@
 #include <default_macro.h>
 module mpi_comm
-    use mpi
     use aop_mod
     use lbempi_mod,  only : domdec
 
+!    use mpi
     implicit none
 
     integer            :: ierr                                           ! error code
     integer            :: id_rank                                        ! rank of process
     integer            :: mx_rank                                        ! number of processes
+#if defined(MPI)
+    include 'mpif.h'
+#endif
 
     integer, parameter  :: npop=18
     !lattice vectors
@@ -68,6 +71,9 @@ contains
     integer, intent(out) :: mycoords(3), ierr
     integer i,j,k
 
+
+    ierr = 0
+
     k = me / (cartdims(1)*cartdims(2))
     j = (me - k*cartdims(1)*cartdims(2)) / cartdims(1)
     i = mod(me, cartdims(1))
@@ -85,6 +91,7 @@ contains
     integer, intent(out) :: neigh, ierr
     integer i,c, offs(3)
 
+    ierr = 0
     offs = [ 1, cartdims(1), cartdims(1)*cartdims(2) ]
 
     neigh = 0

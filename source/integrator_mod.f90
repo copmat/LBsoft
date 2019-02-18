@@ -157,8 +157,9 @@
   logical :: debug
   
 
-  debug = nstep <= 10
+  !debug = nstep <= 10
   !debug = modulo(nstep, 500) == 0
+  debug = .false.
 
 
   new_time = real(nstep,kind=PRC)*tstep
