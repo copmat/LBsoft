@@ -210,7 +210,7 @@
     
     if(ldiagnostic)call start_timing2("MD","driver_inter_f")
     call initialize_particle_energy
-    call driver_inter_force(nstep)
+    call driver_inter_force(nstep, debug)
     if(ldiagnostic)call end_timing2("MD","driver_inter_f")
   endif
 

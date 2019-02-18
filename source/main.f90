@@ -213,7 +213,7 @@
     call vertest(lnewlst)
     if(lnewlst) call parlst
     call initialize_particle_force
-    call driver_inter_force(nstep)
+    call driver_inter_force(nstep, .false.)
     call initialize_integrator_lf
     call store_old_pos_vel_part
     call driver_bc_isfluid

@@ -1776,16 +1776,15 @@
             mynamefile=repeat(' ',120)
             mynamefile=hdrfname // write_fmtnumb(i)
             call openLogFile(nstep, mynamefile, 1001)
+
+            do l=1,nsphere
+                write(1001,*) __FILE__,__LINE__, l, "f=", forceInt(i, l, 1),      &
+                    forceInt(i, l, 2),forceInt(i, l, 3), "t=", forceInt(i, l, 4), &
+                    forceInt(i, l, 5), forceInt(i, l, 6)
+            enddo
+
+            close(1001)
         endif
-
-        do l=1,nsphere
-            write(1001,*) __FILE__,__LINE__, l, "f=", forceInt(i, l, 1),      &
-                forceInt(i, l, 2),forceInt(i, l, 3), "t=", forceInt(i, l, 4), &
-                forceInt(i, l, 5), forceInt(i, l, 6)
-        enddo
-
-        if (debug) close(1001)
-
 
         fxDest(i) = ZERO
         fyDest(i) = ZERO
@@ -1801,9 +1800,6 @@
             tyDest(i) = tyDest(i) + forceInt(i, l, 5)
             tzDest(i) = tzDest(i) + forceInt(i, l, 6)
         enddo
-
-        write(6,*) __FILE__,__LINE__, hdrfname, " atom=", i, "fdest=",fxDest(i),fyDest(i),fzDest(i), &
-                "tdest=",txDest(i),tyDest(i),tzDest(i)
       enddo
   else
       ! Zero out other Procs
@@ -2489,7 +2485,7 @@
  end subroutine initialize_particle_energy
  
 
- subroutine driver_inter_force(nstepsub)
+ subroutine driver_inter_force(nstepsub, debug)
  
 !***********************************************************************
 !     
@@ -2503,15 +2499,16 @@
 
   implicit none
   integer, intent(in) :: nstepsub
+  logical, intent(in) :: debug
   real(kind=PRC), parameter :: tol=real(1.d-4,kind=PRC)
-  integer :: i
   
-  call compute_inter_force(lentry,list)
+
+  call compute_inter_force(lentry,list, debug,nstepsub)
   call compute_sidewall_force(nstepsub)
  end subroutine driver_inter_force
 
  
- subroutine compute_inter_force(lentrysub,listsub)
+ subroutine compute_inter_force(lentrysub,listsub, debug, nstep)
   
 !***********************************************************************
 !     
@@ -2535,14 +2532,10 @@
   integer :: k,jatm, myi
   integer :: ilentry
   real(kind=PRC), parameter :: s2rmin=TWO**(ONE/SIX)
-  logical :: debug
-  integer,save :: nstep = 0
-  
-  
+  logical, intent(in) :: debug
+  integer, intent(in) :: nstep
 
 
-  nstep = nstep + 1
-  debug = .true.
   if (debug) call OpenLogFile(nstep, "compute_inter_force", 118)
 
   call allocate_array_bdf(natms)
@@ -2744,8 +2737,6 @@
     enddo
     
     case (3)
-    write(6,*) "ivdw=",ivdw, "case3"
-  
     kappa=prmvdw(1,ivdw)
     rmin=prmvdw(2,ivdw)
     rlimit=prmvdw(3,ivdw)
