@@ -22,7 +22,8 @@
                    allocate_array_buffservice,lbuffservice, &
                    allocate_array_lbuffservice,xcross,ycross,zcross, &
                    nbuffservice3d,buffservice3d,int_cube_sphere, &
-                   rand_noseeded,linit_seed,gauss_noseeded,write_fmtnumb
+                   rand_noseeded,linit_seed,gauss_noseeded,write_fmtnumb, &
+                   openLogFile
 
  use lbempi_mod,  only : commspop, commrpop, i4find, i4back, &
                    ownern,deallocate_ownern,commexch_dens, &
@@ -33,7 +34,7 @@
 #ifdef MPI           
  use mpi_comm, only : mpisendpops, mpirecvpops, mpibounceback, mpisend_hvar, mpirecv_hvar, &
                         mpisend_isfluid, mpirecv_isfluid, mpisendrecvhalopops
-#endif                
+#endif
 
  
  implicit none
@@ -9221,10 +9222,9 @@
   if (debug) then
    do l=1,3
     mynamefile=repeat(' ',120)
-    mynamefile="forceInt.atom"//write_fmtnumb(iatm)//'.step'//write_fmtnumb(l)// &
-           '.iter'//write_fmtnumb(nstep)//'.'//write_fmtnumb(idrank)//'.dat'
+    mynamefile="forceInt.atom"//write_fmtnumb(iatm)//'.step'//write_fmtnumb(l)
     iounit(l) = 113 + l
-    open(unit=iounit(l), file=trim(mynamefile), status='replace')
+    call OpenLogFile(nstep, mynamefile, iounit(l))
    enddo
   endif
 
@@ -10404,7 +10404,7 @@
           endif
 
           if (debug) then
-            write (iounit(1),*) __FILE__,__LINE__, i,j,k, "iatm=", iatm, &
+            write (iounit(1),*) i,j,k, &
                     "fx,fy,..", fx(iatm),fy(iatm),fz(iatm), "tx,ty,..", tx(iatm),ty(iatm),tz(iatm), &
                     "rho",rhoR(i,j,k)
           endif
@@ -10448,7 +10448,7 @@
   real(kind=PRC), allocatable, dimension(:), intent(in) :: rdimx,rdimy,rdimz
   integer :: isub,jsub,ksub, iatm,myi, itype
   character(len=120) :: mynamefile
-  
+
   
   !delete fluid 
   do myi=1,natmssub
@@ -10457,10 +10457,9 @@
 
     if (debug) then
         mynamefile=repeat(' ',120)
-        mynamefile="del_fl.atom"//write_fmtnumb(iatm)// &
-               '.iter'//write_fmtnumb(nstep)//'.'//write_fmtnumb(idrank)//'.dat'
+        mynamefile="part_delfluid.atom"//write_fmtnumb(iatm)
         iounit(1) = 113
-        open(unit=iounit(1), file=trim(mynamefile), status='replace')
+        call OpenLogFile(nstep, mynamefile, iounit(1))
     endif
 
     isub=nint(xx(iatm))
@@ -10588,7 +10587,7 @@ end subroutine compute_secbelt_density_twofluids
 
  subroutine particle_create_fluids(debug,nstep,natmssub,atmbook,nspheres,spherelists, &
    spheredists,nspheredeads,spherelistdeads,lmoved,lrotate,ltype,xx,yy,zz, &
-   vx,vy,vz,fx,fy,fz,tx,ty,tz,xo,yo,zo,rdimx,rdimy,rdimz)
+   vx,vy,vz,fx,fy,fz,tx,ty,tz,xo,yo,zo,rdimx,rdimy,rdimz, forceInt)
   
 !***********************************************************************
 !     
@@ -10616,6 +10615,7 @@ end subroutine compute_secbelt_density_twofluids
   real(kind=PRC), allocatable, dimension(:), intent(inout) :: tx,ty,tz
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xo,yo,zo
   real(kind=PRC), allocatable, dimension(:), intent(in) :: rdimx,rdimy,rdimz
+  real(kind=PRC), allocatable, dimension(:,:,:), optional :: forceInt
   
   integer :: i,j,k,l,m,isub,jsub,ksub,iatm,io,jo,ko,itype,myi
   integer :: ii,jj,kk,ishift,jshift,kshift
@@ -10624,6 +10624,12 @@ end subroutine compute_secbelt_density_twofluids
   logical :: lfind,ltest(1)
   real(kind=PRC) :: Rsum,Bsum,Dsum,myu,myv,myw,ftemp(3),rtemp(3),modr
   real(kind=PRC) :: dtemp1,dtemp2,dtemp3,dtemp4
+#ifdef DEBUG_FORCEINT
+  character(len=120) :: mynamefile
+
+  forceInt(:,:,:) = ZERO
+#endif
+
   
   if(lfirst)then
     lfirst=.false.
@@ -10634,7 +10640,7 @@ end subroutine compute_secbelt_density_twofluids
     kmin=minz
     kmax=maxz
   endif
-  
+
   !create fluid 
   ltest(1)=.false.
   do myi=1,natmssub
@@ -10648,6 +10654,12 @@ end subroutine compute_secbelt_density_twofluids
     ko=nint(zo(iatm))
     if(.not. lmoved(iatm))cycle
     
+    if (debug) then
+        mynamefile=repeat(' ',120)
+        mynamefile="part_createfluid.atom"//write_fmtnumb(iatm)
+        call OpenLogFile(nstep, mynamefile, 117)
+    endif
+
       if(lsingle_fluid)then
         do m=1,nspheres
           i=io+spherelists(1,m)
@@ -10704,8 +10716,7 @@ end subroutine compute_secbelt_density_twofluids
               tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
             endif
 
-            if (debug) write (6,*) "particle_create_fluids", " iatm=", iatm, "nstep=",nstep, &
-                 "fx,..", fx(iatm),fy(iatm),fz(iatm), "tx,..", tx(iatm),ty(iatm),tz(iatm), &
+            if (debug) write (117,*) "fx,..", fx(iatm),fy(iatm),fz(iatm), "tx,..", tx(iatm),ty(iatm),tz(iatm), &
                  "Rsum", Rsum, "v(iatm)=", myu,myv,myw
           endif
         enddo
@@ -10761,8 +10772,7 @@ end subroutine compute_secbelt_density_twofluids
               ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
               tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
             endif
-            if (debug) write (6,*) "particle_create_fluids", " iatm=", iatm, "nstep=",nstep, &
-                 "fx,..", fx(iatm),fy(iatm),fz(iatm), "tx,..", tx(iatm),ty(iatm),tz(iatm), &
+            if (debug) write (117,*) "fx,..", fx(iatm),fy(iatm),fz(iatm), "tx,..", tx(iatm),ty(iatm),tz(iatm), &
                  "Rsum", Rsum, "v(iatm)=", myu,myv,myw
           endif
         enddo
@@ -10880,6 +10890,8 @@ end subroutine compute_secbelt_density_twofluids
         enddo
         if(ltest(1))exit
       endif
+
+      if (debug) close(117)
   enddo
   
   call or_world_larr(ltest,1)

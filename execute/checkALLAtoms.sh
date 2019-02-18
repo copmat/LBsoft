@@ -13,7 +13,7 @@ echo "Diffing step3"
 for i in $(seq 1 8); do diff -q atom"$i".step3.iter"$it".sort ../atom"$i".step3.iter"$it".mpi ; done
 
 echo "Diffing presort"
-for i in $(seq 1 8); do diff -q presort.atom00000"$i".iter"$it".rank000000.dat ../presort.atom00000"$i".iter"$it".rank000000.dat ; done
+for i in $(seq 1 8); do diff -q presort.atom00000"$i".iter"$it".000000.dat ../presort.atom00000"$i".iter"$it".000000.dat ; done
 
 echo "Diffing mergeforce"
 diff -q mergeforce.iter"$it".000000.dat.sort ../mergeforce.iter"$it".000000.dat.sort

@@ -325,6 +325,10 @@
  
  !parameters of all the pair force fields
  real(kind=PRC), allocatable, public, protected, save :: prmvdw(:,:)
+#ifdef DEBUG_FORCEINT
+  real(kind=PRC), allocatable, dimension(:,:,:) :: forceInt
+#endif
+
  
 
  public :: allocate_particles
@@ -1746,6 +1750,9 @@
   stop
 #endif
   
+#ifdef DEBUG_FORCEINT
+  allocate(forceInt(mxatms, nsphere, 6))
+#endif
  end subroutine init_particles_fluid_interaction
  
 
@@ -1770,13 +1777,10 @@
 
 
 #ifdef DEBUG_FORCEINT
-  character(len=120) :: mynamefile
-  real(kind=PRC), allocatable, dimension(:,:,:) :: forceInt
   integer   :: l
+  character(len=120) :: mynamefile
 
-
-  allocate(forceInt(natms_tot, nsphere, 6))
-        forceInt(:,:,:) = ZERO
+  forceInt(:,:,:) = ZERO
 #endif
 
   do myi=1,natms_ext
@@ -1841,11 +1845,11 @@
 
   if (idrank == 0) then
       do i= 1, natms_tot
-       if (debug) then
-        mynamefile = repeat(' ',120)
-        mynamefile = "presort.atom" // write_fmtnumb(i) // '.iter' // &
-            write_fmtnumb(nstep) // '.rank'//write_fmtnumb(idrank)//'.dat'
-        open(unit=1001, file=trim(mynamefile), status='replace')
+        if (debug) then
+            mynamefile=repeat(' ',120)
+            mynamefile="presort.atom"//write_fmtnumb(i)
+            call openLogFile(nstep, mynamefile, 1001)
+        endif
 
         do l=1,nsphere
             write(1001,*) __FILE__,__LINE__, l, "f=", forceInt(i, l, 1),      &
@@ -1853,8 +1857,8 @@
                 forceInt(i, l, 5), forceInt(i, l, 6)
         enddo
 
-        close(1001)
-       endif
+        if (debug) close(1001)
+
 
         fxb(i) = ZERO
         fyb(i) = ZERO
@@ -2123,10 +2127,17 @@
   integer, intent(in) :: nstep
   logical, intent(in) :: lparticles, debug
   
+#ifdef DEBUG_FORCEINT
+  call particle_create_fluids(debug, nstep,natms_ext,atmbook,nsphere, &
+     spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
+     ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
+     rdimx,rdimy,rdimz, forceInt)
+#else
   call particle_create_fluids(debug, nstep,natms_ext,atmbook,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
+#endif
 
   call driver_bc_densities
   ! call driver_bc_pops(.false.)
