@@ -446,10 +446,6 @@
     lredo=.false.
     dtemp1=rand_noseeded(i,j,k,l+kk)
     dtemp2=rand_noseeded(i,j,k,l+1+kk)
-    if (dtemp1 == 0.0) then
-        lredo = .true.
-        cycle
-    endif
 !   Box-Muller transformation
     gauss_noseeded=sqrt(- TWO *log(dtemp1))*cos(2*pi*dtemp2)
     if(isnan(cos(gauss_noseeded)))lredo=.true.
