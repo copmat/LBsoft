@@ -15,6 +15,7 @@
 !     last modification October 2018
 !     
 !***********************************************************************
+ use, intrinsic ::  iso_c_binding
  
  implicit none
  
@@ -78,15 +79,19 @@
  public :: isend_world_larr
  public :: wait_world
  public :: waitall_world
+ public :: sum_world_qarr
  
  integer, allocatable, dimension(:), save :: ibuffer
  real(kind=PRC), allocatable, dimension(:), save :: fbuffer
  logical, allocatable, dimension(:), save :: lbuffer
- integer, save :: nibuffer,nfbuffer,ndbuffer,nlbuffer
+ real(kind=c_long_double), allocatable, dimension(:), save :: qbuffer
+
+ integer, save :: nibuffer,nfbuffer,ndbuffer,nlbuffer,nqbuffer
  logical, save :: aibuffer=.false.
  logical, save :: afbuffer=.false.
  logical, save :: adbuffer=.false.
  logical, save :: albuffer=.false.
+ logical, save :: aqbuffer=.false.
 
  logical, allocatable, dimension(:), save :: lbuffer1
  logical, save :: albuffer1=.false.
@@ -1464,5 +1469,47 @@
   return
   
  end subroutine waitall_world
+
+ subroutine allocate_qbuffer(narr)
+  implicit none
+  integer, intent(in) :: narr
+
+  if(aqbuffer)then
+    if(narr>nqbuffer)then
+      deallocate(qbuffer)
+      nqbuffer=narr+nincrement
+      allocate(qbuffer(nqbuffer))
+    endif
+  else
+    nqbuffer=narr+nincrement
+    allocate(qbuffer(nqbuffer))
+    aqbuffer=.true.
+  endif
+ end subroutine allocate_qbuffer
+
+  subroutine sum_world_qarr(argument,narr,buffersub)
+  implicit none
+  real(kind=PRC*2), intent(inout), dimension(narr) :: argument
+  integer, intent(in) :: narr
+  real(kind=PRC*2), intent(inout), dimension(narr), optional :: buffersub
+  integer ier
+  real(kind=c_long_double), dimension(narr) :: converted
+
+
+  converted(1:narr) = argument(1:narr)
+
+  if(present(buffersub))then
+    call MPI_ALLREDUCE(argument,buffersub,narr,MPI_REAL16, &
+      MPI_SUM,MPI_COMM_WORLD,ier)
+  else
+    call allocate_qbuffer(narr)
+
+    call MPI_ALLREDUCE(converted,qbuffer,narr,MPI_REAL16, &
+     MPI_SUM,MPI_COMM_WORLD,ier)
+
+    argument(1:narr)=qbuffer(1:narr)
+  endif
+
+ end subroutine sum_world_qarr
   
  end module version_mod

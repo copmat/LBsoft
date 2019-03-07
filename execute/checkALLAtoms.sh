@@ -12,11 +12,13 @@ for i in $(seq 1 8); do diff -q atom"$i".step2.iter"$it".sort ../atom"$i".step2.
 echo "Diffing step3"
 for i in $(seq 1 8); do diff -q atom"$i".step3.iter"$it".sort ../atom"$i".step3.iter"$it".mpi ; done
 
+if [[ "$2" != "-n" ]]; then
 echo "Diffing presort"
 for i in $(seq 1 8); do diff -q presort.atom00000"$i".iter"$it".000000.dat ../presort.atom00000"$i".iter"$it".000000.dat ; done
 
 echo "Diffing presort_pcf"
 for i in $(seq 1 8); do diff -q presort_pcf.atom00000"$i".iter"$it".000000.dat ../presort_pcf.atom00000"$i".iter"$it".000000.dat ; done
+fi
 
 echo "Diffing part_createfluid"
 for i in $(seq 1 8); do diff -q part_createfluid.atom00000"$i".iter"$it".sort ../part_createfluid.atom00000"$i".iter"$it".mpi; done

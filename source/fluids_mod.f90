@@ -8048,10 +8048,16 @@
   real(kind=PRC), intent(in) :: rdimx,rdimy,rdimz
   real(kind=PRC), intent(in) :: xx,yy,zz
   real(kind=PRC), intent(in) :: vx,vy,vz
+
+#ifdef QUAD_FORCEINT
+  real(kind=PRC*2), intent(inout) :: fx,fy,fz
+  real(kind=PRC*2), intent(inout), optional :: tx,ty,tz
+#else
   real(kind=PRC), intent(inout) :: fx,fy,fz
+  real(kind=PRC), intent(inout), optional :: tx,ty,tz
+#endif
   
   real(kind=PRC), intent(in), optional :: ux,uy,uz
-  real(kind=PRC), intent(inout), optional :: tx,ty,tz
   
   integer :: i,j,k,l,ii,jj,kk
   integer, save :: imin,imax,jmin,jmax,kmin,kmax
@@ -8203,8 +8209,13 @@
   integer, intent(in) :: nstep,i,j,k
   real(kind=PRC), intent(in) :: vxs,vys,vzs
   real(kind=PRC), intent(in), dimension(3) :: rversor,otemp
+#ifdef QUAD_FORCEINT
+  real(kind=PRC*2), intent(inout) :: fx,fy,fz
+  real(kind=PRC*2), intent(inout) :: tx,ty,tz
+#else
   real(kind=PRC), intent(inout) :: fx,fy,fz
   real(kind=PRC), intent(inout) :: tx,ty,tz
+#endif
   real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub
   type(REALPTR), dimension(0:links):: aoptp
   
@@ -9185,10 +9196,15 @@
   real(kind=PRC), intent(in) :: rdimx,rdimy,rdimz
   real(kind=PRC), intent(in) :: xx,yy,zz
   real(kind=PRC), intent(in) :: vx,vy,vz
-  real(kind=PRC), intent(inout) :: fx,fy,fz
-  
   real(kind=PRC), intent(in), optional :: ox,oy,oz
-  real(kind=PRC), intent(inout), optional :: tx,ty,tz
+
+#ifdef QUAD_FORCEINT
+  real(kind=PRC*2), intent(inout) :: fx,fy,fz
+  real(kind=PRC*2), intent(inout), optional :: tx,ty,tz
+#else
+  real(kind=PRC),   intent(inout) :: fx,fy,fz
+  real(kind=PRC),   intent(inout), optional :: tx,ty,tz
+#endif
   
   integer :: i,j,k,l,ii,jj,kk
   integer, save :: imin,imax,jmin,jmax,kmin,kmax
@@ -9196,7 +9212,11 @@
   real(kind=PRC) :: vxt,vyt,vzt,modr,ftx,fty,ftz
   real(kind=PRC), dimension(3) :: rtemp,otemp,ftemp
   
+#ifdef QUAD_FORCEINT
+  real(kind=PRC*2), allocatable, dimension(:,:,:) :: A
+#else
   real(kind=PRC), allocatable, dimension(:,:,:) :: A
+#endif
   character(len=120) :: mynamefile
 
 
@@ -9302,10 +9322,10 @@
 
       if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
        k>=kmin .and. k<=kmax)then
-        call node_to_particle_bounce_back_bc(lrotate,nstep,i,j,k,rtemp, &
-         otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR)
-        call node_to_particle_bounce_back_bc(lrotate,nstep,i,j,k,rtemp, &
-         otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoB,aoptpB)
+        call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
+         otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug,iatm, A, l)
+        call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
+         otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoB,aoptpB, debug,iatm, A, l)
       endif
 
       !the fluid bounce back is local so I have to do it
@@ -9365,8 +9385,15 @@
   integer, intent(in) :: nstep,i,j,k,iatm, l
   real(kind=PRC), intent(in) :: vxs,vys,vzs
   real(kind=PRC), intent(in), dimension(3) :: rversor,otemp
+
+#ifdef QUAD_FORCEINT
+  real(kind=PRC*2), intent(inout) :: fx,fy,fz
+  real(kind=PRC*2), intent(inout) :: tx,ty,tz
+#else
   real(kind=PRC), intent(inout) :: fx,fy,fz
   real(kind=PRC), intent(inout) :: tx,ty,tz
+#endif
+
   real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub
   type(REALPTR), dimension(0:links):: aoptp
   
@@ -9376,7 +9403,12 @@
   real(kind=PRC), dimension(3) :: rtemp,ftemp, ttemp
   
   integer :: ii,jj,kk,io,jo,ko, iloop,indlow,indhig
+
+#ifdef QUAD_FORCEINT
+  real(kind=PRC*2), allocatable, dimension(:,:,:) :: A
+#else
   real(kind=PRC), allocatable, dimension(:,:,:) :: A
+#endif
 
   
   vx=vxs
@@ -9429,18 +9461,21 @@
       ftemp(1) = f2p*dex(indhig)
       ftemp(2) = f2p*dey(indhig)
       ftemp(3) = f2p*dez(indhig)
-
+#ifndef DEBUG_FORCEINT
       fx = fx + ftemp(1)
       fy = fy + ftemp(2)
       fz = fz + ftemp(3)
+#endif
 
       if(lrotate)then
         ttemp(1) = xcross(rtemp,ftemp) * abs(dex(indhig))
         ttemp(2) = ycross(rtemp,ftemp) * abs(dey(indhig))
         ttemp(3) = zcross(rtemp,ftemp) * abs(dez(indhig))
+#ifndef DEBUG_FORCEINT
         tx = tx + ttemp(1)
         ty = ty + ttemp(2)
         tz = tz + ttemp(3)
+#endif
 
 #ifdef DEBUG_FORCEINT
           A(iatm, l, 1) = A(iatm, l, 1) + ftemp(1)
@@ -9498,18 +9533,21 @@
       ftemp(1) = f2p*dex(indlow)
       ftemp(2) = f2p*dey(indlow)
       ftemp(3) = f2p*dez(indlow)
-
+#ifndef DEBUG_FORCEINT
       fx = fx + ftemp(1)
       fy = fy + ftemp(2)
       fz = fz + ftemp(3)
+#endif
 
       if(lrotate)then
         ttemp(1) = xcross(rtemp,ftemp) * abs(dex(indlow))
         ttemp(2) = ycross(rtemp,ftemp) * abs(dey(indlow))
         ttemp(3) = zcross(rtemp,ftemp) * abs(dez(indlow))
+#ifndef DEBUG_FORCEINT
         tx = tx + ttemp(1)
         ty = ty + ttemp(2)
         tz = tz + ttemp(3)
+#endif
 
 #ifdef DEBUG_FORCEINT
           A(iatm, l, 1) = A(iatm, l, 1) + ftemp(1)
@@ -10329,8 +10367,13 @@
    logical, intent(in) :: lrotate, debug
    real(kind=PRC), allocatable, dimension(:), intent(in) :: rdimx,rdimy,rdimz
    real(kind=PRC), allocatable, dimension(:), intent(in) :: xx,yy,zz
-   real(kind=PRC), allocatable, dimension(:), intent(inout) :: fx,fy,fz
-   real(kind=PRC), allocatable, dimension(:), intent(inout) :: tx,ty,tz
+#ifdef QUAD_FORCEINT
+  real(kind=PRC*2), allocatable, dimension(:), intent(inout) :: fx,fy,fz
+  real(kind=PRC*2), allocatable, dimension(:), intent(inout) :: tx,ty,tz
+#else
+  real(kind=PRC), allocatable, dimension(:), intent(inout) :: fx,fy,fz
+  real(kind=PRC), allocatable, dimension(:), intent(inout) :: tx,ty,tz
+#endif
    real(kind=PRC) :: rtemp(3), ftemp(3), modr
    integer :: l, i,j,k, ii,jj,kk
    integer, save :: imin,imax,jmin,jmax,kmin,kmax
@@ -10442,8 +10485,14 @@
   integer, allocatable, dimension(:), intent(in) :: ltype
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xx,yy,zz
   real(kind=PRC), allocatable, dimension(:), intent(in) :: vx,vy,vz
+#ifdef QUAD_FORCEINT
+  real(kind=PRC*2), allocatable, dimension(:), intent(inout) :: fx,fy,fz
+  real(kind=PRC*2), allocatable, dimension(:), intent(inout) :: tx,ty,tz
+#else
   real(kind=PRC), allocatable, dimension(:), intent(inout) :: fx,fy,fz
   real(kind=PRC), allocatable, dimension(:), intent(inout) :: tx,ty,tz
+#endif
+
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xo,yo,zo
   real(kind=PRC), allocatable, dimension(:), intent(in) :: rdimx,rdimy,rdimz
   integer :: isub,jsub,ksub, iatm,myi, itype
@@ -10611,11 +10660,20 @@ end subroutine compute_secbelt_density_twofluids
   integer, allocatable, dimension(:), intent(in) :: ltype
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xx,yy,zz
   real(kind=PRC), allocatable, dimension(:), intent(in) :: vx,vy,vz
+#ifdef QUAD_FORCEINT
+  real(kind=PRC*2), allocatable, dimension(:), intent(inout) :: fx,fy,fz
+  real(kind=PRC*2), allocatable, dimension(:), intent(inout) :: tx,ty,tz
+#else
   real(kind=PRC), allocatable, dimension(:), intent(inout) :: fx,fy,fz
   real(kind=PRC), allocatable, dimension(:), intent(inout) :: tx,ty,tz
+#endif
   real(kind=PRC), allocatable, dimension(:), intent(in) :: xo,yo,zo
   real(kind=PRC), allocatable, dimension(:), intent(in) :: rdimx,rdimy,rdimz
+#ifdef QUAD_FORCEINT
+  real(kind=PRC*2), allocatable, dimension(:,:,:), optional :: A
+#else
   real(kind=PRC), allocatable, dimension(:,:,:), optional :: A
+#endif
   
   integer :: i,j,k, m,isub,jsub,ksub,iatm,io,jo,ko,itype,myi
   integer :: ii,jj,kk,ishift,jshift,kshift
@@ -10624,9 +10682,7 @@ end subroutine compute_secbelt_density_twofluids
   logical :: lfind,ltest(1)
   real(kind=PRC) :: Rsum,Bsum,Dsum,myu,myv,myw,ftemp(3),rtemp(3),modr, ttemp(3)
   real(kind=PRC) :: dtemp1,dtemp2,dtemp3,dtemp4
-#ifdef DEBUG_FORCEINT
   character(len=120) :: mynamefile
-#endif
 
   
   if(lfirst)then
@@ -10700,10 +10756,11 @@ end subroutine compute_secbelt_density_twofluids
             ftemp(1)=-Rsum*myu
             ftemp(2)=-Rsum*myv
             ftemp(3)=-Rsum*myw
-
+#ifndef DEBUG_FORCEINT
             fx(iatm)=fx(iatm) + ftemp(1)
             fy(iatm)=fy(iatm) + ftemp(2)
             fz(iatm)=fz(iatm) + ftemp(3)
+#endif
             if(lrotate)then
               rtemp(1)=real(ii,kind=PRC)-xx(iatm)
               rtemp(2)=real(jj,kind=PRC)-yy(iatm)
@@ -10713,9 +10770,11 @@ end subroutine compute_secbelt_density_twofluids
               ttemp(1) = xcross(rtemp,ftemp)
               ttemp(2) = ycross(rtemp,ftemp)
               ttemp(3) = zcross(rtemp,ftemp)
+#ifndef DEBUG_FORCEINT
               tx(iatm)=tx(iatm) + ttemp(1)
               ty(iatm)=ty(iatm) + ttemp(2)
               tz(iatm)=tz(iatm) + ttemp(3)
+#endif
             endif
 #ifdef DEBUG_FORCEINT
             A(iatm, m, 1) = A(iatm, m, 1) + ftemp(1)
@@ -10765,21 +10824,28 @@ end subroutine compute_secbelt_density_twofluids
             !formula taken from eq. 25 of PRE 83, 046707 (2011)
             call initialize_newnode_fluid(i,j,k,Rsum,myu,myv,myw,aoptpR)
             !formula taken from eq. 26 of PRE 83, 046707 (2011)
-            fx(iatm)=fx(iatm)-Rsum*myu
-            fy(iatm)=fy(iatm)-Rsum*myv
-            fz(iatm)=fz(iatm)-Rsum*myw
+            ftemp(1)=-Rsum*myu
+            ftemp(2)=-Rsum*myv
+            ftemp(3)=-Rsum*myw
+#ifndef DEBUG_FORCEINT
+            fx(iatm)=fx(iatm) + ftemp(1)
+            fy(iatm)=fy(iatm) + ftemp(2)
+            fz(iatm)=fz(iatm) + ftemp(3)
+#endif
             if(lrotate)then
-              ftemp(1)=-Rsum*myu
-              ftemp(2)=-Rsum*myv
-              ftemp(3)=-Rsum*myw
               rtemp(1)=real(ii,kind=PRC)-xx(iatm)
               rtemp(2)=real(jj,kind=PRC)-yy(iatm)
               rtemp(3)=real(kk,kind=PRC)-zz(iatm)
               modr=modulvec(rtemp)
               rtemp(1:3)=rdimx(itype)/modr*rtemp(1:3)
-              tx(iatm)=tx(iatm)+xcross(rtemp,ftemp)
-              ty(iatm)=ty(iatm)+ycross(rtemp,ftemp)
-              tz(iatm)=tz(iatm)+zcross(rtemp,ftemp)
+              ttemp(1) = xcross(rtemp,ftemp)
+              ttemp(2) = ycross(rtemp,ftemp)
+              ttemp(3) = zcross(rtemp,ftemp)
+#ifndef DEBUG_FORCEINT
+              tx(iatm)=tx(iatm) + ttemp(1)
+              ty(iatm)=ty(iatm) + ttemp(2)
+              tz(iatm)=tz(iatm) + ttemp(3)
+#endif
             endif
 #ifdef DEBUG_FORCEINT
             A(iatm, m, 1) = A(iatm, m, 1) + ftemp(1)

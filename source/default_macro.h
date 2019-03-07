@@ -1,6 +1,8 @@
 #define CYCLE_OUT_INTERVAL(x, a,b) if ((x)<(a) .or. (x)>(b)) cycle
 
-#define DEBUG_FORCEINT
+#define noDEBUG_FORCEINT
+#define noQUAD_FORCEINT
+
 
 #define IPRC 4
 #define LPRC 4

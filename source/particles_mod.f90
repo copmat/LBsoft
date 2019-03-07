@@ -23,7 +23,7 @@
                    waitall_world,irecv_world_farr,isend_world_iarr, &
                    irecv_world_iarr,max_world_iarr,sum_world_iarr, &
                    sum_world_farr, bcast_world_i, bcast_world_farr, &
-                   or1_world_larr
+                   or1_world_larr, sum_world_qarr
 
  use error_mod
  use aop_mod
@@ -270,29 +270,31 @@
  real(kind=PRC), allocatable, public, protected, save :: vzo(:)
  
  !components of force
- real(kind=PRC), allocatable, public, protected, save :: fxx(:)
- real(kind=PRC), allocatable, public, protected, save :: fyy(:)
- real(kind=PRC), allocatable, public, protected, save :: fzz(:)
+#ifdef QUAD_FORCEINT
+ real(kind=PRC*2), allocatable, public, protected, save :: fxx(:),fyy(:),fzz(:)
+#else
+ real(kind=PRC), allocatable, public, protected, save :: fxx(:),fyy(:),fzz(:)
+#endif
  
  !components of linear force due to bounce back
- real(kind=PRC), allocatable, public, protected, save :: fxb(:)
- real(kind=PRC), allocatable, public, protected, save :: fyb(:)
- real(kind=PRC), allocatable, public, protected, save :: fzb(:)
+#ifdef QUAD_FORCEINT
+ real(kind=PRC*2), allocatable, public, protected, save :: fxb(:),fyb(:),fzb(:)
+#else
+ real(kind=PRC),   allocatable, public, protected, save :: fxb(:),fyb(:),fzb(:)
+#endif
  
  !old components of linear force due to bounce back
- real(kind=PRC), allocatable, public, protected, save :: fxbo(:)
- real(kind=PRC), allocatable, public, protected, save :: fybo(:)
- real(kind=PRC), allocatable, public, protected, save :: fzbo(:)
+ real(kind=PRC), allocatable, public, protected, save :: fxbo(:),fybo(:),fzbo(:)
  
  !components of torque due to bounce back
- real(kind=PRC), allocatable, public, protected, save :: txb(:)
- real(kind=PRC), allocatable, public, protected, save :: tyb(:)
- real(kind=PRC), allocatable, public, protected, save :: tzb(:)
+#ifdef QUAD_FORCEINT
+ real(kind=PRC*2), allocatable, public, protected, save :: txb(:),tyb(:),tzb(:)
+#else
+ real(kind=PRC),   allocatable, public, protected, save :: txb(:),tyb(:),tzb(:)
+#endif
  
  !old components of torque due to bounce back
- real(kind=PRC), allocatable, public, protected, save :: txbo(:)
- real(kind=PRC), allocatable, public, protected, save :: tybo(:)
- real(kind=PRC), allocatable, public, protected, save :: tzbo(:)
+ real(kind=PRC), allocatable, public, protected, save :: txbo(:),tybo(:),tzbo(:)
  
  !radius of particles
  real(kind=PRC), allocatable, public, protected, save :: rdimx(:)
@@ -314,9 +316,11 @@
  real(kind=PRC), allocatable, public, protected, save :: q2(:)
  real(kind=PRC), allocatable, public, protected, save :: q3(:)
  !components of torque on rigid body (NOTE: in world referement system)
- real(kind=PRC), allocatable, public, protected, save :: tqx(:)
- real(kind=PRC), allocatable, public, protected, save :: tqy(:)
- real(kind=PRC), allocatable, public, protected, save :: tqz(:)
+#ifdef QUAD_FORCEINT
+ real(kind=PRC*2), allocatable, public, protected, save :: tqx(:),tqy(:),tqz(:)
+#else
+ real(kind=PRC), allocatable, public, protected, save :: tqx(:),tqy(:),tqz(:)
+#endif
  
  !rotational inertia about x, y, z
  real(kind=PRC), allocatable, public, protected, save :: rotinx(:)
@@ -326,10 +330,13 @@
  !parameters of all the pair force fields
  real(kind=PRC), allocatable, public, protected, save :: prmvdw(:,:)
 #ifdef DEBUG_FORCEINT
+#ifdef QUAD_FORCEINT
+  real(kind=PRC*2), allocatable, dimension(:,:,:) :: forceInt
+#else
   real(kind=PRC), allocatable, dimension(:,:,:) :: forceInt
 #endif
+#endif
 
- 
 
  public :: allocate_particles
  public :: set_natms_tot
@@ -1703,7 +1710,7 @@
   
   call spherical_template(rdimx(1),nsphere,spherelist,spheredist, &
    nspheredead,spherelistdead)
- 
+
 
  ! initialize isfluid according to the particle presence
   do myi=1,natms_ext
@@ -1758,7 +1765,11 @@
 
  subroutine sortSumm(fxDest,fyDest,fzDest, txDest,tyDest,tzDest, hdrfname, debug, nstep)
  implicit none
+#ifdef QUAD_FORCEINT
+ real(kind=PRC*2), allocatable,dimension(:) :: fxDest,fyDest,fzDest, txDest,tyDest,tzDest
+#else
  real(kind=PRC), allocatable,dimension(:) :: fxDest,fyDest,fzDest, txDest,tyDest,tzDest
+#endif
  character(len=*),intent(in) :: hdrfname
  logical, intent(in) :: debug
  integer, intent(in) :: nstep
@@ -1768,7 +1779,11 @@
 
 
 #ifdef DEBUG_FORCEINT
+#ifdef QUAD_FORCEINT
+  call sum_world_qarr(forceInt, natms_tot * nsphere * 6)
+#else
   call sum_world_farr(forceInt, natms_tot * nsphere * 6)
+#endif
 
   if (idrank == 0) then
       do i= 1, natms_tot
@@ -1835,6 +1850,14 @@
   integer :: myi, iatm,i,j,k,itype
   real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3)
 
+#ifndef DEBUG_FORCEINT
+#ifdef QUAD_FORCEINT
+  real(kind=PRC*2), dimension(:,:,:), allocatable :: forceInt
+#else
+  real(kind=PRC), dimension(:,:,:), allocatable :: forceInt
+#endif
+  allocate(forceInt(1,1,1))
+#endif
 
 #ifdef DEBUG_FORCEINT
   integer   :: l
@@ -1843,8 +1866,7 @@
   forceInt(:,:,:) = ZERO
 #endif
 
-  do myi=1,natms_ext
-    iatm = atmbook(myi)
+  do iatm=1,natms_tot
     fxb(iatm)=ZERO
     fyb(iatm)=ZERO
     fzb(iatm)=ZERO
@@ -1852,12 +1874,14 @@
   
   if(lrotate)then
   
-  do myi=1,natms_ext
-    iatm = atmbook(myi)
-!    write (6,*) __FILE__,__LINE__, "iatm=", iatm
+   do iatm=1,natms_tot
     txb(iatm)=ZERO
     tyb(iatm)=ZERO
     tzb(iatm)=ZERO
+   enddo
+
+  do myi=1,natms_ext
+    iatm = atmbook(myi)
 
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
@@ -1904,12 +1928,21 @@
   call sortSumm(fxb,fyb,fzb, txb,tyb,tzb, "presort.atom", debug, nstep)
 
   ! We can better broadcast from Proc 0
+#ifdef QUAD_FORCEINT
+  call sum_world_qarr(fxb, natms_tot)
+  call sum_world_qarr(fyb, natms_tot)
+  call sum_world_qarr(fzb, natms_tot)
+  call sum_world_qarr(txb, natms_tot)
+  call sum_world_qarr(tyb, natms_tot)
+  call sum_world_qarr(tzb, natms_tot)
+#else
   call sum_world_farr(fxb, natms_tot)
   call sum_world_farr(fyb, natms_tot)
   call sum_world_farr(fzb, natms_tot)
   call sum_world_farr(txb, natms_tot)
   call sum_world_farr(tyb, natms_tot)
   call sum_world_farr(tzb, natms_tot)
+#endif
 #endif
 
  end subroutine apply_particle_bounce_back
@@ -1998,9 +2031,22 @@
   integer :: iatm, myi
 
 #ifdef DEBUG_FORCEINT
-    ! Done in apply_particle_bounce_back
+    ! fxb,..     ] Done in apply_particle_bounce_back
+    ! txb,..     ] Done in apply_particle_bounce_back
 
-    ! fxx,fyy,fzz] done in inter_part_and_grid
+    ! fxx,fyy,fzz] Done in inter_part_and_grid
+#else
+#ifdef QUAD_FORCEINT
+  call sum_world_qarr(fxb, natms_tot)
+  call sum_world_qarr(fyb, natms_tot)
+  call sum_world_qarr(fzb, natms_tot)
+  call sum_world_qarr(txb, natms_tot)
+  call sum_world_qarr(tyb, natms_tot)
+  call sum_world_qarr(tzb, natms_tot)
+
+  call sum_world_qarr(fxx, natms_tot)
+  call sum_world_qarr(fyy, natms_tot)
+  call sum_world_qarr(fzz, natms_tot)
 #else
   call sum_world_farr(fxb, natms_tot)
   call sum_world_farr(fyb, natms_tot)
@@ -2012,6 +2058,7 @@
   call sum_world_farr(fxx, natms_tot)
   call sum_world_farr(fyy, natms_tot)
   call sum_world_farr(fzz, natms_tot)
+#endif
 #endif
   
   if (debug) call openLogFile(nstep, "mergeforce", 118)
@@ -2160,6 +2207,14 @@
 
   !call get_sync_world
 
+#ifdef QUAD_FORCEINT
+  call sum_world_qarr(fxx, natms_tot)
+  call sum_world_qarr(fyy, natms_tot)
+  call sum_world_qarr(fzz, natms_tot)
+  call sum_world_qarr(tqx, natms_tot)
+  call sum_world_qarr(tqy, natms_tot)
+  call sum_world_qarr(tqz, natms_tot)
+#else
   ! We can better broadcast from Proc 0
   call sum_world_farr(fxx, natms_tot)
   call sum_world_farr(fyy, natms_tot)
@@ -2167,6 +2222,8 @@
   call sum_world_farr(tqx, natms_tot)
   call sum_world_farr(tqy, natms_tot)
   call sum_world_farr(tqz, natms_tot)
+#endif
+
 #else
   call particle_create_fluids(debug, nstep,natms_ext,atmbook,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
