@@ -50,8 +50,7 @@
                    particle_delete_fluids,particle_create_fluids, &
                    erase_fluids_in_particles,lunique_omega,omega, &
                    omega_to_viscosity,viscR,pimage,opp, &
-                   compute_sc_particle_interact, driver_bc_pops, driver_bc_densities, &
-                   driver_bc_pops_NOK
+                   compute_sc_particle_interact, driver_bc_pops, driver_bc_densities
  
  implicit none
  
@@ -2232,8 +2231,7 @@
 #endif
 
   call driver_bc_densities
-  ! call driver_bc_pops(.false.)
-  call driver_bc_pops_NOK
+  call driver_bc_pops
 
   call update_isfluid
   call driver_bc_isfluid

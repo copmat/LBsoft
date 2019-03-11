@@ -30,8 +30,7 @@
                         print_all_pops_center,driver_bc_pop_selfcomm, &
                         print_all_pops_area_shpere,ex,ey,ez,pimage, &
                         ixpbc,iypbc,izpbc,nx,ny,nz,opp, &
-                        aoptpR, driver_bc_pops, print_all_pops2, &
-                        driver_bc_pops_NOK
+                        aoptpR, driver_bc_pops, print_all_pops2
 
  use particles_mod,    only : parlst,lparticles, &
                         vertest,initialize_particle_force, &
@@ -255,8 +254,7 @@
 !  if (debug) call print_all_pops2(131, "bef_driver_bc_pops", nstep, aoptpR)
 
   if(lparticles)then
-    ! call driver_bc_pops(lparticles)
-    call driver_bc_pops_NOK
+    call driver_bc_pops
 
 !    if (debug) call print_all_pops2(131, "aft_driver_bc_pops", nstep, aoptpR)
 
@@ -285,8 +283,7 @@
 
     call restore_particles
 
-    ! call driver_bc_pops(lparticles)
-    call driver_bc_pops_NOK
+    call driver_bc_pops
   endif
 
   if(ldiagnostic)call start_timing2("IO","write_vtk_frame")

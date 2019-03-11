@@ -362,7 +362,7 @@
  public :: omega_to_viscosity
  public :: compute_sc_particle_interact
  public :: setTest, checkTest, print_all_pops2
- public :: driver_bc_pops, driver_bc_pops_NOK
+ public :: driver_bc_pops
 
  contains
  
@@ -5766,14 +5766,14 @@
  end function pimage
 
  
- subroutine driver_bc_pops_NOK()
+ subroutine driver_bc_pops()
   implicit none
 
   call mpisendrecvHALOpops(aoptpR, rhoR)
   if(lsingle_fluid)return
 
   call mpisendrecvHALOpops(aoptpB, rhoB)
- end subroutine driver_bc_pops_NOK
+ end subroutine driver_bc_pops
 
 !******************END PART TO MANAGE THE PERIODIC BC*******************
  
@@ -12248,38 +12248,5 @@ end subroutine compute_secbelt_density_twofluids
 
  end subroutine print_all_pops2
 
-
- subroutine driver_bc_pops(lparticles)
- implicit none
- logical, intent(in) :: lparticles
-
-
-#ifdef MPI
-  call commspop(aoptpR)
-#endif
-
-
-#ifdef MPI
-  call manage_bc_pop_selfcomm(aoptpR,lparticles)
-
-  call commrpop(aoptpR,lparticles,isfluid)
-#else
-  call manage_bc_pop_selfcomm(aoptpR,lparticles)
-#endif
-
- if(lsingle_fluid)return
-
-#ifdef MPI
-  call commspop(aoptpB)
-#endif
-
-#ifdef MPI
-  call manage_bc_pop_selfcomm(aoptpB,lparticles)
-
-  call commrpop(aoptpB,lparticles,isfluid)
-#else
-  call manage_bc_pop_selfcomm(aoptpB,lparticles)
-#endif
- end subroutine driver_bc_pops
 
  end module fluids_mod
