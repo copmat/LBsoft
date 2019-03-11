@@ -18,10 +18,10 @@
  use error_mod
  use aop_mod
  use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
-                   allocate_array_ibuffservice,buffservice, &
+                   allocate_array_ibuffservice,buffservice,conv_rad, &
                    allocate_array_buffservice,lbuffservice, &
                    allocate_array_lbuffservice,xcross,ycross,zcross, &
-                   nbuffservice3d,buffservice3d,int_cube_sphere, &
+                   nbuffservice3d,buffservice3d,int_cube_sphere,fcut, &
                    rand_noseeded,linit_seed,gauss_noseeded,write_fmtnumb, &
                    openLogFile
 
@@ -71,6 +71,9 @@
  integer, save, protected, public :: bc_type_north=0
  integer, save, protected, public :: bc_type_south=0
  
+ !selected area for initial density fluid values
+ integer, save, protected, public :: areaR(1:2,1:3)=0
+ 
  integer, save :: nvar_managebc=0
  type(REALPTR_S), allocatable, dimension(:,:) :: rhoR_managebc
  type(REALPTR_S), allocatable, dimension(:,:) :: rhoB_managebc
@@ -93,6 +96,8 @@
  logical, save, protected, public :: lvorticity=.false.
  
  logical, save, protected, public :: lwall_SC=.false.
+ 
+ logical, save, protected, public :: lpart_SC=.false.
  
  logical, save, protected, public :: lexch_dens=.false.
  logical, save, protected, public :: lexch_u=.false.
@@ -117,6 +122,8 @@
  real(kind=PRC), save, protected, public :: meanB        = ZERO
  real(kind=PRC), save, protected, public :: stdevR       = ZERO
  real(kind=PRC), save, protected, public :: stdevB       = ZERO
+ real(kind=PRC), save, protected, public :: backR        = ZERO
+ real(kind=PRC), save, protected, public :: backB        = ZERO
  real(kind=PRC), save, protected, public :: initial_u    = ZERO
  real(kind=PRC), save, protected, public :: initial_v    = ZERO
  real(kind=PRC), save, protected, public :: initial_w    = ZERO
@@ -159,10 +166,19 @@
  real(kind=PRC), save, protected, public :: bc_w_north= ZERO
  real(kind=PRC), save, protected, public :: bc_w_south= ZERO
  
+ !Shan Chen coupling constant 
  real(kind=PRC), save, protected, public :: pair_SC = ZERO
- 
+ !Shan Chen wall coupling constant
  real(kind=PRC), save, protected, public :: wallR_SC = ONE
  real(kind=PRC), save, protected, public :: wallB_SC = ONE
+ !contact angle of shan chen force on particle (in radiant)
+ real(kind=PRC), save, protected, public :: theta_SC = ZERO
+ !deviation of contact angle of shan chen force on particle (in radiant)
+ real(kind=PRC), save, protected, public :: devtheta_SC = ZERO
+ 
+ !Shan Chen particle color factor(see definition at page 4 of PRE 83,046707)
+ real(kind=PRC), save, protected, public :: partR_SC = ZERO
+ real(kind=PRC), save, protected, public :: partB_SC = ZERO
  
  integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: isfluid
  integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: new_isfluid
@@ -303,6 +319,8 @@
  public :: set_initial_vel_fluids
  public :: set_mean_value_dens_fluids
  public :: set_stdev_value_dens_fluids
+ public :: set_back_value_dens_fluids
+ public :: set_init_area_dens_fluids
  public :: set_initial_dist_type
  public :: set_initial_dim_box
  public :: set_mean_value_vel_fluids
@@ -334,6 +352,8 @@
  public :: set_value_bc_north
  public :: set_value_bc_south
  public :: set_fluid_wall_sc
+ public :: set_fluid_particle_sc
+ public :: set_theta_particle_sc
  public :: set_LBintegrator_type
  public :: initialize_isfluid_bcfluid
  public :: test_fake_pops
@@ -1344,6 +1364,8 @@
     call set_uniform_dens_fluids
   case(3)
     call set_fake_dens_fluids
+  case(4)
+    call set_uniform_area_dens_fluids
   case default
     call set_initial_dens_fluids
   end select
@@ -1573,6 +1595,101 @@
   return
   
  end subroutine set_uniform_dens_fluids
+ 
+ subroutine set_uniform_area_dens_fluids
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the initial density of fluids 
+!     following a random uniform distribution
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification January 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer :: i,j,k,imin,imax,jmin,jmax,kmin,kmax
+  logical :: ldo(1:3)=.false.
+  
+  if(areaR(1,1)<=maxx)then
+    ldo(1)=.true.
+    if(areaR(1,1)>=minx)then
+      imin=areaR(1,1)
+    else
+      imin=minx
+    endif
+  endif
+  if(areaR(2,1)>=minx)then
+    ldo(1)=.true.
+    if(areaR(2,1)<=maxx)then
+      imax=areaR(2,1)
+    else
+      imax=maxx
+    endif
+  endif
+  
+  if(areaR(1,2)<=maxy)then
+    ldo(2)=.true.
+    if(areaR(1,2)>=miny)then
+      jmin=areaR(1,2)
+    else
+      jmin=miny
+    endif
+  endif
+  if(areaR(2,2)>=miny)then
+    ldo(2)=.true.
+    if(areaR(2,2)<=maxy)then
+      jmax=areaR(2,2)
+    else
+      jmax=maxy
+    endif
+  endif
+  
+  if(areaR(1,3)<=maxz)then
+    ldo(3)=.true.
+    if(areaR(1,3)>=minz)then
+      kmin=areaR(1,3)
+    else
+      kmin=minz
+    endif
+  endif
+  if(areaR(2,3)>=minz)then
+    ldo(3)=.true.
+    if(areaR(2,3)<=maxz)then
+      kmax=areaR(2,3)
+    else
+      kmax=maxz
+    endif
+  endif
+  
+  forall (i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    rhoR(i,j,k)=backR
+  end forall
+  
+  if(all(ldo))then
+    forall (i=imin:imax,j=jmin:jmax,k=kmin:kmax)
+      rhoR(i,j,k)=meanR
+    end forall
+  endif
+    
+  if(lsingle_fluid)return
+  
+  forall (i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    rhoB(i,j,k)=backB
+  end forall
+  
+  if(all(ldo))then
+    forall (i=imin:imax,j=jmin:jmax,k=kmin:kmax)
+      rhoB(i,j,k)=meanB
+    end forall
+  endif
+  
+  return
+  
+ end subroutine set_uniform_area_dens_fluids
  
  subroutine set_fake_dens_fluids
  
@@ -2062,6 +2179,53 @@
   
  end subroutine set_stdev_value_dens_fluids
  
+ subroutine set_back_value_dens_fluids(dtemp1,dtemp2)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for change the background density of fluids 
+!     inside this module
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification January 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2
+  
+  backR = dtemp1
+  backB = dtemp2
+  
+  return
+  
+ end subroutine set_back_value_dens_fluids
+ 
+ subroutine set_init_area_dens_fluids(itemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the area extremes of fluids 
+!     density
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification January 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in), dimension(1:2,1:3) :: itemp
+  
+  areaR(1:2,1:3) = itemp(1:2,1:3)
+  
+  return
+ 
+ end subroutine set_init_area_dens_fluids
+ 
  subroutine set_initial_value_vel_fluids(dtemp1,dtemp2,dtemp3)
  
 !***********************************************************************
@@ -2328,6 +2492,55 @@
   return
   
  end subroutine set_fluid_wall_sc
+ 
+ subroutine set_fluid_particle_sc(dtemp1,dtemp2)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the value of the pair ShanChen 
+!     particle coupling constant
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification January 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2
+  
+  partR_SC = dtemp1
+  partB_SC = dtemp2
+  lpart_SC = (partR_SC/=ONE .or. partB_SC/=ONE )
+  
+  return
+  
+ end subroutine set_fluid_particle_sc
+ 
+ subroutine set_theta_particle_sc(dtemp1,dtemp2)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the value of the contact angle 
+!     in the particle Shan Chen coupling
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification January 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2
+  
+  theta_SC = dtemp1
+  devtheta_SC = dtemp2
+  
+  return
+  
+ end subroutine set_theta_particle_sc
  
  subroutine set_value_viscosity(dtemp1,dtemp2,temp_lsingle_fluid)
  
@@ -3895,7 +4108,7 @@
   end forall
   
   !compute speed from mass flux
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
     u(i,j,k) = u(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
     v(i,j,k) = v(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
     w(i,j,k) = w(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
@@ -8005,14 +8218,14 @@
   endif
   
   if(lsingle_fluid)then
-    where(isfluid(io:ie,jo:je,ko:ke)<3 .and. isfluid(io:ie,jo:je,ko:ke)>5)
+    where(isfluid(io:ie,jo:je,ko:ke)<3 .or. isfluid(io:ie,jo:je,ko:ke)>5)
       psiR(io:ie,jo:je,ko:ke)=rhoR(io:ie,jo:je,ko:ke)
     elsewhere
       psiR(io:ie,jo:je,ko:ke)=ZERO
     endwhere
     
   else
-    where(isfluid(io:ie,jo:je,ko:ke)<3 .and. isfluid(io:ie,jo:je,ko:ke)>5)
+    where(isfluid(io:ie,jo:je,ko:ke)<3 .or. isfluid(io:ie,jo:je,ko:ke)>5)
       psiR(io:ie,jo:je,ko:ke)=rhoR(io:ie,jo:je,ko:ke)
       psiB(io:ie,jo:je,ko:ke)=rhoB(io:ie,jo:je,ko:ke)
     elsewhere
@@ -8062,11 +8275,9 @@
   integer :: i,j,k,l,ii,jj,kk
   integer, save :: imin,imax,jmin,jmax,kmin,kmax
   logical, save :: lfirst=.true.
-  real(kind=PRC) :: vxt,vyt,vzt,modr,ftx,fty,ftz
-  real(kind=PRC), dimension(3) :: rtemp,otemp,ftemp
-  
-  !still in development stage
-  return
+  real(kind=PRC) :: vxt,vyt,vzt,modr,ftx,fty,ftz,mytheta,factR,factB
+  real(kind=PRC), dimension(3) :: rtemp,otemp,ftemp,urtemp,initf
+
   
   if(lfirst)then
     lfirst=.false.
@@ -8082,8 +8293,14 @@
     otemp(1)=ux
     otemp(2)=uy
     otemp(3)=uz
+    modr=modulvec(otemp)
+    otemp=otemp/modr
   endif
   
+  initf(1)=fx
+  initf(2)=fy
+  initf(3)=fz
+
   if(lsingle_fluid)then
     do l=1,nspheres
       i=isub+spherelists(1,l)
@@ -8101,32 +8318,47 @@
         rtemp(2)=real(jj,kind=PRC)-yy
         rtemp(3)=real(kk,kind=PRC)-zz
         modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
+        rtemp(1:3)=rdimx/modr*rtemp(1:3)
+        modr=modulvec(rtemp)
+        urtemp(1:3)=rtemp(1:3)/modr
+        mytheta=acos(dot(otemp,urtemp))
+        factR= partR_SC*(TWO* &
+         fcut(mytheta,theta_SC-devtheta_SC,theta_SC+devtheta_SC)-ONE)
+      else
+        factR=partR_SC*ONE
       endif
 
-      if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
-       k>=kmin .and. k<=kmax)then
-        call node_to_particle_sc(lrotate,nstep,i,j,k,rtemp, &
-           otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR)
-      endif
 
       !the fluid bounce back is local so I have to do it
       if(i==ii.and.j==jj.and.k==kk)then
         if(i<imin .or. i>imax)cycle
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle
-        call particle_to_node_sc(lrotate,nstep,i,j,k,rtemp, &
-         otemp,vx,vy,vz,rhoR,psiR)
+        psiR(i,j,k)=rhoR(i,j,k)*(ONE+factR)
       else
         if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
          k>=kmin .and. k<=kmax)then
-          call particle_to_node_sc(lrotate,nstep,i,j,k,rtemp, &
-           otemp,vx,vy,vz,rhoR,psiR)
+          psiR(i,j,k)=rhoR(i,j,k)*(ONE+factR)
         endif
         if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
          kk>=kmin .and. kk<=kmax)then
-          call particle_to_node_sc(lrotate,nstep,ii,jj,kk,rtemp, &
-           otemp,vx,vy,vz,rhoR,psiR)
+          psiR(ii,jj,kk)=rhoR(ii,jj,kk)*(ONE+factR)
+        endif
+      endif
+
+      if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
+       k>=kmin .and. k<=kmax)then
+        call compute_grad_on_particle(nstep,i,j,k,psiR,gradpsixR,gradpsiyR,gradpsizR)
+        ftemp(1)=- pair_SC*psiR(i,j,k)*gradpsixR(i,j,k)
+        ftemp(2)=- pair_SC*psiR(i,j,k)*gradpsiyR(i,j,k)
+        ftemp(3)=- pair_SC*psiR(i,j,k)*gradpsizR(i,j,k)
+        fx=fx+ftemp(1)
+        fy=fy+ftemp(2)
+        fz=fz+ftemp(3)
+        if(lrotate)then
+          tx=tx+xcross(rtemp,ftemp)
+          ty=ty+ycross(rtemp,ftemp)
+          tz=tz+zcross(rtemp,ftemp)
         endif
       endif
     enddo
@@ -8148,40 +8380,60 @@
         rtemp(2)=real(jj,kind=PRC)-yy
         rtemp(3)=real(kk,kind=PRC)-zz
         modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
+        rtemp(1:3)=rdimx/modr*rtemp(1:3)
+        modr=modulvec(rtemp)
+        urtemp(1:3)=rtemp(1:3)/modr
+        mytheta=acos(dot(otemp,urtemp))
+        factR= partR_SC*(TWO* &
+         fcut(mytheta,theta_SC-devtheta_SC,theta_SC+devtheta_SC)-ONE)
+        factB= partB_SC*(TWO*(ONE- &
+         fcut(mytheta,theta_SC-devtheta_SC,theta_SC+devtheta_SC))-ONE)
+      else
+        factR=partR_SC*ONE
+        factB=partB_SC*ONE
       endif
-      if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
-       k>=kmin .and. k<=kmax)then
-        call node_to_particle_sc(lrotate,nstep,i,j,k,rtemp, &
-         otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR)
-        call node_to_particle_sc(lrotate,nstep,i,j,k,rtemp, &
-         otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoB,aoptpB)
-      endif
+
       !the fluid bounce back is local so I have to do it
       if(i==ii.and.j==jj.and.k==kk)then
         if(i<imin .or. i>imax)cycle
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle
-        call particle_to_node_sc(lrotate,nstep,i,j,k,rtemp, &
-         otemp,vx,vy,vz,rhoR,psiR)
-        call particle_to_node_sc(lrotate,nstep,i,j,k,rtemp, &
-         otemp,vx,vy,vz,rhoB,psiB)
+        psiR(i,j,k)=rhoR(i,j,k)*(ONE+factR)
+        psiB(i,j,k)=rhoB(i,j,k)*(ONE+factB)
       else
         if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
          k>=kmin .and. k<=kmax)then
-          call particle_to_node_sc(lrotate,nstep,i,j,k,rtemp, &
-           otemp,vx,vy,vz,rhoR,psiR)
-          call particle_to_node_sc(lrotate,nstep,i,j,k,rtemp, &
-           otemp,vx,vy,vz,rhoB,psiB)
+          psiR(i,j,k)=rhoR(i,j,k)*(ONE+factR)
+          psiB(i,j,k)=rhoB(i,j,k)*(ONE+factB)
         endif
         if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
          kk>=kmin .and. kk<=kmax)then
-          call particle_to_node_sc(lrotate,nstep,ii,jj,kk,rtemp, &
-           otemp,vx,vy,vz,rhoR,psiR)
-          call particle_to_node_sc(lrotate,nstep,ii,jj,kk,rtemp, &
-           otemp,vx,vy,vz,rhoB,psiB)
+          psiR(ii,jj,kk)=rhoR(ii,jj,kk)*(ONE+factR)
+          psiB(ii,jj,kk)=rhoB(ii,jj,kk)*(ONE+factB)
         endif
       endif
+
+
+      if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
+       k>=kmin .and. k<=kmax)then
+        call compute_grad_on_particle(nstep,i,j,k,psiR,gradpsixR,gradpsiyR,gradpsizR)
+        call compute_grad_on_particle(nstep,i,j,k,psiB,gradpsixB,gradpsiyB,gradpsizB)
+        ftemp(1)=- pair_SC*psiR(i,j,k)*gradpsixB(i,j,k) - &
+         pair_SC*psiB(i,j,k)*gradpsixR(i,j,k)
+        ftemp(2)=- pair_SC*psiR(i,j,k)*gradpsiyB(i,j,k) - &
+         pair_SC*psiB(i,j,k)*gradpsiyR(i,j,k)
+        ftemp(3)=- pair_SC*psiR(i,j,k)*gradpsizB(i,j,k) - &
+         pair_SC*psiB(i,j,k)*gradpsizR(i,j,k)
+        fx=fx+ftemp(1)
+        fy=fy+ftemp(2)
+        fz=fz+ftemp(3)
+        if(lrotate)then
+          tx=tx+xcross(rtemp,ftemp)
+          ty=ty+ycross(rtemp,ftemp)
+          tz=tz+zcross(rtemp,ftemp)
+        endif
+      endif
+
     enddo
   endif
   
@@ -8189,8 +8441,7 @@
   
  end subroutine compute_sc_particle_interact
  
- subroutine node_to_particle_sc(lrotate,nstep,i,j,k,rversor, &
-   otemp,vxs,vys,vzs,fx,fy,fz,tx,ty,tz,rhosub,aoptp)
+ subroutine compute_grad_on_particle(nstep,i,j,k,psisub,mygradx,mygrady,mygradz)
  
 !***********************************************************************
 !     
@@ -8205,32 +8456,15 @@
  
   implicit none
   
-  logical, intent(in) :: lrotate
   integer, intent(in) :: nstep,i,j,k
-  real(kind=PRC), intent(in) :: vxs,vys,vzs
-  real(kind=PRC), intent(in), dimension(3) :: rversor,otemp
-#ifdef QUAD_FORCEINT
-  real(kind=PRC*2), intent(inout) :: fx,fy,fz
-  real(kind=PRC*2), intent(inout) :: tx,ty,tz
-#else
-  real(kind=PRC), intent(inout) :: fx,fy,fz
-  real(kind=PRC), intent(inout) :: tx,ty,tz
-#endif
-  real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub
-  type(REALPTR), dimension(0:links):: aoptp
-  
-  real(kind=PRC), parameter :: onesixth=ONE/SIX
-  real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
-  real(kind=PRC) :: f2p,theta,vx,vy,vz,modr
-  real(kind=PRC), dimension(3) :: rtemp,ftemp
-  
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: psisub
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: mygradx,mygrady,mygradz
+
   integer :: ii,jj,kk,io,jo,ko
   
-  vx=vxs
-  vy=vys
-  vz=vzs
-  rtemp=rversor
-  
+  mygradx(i,j,k)=ZERO
+  mygrady(i,j,k)=ZERO
+  mygradz(i,j,k)=ZERO
   
   
   !force on particle fx fy fz
@@ -8251,21 +8485,7 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(1)=rtemp(1)+HALF*dex(1)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(2)%p(ii,jj,kk),kind=PRC)- &
-       p(2)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(2)*vx)
-      fx=fx+f2p*dex(2)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(1)=f2p*dex(2)
-        tx=tx+xcross(rtemp,ftemp)
-      endif
+      mygradx(i,j,k)=mygradx(i,j,k)+psisub(ii,jj,kk)*p(1)*dex(1)
     endif
   endif
     
@@ -8284,21 +8504,7 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(1)=rtemp(1)+HALF*dex(2)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(1)%p(ii,jj,kk),kind=PRC)- &
-       p(1)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(1)*vx)
-      fx=fx+f2p*dex(1)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(1)=f2p*dex(1)
-        tx=tx+xcross(rtemp,ftemp)
-      endif
+      mygradx(i,j,k)=mygradx(i,j,k)+psisub(ii,jj,kk)*p(2)*dex(2)
     endif
   endif
     
@@ -8317,21 +8523,7 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(2)=rtemp(2)+HALF*dey(3)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(4)%p(ii,jj,kk),kind=PRC)- &
-       p(4)*pref_bouzidi*rhosub(ii,jj,kk)*(dey(4)*vy)
-      fy=fy+f2p*dey(4)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(2)=f2p*dey(4)
-        ty=ty+ycross(rtemp,ftemp)
-      endif
+      mygrady(i,j,k)=mygrady(i,j,k)+psisub(ii,jj,kk)*p(3)*dey(3)
     endif
   endif
     
@@ -8350,21 +8542,7 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(2)=rtemp(2)+HALF*dey(4)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(3)%p(ii,jj,kk),kind=PRC)- &
-       p(3)*pref_bouzidi*rhosub(ii,jj,kk)*(dey(3)*vy)
-      fy=fy+f2p*dey(3)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(2)=f2p*dey(3)
-        ty=ty+ycross(rtemp,ftemp)
-      endif
+      mygrady(i,j,k)=mygrady(i,j,k)+psisub(ii,jj,kk)*p(4)*dey(4)
     endif
   endif
     
@@ -8383,21 +8561,7 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(3)=rtemp(3)+HALF*dez(5)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(6)%p(ii,jj,kk),kind=PRC)- &
-       p(6)*pref_bouzidi*rhosub(ii,jj,kk)*(dez(6)*vz)
-      fz=fz+f2p*dez(6)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(3)=f2p*dez(6)
-        tz=tz+zcross(rtemp,ftemp)
-      endif
+      mygradz(i,j,k)=mygradz(i,j,k)+psisub(ii,jj,kk)*p(5)*dez(5)
     endif
   endif
     
@@ -8416,21 +8580,7 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(3)=rtemp(3)+HALF*dez(6)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(5)%p(ii,jj,kk),kind=PRC)- &
-       p(5)*pref_bouzidi*rhosub(ii,jj,kk)*(dez(5)*vz)
-      fz=fz+f2p*dez(5)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(3)=f2p*dez(5)
-        tz=tz+zcross(rtemp,ftemp)
-      endif
+      mygradz(i,j,k)=mygradz(i,j,k)+psisub(ii,jj,kk)*p(6)*dez(6)
     endif
   endif
     
@@ -8449,25 +8599,8 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(1)=rtemp(1)+HALF*dex(7)
-        rtemp(2)=rtemp(2)+HALF*dey(7)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(8)%p(ii,jj,kk),kind=PRC)- &
-       p(8)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(8)*vx+dey(8)*vy)
-      fx=fx+f2p*dex(8)
-      fy=fy+f2p*dey(8)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(1)=f2p*dex(8)
-        ftemp(2)=f2p*dey(8)
-        tx=tx+xcross(rtemp,ftemp)
-        ty=ty+ycross(rtemp,ftemp)
-      endif
+      mygradx(i,j,k)=mygradx(i,j,k)+psisub(ii,jj,kk)*p(7)*dex(7)
+      mygrady(i,j,k)=mygrady(i,j,k)+psisub(ii,jj,kk)*p(7)*dey(7)
     endif
   endif
     
@@ -8486,25 +8619,8 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(1)=rtemp(1)+HALF*dex(8)
-        rtemp(2)=rtemp(2)+HALF*dey(8)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(7)%p(ii,jj,kk),kind=PRC)- &
-       p(7)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(7)*vx+dey(7)*vy)
-      fx=fx+f2p*dex(7)
-      fy=fy+f2p*dey(7)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(1)=f2p*dex(7)
-        ftemp(2)=f2p*dey(7)
-        tx=tx+xcross(rtemp,ftemp)
-        ty=ty+ycross(rtemp,ftemp)
-      endif
+      mygradx(i,j,k)=mygradx(i,j,k)+psisub(ii,jj,kk)*p(8)*dex(8)
+      mygrady(i,j,k)=mygrady(i,j,k)+psisub(ii,jj,kk)*p(8)*dey(8)
     endif
   endif
     
@@ -8523,25 +8639,8 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(1)=rtemp(1)+HALF*dex(9)
-        rtemp(2)=rtemp(2)+HALF*dey(9)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(10)%p(ii,jj,kk),kind=PRC)- &
-       p(10)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(10)*vx+dey(10)*vy)
-      fx=fx+f2p*dex(10)
-      fy=fy+f2p*dey(10)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(1)=f2p*dex(10)
-        ftemp(2)=f2p*dey(10)
-        tx=tx+xcross(rtemp,ftemp)
-        ty=ty+ycross(rtemp,ftemp)
-      endif
+      mygradx(i,j,k)=mygradx(i,j,k)+psisub(ii,jj,kk)*p(9)*dex(9)
+      mygrady(i,j,k)=mygrady(i,j,k)+psisub(ii,jj,kk)*p(9)*dey(9)
     endif
   endif
     
@@ -8560,25 +8659,8 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(1)=rtemp(1)+HALF*dex(10)
-        rtemp(2)=rtemp(2)+HALF*dey(10)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(9)%p(ii,jj,kk),kind=PRC)- &
-       p(9)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(9)*vx+dey(9)*vy)
-      fx=fx+f2p*dex(9)
-      fy=fy+f2p*dey(9)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(1)=f2p*dex(9)
-        ftemp(2)=f2p*dey(9)
-        tx=tx+xcross(rtemp,ftemp)
-        ty=ty+ycross(rtemp,ftemp)
-      endif
+      mygradx(i,j,k)=mygradx(i,j,k)+psisub(ii,jj,kk)*p(10)*dex(10)
+      mygrady(i,j,k)=mygrady(i,j,k)+psisub(ii,jj,kk)*p(10)*dey(10)
     endif
   endif
     
@@ -8597,25 +8679,8 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(1)=rtemp(1)+HALF*dex(11)
-        rtemp(3)=rtemp(3)+HALF*dez(11)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(12)%p(ii,jj,kk),kind=PRC)- &
-       p(12)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(12)*vx+dez(12)*vz)
-      fx=fx+f2p*dex(12)
-      fz=fz+f2p*dez(12)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(1)=f2p*dex(12)
-        ftemp(3)=f2p*dez(12)
-        tx=tx+xcross(rtemp,ftemp)
-        tz=tz+zcross(rtemp,ftemp)
-      endif
+      mygradx(i,j,k)=mygradx(i,j,k)+psisub(ii,jj,kk)*p(11)*dex(11)
+      mygradz(i,j,k)=mygradz(i,j,k)+psisub(ii,jj,kk)*p(11)*dez(11)
     endif
   endif
     
@@ -8634,25 +8699,8 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(1)=rtemp(1)+HALF*dex(12)
-        rtemp(3)=rtemp(3)+HALF*dez(12)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(11)%p(ii,jj,kk),kind=PRC)- &
-       p(11)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(11)*vx+dez(11)*vz)
-      fx=fx+f2p*dex(11)
-      fz=fz+f2p*dez(11)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(1)=f2p*dex(11)
-        ftemp(3)=f2p*dez(11)
-        tx=tx+xcross(rtemp,ftemp)
-        tz=tz+zcross(rtemp,ftemp)
-      endif
+      mygradx(i,j,k)=mygradx(i,j,k)+psisub(ii,jj,kk)*p(12)*dex(12)
+      mygradz(i,j,k)=mygradz(i,j,k)+psisub(ii,jj,kk)*p(12)*dez(12)
     endif
   endif
     
@@ -8671,25 +8719,8 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(1)=rtemp(1)+HALF*dex(13)
-        rtemp(3)=rtemp(3)+HALF*dez(13)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(14)%p(ii,jj,kk),kind=PRC)- &
-       p(14)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(14)*vx+dez(14)*vz)
-      fx=fx+f2p*dex(14)
-      fz=fz+f2p*dez(14)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(1)=f2p*dex(14)
-        ftemp(3)=f2p*dez(14)
-        tx=tx+xcross(rtemp,ftemp)
-        tz=tz+zcross(rtemp,ftemp)
-      endif
+      mygradx(i,j,k)=mygradx(i,j,k)+psisub(ii,jj,kk)*p(13)*dex(13)
+      mygradz(i,j,k)=mygradz(i,j,k)+psisub(ii,jj,kk)*p(13)*dez(13)
     endif
   endif
     
@@ -8708,25 +8739,8 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(1)=rtemp(1)+HALF*dex(14)
-        rtemp(3)=rtemp(3)+HALF*dez(14)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(13)%p(ii,jj,kk),kind=PRC)- &
-       p(13)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(13)*vx+dez(13)*vz)
-      fx=fx+f2p*dex(13)
-      fz=fz+f2p*dez(13)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(1)=f2p*dex(13)
-        ftemp(3)=f2p*dez(13)
-        tx=tx+xcross(rtemp,ftemp)
-        tz=tz+zcross(rtemp,ftemp)
-      endif
+      mygradx(i,j,k)=mygradx(i,j,k)+psisub(ii,jj,kk)*p(14)*dex(14)
+      mygradz(i,j,k)=mygradz(i,j,k)+psisub(ii,jj,kk)*p(14)*dez(14)
     endif
   endif
     
@@ -8745,25 +8759,8 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(2)=rtemp(2)+HALF*dey(15)
-        rtemp(3)=rtemp(3)+HALF*dez(15)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(16)%p(ii,jj,kk),kind=PRC)- &
-       p(16)*pref_bouzidi*rhosub(ii,jj,kk)*(dey(16)*vy+dez(16)*vz)
-      fy=fy+f2p*dey(16)
-      fz=fz+f2p*dez(16)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(2)=f2p*dey(16)
-        ftemp(3)=f2p*dez(16)
-        ty=ty+ycross(rtemp,ftemp)
-        tz=tz+zcross(rtemp,ftemp)
-      endif
+      mygrady(i,j,k)=mygrady(i,j,k)+psisub(ii,jj,kk)*p(15)*dey(15)
+      mygradz(i,j,k)=mygradz(i,j,k)+psisub(ii,jj,kk)*p(15)*dez(15)
     endif
   endif
     
@@ -8782,25 +8779,8 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(2)=rtemp(2)+HALF*dey(16)
-        rtemp(3)=rtemp(3)+HALF*dez(16)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(15)%p(ii,jj,kk),kind=PRC)- &
-       p(15)*pref_bouzidi*rhosub(ii,jj,kk)*(dey(15)*vy+dez(15)*vz)
-      fy=fy+f2p*dey(15)
-      fz=fz+f2p*dez(15)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(2)=f2p*dey(15)
-        ftemp(3)=f2p*dez(15)
-        ty=ty+ycross(rtemp,ftemp)
-        tz=tz+zcross(rtemp,ftemp)
-      endif
+      mygrady(i,j,k)=mygrady(i,j,k)+psisub(ii,jj,kk)*p(16)*dey(16)
+      mygradz(i,j,k)=mygradz(i,j,k)+psisub(ii,jj,kk)*p(16)*dez(16)
     endif
   endif
     
@@ -8819,25 +8799,8 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(2)=rtemp(2)+HALF*dey(17)
-        rtemp(3)=rtemp(3)+HALF*dez(17)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(18)%p(ii,jj,kk),kind=PRC)- &
-       p(18)*pref_bouzidi*rhosub(ii,jj,kk)*(dey(18)*vy+dez(18)*vz)
-      fy=fy+f2p*dey(18)
-      fz=fz+f2p*dez(18)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(2)=f2p*dey(18)
-        ftemp(3)=f2p*dez(18)
-        ty=ty+ycross(rtemp,ftemp)
-        tz=tz+zcross(rtemp,ftemp)
-      endif
+      mygrady(i,j,k)=mygrady(i,j,k)+psisub(ii,jj,kk)*p(17)*dey(17)
+      mygradz(i,j,k)=mygradz(i,j,k)+psisub(ii,jj,kk)*p(17)*dez(17)
     endif
   endif
     
@@ -8856,57 +8819,14 @@
   if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
      kk>=minz .and. kk<=maxz)then
-      if(lrotate)then
-        rtemp=rversor
-        rtemp(2)=rtemp(2)+HALF*dey(18)
-        rtemp(3)=rtemp(3)+HALF*dez(18)
-        modr=modulvec(rtemp)
-        rtemp(1:3)=rtemp(1:3)/modr
-        theta=acos(dot(otemp,rtemp))
-      endif
-      f2p=TWO*real(aoptp(17)%p(ii,jj,kk),kind=PRC)- &
-       p(17)*pref_bouzidi*rhosub(ii,jj,kk)*(dey(17)*vy+dez(17)*vz)
-      fy=fy+f2p*dey(17)
-      fz=fz+f2p*dez(17)
-      if(lrotate)then
-        ftemp(1:3)=ZERO
-        ftemp(2)=f2p*dey(17)
-        ftemp(3)=f2p*dez(17)
-        ty=ty+ycross(rtemp,ftemp)
-        tz=tz+zcross(rtemp,ftemp)
-      endif
+      mygrady(i,j,k)=mygrady(i,j,k)+psisub(ii,jj,kk)*p(18)*dey(18)
+      mygradz(i,j,k)=mygradz(i,j,k)+psisub(ii,jj,kk)*p(18)*dez(18)
     endif
   endif
-   
-  return
-  
- end subroutine node_to_particle_sc
- 
- subroutine particle_to_node_sc(lrotate,nstep,i,j,k,rversor, &
-   otemp,vxs,vys,vzs,rhosub,psisub)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for computing the Shan Chen pseudo potential 
-!     at the particle surface nodes
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification January 2019
-!     
-!***********************************************************************
- 
-  implicit none
-  logical, intent(in) :: lrotate
-  integer, intent(in) :: nstep,i,j,k
-  real(kind=PRC), intent(in) :: vxs,vys,vzs
-  real(kind=PRC), intent(in), dimension(3) :: rversor,otemp
-  real(kind=PRC), allocatable, dimension(:,:,:) :: rhosub
-  real(kind=PRC), allocatable, dimension(:,:,:) :: psisub
-  
 
-  psisub(i,j,k)=rhosub(i,j,k)
- end subroutine particle_to_node_sc
+  return
+
+ end subroutine compute_grad_on_particle
 
  
  subroutine compute_fluid_force_sc
@@ -8933,15 +8853,15 @@
   
   !red fluid
   forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    fuR(i,j,k) = fuR(i,j,k) - pair_SC*rhoR(i,j,k)*gradpsixB(i,j,k)
-    fvR(i,j,k) = fvR(i,j,k) - pair_SC*rhoR(i,j,k)*gradpsiyB(i,j,k)
-    fwR(i,j,k) = fwR(i,j,k) - pair_SC*rhoR(i,j,k)*gradpsizB(i,j,k)
+    fuR(i,j,k) = fuR(i,j,k) - pair_SC*psiR(i,j,k)*gradpsixB(i,j,k)
+    fvR(i,j,k) = fvR(i,j,k) - pair_SC*psiR(i,j,k)*gradpsiyB(i,j,k)
+    fwR(i,j,k) = fwR(i,j,k) - pair_SC*psiR(i,j,k)*gradpsizB(i,j,k)
   end forall
   !blue fluid
   forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    fuB(i,j,k) = fuB(i,j,k) - pair_SC*rhoB(i,j,k)*gradpsixR(i,j,k)
-    fvB(i,j,k) = fvB(i,j,k) - pair_SC*rhoB(i,j,k)*gradpsiyR(i,j,k)
-    fwB(i,j,k) = fwB(i,j,k) - pair_SC*rhoB(i,j,k)*gradpsizR(i,j,k)
+    fuB(i,j,k) = fuB(i,j,k) - pair_SC*psiB(i,j,k)*gradpsixR(i,j,k)
+    fvB(i,j,k) = fvB(i,j,k) - pair_SC*psiB(i,j,k)*gradpsiyR(i,j,k)
+    fwB(i,j,k) = fwB(i,j,k) - pair_SC*psiB(i,j,k)*gradpsizR(i,j,k)
   end forall
   
   return

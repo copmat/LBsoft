@@ -469,6 +469,9 @@
     case (51)
       write(outp,'(/,2a,/)')"WARNING - 'side wall dist' defined in ", &
       "input file should be positive!"
+    case (52)
+      write(outp,'(/,2a,/)')"WARNING - 'density backgroung' can not ", &
+      "be zero or less in input file!"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

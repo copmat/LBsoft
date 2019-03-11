@@ -18,7 +18,7 @@
  use profiling_mod,         only : set_value_idiagnostic, &
   set_value_ldiagnostic,idiagnostic,ldiagnostic
  use utility_mod,           only : write_fmtnumb,pi,get_prntime, &
-  linit_seed,ltest_mode
+  linit_seed,ltest_mode,conv_rad
  use lbempi_mod,            only : set_domdec,set_domain,domdec, &
   nprocx,nprocy,nprocz
  use fluids_mod,            only : nx,ny,nz,set_initial_dist_type, &
@@ -38,7 +38,9 @@
   bc_type_front,bc_rhoR_rear,bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear,&
   bc_type_rear,set_fluid_wall_sc,wallR_SC,wallB_SC,LBintegrator, &
   set_LBintegrator_type,lbc_halfway,set_lbc_halfway,set_lbc_fullway, &
-  lbc_fullway
+  lbc_fullway,partR_SC,partB_SC,set_fluid_particle_sc,theta_SC, &
+  devtheta_SC,set_theta_particle_sc,set_back_value_dens_fluids, &
+  backR,backB,set_init_area_dens_fluids,areaR
  use particles_mod,         only : set_natms_tot,natms_tot,lparticles, &
   set_ishape,set_densvar,densvar,ishape,set_rcut,rcut,delr, &
   set_delr,rotmat_2_quat,lrotate,set_lrotate,allocate_field_array, &
@@ -146,7 +148,7 @@
   write(iu,of)"*         =========================================================           *"
   write(iu,of)"*                                                                             *"
   write(iu,of)"*                                                                             *"
-  write(iu,of)"*    Version 0.01 (July 2018)                                                 *"
+  write(iu,of)"*    Version 0.02 (January 2019)                                              *"
 !  if(ldevelopers) &
 !  write(iu,of)"*    Compiled in developer mode                                               *"
   write(iu,of)"*                                                                             *"
@@ -330,6 +332,7 @@
   integer, dimension(mxntype) :: temp_ishape(1:mxntype)=0
   integer, dimension(mxntype,mxntype) :: temp_mskvdw(1:mxntype,1:mxntype)=0
   integer :: temp_ntype=0
+  integer :: temp_areaR(1:2,1:3)=0
   logical :: temp_ibc=.false.
   logical :: temp_lpair_SC=.false.
   logical :: temp_ldomdec=.false.
@@ -370,10 +373,14 @@
   logical :: temp_llubrication=.false.
   logical :: temp_sidewall_md_k=.false.
   logical :: temp_sidewall_md_rdist=.false.
+  logical :: temp_lpart_SC=.false.
+  logical :: temp_ltheta_SC=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
   real(kind=PRC) :: dtemp_stdevB = ZERO
+  real(kind=PRC) :: dtemp_backR = ZERO
+  real(kind=PRC) :: dtemp_backB = ZERO
   real(kind=PRC) :: dtemp_initial_u = ZERO
   real(kind=PRC) :: dtemp_initial_v = ZERO
   real(kind=PRC) :: dtemp_initial_w = ZERO
@@ -428,6 +435,11 @@
   real(kind=PRC) :: dtemp_densvar= ZERO
   real(kind=PRC) :: dtemp_rcut= ZERO
   real(kind=PRC) :: dtemp_delr= ZERO
+  
+  real(kind=PRC) :: dtemp_theta_SC= ZERO
+  real(kind=PRC) :: dtemp_devtheta_SC= ZERO
+  real(kind=PRC) :: dtemp_partR_SC= ZERO
+  real(kind=PRC) :: dtemp_partB_SC= ZERO
   
   real(kind=PRC), dimension(1:mxntype) :: dtemp_umass(1:mxntype)= ZERO
   
@@ -786,12 +798,24 @@
               elseif(findstring('stdev',directive,inumchar,maxlen))then
                 dtemp_stdevR=dblstr(directive,maxlen,inumchar)
                 dtemp_stdevB=dblstr(directive,maxlen,inumchar)
+              elseif(findstring('back',directive,inumchar,maxlen))then
+                dtemp_backR=dblstr(directive,maxlen,inumchar)
+                dtemp_backB=dblstr(directive,maxlen,inumchar)
+              elseif(findstring('selec',directive,inumchar,maxlen))then
+                temp_areaR(1,1)=intstr(directive,maxlen,inumchar)
+                temp_areaR(2,1)=intstr(directive,maxlen,inumchar)
+                temp_areaR(1,2)=intstr(directive,maxlen,inumchar)
+                temp_areaR(2,2)=intstr(directive,maxlen,inumchar)
+                temp_areaR(1,3)=intstr(directive,maxlen,inumchar)
+                temp_areaR(2,3)=intstr(directive,maxlen,inumchar)
               elseif(findstring('gauss',directive,inumchar,maxlen))then
                 temp_idistselect=1
               elseif(findstring('unifo',directive,inumchar,maxlen))then
                 temp_idistselect=2
               elseif(findstring('fake',directive,inumchar,maxlen))then
                 temp_idistselect=3
+              elseif(findstring('area',directive,inumchar,maxlen))then
+                temp_idistselect=4
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1004,6 +1028,19 @@
                 dtemp_ext_fxx=dblstr(directive,maxlen,inumchar)
                 dtemp_ext_fyy=dblstr(directive,maxlen,inumchar)
                 dtemp_ext_fzz=dblstr(directive,maxlen,inumchar)
+              elseif(findstring('shanc',directive,inumchar,maxlen))then
+                if(findstring('angle',directive,inumchar,maxlen))then
+                  temp_ltheta_SC=.true.
+                  dtemp_theta_SC=dblstr(directive,maxlen,inumchar)
+                  dtemp_devtheta_SC=dblstr(directive,maxlen,inumchar)
+                elseif(findstring('part',directive,inumchar,maxlen))then
+                  temp_lpart_SC = .true.
+                  dtemp_partR_SC = dblstr(directive,maxlen,inumchar)
+                  dtemp_partB_SC = dblstr(directive,maxlen,inumchar)
+                else
+                  call warning(1,dble(iline),redstring)
+                  lerror6=.true.
+                endif
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1652,6 +1689,13 @@
         mystring12='fake from id fluid node'
         mystring12=adjustr(mystring12)
         write(6,'(3a)')mystring,": ",mystring12
+      case(4)
+        mystring=repeat(' ',dimprint)
+        mystring='initial density distribution'
+        mystring12=repeat(' ',dimprint2)
+        mystring12='uniform areas'
+        mystring12=adjustr(mystring12)
+        write(6,'(3a)')mystring,": ",mystring12
       end select
     endif
   endif
@@ -1675,6 +1719,41 @@
       mystring=repeat(' ',dimprint)
       mystring='initial density stdev values'
       write(6,'(2a,2f12.6)')mystring,": ",stdevR,stdevB
+    endif
+  endif
+  
+  if(idistselect==4)then
+    call bcast_world_iarr(temp_areaR,6)
+    if(any(temp_areaR/=0))then
+      call bcast_world_f(dtemp_backR)
+      call bcast_world_f(dtemp_backB)
+      if(lsingle_fluid)then
+        if(dtemp_backR<=ZERO)then
+          call warning(52)
+          call error(7)
+        endif
+      else
+        if(dtemp_backR<=ZERO .or. dtemp_backB<=ZERO)then
+          call warning(52)
+          call error(7)
+        endif
+      endif
+      call set_back_value_dens_fluids(dtemp_backR,dtemp_backB)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='initial background density values'
+        write(6,'(2a,2f12.6)')mystring,": ",backR,backB
+      endif
+      call set_init_area_dens_fluids(temp_areaR)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='initial density area extremes in x'
+        write(6,'(2a,2i12)')mystring,": ",areaR(1,1),areaR(2,1)
+        mystring='initial density area extremes in y'
+        write(6,'(2a,2i12)')mystring,": ",areaR(1,2),areaR(2,2)
+        mystring='initial density area extremes in z'
+        write(6,'(2a,2i12)')mystring,": ",areaR(1,3),areaR(2,3)
+      endif
     endif
   endif
   
@@ -1955,6 +2034,35 @@
           mystring=repeat(' ',dimprint)
           mystring='external torque on particles'
           write(6,'(2a,3f12.6)')mystring,": ",ext_tqx,ext_tqy,ext_tqz
+        endif
+      endif
+    endif
+    
+    call bcast_world_l(temp_lpart_SC)
+    call bcast_world_f(dtemp_partR_SC)
+    call bcast_world_f(dtemp_partB_SC)
+    if(temp_lpart_SC)then
+      call set_fluid_particle_sc(dtemp_partR_SC,dtemp_partB_SC)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='pair SC color particle on fluids'
+        write(6,'(2a,2f12.6)')mystring,": ",partR_SC,partB_SC
+      endif
+    endif
+    
+    if(lrotate)then
+      call bcast_world_l(temp_ltheta_SC)
+      call bcast_world_f(dtemp_theta_SC)
+      call bcast_world_f(dtemp_devtheta_SC)
+      if(temp_lpart_SC)then
+        dtemp_theta_SC=dtemp_theta_SC*conv_rad
+        dtemp_devtheta_SC=dtemp_devtheta_SC*conv_rad
+        call set_theta_particle_sc(dtemp_theta_SC,dtemp_devtheta_SC)
+        if(idrank==0)then
+          mystring=repeat(' ',dimprint)
+          mystring='pair SC contact angle of particles'
+          write(6,'(2a,2f12.6)')mystring,": ",theta_SC/conv_rad, &
+           devtheta_SC/conv_rad
         endif
       endif
     endif
