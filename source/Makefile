@@ -41,6 +41,7 @@ help:
 	@echo "gfortran-mpi                       "
 	@echo "intel                              "
 	@echo "intel-mpi                          "
+	@echo "intel-mpi-fast                     "
 	@echo "intel-mpi-skylake                  "
 	@echo "                                   "
 	@echo "Possible choices for debugging are:"
@@ -83,6 +84,15 @@ intel-mpi:
 	CFLAGS="-O2 -I $(CURDIR) -c" \
 	FFLAGS="-O2 -cpp -DINTEL -DMPI -I $(CURDIR) -c" \
 	LDFLAGS="-O2 -cpp -DINTEL -DMPI -I $(CURDIR) -o" \
+	TYPE=mpi \
+	EX=$(EXP) BINROOT=$(BINROOT) mpi
+	
+intel-mpi-fast:
+	$(MAKE) CC=mpiicc \
+	FC=mpiifort \
+	CFLAGS="-O2 -I $(CURDIR) -c" \
+	FFLAGS="-fast -cpp -DINTEL -DMPI -I $(CURDIR) -c" \
+	LDFLAGS="-cpp -DINTEL -DMPI -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi
 	
