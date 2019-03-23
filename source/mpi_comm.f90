@@ -216,6 +216,7 @@ contains
         mymax(i) = tempDim * (mycoords(i) + 1)
     enddo
 
+    if (.false.) then
     do i=0, mx_rank-1
         if (i == id_rank) then
             write (6,'("id=", I3, " @(", 3I2,") arr=", 38I3 )') id_rank, mycoords, neigh
@@ -223,6 +224,7 @@ contains
         endif
         call MPI_Barrier(MPI_COMM_WORLD, ierr)
     enddo
+    endif
 
     minx = mymin(1)
     miny = mymin(2)
