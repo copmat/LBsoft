@@ -1931,16 +1931,20 @@
   call sum_world_qarr(fxb, natms_tot)
   call sum_world_qarr(fyb, natms_tot)
   call sum_world_qarr(fzb, natms_tot)
-  call sum_world_qarr(txb, natms_tot)
-  call sum_world_qarr(tyb, natms_tot)
-  call sum_world_qarr(tzb, natms_tot)
+  if(lrotate)then
+   call sum_world_qarr(txb, natms_tot)
+   call sum_world_qarr(tyb, natms_tot)
+   call sum_world_qarr(tzb, natms_tot)
+  endif
 #else
   call sum_world_farr(fxb, natms_tot)
   call sum_world_farr(fyb, natms_tot)
   call sum_world_farr(fzb, natms_tot)
-  call sum_world_farr(txb, natms_tot)
-  call sum_world_farr(tyb, natms_tot)
-  call sum_world_farr(tzb, natms_tot)
+  if(lrotate)then
+   call sum_world_farr(txb, natms_tot)
+   call sum_world_farr(tyb, natms_tot)
+   call sum_world_farr(tzb, natms_tot)
+  endif
 #endif
 #endif
 
@@ -2039,9 +2043,11 @@
   call sum_world_qarr(fxb, natms_tot)
   call sum_world_qarr(fyb, natms_tot)
   call sum_world_qarr(fzb, natms_tot)
-  call sum_world_qarr(txb, natms_tot)
-  call sum_world_qarr(tyb, natms_tot)
-  call sum_world_qarr(tzb, natms_tot)
+  if(lrotate)then
+   call sum_world_qarr(txb, natms_tot)
+   call sum_world_qarr(tyb, natms_tot)
+   call sum_world_qarr(tzb, natms_tot)
+  endif
 
   call sum_world_qarr(fxx, natms_tot)
   call sum_world_qarr(fyy, natms_tot)
@@ -2050,9 +2056,11 @@
   call sum_world_farr(fxb, natms_tot)
   call sum_world_farr(fyb, natms_tot)
   call sum_world_farr(fzb, natms_tot)
-  call sum_world_farr(txb, natms_tot)
-  call sum_world_farr(tyb, natms_tot)
-  call sum_world_farr(tzb, natms_tot)
+  if(lrotate)then
+   call sum_world_farr(txb, natms_tot)
+   call sum_world_farr(tyb, natms_tot)
+   call sum_world_farr(tzb, natms_tot)
+  endif
 
   call sum_world_farr(fxx, natms_tot)
   call sum_world_farr(fyy, natms_tot)
@@ -2075,9 +2083,11 @@
     fxb(iatm) = 0
     fyb(iatm) = 0
     fzb(iatm) = 0
-    txb(iatm) = 0
-    tyb(iatm) = 0
-    tzb(iatm) = 0
+    if(lrotate)then
+     txb(iatm) = 0
+     tyb(iatm) = 0
+     tzb(iatm) = 0
+    endif
   enddo
 
  end subroutine merge_particle_force
@@ -5066,11 +5076,15 @@
     fxbo(i) = ZERO
     fybo(i) = ZERO
     fzbo(i) = ZERO
+  end forall
 
+  if(lrotate)then
+   forall(i=1:natms_tot, .not. mine(i))
     txbo(i) = ZERO
     tybo(i) = ZERO
     tzbo(i) = ZERO
-  end forall
+   end forall
+  endif
 
   call sum_world_farr(xxx,natms_tot)
   call sum_world_farr(yyy,natms_tot)
@@ -5086,22 +5100,24 @@
   call sum_world_farr(vyo,natms_tot)
   call sum_world_farr(vzo,natms_tot)
 
-  call sum_world_farr(q0,natms_tot)
-  call sum_world_farr(q1,natms_tot)
-  call sum_world_farr(q2,natms_tot)
-  call sum_world_farr(q3,natms_tot)
-
-  call sum_world_farr(oxx,natms_tot)
-  call sum_world_farr(oyy,natms_tot)
-  call sum_world_farr(ozz,natms_tot)
-
   call sum_world_farr(fxbo,natms_tot)
   call sum_world_farr(fybo,natms_tot)
   call sum_world_farr(fzbo,natms_tot)
 
-  call sum_world_farr(txbo,natms_tot)
-  call sum_world_farr(tybo,natms_tot)
-  call sum_world_farr(tzbo,natms_tot)
+  if(lrotate)then
+   call sum_world_farr(q0,natms_tot)
+   call sum_world_farr(q1,natms_tot)
+   call sum_world_farr(q2,natms_tot)
+   call sum_world_farr(q3,natms_tot)
+
+   call sum_world_farr(oxx,natms_tot)
+   call sum_world_farr(oyy,natms_tot)
+   call sum_world_farr(ozz,natms_tot)
+   
+   call sum_world_farr(txbo,natms_tot)
+   call sum_world_farr(tybo,natms_tot)
+   call sum_world_farr(tzbo,natms_tot)
+  endif
 
 
   ! Count my atoms, put them in atmbook list
