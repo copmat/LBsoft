@@ -1847,7 +1847,7 @@
   integer, intent(in) :: nstep
   logical, intent(in) :: debug
   integer :: myi, iatm,i,j,k,itype
-  real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3)
+  real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3), tempconj(0:3)
 
 #ifndef DEBUG_FORCEINT
 #ifdef QUAD_FORCEINT
@@ -1895,7 +1895,8 @@
     qversor(1)=oxx(iatm)
     qversor(2)=oyy(iatm)
     qversor(3)=ozz(iatm)
-    oat=qtrimult(qtemp,qversor,qconj(qtemp))
+    tempconj = qconj(qtemp)
+    oat=qtrimult(qtemp,qversor,tempconj)
     
     call particle_bounce_back(debug, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
@@ -2276,7 +2277,7 @@
   implicit none
   integer, intent(in) :: nstep
   integer :: iatm,i,j,k,itype
-  real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3)
+  real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3),tempconj(0:3)
   
 
   if(lrotate)then
@@ -2293,7 +2294,8 @@
     qtemp(3)=q3(iatm)
     qversor(0:3)=ZERO
     qversor(1)=ONE
-    oat=qtrimult(qtemp,qversor,qconj(qtemp))
+    tempconj = qconj(qtemp)
+    oat=qtrimult(qtemp,qversor,tempconj)
     call compute_sc_particle_interact(nstep,iatm, iatm<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
@@ -2342,6 +2344,7 @@
   
 
 
+  newlst = .false.
   return
 
   checkSpace = (natms+mxrank-1)/mxrank
@@ -3656,7 +3659,7 @@
   
 #ifdef SVANBERG
   
-  real(kind=PRC), dimension(0:3) :: qversor,qtemp,qtemp2
+  real(kind=PRC), dimension(0:3) :: qversor,qtemp,qtemp2,tempconj
   
   qtemp(0)=qa
   qtemp(1)=qb
@@ -3684,7 +3687,8 @@
     
   end select
   
-  qtemp2=qtrimult(qtemp,qversor,qconj(qtemp))
+  tempconj = qconj(qtemp)
+  qtemp2=qtrimult(qtemp,qversor,tempconj)
   take_rotversor=qtemp2(1:3)
 
 #else
@@ -3752,14 +3756,15 @@
   real(kind=PRC), dimension(0:3), parameter :: qversor= &
    (/ ZERO , ONE , ZERO , ZERO /)
   
-  real(kind=PRC), dimension(0:3) :: qtemp,qtemp2
+  real(kind=PRC), dimension(0:3) :: qtemp,qtemp2, tempconj
   
   qtemp(0)=qa
   qtemp(1)=qb
   qtemp(2)=qc
   qtemp(3)=qd
   
-  qtemp2=qtrimult(qtemp,qversor,qconj(qtemp))
+  tempconj = qconj(qtemp)
+  qtemp2=qtrimult(qtemp,qversor,tempconj)
   take_rotversorx=qtemp2(1:3)
   
 #else
@@ -3805,14 +3810,15 @@
   real(kind=PRC), dimension(0:3), parameter :: qversor= &
    (/ ZERO , ZERO , ONE , ZERO /)
   
-  real(kind=PRC), dimension(0:3) :: qtemp,qtemp2
+  real(kind=PRC), dimension(0:3) :: qtemp,qtemp2,tempconj
   
   qtemp(0)=qa
   qtemp(1)=qb
   qtemp(2)=qc
   qtemp(3)=qd
   
-  qtemp2=qtrimult(qtemp,qversor,qconj(qtemp))
+  tempconj = qconj(qtemp)
+  qtemp2=qtrimult(qtemp,qversor,tempconj)
   take_rotversory=qtemp2(1:3)
 
 #else
@@ -3858,14 +3864,15 @@
   real(kind=PRC), dimension(0:3), parameter :: qversor= &
    (/ ZERO , ZERO , ZERO , ONE /)
   
-  real(kind=PRC), dimension(0:3) :: qtemp,qtemp2
+  real(kind=PRC), dimension(0:3) :: qtemp,qtemp2,tempconj
   
   qtemp(0)=qa
   qtemp(1)=qb
   qtemp(2)=qc
   qtemp(3)=qd
   
-  qtemp2=qtrimult(qtemp,qversor,qconj(qtemp))
+  tempconj = qconj(qtemp)
+  qtemp2=qtrimult(qtemp,qversor,tempconj)
   take_rotversorz=qtemp2(1:3)
 
 #else

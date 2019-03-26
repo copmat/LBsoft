@@ -10839,8 +10839,8 @@ end subroutine compute_secbelt_density_twofluids
     imax=maxx+1
     jmin=miny-1
     jmax=maxy+1
-    kmin=minz-nbuff
-    kmax=maxz+nbuff
+    kmin=minz-1
+    kmax=maxz+1
   endif
 
   do l=1,nspheres
