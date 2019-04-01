@@ -2798,7 +2798,11 @@
   
   integer :: i,j,k
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  ! forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+
+  do k=minz,maxz
+   do j=miny,maxy
+    do i=minx,maxx
     f00sub(i,j,k)=f00sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop00(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f00sub(i,j,k))
@@ -2874,7 +2878,11 @@
     f18sub(i,j,k)=f18sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop18(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f18sub(i,j,k))
-  end forall
+       enddo
+   enddo
+  enddo
+
+  ! end forall
  end subroutine collision_fluids_BGK
  
 
@@ -3209,12 +3217,29 @@
     ishift=ex(l)
     jshift=ey(l)
     kshift=ez(l)
-    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,isfluid(i,j,k)<3 .or. isfluid(i,j,k)>4)
-        buffservice3d(i+ishift,j+jshift,k+kshift) = aoptpR(l)%p(i,j,k)
-    end forall
-    forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,isfluid(i,j,k)<3 .or. isfluid(i,j,k)>4)
-        aoptpR(l)%p(i,j,k) = buffservice3d(i,j,k)
-    end forall
+    do k=minz-1,maxz+1
+     do j=miny-1,maxy+1
+      do i=minx-1,maxx+1
+    !forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,isfluid(i,j,k)<3 .or. isfluid(i,j,k)>4)
+        if ( isfluid(i,j,k)<3 .or. isfluid(i,j,k)>4) then
+         buffservice3d(i+ishift,j+jshift,k+kshift) = aoptpR(l)%p(i,j,k)
+        endif
+      enddo
+     enddo
+    enddo
+    !end forall
+
+    do k=minz-1,maxz+1
+     do j=miny-1,maxy+1
+      do i=minx-1,maxx+1
+    !forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1,isfluid(i,j,k)<3 .or. isfluid(i,j,k)>4)
+        if ( isfluid(i,j,k)<3 .or. isfluid(i,j,k)>4) then
+         aoptpR(l)%p(i,j,k) = buffservice3d(i,j,k)
+        endif
+      enddo
+     enddo
+    enddo
+    !end forall
   enddo
 #endif
   
@@ -3617,6 +3642,7 @@
   implicit none
   integer :: i,j,k,l
   real(kind=PRC) :: ddx,ddy,ddz,ddxB,ddyB,ddzB
+  real(kind=PRC) :: factR, factB
   integer, intent(in) :: nstep
   
 
@@ -3626,198 +3652,32 @@
   !red fluid
   
   if(lsingle_fluid)then
-    
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-      rhoR(i,j,k) = ZERO
-      u(i,j,k)    = ZERO
-      v(i,j,k)    = ZERO
-      w(i,j,k)    = ZERO
-    end forall
-    
-    l=0
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f00R(i,j,k)
-      u(i,j,k)    = f00R(i,j,k)*ddx
-      v(i,j,k)    = f00R(i,j,k)*ddy
-      w(i,j,k)    = f00R(i,j,k)*ddz
-    end forall
-  
-    l=1
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f01R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f01R(i,j,k)*ddx + u(i,j,k)
-    end forall
-    
-    l=2
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f02R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f02R(i,j,k)*ddx + u(i,j,k)
-    end forall
-  
-    l=3
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f03R(i,j,k) + rhoR(i,j,k)
-      v(i,j,k)    = f03R(i,j,k)*ddy + v(i,j,k)
-    end forall
-    
-    l=4
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f04R(i,j,k) + rhoR(i,j,k)
-      v(i,j,k)    = f04R(i,j,k)*ddy + v(i,j,k)
-    end forall
-  
-    l=5
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f05R(i,j,k) + rhoR(i,j,k)
-      w(i,j,k)    = f05R(i,j,k)*ddz + w(i,j,k)
-    end forall
-    
-    l=6
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f06R(i,j,k) + rhoR(i,j,k)
-      w(i,j,k)    = f06R(i,j,k)*ddz + w(i,j,k)
-    end forall
-  
-    l=7
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f07R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f07R(i,j,k)*ddx + u(i,j,k)
-      v(i,j,k)    = f07R(i,j,k)*ddy + v(i,j,k)
-    end forall
-    
-    l=8
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f08R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f08R(i,j,k)*ddx + u(i,j,k)
-      v(i,j,k)    = f08R(i,j,k)*ddy + v(i,j,k)
-    end forall
-    
-    l=9
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f09R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f09R(i,j,k)*ddx + u(i,j,k)
-      v(i,j,k)    = f09R(i,j,k)*ddy + v(i,j,k)
-    end forall
-    
-    l=10
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f10R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f10R(i,j,k)*ddx + u(i,j,k)
-      v(i,j,k)    = f10R(i,j,k)*ddy + v(i,j,k)
-    end forall
-    
-    l=11
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f11R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f11R(i,j,k)*ddx + u(i,j,k)
-      w(i,j,k)    = f11R(i,j,k)*ddz + w(i,j,k)
-    end forall
-    
-    l=12
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f12R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f12R(i,j,k)*ddx + u(i,j,k)
-      w(i,j,k)    = f12R(i,j,k)*ddz + w(i,j,k)
-    end forall
-    
-    l=13
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f13R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f13R(i,j,k)*ddx + u(i,j,k)
-      w(i,j,k)    = f13R(i,j,k)*ddz + w(i,j,k)
-    end forall
-    
-    l=14
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f14R(i,j,k) + rhoR(i,j,k)
-      u(i,j,k)    = f14R(i,j,k)*ddx + u(i,j,k)
-      w(i,j,k)    = f14R(i,j,k)*ddz + w(i,j,k)
-    end forall
-    
-    l=15
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f15R(i,j,k) + rhoR(i,j,k)
-      v(i,j,k)    = f15R(i,j,k)*ddy + v(i,j,k)
-      w(i,j,k)    = f15R(i,j,k)*ddz + w(i,j,k)
-    end forall
-  
-    l=16
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f16R(i,j,k) + rhoR(i,j,k)
-      v(i,j,k)    = f16R(i,j,k)*ddy + v(i,j,k)
-      w(i,j,k)    = f16R(i,j,k)*ddz + w(i,j,k)
-    end forall
-  
-    l=17
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f17R(i,j,k) + rhoR(i,j,k)
-      v(i,j,k)    = f17R(i,j,k)*ddy + v(i,j,k)
-      w(i,j,k)    = f17R(i,j,k)*ddz + w(i,j,k)
-    end forall
-  
-    l=18
-    ddx=dex(l)
-    ddy=dey(l)
-    ddz=dez(l)
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-      rhoR(i,j,k) = f18R(i,j,k) + rhoR(i,j,k)
-      v(i,j,k)    = f18R(i,j,k)*ddy + v(i,j,k)
-      w(i,j,k)    = f18R(i,j,k)*ddz + w(i,j,k)
-    end forall
+
+    ! forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+   do k=minz,maxz
+    do j=miny,maxy
+     do i=minx,maxx
+      rhoR(i,j,k) = &
+ f00R(i,j,k) + f01R(i,j,k) + f02R(i,j,k) + f03R(i,j,k) + f04R(i,j,k) + &
+ f05R(i,j,k) + f06R(i,j,k) + f07R(i,j,k) + f08R(i,j,k) + f09R(i,j,k) + &
+ f10R(i,j,k) + f11R(i,j,k) + f12R(i,j,k) + f13R(i,j,k) + f14R(i,j,k) + &
+ f15R(i,j,k) + f16R(i,j,k) + f17R(i,j,k) + f18R(i,j,k)
+
+      u(i,j,k)    = &
+ f01R(i,j,k) - f02R(i,j,k) + f07R(i,j,k) - f08R(i,j,k) - f09R(i,j,k) + &
+ f10R(i,j,k) + f11R(i,j,k) - f12R(i,j,k) - f13R(i,j,k) + f14R(i,j,k)
+
+      v(i,j,k)    = &
+ f03R(i,j,k) - f04R(i,j,k) + f07R(i,j,k) - f08R(i,j,k) + f09R(i,j,k) - &
+ f10R(i,j,k) + f15R(i,j,k) - f16R(i,j,k) - f17R(i,j,k) + f18R(i,j,k)
+
+      w(i,j,k)    = &
+ f05R(i,j,k) - f06R(i,j,k) + f11R(i,j,k) - f12R(i,j,k) + f13R(i,j,k) - &
+ f14R(i,j,k) + f15R(i,j,k) - f16R(i,j,k) + f17R(i,j,k) - f18R(i,j,k)
+      enddo
+     enddo
+    enddo
+    !end forall
 
     do k=minz,maxz
      do j=miny,maxy
@@ -3830,282 +3690,60 @@
     enddo
 
     !compute speed from mass flux
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+    !forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+    do k=minz,maxz
+     do j=miny,maxy
+      do i=minx,maxx
+       if (isfluid(i,j,k)==1) then
       u(i,j,k) = u(i,j,k)/rhoR(i,j,k)
       v(i,j,k) = v(i,j,k)/rhoR(i,j,k)
       w(i,j,k) = w(i,j,k)/rhoR(i,j,k)
-    end forall
+        endif
+      enddo
+     enddo
+    enddo
+    ! end forall
     
     return
   endif
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    rhoR(i,j,k) = ZERO
-    rhoB(i,j,k) = ZERO
-    u(i,j,k)    = ZERO
-    v(i,j,k)    = ZERO
-    w(i,j,k)    = ZERO
-  end forall
-  
-  !red and blue fluid
-  
-  l=0
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f00R(i,j,k)
-    rhoB(i,j,k) = f00B(i,j,k)
-  end forall
-  
-  l=1
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f01R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f01B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f01R(i,j,k)*ddx + f01B(i,j,k)*ddxB + u(i,j,k)
-  end forall
-  
-  l=2
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f02R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f02B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f02R(i,j,k)*ddx + f02B(i,j,k)*ddxB + u(i,j,k)
-  end forall
-  
-  l=3
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f03R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f03B(i,j,k) + rhoB(i,j,k)
-    v(i,j,k)    = f03R(i,j,k)*ddy + f03B(i,j,k)*ddyB + v(i,j,k)
-  end forall
-  
-  l=4
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f04R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f04B(i,j,k) + rhoB(i,j,k)
-    v(i,j,k)    = f04R(i,j,k)*ddy + f04B(i,j,k)*ddyB + v(i,j,k)
-  end forall
-  
-  l=5
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f05R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f05B(i,j,k) + rhoB(i,j,k)
-    w(i,j,k)    = f05R(i,j,k)*ddz + f05B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-  
-  l=6
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f06R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f06B(i,j,k) + rhoB(i,j,k)
-    w(i,j,k)    = f06R(i,j,k)*ddz + f06B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-  
-  l=7
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f07R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f07B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f07R(i,j,k)*ddx + f07B(i,j,k)*ddxB + u(i,j,k)
-    v(i,j,k)    = f07R(i,j,k)*ddy + f07B(i,j,k)*ddyB + v(i,j,k)
-  end forall
-  
-  l=8
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f08R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f08B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f08R(i,j,k)*ddx + f08B(i,j,k)*ddxB + u(i,j,k)
-    v(i,j,k)    = f08R(i,j,k)*ddy + f08B(i,j,k)*ddyB + v(i,j,k)
-  end forall
-  
-  l=9
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f09R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f09B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f09R(i,j,k)*ddx + f09B(i,j,k)*ddxB + u(i,j,k)
-    v(i,j,k)    = f09R(i,j,k)*ddy + f09B(i,j,k)*ddyB + v(i,j,k)
-  end forall
-  
-  l=10
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f10R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f10B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f10R(i,j,k)*ddx + f10B(i,j,k)*ddxB + u(i,j,k)
-    v(i,j,k)    = f10R(i,j,k)*ddy + f10B(i,j,k)*ddyB + v(i,j,k)
-  end forall
-  
-  l=11
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f11R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f11B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f11R(i,j,k)*ddx + f11B(i,j,k)*ddxB + u(i,j,k)
-    w(i,j,k)    = f11R(i,j,k)*ddz + f11B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-  
-  l=12
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f12R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f12B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f12R(i,j,k)*ddx + f12B(i,j,k)*ddxB + u(i,j,k)
-    w(i,j,k)    = f12R(i,j,k)*ddz + f12B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-  
-  l=13
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f13R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f13B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f13R(i,j,k)*ddx + f13B(i,j,k)*ddxB + u(i,j,k)
-    w(i,j,k)    = f13R(i,j,k)*ddz + f13B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-  
-  l=14
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f14R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f14B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f14R(i,j,k)*ddx + f14B(i,j,k)*ddxB + u(i,j,k)
-    w(i,j,k)    = f14R(i,j,k)*ddz + f14B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-  
-  l=15
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f15R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f15B(i,j,k) + rhoB(i,j,k)
-    v(i,j,k)    = f15R(i,j,k)*ddy + f15B(i,j,k)*ddyB + v(i,j,k)
-    w(i,j,k)    = f15R(i,j,k)*ddz + f15B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-  
-  l=16
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f16R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f16B(i,j,k) + rhoB(i,j,k)
-    v(i,j,k)    = f16R(i,j,k)*ddy + f16B(i,j,k)*ddyB + v(i,j,k)
-    w(i,j,k)    = f16R(i,j,k)*ddz + f16B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-  
-  l=17
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f17R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f17B(i,j,k) + rhoB(i,j,k)
-    v(i,j,k)    = f17R(i,j,k)*ddy + f17B(i,j,k)*ddyB + v(i,j,k)
-    w(i,j,k)    = f17R(i,j,k)*ddz + f17B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-  
-  l=18
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f18R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f18B(i,j,k) + rhoB(i,j,k)
-    v(i,j,k)    = f18R(i,j,k)*ddy + f18B(i,j,k)*ddyB + v(i,j,k)
-    w(i,j,k)    = f18R(i,j,k)*ddz + f18B(i,j,k)*ddzB + w(i,j,k)
-  end forall
+  factR = ONE/tauR
+  factB = ONE/tauB
+
+    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+      rhoR(i,j,k) = &
+ f00R(i,j,k) + f01R(i,j,k) + f02R(i,j,k) + f03R(i,j,k) + f04R(i,j,k) + &
+ f05R(i,j,k) + f06R(i,j,k) + f07R(i,j,k) + f08R(i,j,k) + f09R(i,j,k) + &
+ f10R(i,j,k) + f11R(i,j,k) + f12R(i,j,k) + f13R(i,j,k) + f14R(i,j,k) + &
+ f15R(i,j,k) + f16R(i,j,k) + f17R(i,j,k) + f18R(i,j,k)
+
+      rhoB(i,j,k) = &
+ f00B(i,j,k) + f01B(i,j,k) + f02B(i,j,k) + f03B(i,j,k) + f04B(i,j,k) + &
+ f05B(i,j,k) + f06B(i,j,k) + f07B(i,j,k) + f08B(i,j,k) + f09B(i,j,k) + &
+ f10B(i,j,k) + f11B(i,j,k) + f12B(i,j,k) + f13B(i,j,k) + f14B(i,j,k) + &
+ f15B(i,j,k) + f16B(i,j,k) + f17B(i,j,k) + f18B(i,j,k)
+
+      u(i,j,k)  = factR * ( &
+ f01R(i,j,k) - f02R(i,j,k) + f07R(i,j,k) - f08R(i,j,k) - f09R(i,j,k) + &
+ f10R(i,j,k) + f11R(i,j,k) - f12R(i,j,k) - f13R(i,j,k) + f14R(i,j,k) ) + &
+      factB * ( &
+ f01B(i,j,k) - f02B(i,j,k) + f07B(i,j,k) - f08B(i,j,k) - f09B(i,j,k) + &
+ f10B(i,j,k) + f11B(i,j,k) - f12B(i,j,k) - f13B(i,j,k) + f14B(i,j,k) )
+
+      v(i,j,k)    = factR * ( &
+ f03R(i,j,k) - f04R(i,j,k) + f07R(i,j,k) - f08R(i,j,k) + f09R(i,j,k) - &
+ f10R(i,j,k) + f15R(i,j,k) - f16R(i,j,k) - f17R(i,j,k) + f18R(i,j,k) ) + &
+        factB * ( &
+ f03B(i,j,k) - f04B(i,j,k) + f07B(i,j,k) - f08B(i,j,k) + f09B(i,j,k) - &
+ f10B(i,j,k) + f15B(i,j,k) - f16B(i,j,k) - f17B(i,j,k) + f18B(i,j,k) )
+
+      w(i,j,k)    = factR * ( &
+ f05R(i,j,k) - f06R(i,j,k) + f11R(i,j,k) - f12R(i,j,k) + f13R(i,j,k) - &
+ f14R(i,j,k) + f15R(i,j,k) - f16R(i,j,k) + f17R(i,j,k) - f18R(i,j,k) ) + &
+        factB * ( &
+ f05B(i,j,k) - f06B(i,j,k) + f11B(i,j,k) - f12B(i,j,k) + f13B(i,j,k) - &
+ f14B(i,j,k) + f15B(i,j,k) - f16B(i,j,k) + f17B(i,j,k) - f18B(i,j,k) )
+    end forall
   
   !compute speed from mass flux
   forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
@@ -11110,8 +10748,8 @@ end subroutine compute_secbelt_density_twofluids
     imax=maxx+1
     jmin=miny-1
     jmax=maxy+1
-    kmin=minz-nbuff
-    kmax=maxz+nbuff
+    kmin=minz-1
+    kmax=maxz+1
   endif
 
   do l=1,nspheres

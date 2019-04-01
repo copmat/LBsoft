@@ -2352,6 +2352,7 @@
   
 
 
+  newlst=.true.
   return
 
   checkSpace = (natms+mxrank-1)/mxrank
