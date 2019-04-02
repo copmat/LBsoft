@@ -10,6 +10,8 @@
 
 #define D3Q19
 
+#define ONLYCOM
+
 #define NDIAGNSTREAM 1
 
 #define NDIAGNHVAR 100

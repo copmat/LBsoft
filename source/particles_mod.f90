@@ -878,6 +878,10 @@
   integer :: i, myi
   real(kind=PRC) :: dtemp(3)
   
+#ifdef ONLYCOM
+  return
+#endif
+  
   dtemp(1:3)=ZERO
   
   do myi=1,natms
@@ -1858,6 +1862,10 @@
   allocate(forceInt(1,1,1))
 #endif
 
+#ifdef ONLYCOM
+  goto 100
+#endif
+
 #ifdef DEBUG_FORCEINT
   integer   :: l
   character(len=120) :: mynamefile
@@ -1922,9 +1930,14 @@
   enddo
 
   endif
+  
+#ifdef ONLYCOM
+  100 continue
+#endif
 
 #ifdef DEBUG_FORCEINT
   call sortSumm(fxb,fyb,fzb, txb,tyb,tzb, "presort.atom", debug, nstep)
+  
 
   ! We can better broadcast from Proc 0
 #ifdef QUAD_FORCEINT
@@ -1969,6 +1982,9 @@
   logical, intent(in) :: debug
   integer :: iatm, myi
   
+#ifdef ONLYCOM
+  return
+#endif
 
   if (debug) call OpenLogFile(nstep, "force_particle_bb", 118)
 
@@ -2170,7 +2186,10 @@
   implicit none
   integer, intent(in) :: nstep
   logical, intent(in) :: debug
- 
+  
+#ifdef ONLYCOM
+  return
+#endif
 
   call initialize_new_isfluid
     
@@ -2205,6 +2224,9 @@
   logical, intent(in) :: lparticles, debug
   
 #ifdef DEBUG_FORCEINT
+
+#ifndef ONLYCOM
+
   forceInt(:,:,:) = ZERO
 
   call particle_create_fluids(debug, nstep,natms_ext,atmbook,nsphere, &
@@ -2213,6 +2235,8 @@
      rdimx,rdimy,rdimz, forceInt)
 
   call sortSumm(fxx,fyy,fzz,tqx,tqy,tqz, "presort_pcf.atom", debug,nstep)
+  
+#endif
 
   !call get_sync_world
 
@@ -2234,10 +2258,12 @@
 #endif
 
 #else
+#ifndef ONLYCOM
   call particle_create_fluids(debug, nstep,natms_ext,atmbook,nsphere, &
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
+#endif
 #endif
 
   call driver_bc_densities
@@ -2288,6 +2314,9 @@
   integer :: iatm,i,j,k,itype
   real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3)
   
+#ifdef ONLYCOM
+  return
+#endif
 
   if(lrotate)then
   
@@ -2350,7 +2379,9 @@
   real(kind=PRC) :: rmax,dr, checkSpace
   real(kind=PRC), allocatable, save :: xold(:),yold(:),zold(:)
   
-
+#ifdef ONLYCOM
+  return
+#endif
 
   newlst=.true.
   return
@@ -2436,7 +2467,9 @@
   logical :: lchk(1)
   integer :: ibig(1),idum
 
-
+#ifdef ONLYCOM
+  return
+#endif
 
     lchk=.false.
     ibig=0
@@ -2511,6 +2544,10 @@
   implicit none
   integer :: i, myi
   
+#ifdef ONLYCOM
+  return
+#endif
+  
   do myi = 1,natms
     i = atmbook(myi)
     fxx(i)=ext_fxx
@@ -2544,6 +2581,9 @@
 
   implicit none
   
+#ifdef ONLYCOM
+  return
+#endif
   
   engcfg=ZERO
   engke=ZERO
@@ -2568,9 +2608,13 @@
   logical, intent(in) :: debug
   real(kind=PRC), parameter :: tol=real(1.d-4,kind=PRC)
   
+#ifdef ONLYCOM
+  return
+#endif
 
   call compute_inter_force(lentry,list, debug,nstepsub)
   call compute_sidewall_force(nstepsub)
+  
  end subroutine driver_inter_force
 
  
@@ -3132,6 +3176,10 @@
   
   integer :: i, myi
   
+#ifdef ONLYCOM
+  return
+#endif
+  
   ! store initial values of position and velocity    
   do myi=1,natms
     i = atmbook(myi)
@@ -3256,6 +3304,9 @@
 ! working arrays
   real(kind=PRC), allocatable :: bxx(:),byy(:),bzz(:)
   
+#ifdef ONLYCOM
+  return
+#endif
 
 ! allocate working arrays
   fail(1:nfailmax)=0
@@ -5036,10 +5087,24 @@
  end subroutine spherical_template
  
  subroutine restore_particles
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for restore particles in atmbook
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: F. Bonaccorso
+!     last modification April 2019
+!     
+!***********************************************************************
+ 
   implicit none
   integer :: i, myi, iatm, ids, num_ext
   logical(kind=1), dimension(natms_tot) :: mine
 
+#ifdef ONLYCOM
+  goto 100
+#endif
 
 !  if (mxrank==1) return
 
@@ -5086,6 +5151,10 @@
     tzbo(i) = ZERO
    end forall
   endif
+  
+#ifdef ONLYCOM
+  100 continue
+#endif
 
   call sum_world_farr(xxx,natms_tot)
   call sum_world_farr(yyy,natms_tot)
@@ -5120,6 +5189,9 @@
    call sum_world_farr(tzbo,natms_tot)
   endif
 
+#ifdef ONLYCOM
+  return
+#endif
 
   ! Count my atoms, put them in atmbook list
   ! Also count halo atoms, at end of atmbook

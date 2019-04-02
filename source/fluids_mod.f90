@@ -2741,6 +2741,11 @@
 !***********************************************************************
   
   implicit none
+  
+#ifdef ONLYCOM
+  return
+#endif
+  
 #ifdef DIAGNHVAR
   integer, save :: iter=0
   
@@ -3010,6 +3015,10 @@
   
   integer :: i,j,k
   
+#ifdef ONLYCOM
+  return
+#endif
+  
   if(lunique_omega)return
   
   forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
@@ -3049,11 +3058,26 @@
  
 
 
-    subroutine stream_nocopy(aoptp)
-     implicit none
-     type(REALPTR), dimension(0:links), intent(inout)   :: aoptp
-     integer :: i,j,k
+ subroutine stream_nocopy(aoptp)
+    
+!***********************************************************************
+!     
+!     LBsoft subroutine for streaming the populations without
+!     a buffer copy
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: F. Bonaccorso
+!     last modification April 2019
+!     
+!***********************************************************************
 
+  implicit none
+  type(REALPTR), dimension(0:links), intent(inout)   :: aoptp
+  integer :: i,j,k
+
+#ifdef ONLYCOM
+  return
+#endif
 
       do i=maxx+1, minx, -1
          aoptp( 1)%p(i,:,:) =  aoptp( 1)%p(i-1,:,:)
@@ -3211,6 +3235,10 @@
 #endif
 #endif
 
+#ifdef ONLYCOM
+  goto 101
+#endif
+
 #ifdef ALLAFAB
 #else
   do l=1,links
@@ -3242,7 +3270,10 @@
     !end forall
   enddo
 #endif
-  
+
+#ifdef ONLYCOM
+  101 continue
+#endif 
 
 #ifdef MPI
 #ifdef ALLAFAB
@@ -3345,6 +3376,8 @@
   
   integer, save :: iter=0
   
+  
+  
   iter=iter+1
    
 #if defined(MPI)
@@ -3365,6 +3398,10 @@
 #endif
 
    call commspop(aoptp)
+   
+#ifdef ONLYCOM
+  goto 100
+#endif
 
    do l=1,links
 
@@ -3586,6 +3623,11 @@
 !max   forall(i=wminx:wmaxx,j=wminy:wmaxy,k=wminz:wmaxz) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
        forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1) aoptp(l)%p(i,j,k) = buffservice3d(i,j,k)
    enddo
+
+#ifdef ONLYCOM
+  100 continue
+#endif
+
    call commrpop(aoptp,lparticles,isfluid)
 
 #if 0
@@ -3645,7 +3687,9 @@
   real(kind=PRC) :: factR, factB
   integer, intent(in) :: nstep
   
-
+#ifdef ONLYCOM
+  return
+#endif
 
   !compute density and accumulate mass flux
   
@@ -5554,6 +5598,10 @@
   
   integer :: i,itemp,jtemp,ktemp,itemp2,jtemp2,ktemp2,idir,iopp
   
+#ifdef ONLYCOM
+  return
+#endif 
+  
   if(lparticles)then
     do i=1,npoplistbc
       itemp = poplistbc(1,i)
@@ -5647,6 +5695,10 @@
   integer ::i,j,k,l
   integer, save :: iter=0
   
+#ifdef ONLYCOM
+  return
+#endif 
+  
   iter=iter+1
   
 #ifdef ALLAMAX
@@ -5702,6 +5754,10 @@
   implicit none
   integer ::i,j,k,l
   integer, save :: iter=0
+  
+#ifdef ONLYCOM
+  return
+#endif
   
   iter=iter+1
   
@@ -6457,6 +6513,10 @@
   integer :: i,j,k,idir,inits,ends,ishift,jshift,kshift
   integer :: ishift2,jshift2,kshift2
   
+#ifdef ONLYCOM
+  return
+#endif
+  
   !not fixed bc value
   
   do idir=1,nbcdir
@@ -6566,6 +6626,10 @@
   real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
   real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
   integer, parameter :: kk = 1
+  
+#ifdef ONLYCOM
+  return
+#endif
   
   if(nbounce0>=1)then
   forall(i=1:nbounce0)
@@ -7635,6 +7699,11 @@
   integer :: i,j,k,l, ishift, jshift, kshift
   integer :: itemp, jtemp, ktemp
   integer, save :: iter=0, lminx, lminy, lminz, lmaxx, lmaxy, lmaxz
+  
+#ifdef ONLYCOM
+  return
+#endif
+  
   if(iter.eq.0) then
      lmaxx=maxx+1
      lmaxy=maxy+1
@@ -7713,6 +7782,9 @@
   REAL(kind=PRC) :: isum
   logical :: ltest(1)=.false.
   
+#ifdef ONLYCOM
+  return
+#endif
   
    if(lsingle_fluid)then
      do k=minz,maxz
@@ -7844,6 +7916,10 @@
   integer :: i,j,k
   integer, save :: io,jo,ko,ie,je,ke
   logical, save :: lfirst=.true.
+  
+#ifdef ONLYCOM
+  return
+#endif
   
   if(lfirst)then
     lfirst=.false.
@@ -8483,6 +8559,10 @@
   implicit none
   
   integer :: i,j,k
+  
+#ifdef ONLYCOM
+  return
+#endif
   
   !red fluid
   call compute_grad_on_lattice(psiR,gradpsixR,gradpsiyR,gradpsizR)
@@ -10858,6 +10938,9 @@ end subroutine compute_secbelt_density_twofluids
   implicit none
   integer :: i,j,k
   
+#ifdef ONLYCOM
+  return
+#endif
   
   forall(i=minx-nbuff:maxx+nbuff,j=miny-nbuff:maxy+nbuff,k=minz-nbuff:maxz+nbuff)
     isfluid(i,j,k)=new_isfluid(i,j,k)

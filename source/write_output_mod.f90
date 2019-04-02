@@ -470,6 +470,10 @@
   character(len=8), parameter :: mystring8='C       '
   character(len=13), parameter :: mystring13='time step    '
   
+#ifdef ONLYCOM
+  return
+#endif
+  
   if(.not. lxyzfile)return
   if(mod(istepsub,ixyzevery)/=0)return
 
@@ -572,6 +576,10 @@
   implicit none
   
   integer, intent(in) :: nstepsub
+  
+#ifdef ONLYCOM
+  return
+#endif
   
   if((.not. lvtkfile).and.(.not. lxyzfile))return
   
