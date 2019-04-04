@@ -3,6 +3,7 @@
 #define noDEBUG_FORCEINT
 #define noQUAD_FORCEINT
 
+#define ALLAFAB
 
 #define IPRC 4
 #define LPRC 4

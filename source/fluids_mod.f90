@@ -3035,7 +3035,9 @@
  
 
 
- subroutine stream_nocopy(aoptp)
+ subroutine stream_nocopy(f01sub,&
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub)
     
 !***********************************************************************
 !     
@@ -3049,7 +3051,9 @@
 !***********************************************************************
 
   implicit none
-  type(REALPTR), dimension(0:links), intent(inout)   :: aoptp
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: f01sub,f02sub,f03sub,f04sub, &
+   f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
+   f14sub,f15sub,f16sub,f17sub,f18sub
   integer :: i,j,k
 
 #ifdef ONLYCOM
@@ -3057,89 +3061,89 @@
 #endif
 
       do i=maxx+1, minx, -1
-         aoptp( 1)%p(i,:,:) =  aoptp( 1)%p(i-1,:,:)
+         f01sub(i,:,:) =  f01sub(i-1,:,:)
       enddo
       do i=minx-1, maxx
-         aoptp( 2)%p(i,:,:) =  aoptp( 2)%p(i+1,:,:)
+         f02sub(i,:,:) =  f02sub(i+1,:,:)
       enddo
 
       do j=maxy+1, miny, -1
-         aoptp( 3)%p(:,j,:) =  aoptp( 3)%p(:,j-1,:)
+         f03sub(:,j,:) =  f03sub(:,j-1,:)
       enddo
       do j=miny-1, maxy
-         aoptp( 4)%p(:,j,:) =  aoptp( 4)%p(:,j+1,:)
+         f04sub(:,j,:) =  f04sub(:,j+1,:)
       enddo
 
       do k=maxz+1, minz, -1
-         aoptp( 5)%p(:,:,k) =  aoptp( 5)%p(:,:,k-1)
+         f05sub(:,:,k) =  f05sub(:,:,k-1)
       enddo
       do k=minz-1, maxz
-         aoptp( 6)%p(:,:,k) =  aoptp( 6)%p(:,:,k+1)
+         f06sub(:,:,k) =  f06sub(:,:,k+1)
       enddo
 
       do i=maxx+1, minx, -1
        do j=maxy+1, miny, -1
-         aoptp( 7)%p(i,j,:) =  aoptp( 7)%p(i-1,j-1,:)
+         f07sub(i,j,:) =  f07sub(i-1,j-1,:)
        enddo
       enddo
       do i=minx-1, maxx
        do j=miny-1, maxy
-         aoptp( 8)%p(i,j,:) =  aoptp( 8)%p(i+1,j+1,:)
+         f08sub(i,j,:) =  f08sub(i+1,j+1,:)
        enddo
       enddo
 
       do i=minx-1, maxx
        do j=maxy+1, miny, -1
-         aoptp( 9)%p(i,j,:) =  aoptp( 9)%p(i+1,j-1,:)
+         f09sub(i,j,:) =  f09sub(i+1,j-1,:)
        enddo
       enddo
       do i=maxx+1, minx, -1
        do j=miny-1, maxy
-         aoptp( 10)%p(i,j,:) =  aoptp( 10)%p(i-1,j+1,:)
+         f10sub(i,j,:) =  f10sub(i-1,j+1,:)
        enddo
       enddo
 
       do i=maxx+1, minx, -1
        do k=maxz+1, minz, -1
-         aoptp( 11)%p(i,:,k) =  aoptp( 11)%p(i-1,:,k-1)
+         f11sub(i,:,k) =  f11sub(i-1,:,k-1)
        enddo
       enddo
       do i=minx-1, maxx
        do k=minz-1, maxz
-         aoptp( 12)%p(i,:,k) =  aoptp( 12)%p(i+1,:,k+1)
+         f12sub(i,:,k) =  f12sub(i+1,:,k+1)
        enddo
       enddo
 
       do i=minx-1, maxx
        do k=maxz+1, minz, -1
-         aoptp( 13)%p(i,:,k) =  aoptp( 13)%p(i+1,:,k-1)
+         f13sub(i,:,k) =  f13sub(i+1,:,k-1)
        enddo
       enddo
       do i=maxx+1, minx, -1
        do k=minz-1, maxz
-         aoptp( 14)%p(i,:,k) =  aoptp( 14)%p(i-1,:,k+1)
+         f14sub(i,:,k) =  f14sub(i-1,:,k+1)
        enddo
       enddo
 
       do j=maxy+1, miny, -1
        do k=maxz+1, minz, -1
-         aoptp( 15)%p(:,j,k) =  aoptp( 15)%p(:,j-1,k-1)
+         f15sub(:,j,k) =  f15sub(:,j-1,k-1)
        enddo
       enddo
       do j=miny-1, maxy
        do k=minz-1, maxz
-         aoptp( 16)%p(:,j,k) =  aoptp( 16)%p(:,j+1,k+1)
+         f16sub(:,j,k) =  f16sub(:,j+1,k+1)
        enddo
       enddo
 
       do j=miny-1, maxy
        do k=maxz+1, minz, -1
-         aoptp( 17)%p(:,j,k) =  aoptp( 17)%p(:,j+1,k-1)
+         f17sub(:,j,k) =  f17sub(:,j+1,k-1)
        enddo
       enddo
       do j=maxy+1, miny, -1
        do k=minz-1, maxz
-         aoptp( 18)%p(:,j,k) =  aoptp( 18)%p(:,j-1,k+1)
+         f18sub(:,j,k) =  f18sub(:,j-1,k+1)
        enddo
       enddo
 
@@ -3206,7 +3210,9 @@
 
   call mpirecvpops(aoptpR)
 
-  call stream_nocopy(aoptpR)
+  call stream_nocopy(f01R,&
+  f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
+  f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
 #else
   call commspop(aoptpR)
 #endif
@@ -3283,7 +3289,9 @@
 
   call mpirecvpops(aoptpB)
 
-  call stream_nocopy(aoptpB)
+  call stream_nocopy(f01B,&
+  f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
+  f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
 #else
   call commspop(aoptpB)
 #endif
