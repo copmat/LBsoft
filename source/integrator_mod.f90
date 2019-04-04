@@ -49,6 +49,8 @@
  
  implicit none
 
+ include 'mpif.h'
+
  private
  
  integer, public, protected, save :: integrator
@@ -154,6 +156,8 @@
   integer(kind=IPRC) :: i4
   logical :: newlst
   logical :: debug
+
+  real(kind(1.d0)),save :: time1, time2, elap=0,elap1=0
   
 
   !debug = nstep <= 10
@@ -163,146 +167,30 @@
 
   new_time = real(nstep,kind=PRC)*tstep
   
-  if(lparticles)then
-    if(ldiagnostic)call start_timing2("LB","build_new_isfluid")
-    call initialize_particle_force
-    call build_new_isfluid(nstep, debug)
-    if(ldiagnostic)call end_timing2("LB","build_new_isfluid")
-  endif
-  
-  if(ldiagnostic)call start_timing2("LB","initialize_force")
-  call initialize_fluid_force
-  if(ldiagnostic)call end_timing2("LB","initialize_force")
-  
-  if(ldiagnostic)call start_timing2("LB","moments_fluids")
-  call moments_fluids(nstep)
-  if(ldiagnostic)call end_timing2("LB","moments_fluids")
-  
-  if(ldiagnostic)call start_timing2("LB","driver_bc_densities")
-  call driver_bc_densities
-  if(ldiagnostic)call end_timing2("LB","driver_bc_densities")
-  
-  if(ldiagnostic)call start_timing2("LB","driver_bc_velocities")
-  call driver_bc_velocities
-  if(ldiagnostic)call end_timing2("LB","driver_bc_velocities")
-  
-  if(ldiagnostic)call start_timing2("LB","compute_omega")
-  call compute_omega
-  if(ldiagnostic)call end_timing2("LB","compute_omega")
-  
-!  if (debug) call print_all_pops2(131, "aft_compute_omega", nstep, aoptpR)
-
-  if(lparticles)then
-    if(ldiagnostic)call start_timing2("MD","inter_part_and_grid")
-    call inter_part_and_grid(nstep, lparticles, debug)
-    if(ldiagnostic)call end_timing2("MD","inter_part_and_grid")
-    
-!    if (debug) call print_all_pops2(131, "aft_inter_part_and_grid", nstep, aoptpR)
-
-    newlst=.false.
-    if(ldiagnostic)call start_timing2("MD","vertest")
-    call vertest(newlst)
-    if(ldiagnostic)call end_timing2("MD","vertest")
-    
-    if(ldiagnostic)call start_timing2("MD","driver_nlist")
-    if(newlst) call parlst
-    if(ldiagnostic)call end_timing2("MD","driver_nlist")
-    
-    if(ldiagnostic)call start_timing2("MD","driver_inter_f")
-    call initialize_particle_energy
-    call driver_inter_force(nstep, debug)
-    if(ldiagnostic)call end_timing2("MD","driver_inter_f")
-  endif
-
-!  if (debug) call print_all_pops2(131, "aft_inter_force", nstep, aoptpR)
-
-  if(lpair_SC .or. lparticles)then
-    ! Solved in inter_part_and_grid) call driver_bc_pops
-
-    if(ldiagnostic)call start_timing2("LB","compute_densities_wall")
-    call compute_densities_wall
-    if(ldiagnostic)call end_timing2("LB","compute_densities_wall")
-  endif
-!  if (debug) call print_all_pops2(131, "aft_densities_wall", nstep, aoptpR)
-    
-  if(lpair_SC)then
-    if(ldiagnostic)call start_timing2("LB","compute_psi_sc")
-    call compute_psi_sc
-    if(ldiagnostic)call end_timing2("LB","compute_psi_sc")
-    
-    if(lparticles)then
-      if(ldiagnostic)call start_timing2("MD","compute_sc_particles")
-      call compute_psi_sc_particles(nstep)
-      if(ldiagnostic)call end_timing2("MD","compute_sc_particles")
-    endif
-    
-    if(ldiagnostic)call start_timing2("LB","compute_force_sc")
-    call compute_fluid_force_sc
-    if(ldiagnostic)call end_timing2("LB","compute_force_sc")
-  endif
-  
+  time1 = MPI_Wtime()
   if(ldiagnostic)call start_timing2("LB","collision_fluids")
   call driver_collision_fluids
   if(ldiagnostic)call end_timing2("LB","collision_fluids")
-  
-  if(lbc_halfway)then
-    if(ldiagnostic)call start_timing2("LB","apply_bback_pop_hf")
-    call driver_apply_bounceback_halfway_pop
-    if(ldiagnostic)call end_timing2("LB","apply_bback_pop_hf")
-  endif
-  
-!  if (debug) call print_all_pops2(131, "bef_driver_bc_pops", nstep, aoptpR)
+  time2 = MPI_Wtime()
 
-  if(lparticles)then
-    call driver_bc_pops
+  elap = elap + time2-time1
 
-!    if (debug) call print_all_pops2(131, "aft_driver_bc_pops", nstep, aoptpR)
-
-    if(ldiagnostic)call start_timing2("IO","write_xyz")
-    call write_xyz(nstep)
-    if(ldiagnostic)call end_timing2("IO","write_xyz")
-    
-    if(ldiagnostic)call start_timing2("LB","apply_part_bback")
-    call apply_particle_bounce_back(nstep, debug)
-    if(ldiagnostic)call end_timing2("LB","apply_part_bback")
-    
-!    if (debug) call print_all_pops2(131, "aft_part_bb", nstep, aoptpR)
-
-    call merge_particle_force(nstep, debug)
-    
-    call force_particle_bounce_back(nstep, debug)
-    
-    call compute_mean_particle_force
-    
-    call store_old_pos_vel_part
-
-    if(ldiagnostic)call start_timing2("MD","integrate_lf")
-    call nve_lf(nstep, debug)
-    call merge_particle_energies
-    if(ldiagnostic)call end_timing2("MD","integrate_lf")
-
-    call restore_particles
-
-    call driver_bc_pops
-  endif
-
-  if(ldiagnostic)call start_timing2("IO","write_vtk_frame")
-   call write_vtk_frame(nstep)
-  if(ldiagnostic)call end_timing2("IO","write_vtk_frame")
-
+  time1 = MPI_Wtime()
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
   call driver_streaming_fluids(lparticles)
   if(ldiagnostic)call end_timing2("LB","streaming_fluids")
-  
-!  if (debug) call print_all_pops2(131, "bef_apply_bounceback_pop", nstep, aoptpR)
-  if(.not.lbc_halfway)then
-    if(ldiagnostic)call start_timing2("LB","apply_bback_pop")
-    call driver_apply_bounceback_pop
-    if(ldiagnostic)call end_timing2("LB","apply_bback_pop")
+  time2 = MPI_Wtime()
+
+  elap1 = elap1 + time2-time1
+
+  if(idrank==0) then
+     if (mod(nstep, 10) == 0) then 
+        write(6,*) "Time:", elap*0.1,elap1*0.1
+        elap = 0
+        elap1 = 0
+     endif
   endif
   
-!  if (debug) call print_all_pops2(131, "aft_apply_bounceback_pop", nstep, aoptpR)
-
   mytime = new_time
   
   return
