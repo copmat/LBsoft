@@ -240,7 +240,7 @@
     call driver_integrator(mytime)
     
 !   compute statistical quanities
-    ! call statistic_driver(nstep,mytime)
+    call statistic_driver(nstep,mytime)
     
 !   print on the binary file the jet bead which have hit the collector 
 !   (only for developers)
@@ -249,9 +249,9 @@
     
     
 !   print data on terminal
-    ! if(ldiagnostic)call start_timing2("IO","outprint_driver")
-    ! call outprint_driver(nstep,mytime)
-    ! if(ldiagnostic)call end_timing2("IO","outprint_driver")
+    if(ldiagnostic)call start_timing2("IO","outprint_driver")
+    call outprint_driver(nstep,mytime)
+    if(ldiagnostic)call end_timing2("IO","outprint_driver")
      
 !   print the jet geometry on the binary file (only for developers)
     !call write_dat_frame(lprintdat,130,nstep,mytime,iprintdat, &

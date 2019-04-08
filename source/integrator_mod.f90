@@ -167,30 +167,16 @@
 
   new_time = real(nstep,kind=PRC)*tstep
   
-  time1 = MPI_Wtime()
   if(ldiagnostic)call start_timing2("LB","collision_fluids")
   call driver_collision_fluids
   if(ldiagnostic)call end_timing2("LB","collision_fluids")
-  time2 = MPI_Wtime()
 
   elap = elap + time2-time1
 
-  time1 = MPI_Wtime()
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
   call driver_streaming_fluids(lparticles)
   if(ldiagnostic)call end_timing2("LB","streaming_fluids")
-  time2 = MPI_Wtime()
 
-  elap1 = elap1 + time2-time1
-
-  if(idrank==0) then
-     if (mod(nstep, 10) == 0) then 
-        write(6,*) "Time:", elap*0.1,elap1*0.1
-        elap = 0
-        elap1 = 0
-     endif
-  endif
-  
   mytime = new_time
   
   return
