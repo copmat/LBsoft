@@ -2800,10 +2800,50 @@
   real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub,usub,vsub, &
    wsub,omegas,f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,&
    f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  real(kind=PRC) :: locrho,locu,locv,locw, oneminusomega
   
   integer :: i,j,k
   
   ! forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  if (lunique_omega) then
+      oneminusomega = ONE-unique_omega
+
+      do k=minz,maxz
+       do j=miny,maxy
+        do i=minx,maxx
+
+        locrho = rhosub(i,j,k)
+        locu = usub(i,j,k)
+        locv = vsub(i,j,k)
+        locw = wsub(i,j,k)
+
+        f00sub(i,j,k)=f00sub(i,j,k)*oneminusomega + equil_pop00(locrho,locu,locv,locw) * unique_omega
+        f01sub(i,j,k)=f01sub(i,j,k)*oneminusomega + equil_pop01(locrho,locu,locv,locw) * unique_omega
+        f02sub(i,j,k)=f02sub(i,j,k)*oneminusomega + equil_pop02(locrho,locu,locv,locw) * unique_omega
+        f03sub(i,j,k)=f03sub(i,j,k)*oneminusomega + equil_pop03(locrho,locu,locv,locw) * unique_omega
+        f04sub(i,j,k)=f04sub(i,j,k)*oneminusomega + equil_pop04(locrho,locu,locv,locw) * unique_omega
+        f05sub(i,j,k)=f05sub(i,j,k)*oneminusomega + equil_pop05(locrho,locu,locv,locw) * unique_omega
+        f06sub(i,j,k)=f06sub(i,j,k)*oneminusomega + equil_pop06(locrho,locu,locv,locw) * unique_omega
+        f07sub(i,j,k)=f07sub(i,j,k)*oneminusomega + equil_pop07(locrho,locu,locv,locw) * unique_omega
+        f08sub(i,j,k)=f08sub(i,j,k)*oneminusomega + equil_pop08(locrho,locu,locv,locw) * unique_omega
+        f09sub(i,j,k)=f09sub(i,j,k)*oneminusomega + equil_pop09(locrho,locu,locv,locw) * unique_omega
+        f10sub(i,j,k)=f10sub(i,j,k)*oneminusomega + equil_pop10(locrho,locu,locv,locw) * unique_omega
+        f11sub(i,j,k)=f11sub(i,j,k)*oneminusomega + equil_pop11(locrho,locu,locv,locw) * unique_omega
+        f12sub(i,j,k)=f12sub(i,j,k)*oneminusomega + equil_pop12(locrho,locu,locv,locw) * unique_omega
+        f13sub(i,j,k)=f13sub(i,j,k)*oneminusomega + equil_pop13(locrho,locu,locv,locw) * unique_omega
+        f14sub(i,j,k)=f14sub(i,j,k)*oneminusomega + equil_pop14(locrho,locu,locv,locw) * unique_omega
+        f15sub(i,j,k)=f15sub(i,j,k)*oneminusomega + equil_pop15(locrho,locu,locv,locw) * unique_omega
+        f16sub(i,j,k)=f16sub(i,j,k)*oneminusomega + equil_pop16(locrho,locu,locv,locw) * unique_omega
+        f17sub(i,j,k)=f17sub(i,j,k)*oneminusomega + equil_pop17(locrho,locu,locv,locw) * unique_omega
+        f18sub(i,j,k)=f18sub(i,j,k)*oneminusomega + equil_pop18(locrho,locu,locv,locw) * unique_omega
+        enddo
+       enddo
+      enddo
+
+    return
+  endif
+
+  ! Variable omega
 
   do k=minz,maxz
    do j=miny,maxy
@@ -3058,7 +3098,9 @@
  
 
 
- subroutine stream_nocopy(aoptp)
+  subroutine stream_nocopy(f01sub,&
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub)
     
 !***********************************************************************
 !     
@@ -3072,7 +3114,9 @@
 !***********************************************************************
 
   implicit none
-  type(REALPTR), dimension(0:links), intent(inout)   :: aoptp
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: f01sub,f02sub,f03sub,f04sub, &
+   f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
+   f14sub,f15sub,f16sub,f17sub,f18sub
   integer :: i,j,k
 
 #ifdef ONLYCOM
@@ -3080,89 +3124,89 @@
 #endif
 
       do i=maxx+1, minx, -1
-         aoptp( 1)%p(i,:,:) =  aoptp( 1)%p(i-1,:,:)
+         f01sub(i,:,:) =  f01sub(i-1,:,:)
       enddo
       do i=minx-1, maxx
-         aoptp( 2)%p(i,:,:) =  aoptp( 2)%p(i+1,:,:)
+         f02sub(i,:,:) =  f02sub(i+1,:,:)
       enddo
 
       do j=maxy+1, miny, -1
-         aoptp( 3)%p(:,j,:) =  aoptp( 3)%p(:,j-1,:)
+         f03sub(:,j,:) =  f03sub(:,j-1,:)
       enddo
       do j=miny-1, maxy
-         aoptp( 4)%p(:,j,:) =  aoptp( 4)%p(:,j+1,:)
+         f04sub(:,j,:) =  f04sub(:,j+1,:)
       enddo
 
       do k=maxz+1, minz, -1
-         aoptp( 5)%p(:,:,k) =  aoptp( 5)%p(:,:,k-1)
+         f05sub(:,:,k) =  f05sub(:,:,k-1)
       enddo
       do k=minz-1, maxz
-         aoptp( 6)%p(:,:,k) =  aoptp( 6)%p(:,:,k+1)
+         f06sub(:,:,k) =  f06sub(:,:,k+1)
       enddo
 
       do i=maxx+1, minx, -1
        do j=maxy+1, miny, -1
-         aoptp( 7)%p(i,j,:) =  aoptp( 7)%p(i-1,j-1,:)
+         f07sub(i,j,:) =  f07sub(i-1,j-1,:)
        enddo
       enddo
       do i=minx-1, maxx
        do j=miny-1, maxy
-         aoptp( 8)%p(i,j,:) =  aoptp( 8)%p(i+1,j+1,:)
+         f08sub(i,j,:) =  f08sub(i+1,j+1,:)
        enddo
       enddo
 
       do i=minx-1, maxx
        do j=maxy+1, miny, -1
-         aoptp( 9)%p(i,j,:) =  aoptp( 9)%p(i+1,j-1,:)
+         f09sub(i,j,:) =  f09sub(i+1,j-1,:)
        enddo
       enddo
       do i=maxx+1, minx, -1
        do j=miny-1, maxy
-         aoptp( 10)%p(i,j,:) =  aoptp( 10)%p(i-1,j+1,:)
+         f10sub(i,j,:) =  f10sub(i-1,j+1,:)
        enddo
       enddo
 
       do i=maxx+1, minx, -1
        do k=maxz+1, minz, -1
-         aoptp( 11)%p(i,:,k) =  aoptp( 11)%p(i-1,:,k-1)
+         f11sub(i,:,k) =  f11sub(i-1,:,k-1)
        enddo
       enddo
       do i=minx-1, maxx
        do k=minz-1, maxz
-         aoptp( 12)%p(i,:,k) =  aoptp( 12)%p(i+1,:,k+1)
+         f12sub(i,:,k) =  f12sub(i+1,:,k+1)
        enddo
       enddo
 
       do i=minx-1, maxx
        do k=maxz+1, minz, -1
-         aoptp( 13)%p(i,:,k) =  aoptp( 13)%p(i+1,:,k-1)
+         f13sub(i,:,k) =  f13sub(i+1,:,k-1)
        enddo
       enddo
       do i=maxx+1, minx, -1
        do k=minz-1, maxz
-         aoptp( 14)%p(i,:,k) =  aoptp( 14)%p(i-1,:,k+1)
+         f14sub(i,:,k) =  f14sub(i-1,:,k+1)
        enddo
       enddo
 
       do j=maxy+1, miny, -1
        do k=maxz+1, minz, -1
-         aoptp( 15)%p(:,j,k) =  aoptp( 15)%p(:,j-1,k-1)
+         f15sub(:,j,k) =  f15sub(:,j-1,k-1)
        enddo
       enddo
       do j=miny-1, maxy
        do k=minz-1, maxz
-         aoptp( 16)%p(:,j,k) =  aoptp( 16)%p(:,j+1,k+1)
+         f16sub(:,j,k) =  f16sub(:,j+1,k+1)
        enddo
       enddo
 
       do j=miny-1, maxy
        do k=maxz+1, minz, -1
-         aoptp( 17)%p(:,j,k) =  aoptp( 17)%p(:,j+1,k-1)
+         f17sub(:,j,k) =  f17sub(:,j+1,k-1)
        enddo
       enddo
       do j=maxy+1, miny, -1
        do k=minz-1, maxz
-         aoptp( 18)%p(:,j,k) =  aoptp( 18)%p(:,j-1,k+1)
+         f18sub(:,j,k) =  f18sub(:,j-1,k+1)
        enddo
       enddo
 
@@ -3229,7 +3273,9 @@
 
   call mpirecvpops(aoptpR)
 
-  call stream_nocopy(aoptpR)
+  call stream_nocopy(f01R,&
+  f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
+  f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
 #else
   call commspop(aoptpR)
 #endif
@@ -3306,7 +3352,9 @@
 
   call mpirecvpops(aoptpB)
 
-  call stream_nocopy(aoptpB)
+  call stream_nocopy(f01B,&
+  f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
+  f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
 #else
   call commspop(aoptpB)
 #endif
@@ -3682,11 +3730,12 @@
 !***********************************************************************
   
   implicit none
-  integer :: i,j,k,l
-  real(kind=PRC) :: ddx,ddy,ddz,ddxB,ddyB,ddzB
-  real(kind=PRC) :: factR, factB
   integer, intent(in) :: nstep
+  integer :: i,j,k,l
+  real(kind=PRC) :: factR, factB
+  real(kind=PRC) :: locrho,locu,locv,locw, invrho
   
+
 #ifdef ONLYCOM
   return
 #endif
@@ -3701,52 +3750,46 @@
    do k=minz,maxz
     do j=miny,maxy
      do i=minx,maxx
-      rhoR(i,j,k) = &
+      locrho = &
  f00R(i,j,k) + f01R(i,j,k) + f02R(i,j,k) + f03R(i,j,k) + f04R(i,j,k) + &
  f05R(i,j,k) + f06R(i,j,k) + f07R(i,j,k) + f08R(i,j,k) + f09R(i,j,k) + &
  f10R(i,j,k) + f11R(i,j,k) + f12R(i,j,k) + f13R(i,j,k) + f14R(i,j,k) + &
  f15R(i,j,k) + f16R(i,j,k) + f17R(i,j,k) + f18R(i,j,k)
 
-      u(i,j,k)    = &
+      invrho = ONE / locrho
+
+      locu    = invrho * ( &
  f01R(i,j,k) - f02R(i,j,k) + f07R(i,j,k) - f08R(i,j,k) - f09R(i,j,k) + &
- f10R(i,j,k) + f11R(i,j,k) - f12R(i,j,k) - f13R(i,j,k) + f14R(i,j,k)
+ f10R(i,j,k) + f11R(i,j,k) - f12R(i,j,k) - f13R(i,j,k) + f14R(i,j,k) )
 
-      v(i,j,k)    = &
+      locv    = invrho * ( &
  f03R(i,j,k) - f04R(i,j,k) + f07R(i,j,k) - f08R(i,j,k) + f09R(i,j,k) - &
- f10R(i,j,k) + f15R(i,j,k) - f16R(i,j,k) - f17R(i,j,k) + f18R(i,j,k)
+ f10R(i,j,k) + f15R(i,j,k) - f16R(i,j,k) - f17R(i,j,k) + f18R(i,j,k) )
 
-      w(i,j,k)    = &
+      locw    = invrho * ( &
  f05R(i,j,k) - f06R(i,j,k) + f11R(i,j,k) - f12R(i,j,k) + f13R(i,j,k) - &
- f14R(i,j,k) + f15R(i,j,k) - f16R(i,j,k) + f17R(i,j,k) - f18R(i,j,k)
+ f14R(i,j,k) + f15R(i,j,k) - f16R(i,j,k) + f17R(i,j,k) - f18R(i,j,k) )
+
+    rhoR(i,j,k) = locrho
+    ! if (isfluid(i,j,k)==1) then
+    u(i,j,k) = locu
+    v(i,j,k) = locv
+    w(i,j,k) = locw
+
       enddo
      enddo
     enddo
     !end forall
 
-    do k=minz,maxz
-     do j=miny,maxy
-      do i=minx,maxx
-        if(rhoR(i,j,k)==ZERO .and. isfluid(i,j,k)==1)then
-            write (6,*) "zero rho at:i,j,k=", i,j,k,  rhoR(i,j,k)
-        endif
-      enddo
-     enddo
-    enddo
-
-    !compute speed from mass flux
-    !forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    do k=minz,maxz
-     do j=miny,maxy
-      do i=minx,maxx
-       if (isfluid(i,j,k)==1) then
-      u(i,j,k) = u(i,j,k)/rhoR(i,j,k)
-      v(i,j,k) = v(i,j,k)/rhoR(i,j,k)
-      w(i,j,k) = w(i,j,k)/rhoR(i,j,k)
-        endif
-      enddo
-     enddo
-    enddo
-    ! end forall
+!    do k=minz,maxz
+!     do j=miny,maxy
+!      do i=minx,maxx
+!        if(rhoR(i,j,k)==ZERO .and. isfluid(i,j,k)==1)then
+!            write (6,*) "zero rho at:i,j,k=", i,j,k,  rhoR(i,j,k)
+!        endif
+!      enddo
+!     enddo
+!    enddo
     
     return
   endif
