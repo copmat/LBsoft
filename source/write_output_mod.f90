@@ -1082,7 +1082,7 @@
   integer :: i,j,myi
   integer, parameter :: ioxyz=280
   character(len=8), parameter :: mystring8='C       '
-  real(kind=PRC) :: dtemp(3)
+  real(kind=PRC) :: dtemp(3), qtemp(0:3)
   
   
   if(.not.lparticles)return
@@ -1105,7 +1105,8 @@
       if(lrotate)then
         do myi=1,natms
           i = atmbook(myi)
-          call q2eul((/q0(i),q1(i),q2(i),q3(i)/),dtemp(1),dtemp(3),dtemp(2))
+          qtemp = [ q0(i),q1(i),q2(i),q3(i) ]
+          call q2eul(qtemp,dtemp(1),dtemp(3),dtemp(2))
           write(ioxyz,'(a8,9g16.8,i10)')mystring8,xxx(i),yyy(i),zzz(i), &
            vxx(i),vyy(i),vzz(i),dtemp(1:3),i
         enddo

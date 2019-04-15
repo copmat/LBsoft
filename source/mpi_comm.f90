@@ -901,10 +901,6 @@ contains
     buf_sendrecv2_isfluid( 1:ldimyz, 1) = RESHAPE(dtemp(minx, miny:maxy,minz:maxz), [ ldimyz ] )
     call MPI_ISEND( buf_sendrecv1_isfluid(1,1), ldimyz, MPI_INTEGER, neigh(1), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(1), ierr)
-    call MPI_ISEND( buf_sendrecv1_isfluid(1,1), ldimyz, MPI_INTEGER, neigh(1), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(1), ierr)
-    call MPI_ISEND( buf_sendrecv2_isfluid(1,1), ldimyz, MPI_INTEGER, neigh(2), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(2), ierr)
     call MPI_ISEND( buf_sendrecv2_isfluid(1,1), ldimyz, MPI_INTEGER, neigh(2), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(2), ierr)
 
@@ -913,10 +909,6 @@ contains
     buf_sendrecv4_isfluid( 1:ldimxz, 1) = RESHAPE(dtemp(minx:maxx, miny, minz:maxz), [ ldimxz ] )
     call MPI_ISEND( buf_sendrecv3_isfluid(1,1), ldimxz, MPI_INTEGER, neigh(3), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(3), ierr)
-    call MPI_ISEND( buf_sendrecv3_isfluid(1,1), ldimxz, MPI_INTEGER, neigh(3), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(3), ierr)
-    call MPI_ISEND( buf_sendrecv4_isfluid(1,1), ldimxz, MPI_INTEGER, neigh(4), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(4), ierr)
     call MPI_ISEND( buf_sendrecv4_isfluid(1,1), ldimxz, MPI_INTEGER, neigh(4), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(4), ierr)
 
@@ -925,10 +917,6 @@ contains
     buf_sendrecv6_isfluid( 1:ldimxy, 1) = RESHAPE(dtemp(minx:maxx, miny:maxy, minz), [ ldimxy ] )
     call MPI_ISEND( buf_sendrecv5_isfluid(1,1), ldimxy, MPI_INTEGER, neigh(5), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(5), ierr)
-    call MPI_ISEND( buf_sendrecv5_isfluid(1,1), ldimxy, MPI_INTEGER, neigh(5), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(5), ierr)
-    call MPI_ISEND( buf_sendrecv6_isfluid(1,1), ldimxy, MPI_INTEGER, neigh(6), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(6), ierr)
     call MPI_ISEND( buf_sendrecv6_isfluid(1,1), ldimxy, MPI_INTEGER, neigh(6), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(6), ierr)
 
@@ -937,10 +925,6 @@ contains
     buf_sendrecv8_isfluid(1:ldims(3), 1) = dtemp(minx,miny, minz:maxz)
     call MPI_ISEND( buf_sendrecv7_isfluid(1,1), ldims(3), MPI_INTEGER, neigh(7), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(7), ierr)
-    call MPI_ISEND( buf_sendrecv7_isfluid(1,1), ldims(3), MPI_INTEGER, neigh(7), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(7), ierr)
-    call MPI_ISEND( buf_sendrecv8_isfluid(1,1), ldims(3), MPI_INTEGER, neigh(8), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(8), ierr)
     call MPI_ISEND( buf_sendrecv8_isfluid(1,1), ldims(3), MPI_INTEGER, neigh(8), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(8), ierr)
 
@@ -948,10 +932,6 @@ contains
     buf_sendrecv10_isfluid(1:ldims(3), 1) = dtemp(maxx,miny, minz:maxz)
     call MPI_ISEND( buf_sendrecv9_isfluid(1,1),  ldims(3), MPI_INTEGER, neigh(9),  & 
             id_rank+fldtag, cube_comm, send_req_isfluid(9), ierr)
-    call MPI_ISEND( buf_sendrecv9_isfluid(1,1),  ldims(3), MPI_INTEGER, neigh(9),  & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(9), ierr)
-    call MPI_ISEND( buf_sendrecv10_isfluid(1,1), ldims(3), MPI_INTEGER, neigh(10), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(10), ierr)
     call MPI_ISEND( buf_sendrecv10_isfluid(1,1), ldims(3), MPI_INTEGER, neigh(10), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(10), ierr)
 
@@ -960,10 +940,6 @@ contains
     buf_sendrecv12_isfluid(1:ldims(2), 1) = dtemp(minx, miny:maxy, minz)
     call MPI_ISEND( buf_sendrecv11_isfluid(1,1), ldims(2), MPI_INTEGER, neigh(11), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(11), ierr)
-    call MPI_ISEND( buf_sendrecv11_isfluid(1,1), ldims(2), MPI_INTEGER, neigh(11), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(11), ierr)
-    call MPI_ISEND( buf_sendrecv12_isfluid(1,1), ldims(2), MPI_INTEGER, neigh(12), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(12), ierr)
     call MPI_ISEND( buf_sendrecv12_isfluid(1,1), ldims(2), MPI_INTEGER, neigh(12), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(12), ierr)
 
@@ -971,10 +947,6 @@ contains
     buf_sendrecv14_isfluid(1:ldims(2), 1) = dtemp(maxx, miny:maxy, minz)
     call MPI_ISEND( buf_sendrecv13_isfluid(1,1), ldims(2), MPI_INTEGER, neigh(13), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(13), ierr)
-    call MPI_ISEND( buf_sendrecv13_isfluid(1,1), ldims(2), MPI_INTEGER, neigh(13), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(13), ierr)
-    call MPI_ISEND( buf_sendrecv14_isfluid(1,1), ldims(2), MPI_INTEGER, neigh(14), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(14), ierr)
     call MPI_ISEND( buf_sendrecv14_isfluid(1,1), ldims(2), MPI_INTEGER, neigh(14), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(14), ierr)
 
@@ -983,10 +955,6 @@ contains
     buf_sendrecv16_isfluid(1:ldims(1), 1) = dtemp(minx:maxx, miny, minz)
     call MPI_ISEND( buf_sendrecv15_isfluid(1,1), ldims(1), MPI_INTEGER, neigh(15), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(15), ierr)
-    call MPI_ISEND( buf_sendrecv15_isfluid(1,1), ldims(1), MPI_INTEGER, neigh(15), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(15), ierr)
-    call MPI_ISEND( buf_sendrecv16_isfluid(1,1), ldims(1), MPI_INTEGER, neigh(16), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(16), ierr)
     call MPI_ISEND( buf_sendrecv16_isfluid(1,1), ldims(1), MPI_INTEGER, neigh(16), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(16), ierr)
 
@@ -994,10 +962,6 @@ contains
     buf_sendrecv18_isfluid(1:ldims(1), 1) = dtemp(minx:maxx, maxy, minz)
     call MPI_ISEND( buf_sendrecv17_isfluid(1,1), ldims(1), MPI_INTEGER, neigh(17), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(17), ierr)
-    call MPI_ISEND( buf_sendrecv17_isfluid(1,1), ldims(1), MPI_INTEGER, neigh(17), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(17), ierr)
-    call MPI_ISEND( buf_sendrecv18_isfluid(1,1), ldims(1), MPI_INTEGER, neigh(18), & 
-            id_rank+fldtag, cube_comm, send_req_isfluid(18), ierr)
     call MPI_ISEND( buf_sendrecv18_isfluid(1,1), ldims(1), MPI_INTEGER, neigh(18), & 
             id_rank+fldtag, cube_comm, send_req_isfluid(18), ierr)
 
