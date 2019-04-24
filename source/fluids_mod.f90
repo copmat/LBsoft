@@ -9241,8 +9241,14 @@
        k>=kmin .and. k<=kmax)then
         call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
            otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,aoptpR, debug,iatm, A, l)
-        if (debug) write(iounit(1),*) __FILE__,__LINE__, "i,j,k=", i,j,k, "xx,..", xx,yy,zz, &
+        if (debug) then
+	 if(lrotate) then
+	   write(iounit(1),*) __FILE__,__LINE__, "i,j,k=", i,j,k, "xx,..", xx,yy,zz, &
                 "vx,..",vx,vy,vz, rtemp,otemp
+	 else
+	   write(iounit(1),*) __FILE__,__LINE__, "i,j,k=", i,j,k, "xx,..", xx,yy,zz, &
+                "vx,..",vx,vy,vz
+	endif
       endif
 
       !the fluid bounce back is local so I have to do it
@@ -10414,9 +10420,14 @@
           endif
 
           if (debug) then
+          if(lrotate)then
             write (iounit(1),*) i,j,k, &
                     "fx,fy,..", fx(iatm),fy(iatm),fz(iatm), "tx,ty,..", tx(iatm),ty(iatm),tz(iatm), &
                     "rho",rhoR(i,j,k)
+          else
+            write (iounit(1),*) i,j,k, &
+                    "fx,fy,..", fx(iatm),fy(iatm),fz(iatm), "rho",rhoR(i,j,k)
+          endif
           endif
 
         endif
