@@ -2088,10 +2088,18 @@
   if (debug) call openLogFile(nstep, "mergeforce", 118)
   do myi=1,natms
     iatm=atmbook(myi)
-    if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, &
+    if (debug) then
+     if(lrotate)then
+       write (118,*) __FILE__,__LINE__, "iatm=", iatm, &
         "f=", fxx(iatm),fyy(iatm),fzz(iatm), &
         "f bb=", fxb(iatm),fyb(iatm),fzb(iatm), &
         "t bb=", txb(iatm),tyb(iatm),tzb(iatm)
+     else
+       write (118,*) __FILE__,__LINE__, "iatm=", iatm, &
+        "f=", fxx(iatm),fyy(iatm),fzz(iatm), &
+        "f bb=", fxb(iatm),fyb(iatm),fzb(iatm)
+     endif
+    endif
   enddo
   if (debug) close(118)
 
