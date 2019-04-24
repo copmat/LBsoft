@@ -5129,21 +5129,12 @@
     vyy(i) = 0
     vzz(i) = 0
 
-    q0(i) = 0
-    q1(i) = 0
-    q2(i) = 0
-    q3(i) = 0
-
     xxo(i) = 0
     yyo(i) = 0
     zzo(i) = 0
     vxo(i) = 0
     vyo(i) = 0
     vzo(i) = 0
-
-    oxx(i) = ZERO
-    oyy(i) = ZERO
-    ozz(i) = ZERO
 
     fxbo(i) = ZERO
     fybo(i) = ZERO
@@ -5155,6 +5146,15 @@
     txbo(i) = ZERO
     tybo(i) = ZERO
     tzbo(i) = ZERO
+
+    q0(i) = 0
+    q1(i) = 0
+    q2(i) = 0
+    q3(i) = 0
+
+    oxx(i) = ZERO
+    oyy(i) = ZERO
+    ozz(i) = ZERO
    end forall
   endif
   
