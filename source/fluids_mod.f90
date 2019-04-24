@@ -9248,6 +9248,7 @@
 	 else
 	   write(iounit(1),*) __FILE__,__LINE__, "i,j,k=", i,j,k, "xx,..", xx,yy,zz, &
                 "vx,..",vx,vy,vz
+	 endif
 	endif
       endif
 
