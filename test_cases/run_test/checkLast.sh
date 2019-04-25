@@ -10,9 +10,9 @@ tests="2D_Poiseuille_gradP_xy 2D_Poiseuille_gradP_xz 2D_Poiseuille_gradP_yz 2D_P
 
 for i in $tests
 do
+	cd $curDir; cd ../$i
 	if [ -e output000000.map ]; then
 		echo $i
-		cd $curDir; cd ../$i
 		grep "components" input.dat
 		grep "MD" input.dat
 
