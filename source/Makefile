@@ -25,6 +25,7 @@ all:
 	@echo "intel                              "
 	@echo "intel-mpi                          "
 	@echo "intel-mpi-skylake                  "
+	@echo "intel-mpidebugger		  "
 	@echo "                                   "
 	@echo "Possible choices for debugging are:"
 	@echo "                                   "
@@ -33,23 +34,7 @@ all:
 	@echo "                                   "
 	@echo "Please examine Makefile for further details "
 
-help:
-	@echo "help: List of possible target machine"
-	@echo "Possible choices are:              "
-	@echo "                                   "
-	@echo "gfortran                           "
-	@echo "gfortran-mpi                       "
-	@echo "intel                              "
-	@echo "intel-mpi                          "
-	@echo "intel-mpi-fast                     "
-	@echo "intel-mpi-skylake                  "
-	@echo "                                   "
-	@echo "Possible choices for debugging are:"
-	@echo "                                   "
-	@echo "gfortran-debugger                  "
-	@echo "gfortran-mpidebugger               "
-	@echo "                                   "
-	@echo "Please examine Makefile for further details "
+help: all
 	
 gfortran:
 	$(MAKE) CC=gcc \
