@@ -1500,7 +1500,7 @@
   enddo
   natms_ext= natms + num_ext
 
-#if 1
+#if 0
   call print_all_particles(100,'atomSetup',1)
 #endif
   
