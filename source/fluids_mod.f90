@@ -3960,7 +3960,7 @@
 
     if (isfluid(i,j,k)==1) then
       rhoR(i,j,k) = locrhor
-      rhoR(i,j,k) = locrhob
+      rhoB(i,j,k) = locrhob
       weight_RB = ONE / (locrhor * factR + locrhob * factB)
       u(i,j,k) = locu * weight_RB
       v(i,j,k) = locv * weight_RB
