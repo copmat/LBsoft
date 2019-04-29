@@ -2812,6 +2812,8 @@
        do j=miny,maxy
         do i=minx,maxx
 
+        if (isfluid(i,j,k)/=1) cycle
+
         locrho = rhosub(i,j,k)
         locu = usub(i,j,k)
         locv = vsub(i,j,k)
@@ -2848,6 +2850,9 @@
   do k=minz,maxz
    do j=miny,maxy
     do i=minx,maxx
+
+    if (isfluid(i,j,k)/=1) cycle
+
     f00sub(i,j,k)=f00sub(i,j,k)+omegas(i,j,k)* &
      (equil_pop00(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))- &
      f00sub(i,j,k))
@@ -9022,17 +9027,33 @@
   call compute_grad_on_lattice(psiB,gradpsixB,gradpsiyB,gradpsizB)
   
   !red fluid
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  !forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  do k=minz,maxz
+   do j=miny,maxy
+    do i=minx,maxx
+
+        if (isfluid(i,j,k)/=1) cycle
     fuR(i,j,k) = fuR(i,j,k) - pair_SC*psiR(i,j,k)*gradpsixB(i,j,k)
     fvR(i,j,k) = fvR(i,j,k) - pair_SC*psiR(i,j,k)*gradpsiyB(i,j,k)
     fwR(i,j,k) = fwR(i,j,k) - pair_SC*psiR(i,j,k)*gradpsizB(i,j,k)
-  end forall
+      enddo
+   enddo
+  enddo
+  !end forall
   !blue fluid
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  !forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  do k=minz,maxz
+   do j=miny,maxy
+    do i=minx,maxx
+
+        if (isfluid(i,j,k)/=1) cycle
     fuB(i,j,k) = fuB(i,j,k) - pair_SC*psiB(i,j,k)*gradpsixR(i,j,k)
     fvB(i,j,k) = fvB(i,j,k) - pair_SC*psiB(i,j,k)*gradpsiyR(i,j,k)
     fwB(i,j,k) = fwB(i,j,k) - pair_SC*psiB(i,j,k)*gradpsizR(i,j,k)
-  end forall
+    enddo
+   enddo
+  enddo
+  !end forall
   
   return
   
@@ -9061,7 +9082,12 @@
   
 #if LATTICE==319
   !tolti gli zeri su dex dey dez con pazienza
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  !forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  do k=minz,maxz
+   do j=miny,maxy
+    do i=minx,maxx
+
+        if (isfluid(i,j,k)/=1) cycle
     mygradx(i,j,k)= &
      myarr(i+ex(1),j+ey(1),k+ez(1))*p(1)*dex(1)+ & !01
      myarr(i+ex(2),j+ey(2),k+ez(2))*p(2)*dex(2)+ & !02
@@ -9073,9 +9099,18 @@
      myarr(i+ex(12),j+ey(12),k+ez(12))*p(12)*dex(12)+ & !12
      myarr(i+ex(13),j+ey(13),k+ez(13))*p(13)*dex(13)+ & !13
      myarr(i+ex(14),j+ey(14),k+ez(14))*p(14)*dex(14)    !14
-  end forall
+    enddo
+   enddo
+  enddo
+  !end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  !forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  do k=minz,maxz
+   do j=miny,maxy
+    do i=minx,maxx
+
+        if (isfluid(i,j,k)/=1) cycle
+
     mygrady(i,j,k)= &
      myarr(i+ex(3),j+ey(3),k+ez(3))*p(3)*dey(3)+ & !03
      myarr(i+ex(4),j+ey(4),k+ez(4))*p(4)*dey(4)+ & !04
@@ -9087,9 +9122,18 @@
      myarr(i+ex(16),j+ey(16),k+ez(16))*p(16)*dey(16)+ & !16
      myarr(i+ex(17),j+ey(17),k+ez(17))*p(17)*dey(17)+ & !17
      myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dey(18)    !18
-  end forall
+    enddo
+   enddo
+  enddo
+  !end forall
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  !forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  do k=minz,maxz
+   do j=miny,maxy
+    do i=minx,maxx
+
+        if (isfluid(i,j,k)/=1) cycle
+
     mygradz(i,j,k)= &
      myarr(i+ex(5),j+ey(5),k+ez(5))*p(5)*dez(5)+ & !05
      myarr(i+ex(6),j+ey(6),k+ez(6))*p(6)*dez(6)+ & !06
@@ -9101,7 +9145,10 @@
      myarr(i+ex(16),j+ey(16),k+ez(16))*p(16)*dez(16)+ & !16
      myarr(i+ex(17),j+ey(17),k+ez(17))*p(17)*dez(17)+ & !17
      myarr(i+ex(18),j+ey(18),k+ez(18))*p(18)*dez(18)    !18
-  end forall
+    enddo
+   enddo
+  enddo
+  !end forall
 #else
   !occhio gli zeri su dex dey dez andrebbero tolti con pazienza
   forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
