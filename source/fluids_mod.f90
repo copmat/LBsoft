@@ -3848,6 +3848,7 @@
   integer :: i,j,k,l
   real(kind=PRC) :: factR, factB
   real(kind=PRC) :: locrho,locu,locv,locw, invrho
+  real(kind=PRC) :: locrhor, locrhob, weight_RB
   real(kind=PRC) :: ddx,ddy,ddz,ddxB,ddyB,ddzB
   
 
@@ -3920,47 +3921,68 @@
   factR = ONE/tauR
   factB = ONE/tauB
 
-    forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-      rhoR(i,j,k) = &
+   ! forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+   do k=minz,maxz
+    do j=miny,maxy
+     do i=minx,maxx
+      locrhor = &
  f00R(i,j,k) + f01R(i,j,k) + f02R(i,j,k) + f03R(i,j,k) + f04R(i,j,k) + &
  f05R(i,j,k) + f06R(i,j,k) + f07R(i,j,k) + f08R(i,j,k) + f09R(i,j,k) + &
  f10R(i,j,k) + f11R(i,j,k) + f12R(i,j,k) + f13R(i,j,k) + f14R(i,j,k) + &
  f15R(i,j,k) + f16R(i,j,k) + f17R(i,j,k) + f18R(i,j,k)
 
-      rhoB(i,j,k) = &
+      locrhob = &
  f00B(i,j,k) + f01B(i,j,k) + f02B(i,j,k) + f03B(i,j,k) + f04B(i,j,k) + &
  f05B(i,j,k) + f06B(i,j,k) + f07B(i,j,k) + f08B(i,j,k) + f09B(i,j,k) + &
  f10B(i,j,k) + f11B(i,j,k) + f12B(i,j,k) + f13B(i,j,k) + f14B(i,j,k) + &
  f15B(i,j,k) + f16B(i,j,k) + f17B(i,j,k) + f18B(i,j,k)
 
-      u(i,j,k)  = factR * ( &
+      locu  = factR * ( &
  f01R(i,j,k) - f02R(i,j,k) + f07R(i,j,k) - f08R(i,j,k) - f09R(i,j,k) + &
  f10R(i,j,k) + f11R(i,j,k) - f12R(i,j,k) - f13R(i,j,k) + f14R(i,j,k) ) + &
       factB * ( &
  f01B(i,j,k) - f02B(i,j,k) + f07B(i,j,k) - f08B(i,j,k) - f09B(i,j,k) + &
  f10B(i,j,k) + f11B(i,j,k) - f12B(i,j,k) - f13B(i,j,k) + f14B(i,j,k) )
 
-      v(i,j,k)    = factR * ( &
+      locv    = factR * ( &
  f03R(i,j,k) - f04R(i,j,k) + f07R(i,j,k) - f08R(i,j,k) + f09R(i,j,k) - &
  f10R(i,j,k) + f15R(i,j,k) - f16R(i,j,k) - f17R(i,j,k) + f18R(i,j,k) ) + &
         factB * ( &
  f03B(i,j,k) - f04B(i,j,k) + f07B(i,j,k) - f08B(i,j,k) + f09B(i,j,k) - &
  f10B(i,j,k) + f15B(i,j,k) - f16B(i,j,k) - f17B(i,j,k) + f18B(i,j,k) )
 
-      w(i,j,k)    = factR * ( &
+      locw    = factR * ( &
  f05R(i,j,k) - f06R(i,j,k) + f11R(i,j,k) - f12R(i,j,k) + f13R(i,j,k) - &
  f14R(i,j,k) + f15R(i,j,k) - f16R(i,j,k) + f17R(i,j,k) - f18R(i,j,k) ) + &
         factB * ( &
  f05B(i,j,k) - f06B(i,j,k) + f11B(i,j,k) - f12B(i,j,k) + f13B(i,j,k) - &
  f14B(i,j,k) + f15B(i,j,k) - f16B(i,j,k) + f17B(i,j,k) - f18B(i,j,k) )
-    end forall
+
+    if (isfluid(i,j,k)==1) then
+      rhoR(i,j,k) = locrhor
+      rhoR(i,j,k) = locrhob
+      weight_RB = ONE / (locrhor * factR + locrhob * factB)
+      u(i,j,k) = locu * weight_RB
+      v(i,j,k) = locv * weight_RB
+      w(i,j,k) = locw * weight_RB
+    else
+      rhoR(i,j,k) = ZERO
+      rhoB(i,j,k) = ZERO
+      u(i,j,k) = ZERO
+      v(i,j,k) = ZERO
+      w(i,j,k) = ZERO
+    endif
+      enddo
+     enddo
+    enddo
+    !end forall
   
   !compute speed from mass flux
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    u(i,j,k) = u(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
-    v(i,j,k) = v(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
-    w(i,j,k) = w(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
-  end forall
+  ! forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  !   u(i,j,k) = u(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
+  !   v(i,j,k) = v(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
+  !   w(i,j,k) = w(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
+  !end forall
 #else
   forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
     rhoR(i,j,k) = ZERO
