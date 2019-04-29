@@ -2998,9 +2998,9 @@
         locfv = fvsub(i,j,k)*t_LB / locrho + locv
         locfw = fwsub(i,j,k)*t_LB / locrho + locw
 
-        fusub(i,j,k) = locfu
-        fvsub(i,j,k) = locfv
-        fwsub(i,j,k) = locfw
+        ! fusub(i,j,k) = locfu
+        ! fvsub(i,j,k) = locfv
+        ! fwsub(i,j,k) = locfw
 
     f00sub(i,j,k)=oneminusomega*(f00sub(i,j,k)- equil_pop00(locrho,locu,locv,locw))+ &
      equil_pop00(locrho,locfu,locfv,locfw)
