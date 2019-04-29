@@ -2953,7 +2953,8 @@
    wsub,fusub,fvsub,fwsub,omegas,f00sub,f01sub,f02sub,f03sub,f04sub, &
    f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
    f14sub,f15sub,f16sub,f17sub,f18sub
-  real(kind=PRC) :: locrho,locu,locv,locw, oneminusomega
+  real(kind=PRC) :: locrho,locu,locv,locw, oneminusomega, &
+        locfu,locfv,locfw
   
   integer :: i,j,k
     
@@ -2971,81 +2972,66 @@
         locv = vsub(i,j,k)
         locw = wsub(i,j,k)
 
-    f00sub(i,j,k)=oneminusomega*f00sub(i,j,k)-oneminusomega* &
-     equil_pop00(locrho,locu,locv,locw)+ &
-     equil_pop00(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+        locfu = fusub(i,j,k)
+        locfv = fvsub(i,j,k)
+        locfw = fwsub(i,j,k)
+
+    f00sub(i,j,k)=oneminusomega*(f00sub(i,j,k)- equil_pop00(locrho,locu,locv,locw))+ &
+     equil_pop00(locrho,locfu,locfv,locfw)
     
-    f01sub(i,j,k)=oneminusomega*f01sub(i,j,k)-oneminusomega* &
-     equil_pop01(locrho,locu,locv,locw)+ &
-     equil_pop01(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f01sub(i,j,k)=oneminusomega*(f01sub(i,j,k)- equil_pop01(locrho,locu,locv,locw))+ &
+     equil_pop01(locrho,locfu,locfv,locfw)
     
-    f02sub(i,j,k)=oneminusomega*f02sub(i,j,k)-oneminusomega* &
-     equil_pop02(locrho,locu,locv,locw)+ &
-     equil_pop02(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f02sub(i,j,k)=oneminusomega*(f02sub(i,j,k)- equil_pop02(locrho,locu,locv,locw))+ &
+     equil_pop02(locrho,locfu,locfv,locfw)
     
-    f03sub(i,j,k)=oneminusomega*f03sub(i,j,k)-oneminusomega* &
-     equil_pop03(locrho,locu,locv,locw)+ &
-     equil_pop03(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f03sub(i,j,k)=oneminusomega*(f03sub(i,j,k)-equil_pop03(locrho,locu,locv,locw))+ &
+     equil_pop03(locrho,locfu,locfv,locfw)
     
-    f04sub(i,j,k)=oneminusomega*f04sub(i,j,k)-oneminusomega* &
-     equil_pop04(locrho,locu,locv,locw)+ &
-     equil_pop04(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f04sub(i,j,k)=oneminusomega*(f04sub(i,j,k)-equil_pop04(locrho,locu,locv,locw))+ &
+     equil_pop04(locrho,locfu,locfv,locfw)
     
-    f05sub(i,j,k)=oneminusomega*f05sub(i,j,k)-oneminusomega* &
-     equil_pop05(locrho,locu,locv,locw)+ &
-     equil_pop05(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f05sub(i,j,k)=oneminusomega*(f05sub(i,j,k)-equil_pop05(locrho,locu,locv,locw))+ &
+     equil_pop05(locrho,locfu,locfv,locfw)
     
-    f06sub(i,j,k)=oneminusomega*f06sub(i,j,k)-oneminusomega* &
-     equil_pop06(locrho,locu,locv,locw)+ &
-     equil_pop06(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f06sub(i,j,k)=oneminusomega*(f06sub(i,j,k)-equil_pop06(locrho,locu,locv,locw))+ &
+     equil_pop06(locrho,locfu,locfv,locfw)
     
-    f07sub(i,j,k)=oneminusomega*f07sub(i,j,k)-oneminusomega* &
-     equil_pop07(locrho,locu,locv,locw)+ &
-     equil_pop07(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f07sub(i,j,k)=oneminusomega*(f07sub(i,j,k)-equil_pop07(locrho,locu,locv,locw))+ &
+     equil_pop07(locrho,locfu,locfv,locfw)
     
-    f08sub(i,j,k)=oneminusomega*f08sub(i,j,k)-oneminusomega* &
-     equil_pop08(locrho,locu,locv,locw)+ &
-     equil_pop08(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f08sub(i,j,k)=oneminusomega*(f08sub(i,j,k)-equil_pop08(locrho,locu,locv,locw))+ &
+     equil_pop08(locrho,locfu,locfv,locfw)
     
-    f09sub(i,j,k)=oneminusomega*f09sub(i,j,k)-oneminusomega* &
-     equil_pop09(locrho,locu,locv,locw)+ &
-     equil_pop09(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f09sub(i,j,k)=oneminusomega*(f09sub(i,j,k)-equil_pop09(locrho,locu,locv,locw))+ &
+     equil_pop09(locrho,locfu,locfv,locfw)
     
-    f10sub(i,j,k)=oneminusomega*f10sub(i,j,k)-oneminusomega* &
-     equil_pop10(locrho,locu,locv,locw)+ &
-     equil_pop10(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f10sub(i,j,k)=oneminusomega*(f10sub(i,j,k)-equil_pop10(locrho,locu,locv,locw))+ &
+     equil_pop10(locrho,locfu,locfv,locfw)
     
-    f11sub(i,j,k)=oneminusomega*f11sub(i,j,k)-oneminusomega* &
-     equil_pop11(locrho,locu,locv,locw)+ &
-     equil_pop11(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f11sub(i,j,k)=oneminusomega*(f11sub(i,j,k)-equil_pop11(locrho,locu,locv,locw))+ &
+     equil_pop11(locrho,locfu,locfv,locfw)
     
-    f12sub(i,j,k)=oneminusomega*f12sub(i,j,k)-oneminusomega* &
-     equil_pop12(locrho,locu,locv,locw)+ &
-     equil_pop12(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f12sub(i,j,k)=oneminusomega*(f12sub(i,j,k)-equil_pop12(locrho,locu,locv,locw))+ &
+     equil_pop12(locrho,locfu,locfv,locfw)
     
-    f13sub(i,j,k)=oneminusomega*f13sub(i,j,k)-oneminusomega* &
-     equil_pop13(locrho,locu,locv,locw)+ &
-     equil_pop13(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f13sub(i,j,k)=oneminusomega*(f13sub(i,j,k)-equil_pop13(locrho,locu,locv,locw))+ &
+     equil_pop13(locrho,locfu,locfv,locfw)
     
-    f14sub(i,j,k)=oneminusomega*f14sub(i,j,k)-oneminusomega* &
-     equil_pop14(locrho,locu,locv,locw)+ &
-     equil_pop14(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f14sub(i,j,k)=oneminusomega*(f14sub(i,j,k)-equil_pop14(locrho,locu,locv,locw))+ &
+     equil_pop14(locrho,locfu,locfv,locfw)
     
-    f15sub(i,j,k)=oneminusomega*f15sub(i,j,k)-oneminusomega* &
-     equil_pop15(locrho,locu,locv,locw)+ &
-     equil_pop15(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f15sub(i,j,k)=oneminusomega*(f15sub(i,j,k)-equil_pop15(locrho,locu,locv,locw))+ &
+     equil_pop15(locrho,locfu,locfv,locfw)
     
-    f16sub(i,j,k)=oneminusomega*f16sub(i,j,k)-oneminusomega* &
-     equil_pop16(locrho,locu,locv,locw)+ &
-     equil_pop16(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f16sub(i,j,k)=oneminusomega*(f16sub(i,j,k)-equil_pop16(locrho,locu,locv,locw))+ &
+     equil_pop16(locrho,locfu,locfv,locfw)
     
-    f17sub(i,j,k)=oneminusomega*f17sub(i,j,k)-oneminusomega* &
-     equil_pop17(locrho,locu,locv,locw)+ &
-     equil_pop17(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f17sub(i,j,k)=oneminusomega*(f17sub(i,j,k)-equil_pop17(locrho,locu,locv,locw))+ &
+     equil_pop17(locrho,locfu,locfv,locfw)
     
-    f18sub(i,j,k)=oneminusomega*f18sub(i,j,k)-oneminusomega* &
-     equil_pop18(locrho,locu,locv,locw)+ &
-     equil_pop18(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
+    f18sub(i,j,k)=oneminusomega*(f18sub(i,j,k)-equil_pop18(locrho,locu,locv,locw))+ &
+     equil_pop18(locrho,locfu,locfv,locfw)
         enddo
        enddo
       enddo
