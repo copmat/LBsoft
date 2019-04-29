@@ -2782,7 +2782,7 @@
      f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
 
   case (1)
-    call convert_fluid_force_to_velshifted
+    ! done in collision_EDM) call convert_fluid_force_to_velshifted
     call collision_fluids_EDM(rhoR,u,v,w,fuR,fvR,fwR,omega,f00R,f01R,&
      f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
      f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
@@ -2994,9 +2994,13 @@
         locv = vsub(i,j,k)
         locw = wsub(i,j,k)
 
-        locfu = fusub(i,j,k)
-        locfv = fvsub(i,j,k)
-        locfw = fwsub(i,j,k)
+        locfu = fusub(i,j,k)*t_LB / locrho + locu
+        locfv = fvsub(i,j,k)*t_LB / locrho + locv
+        locfw = fwsub(i,j,k)*t_LB / locrho + locw
+
+        fusub(i,j,k) = locfu
+        fvsub(i,j,k) = locfv
+        fwsub(i,j,k) = locfw
 
     f00sub(i,j,k)=oneminusomega*(f00sub(i,j,k)- equil_pop00(locrho,locu,locv,locw))+ &
      equil_pop00(locrho,locfu,locfv,locfw)
@@ -3069,6 +3073,10 @@
     do i=minx,maxx
 
     if (isfluid(i,j,k)/=1) cycle
+
+    fusub(i,j,k) = fusub(i,j,k)*t_LB / rhosub(i,j,k) + usub(i,j,k)
+    fvsub(i,j,k) = fvsub(i,j,k)*t_LB / rhosub(i,j,k) + vsub(i,j,k)
+    fwsub(i,j,k) = fwsub(i,j,k)*t_LB / rhosub(i,j,k) + wsub(i,j,k)
 
     f00sub(i,j,k)=(ONE-omegas(i,j,k))*f00sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop00(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
