@@ -2708,20 +2708,37 @@
   integer :: i,j,k
   
   !red fluid
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  !forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  do k=minz,maxz
+   do j=miny,maxy
+    do i=minx,maxx
+
+    if (isfluid(i,j,k)/=1) cycle
     fuR(i,j,k) = fuR(i,j,k)*t_LB / rhoR(i,j,k) + u(i,j,k)
     fvR(i,j,k) = fvR(i,j,k)*t_LB / rhoR(i,j,k) + v(i,j,k)
     fwR(i,j,k) = fwR(i,j,k)*t_LB / rhoR(i,j,k) + w(i,j,k)
-  end forall
+  enddo
+    enddo
+     enddo
+  !end forall
   
   if(lsingle_fluid)return
   
   !blue fluid
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  !forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  do k=minz,maxz
+   do j=miny,maxy
+    do i=minx,maxx
+
+    if (isfluid(i,j,k)/=1) cycle
+
     fuB(i,j,k) = fuB(i,j,k)*t_LB / rhoB(i,j,k) + u(i,j,k)
     fvB(i,j,k) = fvB(i,j,k)*t_LB / rhoB(i,j,k) + v(i,j,k)
     fwB(i,j,k) = fwB(i,j,k)*t_LB / rhoB(i,j,k) + w(i,j,k)
-  end forall
+  enddo
+    enddo
+     enddo
+  !end forall
   
   return
   
