@@ -31,7 +31,7 @@
                    allocate_array_lbuffservice, &
                    nbuffservice3d,buffservice3d,allocate_array_bdf, &
                    xdf,ydf,zdf,rand_noseeded,linit_seed,gauss_noseeded,&
-                   write_fmtnumb,dcell,invert
+                   write_fmtnumb,dcell,invert, openLogFile
 
  use lbempi_mod,  only : commspop, commrpop, i4find, i4back, &
                    ownern,deallocate_ownern,commexch_dens, &
@@ -1953,6 +1953,8 @@
   
   endif
   
+  call LogForces1("apply_particle_bounce_back", nstep)
+
   return
   
  end subroutine apply_particle_bounce_back
@@ -2010,7 +2012,7 @@
   
  end subroutine force_particle_bounce_back
  
- subroutine merge_particle_force()
+ subroutine merge_particle_force(nstep)
  
 !***********************************************************************
 !     
@@ -2023,8 +2025,10 @@
 !***********************************************************************
   
   implicit none
+  integer, intent(in) :: nstep
   
   !SHOULD BE ADDED FOR MPI
+  call LogForces("mergeforce", nstep)
   
   return
   
@@ -2124,6 +2128,7 @@
   fmiosss(2,1)=fyy(1)
   fmiosss(3,1)=fzz(1)
   
+  call LogForces("particle_delete_fluids", nstep)
   return
   
  end subroutine build_new_isfluid
@@ -2155,6 +2160,8 @@
   fmiosss(1,2)=fxx(1)-fmiosss(1,1)
   fmiosss(2,2)=fyy(1)-fmiosss(2,1)
   fmiosss(3,2)=fzz(1)-fmiosss(3,1)
+
+  call LogForces("particle_create_fluids", nstep)
   
   call update_isfluid
   
@@ -2280,6 +2287,7 @@
   
   endif
   
+  call LogForces("compute_psi_sc_particles", nstep)
   return
   
  end subroutine compute_psi_sc_particles
@@ -2549,7 +2557,7 @@
   real(kind=PRC), parameter :: tol=real(1.d-4,kind=PRC)
   integer :: i
   
-  call compute_inter_force(lentry,list)
+  call compute_inter_force(lentry,list, nstepsub)
   
   call compute_sidewall_force(nstepsub)
   
@@ -2557,7 +2565,7 @@
   
  end subroutine driver_inter_force
  
- subroutine compute_inter_force(lentrysub,listsub)
+ subroutine compute_inter_force(lentrysub,listsub, nstep)
   
 !***********************************************************************
 !     
@@ -2584,6 +2592,7 @@
   integer :: iatm,ii,i,j,ivdw,itype,jtype,iimax,xcm,ycm,zcm
   integer :: k,jatm
   integer :: ilentry
+  integer, intent(in) :: nstep
   
   real(kind=PRC), parameter :: s2rmin=TWO**(ONE/SIX)
   
@@ -2891,6 +2900,7 @@
   
   enddo
   
+  call LogForces("compute_inter_force", nstep)
   return
 
  end subroutine compute_inter_force
@@ -3051,6 +3061,7 @@
   call or_world_larr(ltest,1)
   if(ltest(1))call warning(49)
   
+  call LogForces("compute_sidewall_force", nstepsub)
   return
   
  end subroutine compute_sidewall_force
@@ -5142,5 +5153,39 @@
   return
   
  end subroutine spherical_template
+
+  subroutine LogForces(hdrfname, nstep)
+ implicit none
+ integer,intent(in) :: nstep
+ character(len=*),intent(in) :: hdrfname
+ integer :: myi, iatm
+
+  if (natms <1) return
+
+  call OpenLogFile(nstep, "fxx_" // hdrfname, 118)
+  do myi=1,natms
+    iatm = atmbook(myi)
+    write (118,*) "iatm=", iatm, "fxx,..", fxx(iatm),fyy(iatm),fzz(iatm)
+    if(lrotate) write (118,*) "iatm=", iatm, "tqx,..", tqx(iatm),tqy(iatm),tqz(iatm)
+  enddo
+  close(118)
+ end subroutine LogForces
+  subroutine LogForces1(hdrfname, nstep)
+ implicit none
+ integer,intent(in) :: nstep
+ character(len=*),intent(in) :: hdrfname
+ integer :: myi, iatm
+
+  if (natms <1) return
+
+  call OpenLogFile(nstep, "fxb_" // hdrfname, 118)
+  do myi=1,natms
+    iatm = atmbook(myi)
+    write (118,*) "iatm=", iatm, "fxb,..", fxb(iatm),fyb(iatm),fzb(iatm)
+    if(lrotate) write (118,*) "iatm=", iatm, "txb,..", txb(iatm),tyb(iatm),tzb(iatm)
+  enddo
+  close(118)
+ end subroutine LogForces1
+
  
  end module particles_mod

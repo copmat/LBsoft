@@ -63,6 +63,7 @@
  public :: dcell
  public :: invert
  public :: int_cube_sphere
+ public :: openLogFile
  public :: fcut
  
  contains
@@ -902,6 +903,18 @@
   return
       
  end subroutine invert
+
+  subroutine openLogFile(nstep, msg, iounit)
+  implicit none
+  integer, intent(in) :: nstep,iounit
+  character(len=*), intent(in) :: msg
+  character(len=120) :: mynamefile
+
+
+  mynamefile=repeat(' ',120)
+  mynamefile=trim(msg)// '.iter'//write_fmtnumb(nstep)//'.'//write_fmtnumb(idrank)//'.dat'
+  open(unit=iounit, file=trim(mynamefile), status='replace')
+ end subroutine openLogFile
  
  pure function fcut(r,inner_cut,outer_cut)
  

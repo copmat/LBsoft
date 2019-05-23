@@ -228,10 +228,6 @@
     if(ldiagnostic)call end_timing2("LB","compute_force_sc")
   endif
   
-  if(ldiagnostic)call start_timing2("IO","write_vtk_frame")
-  call write_vtk_frame(nstep)
-  if(ldiagnostic)call end_timing2("IO","write_vtk_frame")
-  
   if(ldiagnostic)call start_timing2("LB","collision_fluids")
   call driver_collision_fluids
   if(ldiagnostic)call end_timing2("LB","collision_fluids")
@@ -252,7 +248,7 @@
     call apply_particle_bounce_back(nstep)
     if(ldiagnostic)call end_timing2("LB","apply_part_bback")
     
-    call merge_particle_force
+    call merge_particle_force(nstep)
     
     call force_particle_bounce_back
     
@@ -276,6 +272,10 @@
     endif
     
   endif
+  
+  if(ldiagnostic)call start_timing2("IO","write_vtk_frame")
+  call write_vtk_frame(nstep)
+  if(ldiagnostic)call end_timing2("IO","write_vtk_frame")
   
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
   call driver_streaming_fluids(lparticles)
