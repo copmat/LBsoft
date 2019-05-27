@@ -22,7 +22,8 @@
                    allocate_array_buffservice,lbuffservice, &
                    allocate_array_lbuffservice,xcross,ycross,zcross, &
                    nbuffservice3d,buffservice3d,int_cube_sphere,fcut, &
-                   rand_noseeded,linit_seed,gauss_noseeded,write_fmtnumb
+                   rand_noseeded,linit_seed,gauss_noseeded,write_fmtnumb, &
+                   openLogFile
 
  use lbempi_mod,  only : commspop, commrpop, i4find, i4back, &
                    ownern,deallocate_ownern,commexch_dens, &
@@ -375,7 +376,7 @@
  public :: omega_to_viscosity
  public :: compute_sc_particle_interact
  public :: setTest
- public :: checkTest
+ public :: checkTest, dumpPops,print_all_pops2
 
  contains
  
@@ -12484,6 +12485,66 @@
         enddo
     end subroutine checkTest
 
+    subroutine dumpPops(nstep)
+     implicit none
+     integer, intent(in) :: nstep
+     character(len=120) :: mynamefile
+     integer :: i,j,k,l
+     
+     mynamefile=repeat(' ',120)
+     mynamefile='restart.' // write_fmtnumb(nstep) // '.dat'
+     open(unit=133,file=trim(mynamefile),form='unformatted',status='replace')
 
+     do l=0, links
+            write(133) aoptpR(l)%p(1:nx, 1:ny, 1:nz)
+            write(133) aoptpB(l)%p(1:nx, 1:ny, 1:nz)
+     enddo
+     write(133) rhoR(1:nx, 1:ny, 1:nz)
+     write(133) rhoB(1:nx, 1:ny, 1:nz)
+     write(133) u(1:nx, 1:ny, 1:nz)
+     write(133) v(1:nx, 1:ny, 1:nz)
+     write(133) w(1:nx, 1:ny, 1:nz)
+     write(133) isfluid(1:nx, 1:ny, 1:nz)
+
+     close(133)
+     call print_all_pops2(1001, "red_dump",nstep)
+    end subroutine dumpPops
+    
+      subroutine print_all_pops2(iosub,filenam,itersub)
+  implicit none
+  integer, intent(in) :: iosub,itersub
+  character(len=*), intent(in) :: filenam
+  character(len=120) :: mynamefile, mynamefile1
+  integer :: i,j,k,l, iosub1
+
+
+  mynamefile=repeat(' ',120)
+  mynamefile=trim(filenam)//write_fmtnumb(itersub)//'.'//write_fmtnumb(idrank)//'.dat'
+  open(unit=iosub, file=trim(mynamefile), status='replace')
+
+  mynamefile1=repeat(' ',120)
+  mynamefile1=trim(filenam)//write_fmtnumb(itersub)//'.'//write_fmtnumb(idrank)//'.dat1'
+  iosub1 = iosub + 1
+  open(unit=iosub1,file=trim(mynamefile1),status='replace')
+
+  do k=minz-1,maxz+1
+    do j=miny-1,maxy+1
+      do i=minx-1,maxx+1
+          do l=0,links
+            write(iosub,*)i,j,k,l,aoptpR(l)%p(i,j,k),aoptpB(l)%p(i,j,k)
+          enddo
+
+          write(iosub1,*) i,j,k, rhoR(i,j,k),rhoB(i,j,k),u(i,j,k), &
+                v(i,j,k),w(i,j,k),isfluid(i,j,k), &
+                fuR(i,j,k),fvR(i,j,k),fwR(i,j,k), fuB(i,j,k),fvB(i,j,k),fwB(i,j,k), &
+                psiR(i,j,k), psiB(i,j,k), new_isfluid(i,j,k)
+      enddo
+    enddo
+  enddo
+
+  close(iosub)
+  close(iosub1)
+
+ end subroutine print_all_pops2
 
  end module fluids_mod

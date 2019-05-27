@@ -48,7 +48,7 @@
                    particle_delete_fluids,particle_create_fluids, &
                    erase_fluids_in_particles,lunique_omega,omega, &
                    omega_to_viscosity,viscR,pimage,opp, &
-                   compute_sc_particle_interact
+                   compute_sc_particle_interact, driver_bc_densities,driver_bc_velocities
 
  
  implicit none
@@ -2163,6 +2163,11 @@
 
   call LogForces("particle_create_fluids", nstep)
   
+  ! Fabio] This should comm rho & vel
+  call driver_bc_densities
+  call driver_bc_velocities
+  ! Fabio] This should comm rho & vel -END
+
   call update_isfluid
   
   call driver_bc_isfluid
@@ -5165,7 +5170,9 @@
   call OpenLogFile(nstep, "fxx_" // hdrfname, 118)
   do myi=1,natms
     iatm = atmbook(myi)
-    write (118,*) "iatm=", iatm, "fxx,..", fxx(iatm),fyy(iatm),fzz(iatm)
+    write (118,*) "iatm=", iatm, "fxx,..", fxx(iatm),fyy(iatm),fzz(iatm), &
+                xxx(iatm),yyy(iatm),zzz(iatm),vxx(iatm),vyy(iatm),vzz(iatm), &
+                oxx(iatm),oyy(iatm),ozz(iatm)
     if(lrotate) write (118,*) "iatm=", iatm, "tqx,..", tqx(iatm),tqy(iatm),tqz(iatm)
   enddo
   close(118)
@@ -5181,7 +5188,9 @@
   call OpenLogFile(nstep, "fxb_" // hdrfname, 118)
   do myi=1,natms
     iatm = atmbook(myi)
-    write (118,*) "iatm=", iatm, "fxb,..", fxb(iatm),fyb(iatm),fzb(iatm)
+    write (118,*) "iatm=", iatm, "fxb,..", fxb(iatm),fyb(iatm),fzb(iatm), &
+                xxx(iatm),yyy(iatm),zzz(iatm),vxx(iatm),vyy(iatm),vzz(iatm), &
+                oxx(iatm),oyy(iatm),ozz(iatm)
     if(lrotate) write (118,*) "iatm=", iatm, "txb,..", txb(iatm),tyb(iatm),tzb(iatm)
   enddo
   close(118)

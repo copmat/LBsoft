@@ -1035,8 +1035,8 @@
     do k=minz,maxz
       do j=miny,maxy
         do i=minx,maxx
-          write(iomap+l,'(3i8,4f24.16)')i,j,k,rhoR(i,j,k), &
-           u(i,j,k),v(i,j,k),w(i,j,k)
+          write(iomap+l,'(3i8,4f24.16,I2)')i,j,k,rhoR(i,j,k), &
+           u(i,j,k),v(i,j,k),w(i,j,k),isfluid(i,j,k)
         enddo
       enddo
     enddo
@@ -1045,8 +1045,8 @@
     do k=minz,maxz
       do j=miny,maxy
         do i=minx,maxx
-          write(iomap+l,'(3i8,5f24.16)')i,j,k,rhoR(i,j,k),rhoB(i,j,k), &
-           u(i,j,k),v(i,j,k),w(i,j,k)
+          write(iomap+l,'(3i8,5f24.16,I2)')i,j,k,rhoR(i,j,k),rhoB(i,j,k), &
+           u(i,j,k),v(i,j,k),w(i,j,k),isfluid(i,j,k)
         enddo
       enddo
     enddo
