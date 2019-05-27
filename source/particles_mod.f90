@@ -5171,9 +5171,9 @@
   do myi=1,natms
     iatm = atmbook(myi)
     write (118,*) "iatm=", iatm, "fxx,..", fxx(iatm),fyy(iatm),fzz(iatm), &
-                xxx(iatm),yyy(iatm),zzz(iatm),vxx(iatm),vyy(iatm),vzz(iatm), &
+                xxx(iatm),yyy(iatm),zzz(iatm),vxx(iatm),vyy(iatm),vzz(iatm)
+    if(lrotate) write (118,*) "iatm=", iatm, "tqx,..", tqx(iatm),tqy(iatm),tqz(iatm), &
                 oxx(iatm),oyy(iatm),ozz(iatm)
-    if(lrotate) write (118,*) "iatm=", iatm, "tqx,..", tqx(iatm),tqy(iatm),tqz(iatm)
   enddo
   close(118)
  end subroutine LogForces
@@ -5189,9 +5189,9 @@
   do myi=1,natms
     iatm = atmbook(myi)
     write (118,*) "iatm=", iatm, "fxb,..", fxb(iatm),fyb(iatm),fzb(iatm), &
-                xxx(iatm),yyy(iatm),zzz(iatm),vxx(iatm),vyy(iatm),vzz(iatm), &
+                xxx(iatm),yyy(iatm),zzz(iatm),vxx(iatm),vyy(iatm),vzz(iatm)
+    if(lrotate) write (118,*) "iatm=", iatm, "txb,..", txb(iatm),tyb(iatm),tzb(iatm), &
                 oxx(iatm),oyy(iatm),ozz(iatm)
-    if(lrotate) write (118,*) "iatm=", iatm, "txb,..", txb(iatm),tyb(iatm),tzb(iatm)
   enddo
   close(118)
  end subroutine LogForces1
