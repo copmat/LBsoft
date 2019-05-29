@@ -29,7 +29,8 @@
                         probe_red_moments_in_node,print_all_pops, &
                         print_all_pops_center,driver_bc_pop_selfcomm, &
                         print_all_pops_area_shpere,ex,ey,ez,pimage, &
-                        ixpbc,iypbc,izpbc,nx,ny,nz,opp
+                        ixpbc,iypbc,izpbc,nx,ny,nz,opp, print_all_pops2, &
+                        driver_bc_pops
  use particles_mod,    only : driver_neighborhood_list,lparticles, &
                         vertest,initialize_particle_force, &
                         driver_inter_force,integrate_particles_lf, &
@@ -209,6 +210,7 @@
   if(lpair_SC .or. lparticles)then
     if(ldiagnostic)call start_timing2("LB","compute_densities_wall")
     call compute_densities_wall
+    call driver_bc_densities
     if(ldiagnostic)call end_timing2("LB","compute_densities_wall")
   endif
     
@@ -216,6 +218,7 @@
     if(ldiagnostic)call start_timing2("LB","compute_psi_sc")
     call compute_psi_sc
     if(ldiagnostic)call end_timing2("LB","compute_psi_sc")
+  if (nstep==nstepmax) call print_all_pops2(131, "compute_psi_sc", nstep)
     
     if(lparticles)then
       if(ldiagnostic)call start_timing2("MD","compute_sc_particles")
@@ -226,11 +229,13 @@
     if(ldiagnostic)call start_timing2("LB","compute_force_sc")
     call compute_fluid_force_sc
     if(ldiagnostic)call end_timing2("LB","compute_force_sc")
+  if (nstep==nstepmax) call print_all_pops2(131, "compute_force_sc", nstep)
   endif
   
   if(ldiagnostic)call start_timing2("LB","collision_fluids")
   call driver_collision_fluids
   if(ldiagnostic)call end_timing2("LB","collision_fluids")
+  if (nstep==nstepmax) call print_all_pops2(131, "collision_fluids", nstep)
   
   if(lbc_halfway)then
     if(ldiagnostic)call start_timing2("LB","apply_bback_pop_hf")
@@ -239,6 +244,7 @@
   endif
   
   if(lparticles)then
+    call driver_bc_pops
     
     if(ldiagnostic)call start_timing2("IO","write_xyz")
     call write_xyz(nstep)
@@ -271,6 +277,7 @@
       if(ldiagnostic)call end_timing2("MD","integrate_lf")
     endif
     
+    call driver_bc_pops
   endif
   
   if(ldiagnostic)call start_timing2("IO","write_vtk_frame")
@@ -287,6 +294,8 @@
     if(ldiagnostic)call end_timing2("LB","apply_bback_pop")
   endif
   
+  if (nstep==nstepmax) call print_all_pops2(131, "aft_apply_bounceback_pop", nstep)
+
   mytime = new_time
   
   return

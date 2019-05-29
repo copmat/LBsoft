@@ -32,7 +32,8 @@
                    commwait_isfluid
 
 #ifdef MPI
- use mpi_comm, only : mpisendpops, mpirecvpops, mpibounceback, mpisend_hvar, mpirecv_hvar
+ use mpi_comm, only : mpisendpops, mpirecvpops, mpibounceback, mpisend_hvar, mpirecv_hvar,&
+                        mpisendrecvhalopops
 #endif
  
  implicit none
@@ -376,7 +377,7 @@
  public :: omega_to_viscosity
  public :: compute_sc_particle_interact
  public :: setTest
- public :: checkTest, dumpPops,print_all_pops2
+ public :: checkTest, dumpPops,print_all_pops2, driver_bc_pops
 
  contains
  
@@ -8165,7 +8166,7 @@
    
    call or_world_larr(ltest,1)
    if(ltest(1))call error(33)
-   
+
    return
   
  end subroutine compute_densities_wall
@@ -12546,5 +12547,14 @@
   close(iosub1)
 
  end subroutine print_all_pops2
+
+  subroutine driver_bc_pops()
+  implicit none
+
+  call mpisendrecvHALOpops(aoptpR, rhoR)
+  if(lsingle_fluid)return
+
+  call mpisendrecvHALOpops(aoptpB, rhoB)
+ end subroutine driver_bc_pops
 
  end module fluids_mod
