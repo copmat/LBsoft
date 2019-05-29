@@ -10791,9 +10791,9 @@
         if(isfluid(i,j,k)==1 .and. new_isfluid(i,j,k)/=1)then
           !fluid node is trasformed to solid node
           !formula taken from eq. 18 of PRE 83, 046707 (2011)
-          fx(iatm)=fx(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
-          fy(iatm)=fy(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
-          fz(iatm)=fz(iatm)-(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
+          fx(iatm)=fx(iatm)+(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
+          fy(iatm)=fy(iatm)+(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
+          fz(iatm)=fz(iatm)+(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
           if(lrotate)then
             ftemp(1)=(rhoR(i,j,k)+rhoB(i,j,k))*u(i,j,k)
             ftemp(2)=(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
