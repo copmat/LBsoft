@@ -110,11 +110,11 @@ gfortran-debugger:
 gfortran-mpidebugger:
 	$(MAKE) CC=mpicc \
 	FC=mpif90 \
-	CFLAGS="-O0 -g -cpp -I $(CURDIR) -c" \
-	FFLAGS="-O0 -g -fcheck=all -fbacktrace \
+	CFLAGS="-O2 -g -cpp -I $(CURDIR) -c" \
+	FFLAGS="-O2 -g -fcheck=all -fbacktrace \
 	-ffpe-trap=invalid,zero,overflow,underflow,denormal \
 	-cpp -DMPI -I $(CURDIR) -c" \
-	LDFLAGS="-O0 -g -fcheck=all -fbacktrace \
+	LDFLAGS="-O2 -g -fcheck=all -fbacktrace \
 	-ffpe-trap=invalid,zero,overflow,underflow,denormal \
 	-cpp -DMPI -I $(CURDIR) -o" \
 	TYPE=mpi \
