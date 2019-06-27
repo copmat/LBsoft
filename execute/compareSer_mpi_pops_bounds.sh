@@ -28,11 +28,13 @@ echo "Diffing $name, ser vs mpi.$num"
 echo "Diffing pops"
 awk "$cond" "$name".000000.dat > $tmpfile1
 awk "$cond" ../"$name".00000"$num".dat > $tmpfile2
-$tool $tmpfile1 $tmpfile2
+#$tool $tmpfile1 $tmpfile2
+maxDiff.sh $tmpfile1 $tmpfile2 5 6
 
 echo "Diffing rho,vel,isfluid"
 awk "$cond" "$name".000000.dat1 > $tmpfile3
 awk "$cond" ../"$name".00000"$num".dat1 > $tmpfile4
-$tool $tmpfile3 $tmpfile4
+#$tool $tmpfile3 $tmpfile4
+maxDiff.sh $tmpfile3 $tmpfile4 $(seq 4 18)
 
 #rm -f $tmpfile1 $tmpfile2

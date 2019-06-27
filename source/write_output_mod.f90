@@ -18,7 +18,7 @@
  use error_mod
  use utility_mod,    only : write_fmtnumb,ltest_mode
  use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w,lsingle_fluid, &
-  minx, maxx, miny, maxy, minz, maxz,isfluid
+  minx, maxx, miny, maxy, minz, maxz,isfluid, dumpHvar
  use particles_mod,  only : natms,xxx,yyy,zzz,lparticles,cell, &
   ishape,lrotate,natms,natms_tot,q0,q1,q2,q3,vxx,vyy,vzz, &
   take_rotversorx,take_rotversory,take_rotversorz, &
@@ -36,6 +36,7 @@
   logical, save, public, protected :: lvtkownern=.false.
   integer, save, public, protected :: ixyzevery=50
   logical, save, public, protected :: lxyzfile=.false.
+  integer, save, public, protected :: istatevery=5000000
   character(len=mxln), save :: dir_out
   character(len=mxln), save :: dir_out_rank
   character(len=mxln), allocatable, save :: dir_out_grank(:)
@@ -50,6 +51,8 @@
   public :: write_xyz_close
   public :: set_value_ixyzevery
   public :: write_particle_xyz
+  public :: set_value_istatevery, dumpForStats
+  public :: writePVD
   
  contains
  
@@ -97,6 +100,10 @@
     if(idrank==0) then
       makedirectory=repeat(' ',255)
       makedirectory = 'mkdir output'
+      call system(makedirectory)
+
+      makedirectory=repeat(' ',255)
+      makedirectory = 'mkdir dumpStat'
       call system(makedirectory)
     endif
   endif
@@ -470,10 +477,6 @@
   character(len=8), parameter :: mystring8='C       '
   character(len=13), parameter :: mystring13='time step    '
   
-#ifdef ONLYCOM
-  return
-#endif
-  
   if(.not. lxyzfile)return
   if(mod(istepsub,ixyzevery)/=0)return
 
@@ -576,10 +579,6 @@
   implicit none
   
   integer, intent(in) :: nstepsub
-  
-#ifdef ONLYCOM
-  return
-#endif
   
   if((.not. lvtkfile).and.(.not. lxyzfile))return
   
@@ -1044,8 +1043,8 @@
     do k=minz,maxz
       do j=miny,maxy
         do i=minx,maxx
-          write(iomap+l,'(3i8,4f24.16)')i,j,k,rhoR(i,j,k), &
-           u(i,j,k),v(i,j,k),w(i,j,k)
+          write(iomap+l,'(3i8,4f24.16,I2)')i,j,k,rhoR(i,j,k), &
+           u(i,j,k),v(i,j,k),w(i,j,k),isfluid(i,j,k)
         enddo
       enddo
     enddo
@@ -1054,8 +1053,8 @@
     do k=minz,maxz
       do j=miny,maxy
         do i=minx,maxx
-          write(iomap+l,'(3i8,5f24.16)')i,j,k,rhoR(i,j,k),rhoB(i,j,k), &
-           u(i,j,k),v(i,j,k),w(i,j,k)
+          write(iomap+l,'(3i8,5f24.16,I2)')i,j,k,rhoR(i,j,k),rhoB(i,j,k), &
+           u(i,j,k),v(i,j,k),w(i,j,k),isfluid(i,j,k)
         enddo
       enddo
     enddo
@@ -1125,5 +1124,45 @@
   return
   
  end subroutine write_particle_xyz
+
+
+ subroutine set_value_istatevery(itemp)
+  implicit none
+  integer, intent(in) :: itemp
+  
+  istatevery=itemp
+ end subroutine set_value_istatevery
+
+ subroutine dumpForStats(nstep)
+  implicit none
+  integer, intent(in) :: nstep
+  character(len=120) :: mynamefile
+  
+  if(mod(nstep,istatevery)/=0)return
+  
+  call dumpHvar(nstep)
+
+  if(.not.lparticles)return
+
+  if(idrank==0) then
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpStat/dumpParticles.' // write_fmtnumb(nstep) // '.dat'
+     open(unit=133,file=trim(mynamefile),form='unformatted',status='replace')
+     write(133) xxx(1:natms_tot)
+     write(133) yyy(1:natms_tot)
+     write(133) zzz(1:natms_tot)
+     write(133) vxx(1:natms_tot)
+     write(133) vyy(1:natms_tot)
+     write(133) vzz(1:natms_tot)
+     
+     if(lrotate)then
+      write(133) q0(1:natms_tot)
+      write(133) q1(1:natms_tot)
+      write(133) q2(1:natms_tot)
+      write(133) q3(1:natms_tot)
+     endif
+     close(133)
+  endif
+ end subroutine dumpForStats
  
  end module write_output_mod

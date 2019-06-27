@@ -1823,7 +1823,18 @@ end subroutine
        ALLOCATE(buffr_isfluid(0:maxreceiver-1,0:n_pe2recv_fluid_hvar-1))
     ENDIF
     
-!max    write(0,*)'id=',myid,'maxreceiver=',maxreceiver,'n_pe2recv_fluid_hvar=',n_pe2recv_fluid_hvar
+    ! Print a few dims
+    if (idrank<10) then
+        write(0,*)'id=',myid,'maxreceiver=',maxreceiver,'n_pe2recv_fluid_hvar=',n_pe2recv_fluid_hvar,ldo_second
+        write(0,*) 'Alloced 1 bufs', 2*maxreceiver*n_pe2recv_fluid_hvar, 'int:',IPRC
+        write(0,*) 'Alloced 1 bufs', maxreceiver*n_pe2recv_fluid_hvar, 'int:',1
+        if (ldo_second) then
+          write(0,*) 'Alloced 2 bufs', maxreceiver*n_pe2recv_fluid_hvar, 'real:',PRC
+        else
+          write(0,*) 'Alloced 1 bufs', maxreceiver*n_pe2recv_fluid_hvar, 'real:',PRC
+        endif
+    endif
+
     !initialization
     DO i=0,maxneigh-1
        i_pe2send_fluid_hvar(i)=-1

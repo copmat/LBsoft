@@ -1,0 +1,24 @@
+[ROOM SYSTEM]
+box 64 64 64
+steps 6000
+diagnostic yes
+boundary condition 1 1 1
+decomposition type 1
+decomposition dimension 1   1   1
+print list engke engrt engcf engto dens1 mind1 maxvx cpur cpu
+print every 1
+! print vtk 50
+test yes
+job time 4 d
+close time 10 s
+[END ROOM]
+[ROOM LB]
+components 2
+density uniform
+density mean 1.0 1.0
+density stdev 1.d-1 1.d-1
+velocity mean 0.d0 0.d0 0.d0
+force shanchen pair 0.6d0
+fluid tau 1.d0 1.d0
+[END ROOM]
+[END]

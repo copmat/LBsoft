@@ -5,6 +5,7 @@
 
 #define noDEBUG_FORCEINT
 #define noQUAD_FORCEINT
+#define noLOGFORCES
 
 
 #define IPRC 4

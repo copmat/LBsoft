@@ -57,7 +57,7 @@
                         nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
                         miny,maxy,minz,maxz,nbuff,lsingle_fluid, &
                         isfluid,initialize_fluids,driver_bc_isfluid, &
-                        driver_initialiaze_manage_bc_selfcomm
+                        driver_initialiaze_manage_bc_selfcomm, restoreHvar
   use particles_mod,   only : allocate_particles,lparticles,vertest, &
                         initialize_map_particles,driver_inter_force, &
                         initialize_integrator_lf,initialize_particle_force, &
@@ -66,7 +66,8 @@
                         store_old_pos_vel_part,build_new_isfluid
   use write_output_mod,only : write_test_map,lvtkfile,init_output, &
                         write_vtk_frame,write_xyz_close, &
-                        write_particle_xyz
+                        write_particle_xyz, dumpForStats, &
+                        writePVD, set_value_ivtkevery
   use integrator_mod,  only : initime,endtime,tstep,set_nstep, &
                         update_nstep,nstep,driver_integrator,nstepmax
   use statistic_mod,   only : statistic_driver
@@ -133,6 +134,17 @@
    
 ! allocate fluid arrays
   call allocate_fluids(lparticles)
+
+#ifdef CONVERTVTK
+  call set_nstep(10)
+  call set_value_ivtkevery(.true., .false., 1)
+  call init_output()
+  write(6,*) "Restoring hvars.."
+  call restoreHvar(10)
+  ! write(6,*) "Writing VTK .."
+  ! call writePVD(10)
+  stop
+#endif
   
 ! prepare list for neighbour comm of hydrodynamic variables (also ISFLUID)
   call create_findneigh_list_hvar_isfluid(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc, &
@@ -210,10 +222,10 @@
   
 ! interpolate the particle velocity at half timestep back to apply lf
   if(lparticles)then
-    call vertest(lnewlst)
-    if(lnewlst) call parlst
+    call vertest(nstep, lnewlst)
+    if(lnewlst) call parlst(nstep, .true.)
     call initialize_particle_force
-    call driver_inter_force(nstep, .false.)
+    call driver_inter_force(nstep, .true.)
     call initialize_integrator_lf
     call store_old_pos_vel_part
     call driver_bc_isfluid
@@ -239,7 +251,7 @@
 !   integrate the system
     call driver_integrator(mytime)
     
-!   compute statistical quanities
+!   compute statistical quantities
     call statistic_driver(nstep,mytime)
     
 !   print on the binary file the jet bead which have hit the collector 
@@ -252,6 +264,11 @@
     if(ldiagnostic)call start_timing2("IO","outprint_driver")
     call outprint_driver(nstep,mytime)
     if(ldiagnostic)call end_timing2("IO","outprint_driver")
+
+!   dump Stats
+    if(ldiagnostic)call start_timing2("IO","dump_stats")
+    call dumpForStats(nstep)
+    if(ldiagnostic)call end_timing2("IO","dump_stats")
      
 !   print the jet geometry on the binary file (only for developers)
     !call write_dat_frame(lprintdat,130,nstep,mytime,iprintdat, &

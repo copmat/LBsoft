@@ -25,6 +25,7 @@ all:
 	@echo "intel                              "
 	@echo "intel-mpi                          "
 	@echo "intel-mpi-skylake                  "
+	@echo "intel-mpi-knl                      "
 	@echo "intel-mpidebugger		  "
 	@echo "                                   "
 	@echo "Possible choices for debugging are:"
@@ -89,6 +90,18 @@ intel-mpi-skylake:
 	LDFLAGS="-O2 -cpp -DINTEL -DMPI -I $(CURDIR) -xSKYLAKE-AVX512 -o" \
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi
+
+intel-mpi-knl:
+	@mpiifort -v
+	@echo "----------------------------"
+	$(MAKE) CC=mpiicc \
+       FC=mpiifort \
+       CFLAGS="-O2 -I $(CURDIR) -xMIC-AVX512 -c" \
+       FFLAGS="-Ofast -cpp -DINTEL -DMPI -I $(CURDIR) -xMIC-AVX512 -c" \
+       LDFLAGS="-Ofast -cpp -DINTEL -DMPI -I $(CURDIR) -xMIC-AVX512 -o" \
+       TYPE=mpi \
+       EX=$(EXP) BINROOT=$(BINROOT) mpi
+
 
 gfortran-debugger:
 	$(MAKE) CC=gcc \

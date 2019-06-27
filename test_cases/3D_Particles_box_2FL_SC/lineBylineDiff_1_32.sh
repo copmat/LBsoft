@@ -18,6 +18,11 @@ BEGIN { max = 0 }
 		next
 	}
 	
+	// Skip bc-points
+	if ($1<1 || $1>32) next
+	if ($2<1 || $2>32) next
+	if ($3<1 || $3>32) next
+
 	val = myabs($f - buf[NR-rows])
 	if (verbose && val>1.0E-4) print $0, "<->", buf[NR-rows]
 	if (max < val) {

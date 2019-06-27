@@ -54,7 +54,8 @@
   ext_fyy,ext_fzz,set_value_ext_force_particles,ext_tqx,ext_tqy, &
   ext_tqz,set_value_ext_torque_particles
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
-  lvtkfile,lvtkstruct,set_value_ixyzevery,lxyzfile,ixyzevery
+  lvtkfile,lvtkstruct,set_value_ixyzevery,lxyzfile,ixyzevery, &
+  set_value_istatevery
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
  use statistic_mod,         only : reprinttime,compute_statistic, &
   statdata
@@ -316,6 +317,7 @@
   integer :: temp_nstepmax=0
   integer :: temp_idiagnostic=1
   integer :: temp_ivtkevery=1
+  integer :: temp_istatevery=10000000
   integer :: temp_ixyzevery=1
   integer :: temp_nfluid=0
   integer :: temp_bc_type_east=0
@@ -607,6 +609,8 @@
               elseif(findstring('xyz',directive,inumchar,maxlen))then
                 temp_ixyzevery=intstr(directive,maxlen,inumchar)
                 temp_lxyzfile=.true.
+              elseif(findstring('stat',directive,inumchar,maxlen))then
+                temp_istatevery=intstr(directive,maxlen,inumchar)
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1363,6 +1367,14 @@
         write(6,'(2a,i12)')mystring,": ",ivtkevery
       endif
    endif
+  endif
+
+  call bcast_world_i(temp_istatevery)
+  call set_value_istatevery(temp_istatevery)
+  if(idrank==0) then
+     mystring=repeat(' ',dimprint)
+     mystring='Dump stat every'
+     write(6,'(2a,i12)')mystring,": ",temp_istatevery
   endif
   
   call bcast_world_l(temp_lxyzfile)
@@ -3127,6 +3139,7 @@
   
   if(idrank==0)then
     write(6,'(3a,/)')'file ',trim(inputname),' correctly closed'
+    write(6,*) 'Total number of atoms:', temp_natms_tot
     write(6,of)"                                                                               "
     write(6,of)"*******************************************************************************"
     write(6,of)"                                                                               "
