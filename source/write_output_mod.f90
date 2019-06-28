@@ -36,7 +36,7 @@
   logical, save, public, protected :: lvtkownern=.false.
   integer, save, public, protected :: ixyzevery=50
   logical, save, public, protected :: lxyzfile=.false.
-  integer, save, public, protected :: istatevery=5000000
+  integer, save, public, protected :: istatevery=5000000, istateveryPart=5000000
   logical, save, public, protected :: lstatevery=.false.
   character(len=mxln), save :: dir_out
   character(len=mxln), save :: dir_out_rank
@@ -1143,11 +1143,12 @@
  end subroutine write_particle_xyz
 
 
- subroutine set_value_istatevery(itemp)
+ subroutine set_value_istatevery(itemp,itemp2)
   implicit none
-  integer, intent(in) :: itemp
+  integer, intent(in) :: itemp,itemp2
   
   istatevery=itemp
+  istateveryPart=itemp2
   lstatevery = .true.
  end subroutine set_value_istatevery
 
@@ -1156,11 +1157,10 @@
   integer, intent(in) :: nstep
   character(len=120) :: mynamefile
   
-  if(mod(nstep,istatevery)/=0)return
-  
-  call dumpHvar(nstep)
+  if(mod(nstep,istatevery)==0) call dumpHvar(nstep)
 
   if(.not.lparticles)return
+  if(mod(nstep,istateveryPart)/=0) return
 
   if(idrank==0) then
      mynamefile=repeat(' ',120)
