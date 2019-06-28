@@ -87,6 +87,26 @@
   path = trim(path)
   delimiter = path(1:1)
   if (delimiter==' ') delimiter='/'
+
+
+  if(lstatevery) then
+     makedirectory=repeat(' ',255)
+     makedirectory = 'dumpStat'
+     dir_out=trim(makedirectory)
+#ifdef INTEL
+     inquire(directory=trim(makedirectory),exist=lexist)
+#else
+     inquire(file=trim(makedirectory),exist=lexist)
+#endif
+   
+     if(.not. lexist)then
+       if(idrank==0) then
+         makedirectory=repeat(' ',255)
+         makedirectory = 'mkdir dumpStat'
+         call system(makedirectory)
+       endif
+     endif
+  endif
   
   makedirectory=repeat(' ',255)
   makedirectory = 'output'//delimiter
@@ -105,23 +125,6 @@
     endif
   endif
 
-  makedirectory=repeat(' ',255)
-  makedirectory = 'dumpStat'
-  dir_out=trim(makedirectory)
-#ifdef INTEL
-  inquire(directory=trim(makedirectory),exist=lexist)
-#else
-  inquire(file=trim(makedirectory),exist=lexist)
-#endif
-
-  if(.not. lexist)then
-    if(idrank==0) then
-      makedirectory=repeat(' ',255)
-      makedirectory = 'mkdir dumpStat'
-      call system(makedirectory)
-    endif
-  endif
-  
   call get_sync_world()
   
   call write_xyz_open(trim(dir_out)//'output.xyz')
