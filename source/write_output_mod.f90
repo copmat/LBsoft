@@ -37,6 +37,7 @@
   integer, save, public, protected :: ixyzevery=50
   logical, save, public, protected :: lxyzfile=.false.
   integer, save, public, protected :: istatevery=5000000
+  logical, save, public, protected :: lstatevery=.false.
   character(len=mxln), save :: dir_out
   character(len=mxln), save :: dir_out_rank
   character(len=mxln), allocatable, save :: dir_out_grank(:)
@@ -77,7 +78,7 @@
   
   integer :: i
   
-  if((.not. lvtkfile).and.(.not. lxyzfile))return
+  if((.not. lvtkfile).and.(.not. lxyzfile) .and. (.not. lstatevery))return
   
   path = repeat(' ',255)
   call getcwd(path)
@@ -101,7 +102,20 @@
       makedirectory=repeat(' ',255)
       makedirectory = 'mkdir output'
       call system(makedirectory)
+    endif
+  endif
 
+  makedirectory=repeat(' ',255)
+  makedirectory = 'dumpStat'
+  dir_out=trim(makedirectory)
+#ifdef INTEL
+  inquire(directory=trim(makedirectory),exist=lexist)
+#else
+  inquire(file=trim(makedirectory),exist=lexist)
+#endif
+
+  if(.not. lexist)then
+    if(idrank==0) then
       makedirectory=repeat(' ',255)
       makedirectory = 'mkdir dumpStat'
       call system(makedirectory)
@@ -1131,6 +1145,7 @@
   integer, intent(in) :: itemp
   
   istatevery=itemp
+  lstatevery = .true.
  end subroutine set_value_istatevery
 
  subroutine dumpForStats(nstep)
@@ -1146,7 +1161,7 @@
 
   if(idrank==0) then
      mynamefile=repeat(' ',120)
-     mynamefile='dumpStat/dumpParticles.' // write_fmtnumb(nstep) // '.dat'
+     mynamefile='dumpStat'//delimiter//'dumpParticles.' // write_fmtnumb(nstep) // '.dat'
      open(unit=133,file=trim(mynamefile),form='unformatted',status='replace')
      write(133) xxx(1:natms_tot)
      write(133) yyy(1:natms_tot)
