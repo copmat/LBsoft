@@ -5877,13 +5877,17 @@
             nvar_managebc=nvar_managebc+1
             rhoR_managebc(1,nvar_managebc)%p=>rhoR(itemp2,jtemp2,ktemp2)   !who must recevice is one
             rhoR_managebc(2,nvar_managebc)%p=>rhoR(itemp,jtemp,ktemp)
-            psiR_managebc(1,nvar_managebc)%p=>psiR(itemp2,jtemp2,ktemp2)   !who must recevice is one
-            psiR_managebc(2,nvar_managebc)%p=>psiR(itemp,jtemp,ktemp)
+            if(lShanChen)then
+              psiR_managebc(1,nvar_managebc)%p=>psiR(itemp2,jtemp2,ktemp2)   !who must recevice is one
+              psiR_managebc(2,nvar_managebc)%p=>psiR(itemp,jtemp,ktemp)
+            endif
             if(.not. lsingle_fluid)then
               rhoB_managebc(1,nvar_managebc)%p=>rhoB(itemp2,jtemp2,ktemp2) !who must recevice is one
               rhoB_managebc(2,nvar_managebc)%p=>rhoB(itemp,jtemp,ktemp)
-              psiB_managebc(1,nvar_managebc)%p=>psiB(itemp2,jtemp2,ktemp2) !who must recevice is one
-              psiB_managebc(2,nvar_managebc)%p=>psiB(itemp,jtemp,ktemp)
+              if(lShanChen)then
+                psiB_managebc(1,nvar_managebc)%p=>psiB(itemp2,jtemp2,ktemp2) !who must recevice is one
+                psiB_managebc(2,nvar_managebc)%p=>psiB(itemp,jtemp,ktemp)
+              endif
             endif
             if(lexch_u)then
               u_managebc(1,nvar_managebc)%p=>u(itemp2,jtemp2,ktemp2)   !who must recevice is one
