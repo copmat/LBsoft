@@ -2998,11 +2998,15 @@
         locu = usub(i,j,k)
         locv = vsub(i,j,k)
         locw = wsub(i,j,k)
-
+#ifdef SCANDREA
+        locfu = fusub(i,j,k)*t_LB + locu
+        locfv = fvsub(i,j,k)*t_LB + locv
+        locfw = fwsub(i,j,k)*t_LB + locw
+#else
         locfu = fusub(i,j,k)*t_LB / locrho + locu
         locfv = fvsub(i,j,k)*t_LB / locrho + locv
         locfw = fwsub(i,j,k)*t_LB / locrho + locw
-
+#endif
         fusub(i,j,k) = locfu
         fvsub(i,j,k) = locfv
         fwsub(i,j,k) = locfw
@@ -3079,9 +3083,15 @@
 
     if (isfluid(i,j,k)/=1) cycle
 
+#ifdef SCANDREA
+    fusub(i,j,k) = fusub(i,j,k)*t_LB + usub(i,j,k)
+    fvsub(i,j,k) = fvsub(i,j,k)*t_LB + vsub(i,j,k)
+    fwsub(i,j,k) = fwsub(i,j,k)*t_LB + wsub(i,j,k)
+#else
     fusub(i,j,k) = fusub(i,j,k)*t_LB / rhosub(i,j,k) + usub(i,j,k)
     fvsub(i,j,k) = fvsub(i,j,k)*t_LB / rhosub(i,j,k) + vsub(i,j,k)
     fwsub(i,j,k) = fwsub(i,j,k)*t_LB / rhosub(i,j,k) + wsub(i,j,k)
+#endif
 
     f00sub(i,j,k)=(ONE-omegas(i,j,k))*f00sub(i,j,k)+(omegas(i,j,k)-ONE)* &
      equil_pop00(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
@@ -9895,6 +9905,8 @@
   !blue fluid
   call compute_grad_on_lattice(psiB,gradpsixB,gradpsiyB,gradpsizB)
 
+
+
   !red fluid
   forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
     fuR(i,j,k) = fuR(i,j,k) - pair_SC*psiR(i,j,k)*gradpsixB(i,j,k)
@@ -10073,7 +10085,36 @@
   !blue fluid
   call compute_grad_on_lattice(psiB,gradpsixB,gradpsiyB,gradpsizB)
   
+#ifdef SCANDREA
+  !red fluid
+  !forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  do k=minz,maxz
+   do j=miny,maxy
+    do i=minx,maxx
 
+        if (isfluid(i,j,k)/=1) cycle
+    fuR(i,j,k) = fuR(i,j,k) - pair_SC*gradpsixB(i,j,k)
+    fvR(i,j,k) = fvR(i,j,k) - pair_SC*gradpsiyB(i,j,k)
+    fwR(i,j,k) = fwR(i,j,k) - pair_SC*gradpsizB(i,j,k)
+      enddo
+   enddo
+  enddo
+  !end forall
+  !blue fluid
+  !forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  do k=minz,maxz
+   do j=miny,maxy
+    do i=minx,maxx
+
+        if (isfluid(i,j,k)/=1) cycle
+    fuB(i,j,k) = fuB(i,j,k) - pair_SC*gradpsixR(i,j,k)
+    fvB(i,j,k) = fvB(i,j,k) - pair_SC*gradpsiyR(i,j,k)
+    fwB(i,j,k) = fwB(i,j,k) - pair_SC*gradpsizR(i,j,k)
+    enddo
+   enddo
+  enddo
+  !end forall
+#else
   !red fluid
   !forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
   do k=minz,maxz
@@ -10102,7 +10143,8 @@
    enddo
   enddo
   !end forall
-  
+#endif
+
   return
   
  end subroutine compute_fluid_force_sc

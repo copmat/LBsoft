@@ -14,7 +14,7 @@ EXE = $(BINROOT)/$(EX)
 EXEP = $(BINROOT)/$(EXP)
 SHELL=/bin/sh
 
-def:	gfortran-mpidebugger
+def:	all
 
 all:
 	@echo "Error - you should specify a target machine!"
