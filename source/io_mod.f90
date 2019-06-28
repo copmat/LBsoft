@@ -1377,6 +1377,7 @@
 
   call bcast_world_i(temp_istatevery)
   call bcast_world_i(temp_istateveryPart)
+  call bcast_world_l(temp_stat)
   if (temp_stat) call set_value_istatevery(temp_istatevery, temp_istateveryPart)
   if(idrank==0) then
      mystring=repeat(' ',dimprint)
