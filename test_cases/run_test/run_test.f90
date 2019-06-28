@@ -26,8 +26,8 @@
   character(len=1) :: delimiter
   integer :: imio1,imio2,inumchar
   integer, dimension(3) :: imio3,imio4
-  real, dimension(:,:,:,:), allocatable :: dmio1,dmio2
-  real, dimension(:,:), allocatable :: dmio3,dmio4
+  real(8), dimension(:,:,:,:), allocatable :: dmio1,dmio2
+  real(8), dimension(:,:), allocatable :: dmio3,dmio4
   integer :: mxrank1,mxrank2,nx1,ny1,nz1,nx2,ny2,nz2
   integer :: minx1,maxx1,miny1,maxy1,minz1,maxz1,type1,iselect1
   integer :: minx2,maxx2,miny2,maxy2,minz2,maxz2,type2,iselect2
@@ -44,7 +44,7 @@
   logical :: lexist
   character(len=40) :: mystring40
   
-  real, parameter :: mytol=1.e-15
+  real, parameter :: mytol=5.e-15
   
   integer :: natms1,natms2,iatm,nargxyz1,nargxyz2
   logical :: lrotate1,lrotate2,lerase
@@ -76,7 +76,7 @@
       if(lmpi)then
         write(6,*) 'mpi job = YES'
       else
-        write(6,*) 'mpi job = NO'
+        write(6,*) 'mpi job = NOK'
       endif
     elseif(i==2)then
       call copystring(arg,directive,maxlen)
@@ -130,7 +130,7 @@
   !lskip(1:ntest)=.true.
   lskip(1:ntest)=.false.
   !lskip(14)=.false.
-  lerase=.true.
+  lerase=.false.
   
   call getcwd(origpath)
   origpath=trim(origpath)
@@ -247,6 +247,7 @@
             do ii=1,nx1
               do l=1,4
                 if(abs(dmio1(l,ii,jj,kk)-dmio2(l,ii,jj,kk))>mytol)then
+                  ! write (*,*) "i,j,k, l", ii,jj,kk,l, dmio1(l,ii,jj,kk),dmio2(l,ii,jj,kk)
                   ltest(i)=.false.
                   cycle
                 endif
@@ -315,6 +316,7 @@
             do iatm=1,natms1
               do iii=1,nargxyz1
                 if(abs(dmio3(iii,iatm)-dmio4(iii,iatm))>mytol)then
+                  ! write (*,*) "iii,iatm", iii,iatm, dmio3(iii,iatm),dmio4(iii,iatm)
                   ltest(i)=.false.
                   cycle
                 endif
@@ -351,7 +353,7 @@
         if(ltest(i))then
           write(6,'(3a)')'test ',labeltest(i),' : OK'
         else
-          write(6,'(3a)')'test ',labeltest(i),' : NO'
+          write(6,'(3a)')'test ',labeltest(i),' : NOK'
         endif
         cycle
  100    ltest(i)=.false.
@@ -373,7 +375,7 @@
         if(ltest(i))then
           write(6,'(3a)')'test ',labeltest(i),' : OK'
         else
-          write(6,'(3a)')'test ',labeltest(i),' : NO'
+          write(6,'(3a)')'test ',labeltest(i),' : NOK'
         endif
         cycle
       elseif(iselect1==5)then
@@ -530,7 +532,7 @@
         if(ltest(i))then
           write(6,'(3a)')'test ',labeltest(i),' : OK'
         else
-          write(6,'(3a)')'test ',labeltest(i),' : NO'
+          write(6,'(3a)')'test ',labeltest(i),' : NOK'
         endif
         cycle
  110    ltest(i)=.false.
@@ -562,7 +564,7 @@
         if(ltest(i))then
           write(6,'(3a)')'test ',labeltest(i),' : OK'
         else
-          write(6,'(3a)')'test ',labeltest(i),' : NO'
+          write(6,'(3a)')'test ',labeltest(i),' : NOK'
         endif
         cycle
       else
@@ -581,7 +583,7 @@
     if(ltest(i))then
       write(6,'(3a)')'test ',labeltest(i),' : OK'
     else
-      write(6,'(3a)')'test ',labeltest(i),' : NO'
+      write(6,'(3a)')'test ',labeltest(i),' : NOK'
     endif
   enddo
   write(6,'(/,a,/)')repeat('*',80)
