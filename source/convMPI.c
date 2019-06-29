@@ -6,8 +6,8 @@
 #define PROCY 4
 #define PROCZ 4
 
-#define NUMFILES 1
-#define INIFILES 0
+#define NUMFILES 51
+#define INIFILES 500
 #define STEPFILES 500
 
 #define NUMVAR 2

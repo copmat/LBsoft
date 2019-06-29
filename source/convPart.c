@@ -1,5 +1,10 @@
 #include <stdio.h>
 
+#define NUMFILES 51
+#define INIFILES 500
+#define STEPFILES 500
+
+
 int main(int argc, char **argv) {
 	int sz = 3800;
 	double buf[6][sz];
@@ -7,13 +12,13 @@ int main(int argc, char **argv) {
 	int i, c, l;
 
 
-	for(i=0; i<33; i++) {
- 	   int num = (1+i)*500 + 10000;
-	   sprintf(fname, "dumpParticles.0%05d.dat", num);
+	for(i=0; i<NUMFILES; i++) {
+ 	   int num = (1+i)*STEPFILES + INIFILES;
+	   sprintf(fname, "dumpParticles.%06d.dat", num);
 	   printf("Converting:%s \n", fname);
 
 	   FILE *fp=fopen(fname,"rb");
-	   sprintf(fname, "part-%03d.csv", num);
+	   sprintf(fname, "part-%06d.csv", num);
 	   FILE *fpOut=fopen(fname,"w");
 	   if (!fp) return 2;
 	   if (!fpOut) return 3;
