@@ -609,12 +609,7 @@
   call clean_fluid_inside_particle
   
   if(lparticles)then
-    if(mxrank==1)then
-      call write_vtp_file(181,'outatm',nstepsub)
-!    else
-!      call error(11)
-!       write (6,*) "Skipping in Parallel"
-    endif
+    call write_vtp_file(181,'outatm',nstepsub)
   endif
   
   if(lvtkstruct)then

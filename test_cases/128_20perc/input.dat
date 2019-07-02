@@ -1,6 +1,6 @@
 [ROOM SYSTEM]
 box 128 128 128
-steps 26000
+steps 100000
 diagnostic yes
 boundary condition 1 1 1
 decomposition type 7
@@ -8,7 +8,7 @@ decomposition dimension    1   1   1
 print list engke engrt engto dens1 maxd1 mind1 maxvx cpu
 print every 10
 print vtk structured 100
-print xyz 1
+print xyz 100
 test yes
 job time 4 d
 close time 10 s
