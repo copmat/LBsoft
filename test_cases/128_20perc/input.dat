@@ -1,0 +1,41 @@
+[ROOM SYSTEM]
+box 128 128 128
+steps 26000
+diagnostic yes
+boundary condition 1 1 1
+decomposition type 7
+decomposition dimension    1   1   1
+print list engke engrt engto dens1 maxd1 mind1 maxvx cpu
+print every 10
+print vtk structured 100
+print xyz 1
+test yes
+job time 4 d
+close time 10 s
+[END ROOM]
+[ROOM LB]
+components 2
+density gaussian
+density mean 1.0 1.0
+density stdev 1.d-4 1.d-4
+velocity mean 0.d0 0.d0 0.d0
+force shanchen pair 0.6d0
+fluid tau 1.d0 1.d0
+[END ROOM]
+[ROOM MD]
+particle yes
+particle type 1
+C
+rotate yes
+lubric yes
+densvar 100.4d0
+rcut 12.d0
+delr 1.0d0
+shape spherical 1 4.5d0
+field pair hz 1 1 20.d0 10.d0 9.d0
+mass 1 472.d0
+initial temperature 0.0
+force shanchen angle 108.d0 10.d0
+force shanchen particel 0.1d0 0.1d0
+[END ROOM]
+[END]

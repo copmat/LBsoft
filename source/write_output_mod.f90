@@ -366,6 +366,8 @@
   110 format (I12,I12)
   112 format (A,I12,I12)
   
+  if(idrank/=0)return
+  
   sevt=repeat(' ',120)
   sevt=trim(dir_out)//trim(fnamesub)// &
    trim(write_fmtnumb(istepsub))//'.vtk'
@@ -377,34 +379,34 @@
   write(iotest,103) 'Field Emission Device - Charge Density Plot'
   write(iotest,103) 'ASCII'
   write(iotest,103) 'DATASET POLYDATA'
-  write(iotest,106) 'POINTS ',natms,' float'
-  do iatm=1,natms
+  write(iotest,106) 'POINTS ',natms_tot,' float'
+  do iatm=1,natms_tot
     write(iotest,108)xxx(iatm),yyy(iatm),zzz(iatm)
   enddo
   
   write(iotest,*)
-  write(iotest,107) 'POINT_DATA ', natms
+  write(iotest,107) 'POINT_DATA ', natms_tot
   write(iotest,103) 'SCALARS Type float 1'
   write(iotest,103) 'LOOKUP_TABLE default'
   
-  do iatm=1,natms
+  do iatm=1,natms_tot
     write(iotest,*)1 !ltype(iatm)
   enddo
   
   if(lrotate)then
     
     write(iotest,103) 'VECTORS Vectx float'
-    do iatm=1,natms
+    do iatm=1,natms_tot
       write(iotest,*)take_rotversorx(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
     enddo
     
     write(iotest,103) 'VECTORS Vecty float'
-    do iatm=1,natms
+    do iatm=1,natms_tot
       write(iotest,*)take_rotversory(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
     enddo
     
     write(iotest,103) 'VECTORS Vectz float'
-    do iatm=1,natms
+    do iatm=1,natms_tot
       write(iotest,*)take_rotversorz(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
     enddo
     
@@ -466,6 +468,7 @@
   
   character(len=*), intent(in) :: filename
   
+  if(idrank/=0)return
   if(.not. lxyzfile)return
   
   open(ioxyz,file=trim(filename),status='replace',action='write')
@@ -494,12 +497,13 @@
   character(len=8), parameter :: mystring8='C       '
   character(len=13), parameter :: mystring13='time step    '
   
+  if(idrank/=0)return
   if(.not. lxyzfile)return
   if(mod(istepsub,ixyzevery)/=0)return
 
-  write(ioxyz,'(i8)') natms
+  write(ioxyz,'(i8)') natms_tot
   write(ioxyz,'(a13,i12,3f16.8)')mystring13,istepsub,cell(1),cell(5),cell(9)
-  do j=1,natms
+  do j=1,natms_tot
     write(ioxyz,"(a8,3f16.6)")mystring8,xxx(j),yyy(j),zzz(j)
   end do
 
@@ -522,6 +526,7 @@
   
   implicit none
   
+  if(idrank/=0)return
   if(.not. lxyzfile)return
   close(ioxyz)
   
