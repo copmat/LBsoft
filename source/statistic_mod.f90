@@ -24,7 +24,7 @@
  
  private
  
- integer, public, parameter :: nmaxstatdata=32
+ integer, public, parameter :: nmaxstatdata=33
  
  real(kind=PRC), public, save, dimension(nmaxstatdata) :: statdata
  real(kind=PRC), public, save :: meancputime=0.d0
@@ -87,13 +87,13 @@
   integer, save :: nstepsubold=0
   integer, save :: nmulstepdoneold=0
   
-  real(kind=PRC) :: dnorm(1),dsum,dtemp(10),dnorm2(1)
+  real(kind=PRC) :: dnorm(1),dsum,dtemp(10),dnorm2(1),phfield
   
   
   call compute_elapsed_cpu_time()
   call compute_cpu_time()
   
-  forall(i=1:nmaxstatdata)statdata(i)=ZERO
+  statdata(1:nmaxstatdata)=ZERO
   
 ! store all the observables in the statdata array to be printed
   dnorm(1)=ZERO
@@ -127,6 +127,10 @@
             statdata(2)=statdata(2)+rhoB(i,j,k)
             statdata(32)=statdata(32)+rhoB(i,j,k)* &
              (u(i,j,k)**TWO+v(i,j,k)**TWO+w(i,j,k)**TWO)
+            phfield=(rhoR(i,j,k)-rhoB(i,j,k))/(rhoR(i,j,k)+rhoB(i,j,k))
+            if(dabs(phfield)<=FOURTH)then
+              statdata(33)=statdata(33)+ONE
+            endif
           endif
         enddo
       enddo
@@ -200,13 +204,15 @@
     dtemp(4)=statdata(26)
     dtemp(5)=statdata(27)
     dtemp(6)=statdata(32)
-    call sum_world_farr(dtemp,6)
+    dtemp(7)=statdata(33)
+    call sum_world_farr(dtemp,7)
     statdata(1)=dtemp(1)
     if(.not. lsingle_fluid)statdata(2)=dtemp(2)
     statdata(25)=dtemp(3)
     statdata(26)=dtemp(4)
     statdata(27)=dtemp(5)
     statdata(32)=dtemp(6)
+    statdata(33)=dtemp(7)/real(nx*ny*nz,kind=PRC)
     
     dtemp(1)=statdata(3)
     dtemp(2)=statdata(4)

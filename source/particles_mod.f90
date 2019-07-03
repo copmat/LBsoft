@@ -110,6 +110,9 @@
  !activate lubrication force
  logical, public, protected, save :: llubrication=.false.
  
+ !activate capping force
+ logical, public, protected, save :: lcap_force_part=.false.
+ 
  !kbT factor
  real(kind=PRC), public, protected, save :: tempboltz=cssq
  
@@ -178,6 +181,9 @@
  real(kind=PRC), save, protected, public :: ext_tqx=ZERO
  real(kind=PRC), save, protected, public :: ext_tqy=ZERO
  real(kind=PRC), save, protected, public :: ext_tqz=ZERO
+ 
+ !capping force on particles
+ real(kind=PRC), save, protected, public :: cap_force_part=ZERO
  
  !key for set initial particle temperature
  logical, public, protected, save :: linit_temp=.false.
@@ -388,6 +394,7 @@
  public :: set_llubrication
  public :: set_value_ext_force_particles
  public :: set_value_ext_torque_particles
+ public :: set_cap_force_part
  public :: q2eul
  public :: compute_psi_sc_particles, restore_particles
  
@@ -862,6 +869,31 @@
   return
   
  end subroutine set_value_ext_torque_particles
+ 
+ subroutine set_cap_force_part(ltemp1,dtemp1)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the capping force value acting
+!     on the particles 
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(in) :: ltemp1
+  real(kind=PRC), intent(in) :: dtemp1
+  
+  lcap_force_part = ltemp1
+  cap_force_part = dtemp1
+  
+  return
+  
+ end subroutine set_cap_force_part
  
  subroutine compute_mean_particle_force()
  
@@ -2856,6 +2888,9 @@
   real(kind=PRC), parameter :: s2rmin=TWO**(ONE/SIX)
   logical, intent(in) :: debug
   integer, intent(in) :: nstep
+  
+  real(kind=PRC) :: fxi,fxj,fyi,fyj,fzi,fzj
+  real(kind=PRC) :: bxi,bxj,byi,byj,bzi,bzj
 
 
   ! if (debug) call OpenLogFile(nstep, "compute_inter_force", 118)
@@ -3130,7 +3165,8 @@
               ggg=FIVE*HALF*kappa*(rmin-rrr)**(THREE*HALF)
             endif
             engcfg=engcfg+vvv
-#ifdef DEBUG_FORCEINT
+            
+#ifdef CHECK_FORCEINT
             fxb(iatm)=fxb(iatm)-ggg*xdf(ii)/rrr
             fxb(jatm)=fxb(jatm)+ggg*xdf(ii)/rrr
             fyb(iatm)=fyb(iatm)-ggg*ydf(ii)/rrr
@@ -3571,25 +3607,48 @@
 
   call or_world_larr(ltest,1)
   if(ltest(1))call error(28)
-      
-  ! if (debug) call openLogFile(nstepsub, "nve_lf", 118)
-
-! move atoms by leapfrog algorithm    
-  do myi=1,natms
-    i = atmbook(myi)
-!   update velocities       
-    bxx(i)=vxx(i)+tstepatm*rmass(ltype(i))*fxx(i)
-    byy(i)=vyy(i)+tstepatm*rmass(ltype(i))*fyy(i)
-    bzz(i)=vzz(i)+tstepatm*rmass(ltype(i))*fzz(i)
-!   update positions
-    xxx(i)=xxo(i)+tstepatm*bxx(i)
-    yyy(i)=yyo(i)+tstepatm*byy(i)
-    zzz(i)=zzo(i)+tstepatm*bzz(i)
+  
+  if(lcap_force_part)then
+    do myi=1,natms
+      i = atmbook(myi)
+!     capping forces   
+      if(dabs(fxx(i))>cap_force_part)fxx(i)=sign(fxx(i),ONE)*cap_force_part
+      if(dabs(fyy(i))>cap_force_part)fyy(i)=sign(fyy(i),ONE)*cap_force_part
+      if(dabs(fzz(i))>cap_force_part)fzz(i)=sign(fzz(i),ONE)*cap_force_part
+!     update velocities   
+      bxx(i)=vxx(i)+tstepatm*rmass(ltype(i))*fxx(i)
+      byy(i)=vyy(i)+tstepatm*rmass(ltype(i))*fyy(i)
+      bzz(i)=vzz(i)+tstepatm*rmass(ltype(i))*fzz(i)
+!     update positions
+      xxx(i)=xxo(i)+tstepatm*bxx(i)
+      yyy(i)=yyo(i)+tstepatm*byy(i)
+      zzz(i)=zzo(i)+tstepatm*bzz(i)
     ! if (debug) write (118,*) __FILE__,__LINE__, "iatm=", i, "b =", bxx(i),byy(i),bzz(i), &
     !     "f =", fxx(i),fyy(i),fzz(i)
     ! if (debug) write (118,*) __FILE__,__LINE__, "iatm=", i, "xyz", xxx(i),yyy(i),zzz(i), &
     !     "xxo", xxo(i),yyo(i),zzo(i)
-  enddo
+    enddo
+  else
+      
+  ! if (debug) call openLogFile(nstepsub, "nve_lf", 118)
+
+! move atoms by leapfrog algorithm    
+    do myi=1,natms
+      i = atmbook(myi)
+!     update velocities       
+      bxx(i)=vxx(i)+tstepatm*rmass(ltype(i))*fxx(i)
+      byy(i)=vyy(i)+tstepatm*rmass(ltype(i))*fyy(i)
+      bzz(i)=vzz(i)+tstepatm*rmass(ltype(i))*fzz(i)
+!     update positions
+      xxx(i)=xxo(i)+tstepatm*bxx(i)
+      yyy(i)=yyo(i)+tstepatm*byy(i)
+      zzz(i)=zzo(i)+tstepatm*bzz(i)
+    ! if (debug) write (118,*) __FILE__,__LINE__, "iatm=", i, "b =", bxx(i),byy(i),bzz(i), &
+    !     "f =", fxx(i),fyy(i),fzz(i)
+    ! if (debug) write (118,*) __FILE__,__LINE__, "iatm=", i, "xyz", xxx(i),yyy(i),zzz(i), &
+    !     "xxo", xxo(i),yyo(i),zzo(i)
+    enddo
+  endif
   
 #if 1
   do myi=1,natms

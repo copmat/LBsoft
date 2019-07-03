@@ -14,7 +14,8 @@
 !     
 !***********************************************************************
  
- use version_mod,    only : idrank,mxrank,or_world_larr,finalize_world,get_sync_world
+ use version_mod,    only : idrank,mxrank,or_world_larr,finalize_world, &
+                   get_sync_world,sum_world_farr
  use error_mod
  use aop_mod
  use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
@@ -71,6 +72,9 @@
  integer, save, protected, public :: bc_type_north=0
  integer, save, protected, public :: bc_type_south=0
  
+ !timestep interval to rescale the total fluid mass
+ integer, save, protected, public :: imass_rescale=100
+ 
  !selected area for initial density fluid values
  integer, save, protected, public :: areaR(1:2,1:3)=0
  
@@ -81,6 +85,12 @@
  type(REALPTR_S), allocatable, dimension(:,:) :: v_managebc
  type(REALPTR_S), allocatable, dimension(:,:) :: w_managebc
  
+ !integer denoting the LOCAL fluid nodes at actual time 
+ !(it changes if particles are presents)
+ integer, save :: nfluidnodes=0
+ !integer denoting the total fluid nodes at initial time
+ integer, save :: totnfluidnodes_init=0
+ 
  logical, save, protected, public :: lalloc_hvars=.false.
  logical, save, protected, public :: lalloc_pops=.false.
  
@@ -90,6 +100,11 @@
  logical, save, protected, public :: lpair_SC=.false.
  
  logical, save, protected, public :: lunique_omega=.false.
+ 
+ logical, save, protected, public :: lcap_force=.false.
+ 
+ !rescale the total fluid mass
+ logical, save, protected, public :: lmass_rescale=.false.
  
  logical, save, protected, public :: lsingle_fluid=.false.
  
@@ -130,6 +145,7 @@
  real(kind=PRC), save, protected, public :: ext_fu       = ZERO
  real(kind=PRC), save, protected, public :: ext_fv       = ZERO
  real(kind=PRC), save, protected, public :: ext_fw       = ZERO
+ real(kind=PRC), save, protected, public :: cap_force    = ZERO
  
  real(kind=PRC), save, protected, public :: bc_rhoR_east = ZERO
  real(kind=PRC), save, protected, public :: bc_rhoR_west = ZERO
@@ -210,6 +226,14 @@
  real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_u
  real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_v
  real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_w
+ 
+!real denoting the LOCAL fluid mass at actual time for red and blue
+!(it changes if particles are presents)
+ real(kind=PRC), save :: nfluidmassR = ZERO
+ real(kind=PRC), save :: nfluidmassB = ZERO
+!real denoting the TOTAL fluid mass at initial time for red and blue
+ real(kind=PRC), save :: totnfluidmassR_init = ZERO
+ real(kind=PRC), save :: totnfluidmassB_init = ZERO
  
 !array containing the node list of the second belt 
  integer, save :: ndouble
@@ -386,6 +410,9 @@
  public :: dumpHvar, restorePops, restoreHvar
  public :: driver_bc_psi
  public :: fixPops
+ public :: set_cap_force
+ public :: set_mass_rescale
+ public :: rescale_fluid_mass
 
  contains
  
@@ -1360,6 +1387,7 @@
   integer :: i,j,k,l,imio3(3)
   logical :: ltestout
   character(len=32) :: itesto
+  real(kind=PRC) :: dtemp(3)
   
 ! initialize isfluid
   
@@ -1402,6 +1430,57 @@
 #ifdef DIAGNINIT
   call print_all_hvar(100,'inithvar_fine',0,rhoR,u,v,w)
 #endif
+  
+  !save initial local fluid mass
+  !red fluid
+  if(lsingle_fluid)then
+    totnfluidnodes_init=0
+    totnfluidmassR_init=ZERO
+    ! forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          if(isfluid(i,j,k)==1) then
+            totnfluidnodes_init=totnfluidnodes_init+1
+            totnfluidmassR_init=totnfluidmassR_init+rhoR(i,j,k)
+          endif
+        enddo
+      enddo
+    enddo
+    if(mxrank>1)then
+      dtemp(1)=real(totnfluidnodes_init,kind=PRC)
+      dtemp(2)=totnfluidmassR_init
+      call sum_world_farr(dtemp,2)
+      totnfluidnodes_init=nint(dtemp(1))
+      totnfluidmassR_init=dtemp(2)
+    endif
+  else
+  !both fluids
+    totnfluidnodes_init=0
+    totnfluidmassR_init=ZERO
+    totnfluidmassB_init=ZERO
+    ! forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          if(isfluid(i,j,k)==1) then
+            totnfluidnodes_init=totnfluidnodes_init+1
+            totnfluidmassR_init=totnfluidmassR_init+rhoR(i,j,k)
+            totnfluidmassB_init=totnfluidmassB_init+rhoB(i,j,k)
+          endif
+        enddo
+      enddo
+    enddo
+    if(mxrank>1)then
+      dtemp(1)=real(totnfluidnodes_init,kind=PRC)
+      dtemp(2)=totnfluidmassR_init
+      dtemp(3)=totnfluidmassB_init
+      call sum_world_farr(dtemp,3)
+      totnfluidnodes_init=nint(dtemp(1))
+      totnfluidmassR_init=dtemp(2)
+      totnfluidmassB_init=dtemp(3)
+    endif
+  endif
   
   if(idistselect==3)then
     !perform a fake test with the density set as the real(i4) value
@@ -2646,6 +2725,55 @@
   
  end subroutine set_unique_omega
  
+ subroutine set_cap_force(ltemp1,dtemp1)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the capping force value acting
+!     on fluids 
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(in) :: ltemp1
+  real(kind=PRC), intent(in) :: dtemp1
+  
+  lcap_force = ltemp1
+  cap_force = dtemp1
+  
+  return
+  
+ end subroutine set_cap_force
+ 
+ subroutine set_mass_rescale(ltemp1,itemp1)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the rescaling of fluid mass
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(in) :: ltemp1
+  integer, intent(in) :: itemp1
+  
+  lmass_rescale = ltemp1
+  imass_rescale = itemp1
+  
+  return
+  
+ end subroutine set_mass_rescale
+ 
  pure function viscosity_to_omega(dtemp1)
  
 !***********************************************************************
@@ -2695,6 +2823,126 @@
   return
  
  end function omega_to_viscosity
+ 
+ subroutine rescale_fluid_mass(nstep)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for rescaling total fluid mass
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: nstep
+  
+  real(kind=PRC) :: dtemp(3),rescalef
+  real(kind=PRC) :: totnfluidmassR,totnfluidmassB,totnfluidnodes
+  
+  if(mod(nstep,imass_rescale)/=0)return
+  
+  if(lsingle_fluid)then
+    if(mxrank>1)then
+      dtemp(1)=real(nfluidnodes,kind=PRC)
+      dtemp(2)=nfluidmassR
+      call sum_world_farr(dtemp,2)
+      totnfluidnodes=dtemp(1)
+      totnfluidmassR=dtemp(2)
+    else
+      totnfluidnodes=real(nfluidnodes,kind=PRC)
+      totnfluidmassR=nfluidmassR
+    endif
+    rescalef=totnfluidmassR_init/totnfluidmassR
+    call rescale_pops(rescalef,f00R,f01R,&
+     f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
+     f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+  else
+    if(mxrank>1)then
+      dtemp(1)=real(nfluidnodes,kind=PRC)
+      dtemp(2)=nfluidmassR
+      dtemp(3)=nfluidmassB
+      call sum_world_farr(dtemp,3)
+      totnfluidnodes=dtemp(1)
+      totnfluidmassR=dtemp(2)
+      totnfluidmassB=dtemp(3)
+    else
+      totnfluidnodes=real(nfluidnodes,kind=PRC)
+      totnfluidmassR=nfluidmassR
+      totnfluidmassB=nfluidmassB
+    endif
+    rescalef=(totnfluidmassR_init*totnfluidnodes)/ &
+     (totnfluidmassR*real(totnfluidnodes_init,kind=PRC))
+    call rescale_pops(rescalef,f00R,f01R,&
+     f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
+     f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+    rescalef=(totnfluidmassB_init*totnfluidnodes)/ &
+     (totnfluidmassB*real(totnfluidnodes_init,kind=PRC))
+    call rescale_pops(rescalef,f00B,f01B,&
+     f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
+     f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+  endif
+  
+  return
+  
+ end subroutine rescale_fluid_mass
+ 
+ subroutine rescale_pops(rescalesub,f00sub,f01sub,&
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for scaling all the populations of a factor
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC), intent(in) :: rescalesub
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: &
+   f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,&
+   f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  
+  integer :: i,j,k
+  
+  do k=minz,maxz
+    do j=miny,maxy
+      do i=minx,maxx
+        if (isfluid(i,j,k)/=1) cycle
+        f00sub(i,j,k)=f00sub(i,j,k)*rescalesub
+        f01sub(i,j,k)=f01sub(i,j,k)*rescalesub
+        f02sub(i,j,k)=f02sub(i,j,k)*rescalesub
+        f03sub(i,j,k)=f03sub(i,j,k)*rescalesub
+        f04sub(i,j,k)=f04sub(i,j,k)*rescalesub
+        f05sub(i,j,k)=f05sub(i,j,k)*rescalesub
+        f06sub(i,j,k)=f06sub(i,j,k)*rescalesub
+        f07sub(i,j,k)=f07sub(i,j,k)*rescalesub
+        f08sub(i,j,k)=f08sub(i,j,k)*rescalesub
+        f09sub(i,j,k)=f09sub(i,j,k)*rescalesub
+        f10sub(i,j,k)=f10sub(i,j,k)*rescalesub
+        f11sub(i,j,k)=f11sub(i,j,k)*rescalesub
+        f12sub(i,j,k)=f12sub(i,j,k)*rescalesub
+        f13sub(i,j,k)=f13sub(i,j,k)*rescalesub
+        f14sub(i,j,k)=f14sub(i,j,k)*rescalesub
+        f15sub(i,j,k)=f15sub(i,j,k)*rescalesub
+        f16sub(i,j,k)=f16sub(i,j,k)*rescalesub
+        f17sub(i,j,k)=f17sub(i,j,k)*rescalesub
+        f18sub(i,j,k)=f18sub(i,j,k)*rescalesub
+      enddo
+    enddo
+  enddo
+
+  return
+  
+ end subroutine rescale_pops
  
  subroutine convert_fluid_force_to_velshifted
  
@@ -3924,7 +4172,8 @@
   !red fluid
   
   if(lsingle_fluid)then
-
+    nfluidnodes=0
+    nfluidmassR=ZERO
     ! forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
    do k=minz,maxz
     do j=miny,maxy
@@ -3955,6 +4204,8 @@
       u(i,j,k) = locu
       v(i,j,k) = locv
       w(i,j,k) = locw
+      nfluidnodes=nfluidnodes+1
+      nfluidmassR=nfluidmassR+locrho
     else
       rhoR(i,j,k) = ZERO
       u(i,j,k) = ZERO
@@ -3975,7 +4226,9 @@
 #ifdef NEW_MOMENTS_2FL
   factR = ONE/tauR
   factB = ONE/tauB
-
+  nfluidnodes=0
+  nfluidmassR=ZERO
+  nfluidmassB=ZERO
    ! forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
    do k=minz,maxz
     do j=miny,maxy
@@ -4022,6 +4275,9 @@
       u(i,j,k) = locu * weight_RB
       v(i,j,k) = locv * weight_RB
       w(i,j,k) = locw * weight_RB
+      nfluidnodes=nfluidnodes+1
+      nfluidmassR=nfluidmassR+locrhor
+      nfluidmassB=nfluidmassB+locrhob
     else
       rhoR(i,j,k) = ZERO
       rhoB(i,j,k) = ZERO

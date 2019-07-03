@@ -31,7 +31,8 @@
                         print_all_pops_center,driver_bc_pop_selfcomm, &
                         print_all_pops_area_shpere,ex,ey,ez,pimage, &
                         ixpbc,iypbc,izpbc,nx,ny,nz,opp, &
-                        driver_bc_pops, print_all_pops2
+                        driver_bc_pops, print_all_pops2, &
+                        rescale_fluid_mass,lmass_rescale
 
  use particles_mod,    only : parlst,lparticles, &
                         vertest,initialize_particle_force, &
@@ -162,6 +163,12 @@
 
 
   new_time = real(nstep,kind=PRC)*tstep
+  
+  if(lmass_rescale)then
+    if(ldiagnostic)call start_timing2("LB","build_new_isfluid")
+    call rescale_fluid_mass(nstep)
+    if(ldiagnostic)call end_timing2("LB","build_new_isfluid")
+  endif
   
   if(lparticles)then
     if(ldiagnostic)call start_timing2("LB","build_new_isfluid")

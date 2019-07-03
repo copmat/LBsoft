@@ -40,7 +40,8 @@
   set_LBintegrator_type,lbc_halfway,set_lbc_halfway,set_lbc_fullway, &
   lbc_fullway,partR_SC,partB_SC,set_fluid_particle_sc,theta_SC, &
   devtheta_SC,set_theta_particle_sc,set_back_value_dens_fluids, &
-  backR,backB,set_init_area_dens_fluids,areaR
+  backR,backB,set_init_area_dens_fluids,areaR,set_cap_force,cap_force, &
+  imass_rescale,set_mass_rescale
  use particles_mod,         only : set_natms_tot,natms_tot,lparticles, &
   set_ishape,set_densvar,densvar,ishape,set_rcut,rcut,delr, &
   set_delr,rotmat_2_quat,lrotate,set_lrotate,allocate_field_array, &
@@ -52,7 +53,8 @@
   set_sidewall_md_k,sidewall_md_k,sidewall_md_k,sidewall_md_rdist, &
   llubrication,set_llubrication,set_sidewall_md_rdist, ext_fxx, &
   ext_fyy,ext_fzz,set_value_ext_force_particles,ext_tqx,ext_tqy, &
-  ext_tqz,set_value_ext_torque_particles
+  ext_tqz,set_value_ext_torque_particles,set_cap_force_part, &
+  cap_force_part,ltype
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,lvtkstruct,set_value_ixyzevery,lxyzfile,ixyzevery, &
   set_value_istatevery
@@ -336,6 +338,7 @@
   integer, dimension(mxntype,mxntype) :: temp_mskvdw(1:mxntype,1:mxntype)=0
   integer :: temp_ntype=0
   integer :: temp_areaR(1:2,1:3)=0
+  integer :: temp_imass_rescale=100
   logical :: temp_ibc=.false.
   logical :: temp_lpair_SC=.false.
   logical :: temp_ldomdec=.false.
@@ -379,6 +382,9 @@
   logical :: temp_sidewall_md_rdist=.false.
   logical :: temp_lpart_SC=.false.
   logical :: temp_ltheta_SC=.false.
+  logical :: temp_lcap_force_part=.false.
+  logical :: temp_lcap_force=.false.
+  logical :: temp_lmass_rescale=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -445,6 +451,8 @@
   real(kind=PRC) :: dtemp_partR_SC= ZERO
   real(kind=PRC) :: dtemp_partB_SC= ZERO
   
+  real(kind=PRC) :: dtemp_cap_force_part= ZERO
+  real(kind=PRC) :: dtemp_cap_force= ZERO
   real(kind=PRC), dimension(1:mxntype) :: dtemp_umass(1:mxntype)= ZERO
   
   real(kind=PRC), dimension(mxntype) :: dtemp_urdim(1:mxntype)=ZERO
@@ -818,6 +826,9 @@
                 temp_areaR(2,2)=intstr(directive,maxlen,inumchar)
                 temp_areaR(1,3)=intstr(directive,maxlen,inumchar)
                 temp_areaR(2,3)=intstr(directive,maxlen,inumchar)
+              elseif(findstring('rescal',directive,inumchar,maxlen))then
+                temp_imass_rescale=intstr(directive,maxlen,inumchar)
+                temp_lmass_rescale=.true.
               elseif(findstring('gauss',directive,inumchar,maxlen))then
                 temp_idistselect=1
               elseif(findstring('unifo',directive,inumchar,maxlen))then
@@ -856,6 +867,9 @@
                   call warning(1,dble(iline),redstring)
                   lerror6=.true.
                 endif
+              elseif(findstring('cap',directive,inumchar,maxlen))then
+                dtemp_cap_force=dblstr(directive,maxlen,inumchar)
+                temp_lcap_force=.true.
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1051,6 +1065,9 @@
                   call warning(1,dble(iline),redstring)
                   lerror6=.true.
                 endif
+              elseif(findstring('cap',directive,inumchar,maxlen))then
+                dtemp_cap_force_part=dblstr(directive,maxlen,inumchar)
+                temp_lcap_force_part=.true.
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1777,6 +1794,17 @@
     endif
   endif
   
+  call bcast_world_l(temp_lmass_rescale)
+  if(temp_lmass_rescale)then
+    call bcast_world_i(temp_imass_rescale)
+    call set_mass_rescale(temp_lmass_rescale,temp_imass_rescale)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='fluid mass rescaled every'
+      write(6,'(2a,i12)')mystring,": ",imass_rescale
+    endif
+  endif
+  
   call bcast_world_f(dtemp_initial_u)
   call bcast_world_f(dtemp_initial_v)
   call bcast_world_f(dtemp_initial_w)
@@ -1851,6 +1879,18 @@
       mystring12='no'
       mystring12=adjustr(mystring12)
       write(6,'(3a)')mystring,": ",mystring12
+    endif
+  endif
+  
+  
+  call bcast_world_l(temp_lcap_force)
+  if(temp_lcap_force)then
+    call bcast_world_f(dtemp_cap_force)
+    call set_cap_force(temp_lcap_force,dtemp_cap_force)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='capping force on fluids'
+      write(6,'(2a,f12.6)')mystring,": ",cap_force
     endif
   endif
   
@@ -2084,6 +2124,17 @@
           write(6,'(2a,2f12.6)')mystring,": ",theta_SC/conv_rad, &
            devtheta_SC/conv_rad
         endif
+      endif
+    endif
+    
+    call bcast_world_l(temp_lcap_force_part)
+    if(temp_lcap_force_part)then
+      call bcast_world_f(dtemp_cap_force_part)
+      call set_cap_force_part(temp_lcap_force_part,dtemp_cap_force_part)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='capping force on particles'
+        write(6,'(2a,f12.6)')mystring,": ",cap_force_part
       endif
     endif
     
@@ -2391,6 +2442,8 @@
     legendobs='engrt =  rotational energy                        '
   elseif(printcodsub(iarg)==32)then
     legendobs='engkf =  fluid kinetic energy                     '
+  elseif(printcodsub(iarg)==33)then
+    legendobs='intph =  fluid interphase nodes                   '
   endif
   legendobs=adjustl(legendobs)
   
@@ -2433,6 +2486,9 @@
     lfound=.true.
   elseif(findstring('dens2',temps,inumchar,lenstring))then
     printcodsub(iarg)=2
+    lfound=.true.
+  elseif(findstring('intph',temps,inumchar,lenstring))then
+    printcodsub(iarg)=33
     lfound=.true.
   elseif(findstring('maxd1',temps,inumchar,lenstring))then
     printcodsub(iarg)=3
@@ -2623,6 +2679,8 @@
     printlisub(iarg)='engrt (lu)'
   elseif(printcodsub(iarg)==32)then
     printlisub(iarg)='engkf (lu)'
+  elseif(printcodsub(iarg)==33)then
+    printlisub(iarg)='intph (#)'
   endif
   printlisub(iarg)=adjustr(printlisub(iarg))
   enddo
@@ -2905,6 +2963,8 @@
   
   character(len=*),parameter :: of='(a)'
   integer, parameter :: natmname=4
+  real(kind=PRC) :: volatms = ZERO
+  real(kind=PRC) :: volfrac = ZERO
   
   
   temp_natms_tot=0
@@ -3146,8 +3206,22 @@
   endif
   
   if(idrank==0)then
+    !compute total volume of particles
+    volatms = ZERO
+    do i=1,temp_natms_tot
+      itype=ltypes(i)
+      if(ishape(itype)==1)then
+        !oblate to be added for now is a sphere
+        volatms = volatms + FOUR/THREE*Pi*(rdimx(itype))**THREE
+      else
+        volatms = volatms + FOUR/THREE*Pi*(rdimx(itype))**THREE
+      endif
+    enddo
+    volfrac=volatms/real(nx*ny*nz,kind=PRC)
+    
     write(6,'(3a,/)')'file ',trim(inputname),' correctly closed'
-    write(6,*) 'Total number of atoms:', temp_natms_tot
+    write(6,'(a,i12)') 'Total number of atoms    : ', temp_natms_tot
+    write(6,'(a,f12.6)') 'Particle volume fraction : ', volfrac
     write(6,of)"                                                                               "
     write(6,of)"*******************************************************************************"
     write(6,of)"                                                                               "
@@ -3155,6 +3229,9 @@
   
   call bcast_world_i(temp_natms_tot)
   call set_natms_tot(temp_natms_tot)
+  
+  return
+  
  end subroutine read_input_atom
 
  
