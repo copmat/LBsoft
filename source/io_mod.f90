@@ -41,7 +41,7 @@
   lbc_fullway,partR_SC,partB_SC,set_fluid_particle_sc,theta_SC, &
   devtheta_SC,set_theta_particle_sc,set_back_value_dens_fluids, &
   backR,backB,set_init_area_dens_fluids,areaR,set_cap_force,cap_force, &
-  imass_rescale,set_mass_rescale
+  imass_rescale,set_mass_rescale,dmass_rescale
  use particles_mod,         only : set_natms_tot,natms_tot,lparticles, &
   set_ishape,set_densvar,densvar,ishape,set_rcut,rcut,delr, &
   set_delr,rotmat_2_quat,lrotate,set_lrotate,allocate_field_array, &
@@ -54,7 +54,7 @@
   llubrication,set_llubrication,set_sidewall_md_rdist, ext_fxx, &
   ext_fyy,ext_fzz,set_value_ext_force_particles,ext_tqx,ext_tqy, &
   ext_tqz,set_value_ext_torque_particles,set_cap_force_part, &
-  cap_force_part,ltype
+  cap_force_part,ltype,lfix_moment,ifix_moment,set_fix_moment
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,lvtkstruct,set_value_ixyzevery,lxyzfile,ixyzevery, &
   set_value_istatevery
@@ -339,6 +339,7 @@
   integer :: temp_ntype=0
   integer :: temp_areaR(1:2,1:3)=0
   integer :: temp_imass_rescale=100
+  integer :: temp_ifix_moment=1
   logical :: temp_ibc=.false.
   logical :: temp_lpair_SC=.false.
   logical :: temp_ldomdec=.false.
@@ -385,6 +386,7 @@
   logical :: temp_lcap_force_part=.false.
   logical :: temp_lcap_force=.false.
   logical :: temp_lmass_rescale=.false.
+  logical :: temp_lfix_moment=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -471,6 +473,8 @@
   real(kind=PRC) :: dtemp_ext_tqx = ZERO
   real(kind=PRC) :: dtemp_ext_tqy = ZERO
   real(kind=PRC) :: dtemp_ext_tqz = ZERO
+  
+  real(kind=PRC) :: temp_dmass_rescale = ZERO
   
   integer, dimension(mxvdw) :: temp_ltpvdw
   real(kind=PRC), dimension(mxpvdw,mxvdw) :: dtemp_prmvdw
@@ -828,6 +832,7 @@
                 temp_areaR(2,3)=intstr(directive,maxlen,inumchar)
               elseif(findstring('rescal',directive,inumchar,maxlen))then
                 temp_imass_rescale=intstr(directive,maxlen,inumchar)
+                temp_dmass_rescale=dblstr(directive,maxlen,inumchar)
                 temp_lmass_rescale=.true.
               elseif(findstring('gauss',directive,inumchar,maxlen))then
                 temp_idistselect=1
@@ -1213,6 +1218,21 @@
                 temp_llubrication=.true.
               elseif(findstring('no',directive,inumchar,maxlen))then
                 temp_llubrication=.false.
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
+              endif
+            elseif(findstring('moment',directive,inumchar,maxlen))then
+              if(findstring('fix',directive,inumchar,maxlen))then
+                if(findstring('yes',directive,inumchar,maxlen))then
+                  temp_ifix_moment=intstr(directive,maxlen,inumchar)
+                  temp_lfix_moment=.true.
+                elseif(findstring('no',directive,inumchar,maxlen))then
+                  temp_lfix_moment=.false.
+                else
+                  call warning(1,dble(iline),redstring)
+                  lerror6=.true.
+                endif
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1797,11 +1817,19 @@
   call bcast_world_l(temp_lmass_rescale)
   if(temp_lmass_rescale)then
     call bcast_world_i(temp_imass_rescale)
-    call set_mass_rescale(temp_lmass_rescale,temp_imass_rescale)
+    !remove the percentage
+    temp_dmass_rescale=temp_dmass_rescale/real(100.d0,kind=PRC)
+    call bcast_world_f(temp_dmass_rescale)
+    call set_mass_rescale(temp_lmass_rescale,temp_imass_rescale, &
+     temp_dmass_rescale)
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='fluid mass rescaled every'
       write(6,'(2a,i12)')mystring,": ",imass_rescale
+      mystring=repeat(' ',dimprint)
+      mystring='fluid mass rescaled tolerance %'
+      write(6,'(2a,i12,f12.6)')mystring,": ",imass_rescale, &
+       dmass_rescale*real(100.d0,kind=PRC)
     endif
   endif
   
@@ -2138,6 +2166,17 @@
       endif
     endif
     
+    call bcast_world_l(temp_lfix_moment)
+    if(temp_lfix_moment)then
+      call bcast_world_i(temp_ifix_moment)
+      call set_fix_moment(temp_lfix_moment,temp_ifix_moment)
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='fixed zero CoM moment on particles every'
+        write(6,'(2a,i12)')mystring,": ",ifix_moment
+      endif
+    endif
+    
     call bcast_world_l(temp_rcut)
     if(temp_rcut)then
       call bcast_world_f(dtemp_rcut)
@@ -2444,6 +2483,8 @@
     legendobs='engkf =  fluid kinetic energy                     '
   elseif(printcodsub(iarg)==33)then
     legendobs='intph =  fluid interphase nodes                   '
+  elseif(printcodsub(iarg)==34)then
+    legendobs='rmind =  min distance between particles           '
   endif
   legendobs=adjustl(legendobs)
   
@@ -2519,6 +2560,9 @@
     lfound=.true.
   elseif(findstring('minvz',temps,inumchar,lenstring))then
     printcodsub(iarg)=12
+    lfound=.true.
+  elseif(findstring('rminp',temps,inumchar,lenstring))then
+    printcodsub(iarg)=34
     lfound=.true.
   elseif(findstring('engke',temps,inumchar,lenstring))then
     printcodsub(iarg)=17
@@ -2681,6 +2725,8 @@
     printlisub(iarg)='engkf (lu)'
   elseif(printcodsub(iarg)==33)then
     printlisub(iarg)='intph (#)'
+  elseif(printcodsub(iarg)==34)then
+    printlisub(iarg)='rminp (lu)'
   endif
   printlisub(iarg)=adjustr(printlisub(iarg))
   enddo

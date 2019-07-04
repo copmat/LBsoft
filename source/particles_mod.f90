@@ -101,6 +101,9 @@
  !number of max iteration in the quaternion update algorithm
  integer, public, protected, save :: mxquat=20
  
+ !fixed momentum zero on the center of mass every given timesteps
+ integer, public, protected, save :: ifix_moment=1
+ 
  !activate particle part
  logical, public, protected, save :: lparticles=.false.
  
@@ -112,6 +115,9 @@
  
  !activate capping force
  logical, public, protected, save :: lcap_force_part=.false.
+ 
+ !activate fixed momentum zero on the center of mass
+ logical, public, protected, save :: lfix_moment=.false.
  
  !kbT factor
  real(kind=PRC), public, protected, save :: tempboltz=cssq
@@ -184,6 +190,9 @@
  
  !capping force on particles
  real(kind=PRC), save, protected, public :: cap_force_part=ZERO
+ 
+ !min square distance between particles
+ real(kind=PRC), save, protected, public :: mindist_particle=huge(ONE)
  
  !key for set initial particle temperature
  logical, public, protected, save :: linit_temp=.false.
@@ -396,7 +405,9 @@
  public :: set_value_ext_torque_particles
  public :: set_cap_force_part
  public :: q2eul
- public :: compute_psi_sc_particles, restore_particles
+ public :: compute_psi_sc_particles
+ public :: restore_particles
+ public :: set_fix_moment
  
  contains
  
@@ -894,6 +905,31 @@
   return
   
  end subroutine set_cap_force_part
+ 
+ subroutine set_fix_moment(ltemp1,itemp1)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the momentum fix rescaling acting
+!     on the particles 
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(in) :: ltemp1
+  integer, intent(in) :: itemp1
+  
+  lfix_moment = ltemp1
+  ifix_moment = itemp1
+  
+  return
+  
+ end subroutine set_fix_moment
  
  subroutine compute_mean_particle_force()
  
@@ -2892,7 +2928,6 @@
   real(kind=PRC) :: fxi,fxj,fyi,fyj,fzi,fzj
   real(kind=PRC) :: bxi,bxj,byi,byj,bzi,bzj
 
-
   ! if (debug) call OpenLogFile(nstep, "compute_inter_force", 118)
 
   call allocate_array_bdf(natms)
@@ -2900,6 +2935,8 @@
   if(lunique_omega)then
     visc=viscR
   endif
+  
+  mindist_particle = huge(ONE)
   
   do ivdw=1,ntpvdw
   
@@ -2954,6 +2991,7 @@
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
         rsq=xdf(ii)**TWO+ydf(ii)**TWO+zdf(ii)**TWO
+        mindist_particle=min(mindist_particle,rsq)
         if(rsq<=mxrsqcut)then
           rrr=sqrt(rsq)
           if(rrr<=rmin)then
@@ -3049,6 +3087,7 @@
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
         rsq=xdf(ii)**TWO+ydf(ii)**TWO+zdf(ii)**TWO
+        mindist_particle=min(mindist_particle,rsq)
         if(rsq<=mxrsqcut) then
           rrr=sqrt(rsq)
           vvv=FOUR*eps*(sig/rrr)**SIX*((sig/rrr)**SIX-ONE)
@@ -3153,7 +3192,7 @@
 1007 format (A,I6, " step=",I4," id=",I4," rsq=",F16.8, 2I6,X)
             ! rsq = 0.5
         endif
-
+        mindist_particle=min(mindist_particle,rsq)
         if(rsq<=mxrsqcut) then
           rrr=sqrt(rsq)
           if(rrr<=rmin)then
@@ -3576,7 +3615,7 @@
   integer, dimension(nfailmax) :: fail
   integer :: i,j,k,itype,itq, myi
   logical :: ltest(1)
-  real(kind=PRC) :: trx,try,trz,delx,dely,delz,engrotbuff(1)
+  real(kind=PRC) :: trx,try,trz,delx,dely,delz,engrotbuff(1),vcm(4)
   
 ! versor of particle frame 
   real(kind=PRC), dimension(3) :: uxx,uyy,yzz
@@ -3639,6 +3678,34 @@
       bxx(i)=vxx(i)+tstepatm*rmass(ltype(i))*fxx(i)
       byy(i)=vyy(i)+tstepatm*rmass(ltype(i))*fyy(i)
       bzz(i)=vzz(i)+tstepatm*rmass(ltype(i))*fzz(i)
+    enddo
+    
+    if(lfix_moment)then
+      if(mod(nstepsub,ifix_moment)==0)then
+        vcm(1:4)=ZERO
+        do myi=1,natms
+          i = atmbook(myi)
+!         compute the numerator and denumerator of center of mass speed
+          vcm(1)=vcm(1)+weight(ltype(i))*bxx(i)
+          vcm(2)=vcm(2)+weight(ltype(i))*byy(i)
+          vcm(3)=vcm(3)+weight(ltype(i))*bzz(i)
+          vcm(4)=vcm(4)+weight(ltype(i))
+        enddo
+        call sum_world_farr(vcm,4)
+!       compute center of mass speed for the three directions
+        vcm(1:3)=vcm(1:3)/vcm(4)
+        do myi=1,natms
+          i = atmbook(myi)
+!         subtract the center of mass speed to velocities       
+          bxx(i)=bxx(i)-vcm(1)
+          byy(i)=byy(i)-vcm(2)
+          bzz(i)=bzz(i)-vcm(3)
+        enddo
+      endif
+    endif
+    
+    do myi=1,natms
+      i = atmbook(myi)
 !     update positions
       xxx(i)=xxo(i)+tstepatm*bxx(i)
       yyy(i)=yyo(i)+tstepatm*byy(i)

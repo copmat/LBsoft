@@ -196,6 +196,8 @@
  real(kind=PRC), save, protected, public :: partR_SC = ZERO
  real(kind=PRC), save, protected, public :: partB_SC = ZERO
  
+ real(kind=PRC), save, protected, public :: dmass_rescale = ZERO
+ 
  integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: isfluid
  integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: new_isfluid
  integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: bcfluid
@@ -2750,7 +2752,7 @@
   
  end subroutine set_cap_force
  
- subroutine set_mass_rescale(ltemp1,itemp1)
+ subroutine set_mass_rescale(ltemp1,itemp1,dtemp1)
  
 !***********************************************************************
 !     
@@ -2766,9 +2768,11 @@
   
   logical, intent(in) :: ltemp1
   integer, intent(in) :: itemp1
+  real(kind=PRC), intent(in) :: dtemp1
   
   lmass_rescale = ltemp1
   imass_rescale = itemp1
+  dmass_rescale = dtemp1
   
   return
   
@@ -2856,10 +2860,15 @@
       totnfluidnodes=real(nfluidnodes,kind=PRC)
       totnfluidmassR=nfluidmassR
     endif
-    rescalef=totnfluidmassR_init/totnfluidmassR
-    call rescale_pops(rescalef,f00R,f01R,&
-     f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
-     f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+    !check the deviation
+    if((abs(totnfluidmassR-totnfluidmassR_init)/totnfluidmassR_init)> &
+     dmass_rescale)then
+      rescalef=(totnfluidmassR_init*totnfluidnodes)/ &
+       (totnfluidmassR*real(totnfluidnodes_init,kind=PRC))
+      call rescale_pops(rescalef,f00R,f01R,&
+       f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
+       f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+    endif
   else
     if(mxrank>1)then
       dtemp(1)=real(nfluidnodes,kind=PRC)
@@ -2874,16 +2883,25 @@
       totnfluidmassR=nfluidmassR
       totnfluidmassB=nfluidmassB
     endif
-    rescalef=(totnfluidmassR_init*totnfluidnodes)/ &
-     (totnfluidmassR*real(totnfluidnodes_init,kind=PRC))
-    call rescale_pops(rescalef,f00R,f01R,&
-     f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
-     f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
-    rescalef=(totnfluidmassB_init*totnfluidnodes)/ &
-     (totnfluidmassB*real(totnfluidnodes_init,kind=PRC))
-    call rescale_pops(rescalef,f00B,f01B,&
-     f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
-     f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+    !check the deviation
+    if((abs(totnfluidmassR-totnfluidmassR_init)/totnfluidmassR_init)> &
+     dmass_rescale)then
+      rescalef=(totnfluidmassR_init*totnfluidnodes)/ &
+       (totnfluidmassR*real(totnfluidnodes_init,kind=PRC))
+      call rescale_pops(rescalef,f00R,f01R,&
+       f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
+       f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+    endif
+    !check the deviation
+    if((abs(totnfluidmassB-totnfluidmassB_init)/totnfluidmassB_init)> &
+     dmass_rescale)then
+      rescalef=(totnfluidmassB_init*totnfluidnodes)/ &
+       (totnfluidmassB*real(totnfluidnodes_init,kind=PRC))
+      call rescale_pops(rescalef,f00B,f01B,&
+       f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
+       f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+    endif
+    
   endif
   
   return

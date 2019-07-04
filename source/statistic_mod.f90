@@ -18,13 +18,13 @@
   lsingle_fluid, minx, maxx, miny, maxy, minz, maxz
  use particles_mod,         only : lparticles,engke,engcfg,engtot, &
   engrot,tempboltz,degfre,natms,vxx,vyy,vzz,fxx,fyy,fzz,natms_tot, &
-  meanpfx,meanpfy,meanpfz,lrotate,engrot
+  meanpfx,meanpfy,meanpfz,lrotate,engrot,mindist_particle
  
  implicit none
  
  private
  
- integer, public, parameter :: nmaxstatdata=33
+ integer, public, parameter :: nmaxstatdata=34
  
  real(kind=PRC), public, save, dimension(nmaxstatdata) :: statdata
  real(kind=PRC), public, save :: meancputime=0.d0
@@ -72,7 +72,7 @@
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
-!     last modification July 2018
+!     last modification July 2019
 !     
 !***********************************************************************
   
@@ -164,6 +164,7 @@
     statdata(17)=engke
     statdata(18)=engcfg
     statdata(31)=engrot
+    statdata(34)=sqrt(mindist_particle)
     
 !   particle temperature as ratio of KbT
     if (degfre == 0) then
@@ -231,12 +232,14 @@
     dtemp(3)=statdata(8)
     dtemp(4)=statdata(10)
     dtemp(5)=statdata(12)
-    call min_world_farr(dtemp,5)
+    dtemp(6)=statdata(34)
+    call min_world_farr(dtemp,6)
     statdata(5)=dtemp(1)
     if(.not. lsingle_fluid)statdata(6)=dtemp(2)
     statdata(8)=dtemp(3)
     statdata(10)=dtemp(4)
     statdata(12)=dtemp(5)
+    statdata(34)=dtemp(6)
   endif
   
   statdata(1)=statdata(1)/dnorm(1)
