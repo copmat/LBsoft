@@ -232,6 +232,10 @@
       write(outp,'(a)') &
       "WARNING - * engto                * total energy in lb units                              *"
       write(outp,'(a)') &
+      "WARNING - * intph                * fluid interphase volume fraction                      *"
+      write(outp,'(a)') &
+      "WARNING - * rminp                * min pair distance between particles                   *"
+      write(outp,'(a)') &
       "WARNING - * tempp                * particle temperature as ratio of KbT                  *"
       write(outp,'(a)') &
       "WARNING - * maxpv                * max particle velocity in lb units                     *"

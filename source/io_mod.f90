@@ -1224,15 +1224,8 @@
               endif
             elseif(findstring('moment',directive,inumchar,maxlen))then
               if(findstring('fix',directive,inumchar,maxlen))then
-                if(findstring('yes',directive,inumchar,maxlen))then
-                  temp_ifix_moment=intstr(directive,maxlen,inumchar)
-                  temp_lfix_moment=.true.
-                elseif(findstring('no',directive,inumchar,maxlen))then
-                  temp_lfix_moment=.false.
-                else
-                  call warning(1,dble(iline),redstring)
-                  lerror6=.true.
-                endif
+                temp_ifix_moment=intstr(directive,maxlen,inumchar)
+                temp_lfix_moment=.true.
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -2172,7 +2165,7 @@
       call set_fix_moment(temp_lfix_moment,temp_ifix_moment)
       if(idrank==0)then
         mystring=repeat(' ',dimprint)
-        mystring='fixed zero CoM moment on particles every'
+        mystring='zero CoM moment on particles every'
         write(6,'(2a,i12)')mystring,": ",ifix_moment
       endif
     endif
@@ -2482,9 +2475,9 @@
   elseif(printcodsub(iarg)==32)then
     legendobs='engkf =  fluid kinetic energy                     '
   elseif(printcodsub(iarg)==33)then
-    legendobs='intph =  fluid interphase nodes                   '
+    legendobs='intph =  fluid interphase volume fraction         '
   elseif(printcodsub(iarg)==34)then
-    legendobs='rmind =  min distance between particles           '
+    legendobs='rminp =  min pair distance between particles      '
   endif
   legendobs=adjustl(legendobs)
   
