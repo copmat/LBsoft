@@ -51,10 +51,11 @@
   set_ntype,ntype,mxntype,rdimx,rdimy,rdimz,atmnamtype,weight, &
   find_type,allocate_particle_features,mskvdw,set_lsidewall_md,lsidewall_md, &
   set_sidewall_md_k,sidewall_md_k,sidewall_md_k,sidewall_md_rdist, &
-  llubrication,set_llubrication,set_sidewall_md_rdist, ext_fxx, &
+  llubrication,set_lubrication,set_sidewall_md_rdist, ext_fxx, &
   ext_fyy,ext_fzz,set_value_ext_force_particles,ext_tqx,ext_tqy, &
   ext_tqz,set_value_ext_torque_particles,set_cap_force_part, &
-  cap_force_part,ltype,lfix_moment,ifix_moment,set_fix_moment
+  cap_force_part,ltype,lfix_moment,ifix_moment,set_fix_moment, &
+  lubricrparcut,lubricrparcap
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,lvtkstruct,set_value_ixyzevery,lxyzfile,ixyzevery, &
   set_value_istatevery
@@ -475,6 +476,9 @@
   real(kind=PRC) :: dtemp_ext_tqz = ZERO
   
   real(kind=PRC) :: temp_dmass_rescale = ZERO
+  
+  real(kind=PRC) :: temp_lubricrparcut = ONE/TEN
+  real(kind=PRC) :: temp_lubricrparcap = TWO/THREE
   
   integer, dimension(mxvdw) :: temp_ltpvdw
   real(kind=PRC), dimension(mxpvdw,mxvdw) :: dtemp_prmvdw
@@ -1215,6 +1219,8 @@
               endif
             elseif(findstring('lubric',directive,inumchar,maxlen))then
               if(findstring('yes',directive,inumchar,maxlen))then
+                temp_lubricrparcut=dblstr(directive,maxlen,inumchar)
+                temp_lubricrparcap=dblstr(directive,maxlen,inumchar)
                 temp_llubrication=.true.
               elseif(findstring('no',directive,inumchar,maxlen))then
                 temp_llubrication=.false.
@@ -1821,7 +1827,7 @@
       write(6,'(2a,i12)')mystring,": ",imass_rescale
       mystring=repeat(' ',dimprint)
       mystring='fluid mass rescaled tolerance %'
-      write(6,'(2a,i12,f12.6)')mystring,": ",imass_rescale, &
+      write(6,'(2a,f12.6)')mystring,": ", &
        dmass_rescale*real(100.d0,kind=PRC)
     endif
   endif
@@ -2324,7 +2330,10 @@
     
     call bcast_world_l(temp_llubrication)
     if(temp_llubrication)then
-      call set_llubrication(temp_llubrication)
+      call bcast_world_f(temp_lubricrparcut)
+      call bcast_world_f(temp_lubricrparcap)
+      call set_lubrication(temp_llubrication,temp_lubricrparcut, &
+       temp_lubricrparcap)
       if(idrank==0 .and. llubrication)then
         mystring=repeat(' ',dimprint)
         mystring='lubrication'
@@ -2336,6 +2345,12 @@
         endif
         mystring12=adjustr(mystring12)
         write(6,'(3a)')mystring,": ",mystring12
+        mystring=repeat(' ',dimprint)
+        mystring='    r min'
+        write(6,'(2a,f12.6)')mystring,": ",lubricrparcut
+        mystring=repeat(' ',dimprint)
+        mystring='    r cap'
+        write(6,'(2a,f12.6)')mystring,": ",lubricrparcap
       endif
     endif
     

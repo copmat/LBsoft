@@ -194,6 +194,10 @@
  !min square distance between particles
  real(kind=PRC), save, protected, public :: mindist_particle=huge(ONE)
  
+ !lubrication force parameters
+ real(kind=PRC), save, protected, public :: lubricrparcut=ONE/TEN
+ real(kind=PRC), save, protected, public :: lubricrparcap=TWO/THREE
+ 
  !key for set initial particle temperature
  logical, public, protected, save :: linit_temp=.false.
  
@@ -400,7 +404,7 @@
  public :: take_rotversorz
  public :: clean_fluid_inside_particle
  public :: compute_mean_particle_force
- public :: set_llubrication
+ public :: set_lubrication
  public :: set_value_ext_force_particles
  public :: set_value_ext_torque_particles
  public :: set_cap_force_part
@@ -809,27 +813,30 @@
   
  end subroutine set_sidewall_md_rdist
  
- subroutine set_llubrication(ltemp)
+ subroutine set_lubrication(ltemp,dtemp1,dtemp2)
  
 !***********************************************************************
 !     
-!     LBsoft subroutine for setting the llubrication protected variable
+!     LBsoft subroutine for setting the lubrication protected variables
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
-!     last modification December 2018
+!     last modification July 2019
 !     
 !***********************************************************************
  
   implicit none
   
   logical, intent(in) :: ltemp
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2
   
   llubrication=ltemp
+  lubricrparcut=dtemp1
+  lubricrparcap=dtemp2
   
   return
   
- end subroutine set_llubrication
+ end subroutine set_lubrication
  
  subroutine set_value_ext_force_particles(dtemp1,dtemp2,dtemp3)
  
@@ -2916,7 +2923,7 @@
 ! separation vectors and powers thereof
   real(kind=PRC) :: rsq,xm,ym,zm,rsqcut,rrr,eps,sig,vvv,ggg,rmin,vmin, &
    kappa,rlimit,gmin,rpar,lubfactor,rparcut,rparcap,rsrparcut,mxrsqcut,&
-   ux,uy,uz,visc
+   ux,uy,uz,visc,dotuv
 ! Loop counters
   integer :: iatm,ii,i,j,ivdw,itype,jtype,iimax,xcm,ycm,zcm
   integer :: k,jatm, myi
@@ -2962,10 +2969,10 @@
     enddo
     rpar=rdimx(itype)+rdimx(jtype)
     lubfactor=SIX*Pi*rpar**FOUR/(FOUR*rpar**TWO)
-    rparcut=rpar+TWO/THREE
+    rparcut=rpar+lubricrparcut
     rsrparcut=rparcut**TWO
     mxrsqcut=max(rsrparcut,rsqcut)
-    rparcap=rpar+ONE/TEN
+    rparcap=rpar+lubricrparcap
     
     do iatm = 1,natms
       itype=ltype(iatm)
@@ -3020,17 +3027,17 @@
                 zcm=pimage(izpbc,zcm,nz)
                 visc=omega_to_viscosity(omega(xcm,ycm,zcm))
               endif
-              fxx(iatm)=fxx(iatm)-lubfactor*(rdimx(itype)**FOUR)*ux* &
+              fxx(iatm)=fxx(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
                (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
-              fxx(jatm)=fxx(jatm)+lubfactor*(rdimx(itype)**FOUR)*ux* &
+              fxx(jatm)=fxx(jatm)+visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
                (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
-              fyy(iatm)=fyy(iatm)-lubfactor*(rdimx(itype)**FOUR)*uy* &
+              fyy(iatm)=fyy(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*uy* &
                (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
-              fyy(jatm)=fyy(jatm)+lubfactor*(rdimx(jtype)**FOUR)*uy* &
+              fyy(jatm)=fyy(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uy* &
                (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
-              fzz(iatm)=fzz(iatm)-lubfactor*(rdimx(jtype)**FOUR)*uz* &
+              fzz(iatm)=fzz(iatm)-visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
                (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
-              fzz(jatm)=fzz(jatm)+lubfactor*(rdimx(jtype)**FOUR)*uz* &
+              fzz(jatm)=fzz(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
                (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
             endif 
           endif
@@ -3055,10 +3062,10 @@
     enddo
     rpar=rdimx(itype)+rdimx(jtype)
     lubfactor=SIX*Pi*rpar**FOUR/(FOUR*rpar**TWO)
-    rparcut=rpar+TWO/THREE
+    rparcut=rpar+lubricrparcut
     rsrparcut=rparcut**TWO
     mxrsqcut=max(rsrparcut,rsqcut)
-    rparcap=rpar+ONE/TEN
+    rparcap=rpar+lubricrparcap
     
     
     
@@ -3114,17 +3121,17 @@
                 zcm=pimage(izpbc,zcm,nz)
                 visc=omega_to_viscosity(omega(xcm,ycm,zcm))
               endif
-              fxx(iatm)=fxx(iatm)-lubfactor*(rdimx(itype)**FOUR)*ux* &
+              fxx(iatm)=fxx(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
                (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
-              fxx(jatm)=fxx(jatm)+lubfactor*(rdimx(itype)**FOUR)*ux* &
+              fxx(jatm)=fxx(jatm)+visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
                (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
-              fyy(iatm)=fyy(iatm)-lubfactor*(rdimx(itype)**FOUR)*uy* &
+              fyy(iatm)=fyy(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*uy* &
                (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
-              fyy(jatm)=fyy(jatm)+lubfactor*(rdimx(jtype)**FOUR)*uy* &
+              fyy(jatm)=fyy(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uy* &
                (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
-              fzz(iatm)=fzz(iatm)-lubfactor*(rdimx(jtype)**FOUR)*uz* &
+              fzz(iatm)=fzz(iatm)-visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
                (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
-              fzz(jatm)=fzz(jatm)+lubfactor*(rdimx(jtype)**FOUR)*uz* &
+              fzz(jatm)=fzz(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
                (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
             endif 
           endif
@@ -3150,10 +3157,10 @@
     enddo
     rpar=rdimx(itype)+rdimx(jtype)
     lubfactor=SIX*Pi/(rpar**TWO)
-    rparcut=rpar+TWO/THREE
+    rparcut=rpar+lubricrparcut
     rsrparcut=rparcut**TWO
     mxrsqcut=max(rsrparcut,rsqcut)
-    rparcap=rpar+ONE/TEN
+    rparcap=rpar+lubricrparcap
     
   
     do myi = 1,natms
@@ -3248,28 +3255,49 @@
                 zcm=pimage(izpbc,zcm,nz)
                 visc=omega_to_viscosity(omega(xcm,ycm,zcm))
               endif
+              dotuv=ux*(vxx(iatm)-vxx(jatm))+uy*(vyy(iatm)-vyy(jatm))+ &
+               uz*(vzz(iatm)-vzz(jatm))
 #ifdef DEBUG_FORCEINT
-              fxb(iatm)=fxb(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*ux*(ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
-              fxb(jatm)=fxb(jatm)+visc*lubfactor*(rdimx(itype)**FOUR)*ux*(ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
-              fyb(iatm)=fyb(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*uy*(uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
-              fyb(jatm)=fyb(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uy*(uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
-              fzb(iatm)=fzb(iatm)-visc*lubfactor*(rdimx(jtype)**FOUR)*uz*(uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
-              fzb(jatm)=fzb(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uz*(uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fxb(iatm)=fxb(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
+               (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fxb(jatm)=fxb(jatm)+visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
+               (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fyb(iatm)=fyb(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*uy* &
+               (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fyb(jatm)=fyb(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uy* &
+               (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fzb(iatm)=fzb(iatm)-visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
+               (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
+              fzb(jatm)=fzb(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
+               (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
               ! if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "fxx,..", fxb(iatm),fyb(iatm),fzb(iatm), &
               !   "jatm=", jatm, "fxx,..", fxb(jatm),fyb(jatm),fzb(jatm)
 #else
+!              fxx(iatm)=fxx(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
+!               (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
+!              fxx(jatm)=fxx(jatm)+visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
+!               (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
+!              fyy(iatm)=fyy(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*uy* &
+!               (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
+!              fyy(jatm)=fyy(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uy* &
+!               (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
+!              fzz(iatm)=fzz(iatm)-visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
+!               (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
+!              fzz(jatm)=fzz(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
+!               (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
+               
               fxx(iatm)=fxx(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
-               (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
+               dotuv*(ONE/(rrr-rpar)-ONE)
               fxx(jatm)=fxx(jatm)+visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
-               (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
+               dotuv*(ONE/(rrr-rpar)-ONE)
               fyy(iatm)=fyy(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*uy* &
-               (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
+               dotuv*(ONE/(rrr-rpar)-ONE)
               fyy(jatm)=fyy(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uy* &
-               (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
+               dotuv*(ONE/(rrr-rpar)-ONE)
               fzz(iatm)=fzz(iatm)-visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
-               (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
+               dotuv*(ONE/(rrr-rpar)-ONE)
               fzz(jatm)=fzz(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
-               (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
+               dotuv*(ONE/(rrr-rpar)-ONE)
               ! if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "fxx,..", fxx(iatm),fyy(iatm),fzz(iatm), &
               !   "jatm=", jatm, "fxx,..", fxx(jatm),fyy(jatm),fzz(jatm)
 #endif
