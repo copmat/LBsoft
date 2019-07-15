@@ -55,7 +55,7 @@
   ext_fyy,ext_fzz,set_value_ext_force_particles,ext_tqx,ext_tqy, &
   ext_tqz,set_value_ext_torque_particles,set_cap_force_part, &
   cap_force_part,ltype,lfix_moment,ifix_moment,set_fix_moment, &
-  lubricrparcut,lubricrparcap
+  lubricrparcut,lubricrparcap,lubricconst
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,lvtkstruct,set_value_ixyzevery,lxyzfile,ixyzevery, &
   set_value_istatevery
@@ -479,6 +479,7 @@
   
   real(kind=PRC) :: temp_lubricrparcut = ONE/TEN
   real(kind=PRC) :: temp_lubricrparcap = TWO/THREE
+  real(kind=PRC) :: temp_lubricconst = ONE
   
   integer, dimension(mxvdw) :: temp_ltpvdw
   real(kind=PRC), dimension(mxpvdw,mxvdw) :: dtemp_prmvdw
@@ -1219,6 +1220,7 @@
               endif
             elseif(findstring('lubric',directive,inumchar,maxlen))then
               if(findstring('yes',directive,inumchar,maxlen))then
+                temp_lubricconst=dblstr(directive,maxlen,inumchar)
                 temp_lubricrparcut=dblstr(directive,maxlen,inumchar)
                 temp_lubricrparcap=dblstr(directive,maxlen,inumchar)
                 temp_llubrication=.true.
@@ -2330,10 +2332,11 @@
     
     call bcast_world_l(temp_llubrication)
     if(temp_llubrication)then
+      call bcast_world_f(temp_lubricconst)
       call bcast_world_f(temp_lubricrparcut)
       call bcast_world_f(temp_lubricrparcap)
       call set_lubrication(temp_llubrication,temp_lubricrparcut, &
-       temp_lubricrparcap)
+       temp_lubricrparcap,temp_lubricconst)
       if(idrank==0 .and. llubrication)then
         mystring=repeat(' ',dimprint)
         mystring='lubrication'
@@ -2345,6 +2348,9 @@
         endif
         mystring12=adjustr(mystring12)
         write(6,'(3a)')mystring,": ",mystring12
+        mystring=repeat(' ',dimprint)
+        mystring='    kappa'
+        write(6,'(2a,f12.6)')mystring,": ",lubricconst
         mystring=repeat(' ',dimprint)
         mystring='    r min'
         write(6,'(2a,f12.6)')mystring,": ",lubricrparcut

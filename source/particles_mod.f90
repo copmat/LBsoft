@@ -197,6 +197,7 @@
  !lubrication force parameters
  real(kind=PRC), save, protected, public :: lubricrparcut=ONE/TEN
  real(kind=PRC), save, protected, public :: lubricrparcap=TWO/THREE
+ real(kind=PRC), save, protected, public :: lubricconst=ONE
  
  !key for set initial particle temperature
  logical, public, protected, save :: linit_temp=.false.
@@ -813,7 +814,7 @@
   
  end subroutine set_sidewall_md_rdist
  
- subroutine set_lubrication(ltemp,dtemp1,dtemp2)
+ subroutine set_lubrication(ltemp,dtemp1,dtemp2,dtemp3)
  
 !***********************************************************************
 !     
@@ -828,11 +829,12 @@
   implicit none
   
   logical, intent(in) :: ltemp
-  real(kind=PRC), intent(in) :: dtemp1,dtemp2
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3
   
   llubrication=ltemp
   lubricrparcut=dtemp1
   lubricrparcap=dtemp2
+  lubricconst=dtemp3
   
   return
   
@@ -2968,13 +2970,14 @@
       enddo
     enddo
     rpar=rdimx(itype)+rdimx(jtype)
-    lubfactor=SIX*Pi*rpar**FOUR/(FOUR*rpar**TWO)
+    lubfactor=lubricconst*SIX*Pi*((rdimx(itype)*rdimx(jtype))**TWO)/(rpar**TWO)
     rparcut=rpar+lubricrparcut
     rsrparcut=rparcut**TWO
     mxrsqcut=max(rsrparcut,rsqcut)
     rparcap=rpar+lubricrparcap
     
-    do iatm = 1,natms
+    do myi = 1,natms
+      iatm = atmbook(myi)
       itype=ltype(iatm)
       if(all(mskvdw(1:ntpvdw,itype)/=ivdw))cycle
       ii = 0
@@ -3005,12 +3008,22 @@
             vvv=FOUR*eps*(sig/rrr)**SIX*((sig/rrr)**SIX-ONE)+vmin
             ggg=TWENTYFOUR*eps/rrr*(sig/rrr)**SIX*(TWO*(sig/rrr)**SIX-ONE)
             engcfg=engcfg+vvv
+#ifdef DEBUG_FORCEINT
+            fxb(iatm)=fxb(iatm)-ggg*xdf(ii)/rrr
+            fxb(jatm)=fxb(jatm)+ggg*xdf(ii)/rrr
+            fyb(iatm)=fyb(iatm)-ggg*ydf(ii)/rrr
+            fyb(jatm)=fyb(jatm)+ggg*ydf(ii)/rrr
+            fzb(iatm)=fzb(iatm)-ggg*zdf(ii)/rrr
+            fzb(jatm)=fzb(jatm)+ggg*zdf(ii)/rrr
+
+#else          
             fxx(iatm)=fxx(iatm)-ggg*xdf(ii)/rrr
             fxx(jatm)=fxx(jatm)+ggg*xdf(ii)/rrr
             fyy(iatm)=fyy(iatm)-ggg*ydf(ii)/rrr
             fyy(jatm)=fyy(jatm)+ggg*ydf(ii)/rrr
             fzz(iatm)=fzz(iatm)-ggg*zdf(ii)/rrr
             fzz(jatm)=fzz(jatm)+ggg*zdf(ii)/rrr
+#endif  
           endif
           if(llubrication)then
             if(rrr<=rparcut)then
@@ -3029,18 +3042,21 @@
               endif
               dotuv=ux*(vxx(iatm)-vxx(jatm))+uy*(vyy(iatm)-vyy(jatm))+ &
                uz*(vzz(iatm)-vzz(jatm))
-              fxx(iatm)=fxx(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fxx(jatm)=fxx(jatm)+visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fyy(iatm)=fyy(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*uy* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fyy(jatm)=fyy(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uy* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fzz(iatm)=fzz(iatm)-visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fzz(jatm)=fzz(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
+#ifdef DEBUG_FORCEINT
+              fxb(iatm)=fxb(iatm)-visc*lubfactor*ux* dotuv*(ONE/(rrr-rpar)-ONE)
+              fxb(jatm)=fxb(jatm)+visc*lubfactor*ux* dotuv*(ONE/(rrr-rpar)-ONE)
+              fyb(iatm)=fyb(iatm)-visc*lubfactor*uy* dotuv*(ONE/(rrr-rpar)-ONE)
+              fyb(jatm)=fyb(jatm)+visc*lubfactor*uy* dotuv*(ONE/(rrr-rpar)-ONE)
+              fzb(iatm)=fzb(iatm)-visc*lubfactor*uz* dotuv*(ONE/(rrr-rpar)-ONE)
+              fzb(jatm)=fzb(jatm)+visc*lubfactor*uz* dotuv*(ONE/(rrr-rpar)-ONE)
+#else               
+              fxx(iatm)=fxx(iatm)-visc*lubfactor*ux* dotuv*(ONE/(rrr-rpar)-ONE)
+              fxx(jatm)=fxx(jatm)+visc*lubfactor*ux* dotuv*(ONE/(rrr-rpar)-ONE)
+              fyy(iatm)=fyy(iatm)-visc*lubfactor*uy* dotuv*(ONE/(rrr-rpar)-ONE)
+              fyy(jatm)=fyy(jatm)+visc*lubfactor*uy* dotuv*(ONE/(rrr-rpar)-ONE)
+              fzz(iatm)=fzz(iatm)-visc*lubfactor*uz* dotuv*(ONE/(rrr-rpar)-ONE)
+              fzz(jatm)=fzz(jatm)+visc*lubfactor*uz* dotuv*(ONE/(rrr-rpar)-ONE)
+#endif   
             endif 
           endif
         endif
@@ -3063,7 +3079,7 @@
       enddo
     enddo
     rpar=rdimx(itype)+rdimx(jtype)
-    lubfactor=SIX*Pi*rpar**FOUR/(FOUR*rpar**TWO)
+    lubfactor=lubricconst*SIX*Pi*((rdimx(itype)*rdimx(jtype))**TWO)/(rpar**TWO)
     rparcut=rpar+lubricrparcut
     rsrparcut=rparcut**TWO
     mxrsqcut=max(rsrparcut,rsqcut)
@@ -3072,7 +3088,8 @@
     
     
     
-    do iatm = 1,natms
+    do myi = 1,natms
+      iatm = atmbook(myi)
       itype=ltype(iatm)
       if(all(mskvdw(1:ntpvdw,itype)/=ivdw))cycle
       ii = 0
@@ -3102,12 +3119,23 @@
           vvv=FOUR*eps*(sig/rrr)**SIX*((sig/rrr)**SIX-ONE)
           ggg=TWENTYFOUR*eps/rrr*(sig/rrr)**SIX*(TWO*(sig/rrr)**SIX-ONE)
           engcfg=engcfg+vvv
+#ifdef DEBUG_FORCEINT
+          fxb(iatm)=fxb(iatm)-ggg*xdf(ii)/rrr
+          fxb(jatm)=fxb(jatm)+ggg*xdf(ii)/rrr
+          fyb(iatm)=fyb(iatm)-ggg*ydf(ii)/rrr
+          fyb(jatm)=fyb(jatm)+ggg*ydf(ii)/rrr
+          fzb(iatm)=fzb(iatm)-ggg*zdf(ii)/rrr
+          fzb(jatm)=fzb(jatm)+ggg*zdf(ii)/rrr
+
+#else          
           fxx(iatm)=fxx(iatm)-ggg*xdf(ii)/rrr
           fxx(jatm)=fxx(jatm)+ggg*xdf(ii)/rrr
           fyy(iatm)=fyy(iatm)-ggg*ydf(ii)/rrr
           fyy(jatm)=fyy(jatm)+ggg*ydf(ii)/rrr
           fzz(iatm)=fzz(iatm)-ggg*zdf(ii)/rrr
           fzz(jatm)=fzz(jatm)+ggg*zdf(ii)/rrr
+#endif        
+          
           if(llubrication)then
             if(rrr<=rparcut)then
               ux=xdf(ii)/rrr
@@ -3125,18 +3153,21 @@
               endif
               dotuv=ux*(vxx(iatm)-vxx(jatm))+uy*(vyy(iatm)-vyy(jatm))+ &
                uz*(vzz(iatm)-vzz(jatm))
-              fxx(iatm)=fxx(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fxx(jatm)=fxx(jatm)+visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fyy(iatm)=fyy(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*uy* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fyy(jatm)=fyy(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uy* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fzz(iatm)=fzz(iatm)-visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fzz(jatm)=fzz(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
+#ifdef DEBUG_FORCEINT
+              fxb(iatm)=fxb(iatm)-visc*lubfactor*ux* dotuv*(ONE/(rrr-rpar)-ONE)
+              fxb(jatm)=fxb(jatm)+visc*lubfactor*ux* dotuv*(ONE/(rrr-rpar)-ONE)
+              fyb(iatm)=fyb(iatm)-visc*lubfactor*uy* dotuv*(ONE/(rrr-rpar)-ONE)
+              fyb(jatm)=fyb(jatm)+visc*lubfactor*uy* dotuv*(ONE/(rrr-rpar)-ONE)
+              fzb(iatm)=fzb(iatm)-visc*lubfactor*uz* dotuv*(ONE/(rrr-rpar)-ONE)
+              fzb(jatm)=fzb(jatm)+visc*lubfactor*uz* dotuv*(ONE/(rrr-rpar)-ONE)
+#else               
+              fxx(iatm)=fxx(iatm)-visc*lubfactor*ux* dotuv*(ONE/(rrr-rpar)-ONE)
+              fxx(jatm)=fxx(jatm)+visc*lubfactor*ux* dotuv*(ONE/(rrr-rpar)-ONE)
+              fyy(iatm)=fyy(iatm)-visc*lubfactor*uy* dotuv*(ONE/(rrr-rpar)-ONE)
+              fyy(jatm)=fyy(jatm)+visc*lubfactor*uy* dotuv*(ONE/(rrr-rpar)-ONE)
+              fzz(iatm)=fzz(iatm)-visc*lubfactor*uz* dotuv*(ONE/(rrr-rpar)-ONE)
+              fzz(jatm)=fzz(jatm)+visc*lubfactor*uz* dotuv*(ONE/(rrr-rpar)-ONE)
+#endif              
             endif 
           endif
         endif
@@ -3160,7 +3191,7 @@
       enddo
     enddo
     rpar=rdimx(itype)+rdimx(jtype)
-    lubfactor=SIX*Pi/(rpar**TWO)
+    lubfactor=lubricconst*SIX*Pi*((rdimx(itype)*rdimx(jtype))**TWO)/(rpar**TWO)
     rparcut=rpar+lubricrparcut
     rsrparcut=rparcut**TWO
     mxrsqcut=max(rsrparcut,rsqcut)
@@ -3216,7 +3247,7 @@
             endif
             engcfg=engcfg+vvv
             
-#ifdef CHECK_FORCEINT
+#ifdef DEBUG_FORCEINT
             fxb(iatm)=fxb(iatm)-ggg*xdf(ii)/rrr
             fxb(jatm)=fxb(jatm)+ggg*xdf(ii)/rrr
             fyb(iatm)=fyb(iatm)-ggg*ydf(ii)/rrr
@@ -3228,7 +3259,6 @@
             !     "xxx,..", xxx(iatm),yyy(iatm),zzz(iatm), &
             !     "jatm=", jatm, "fxx,..", fxb(jatm),fyb(jatm),fzb(jatm), &
             !     "xxx,..", xxx(jatm),yyy(jatm),zzz(jatm)
-          endif
 #else
             fxx(iatm)=fxx(iatm)-ggg*xdf(ii)/rrr
             fxx(jatm)=fxx(jatm)+ggg*xdf(ii)/rrr
@@ -3241,8 +3271,8 @@
             !     "xxx,..", xxx(iatm),yyy(iatm),zzz(iatm), &
             !     "jatm=", jatm, "fxx,..", fxx(jatm),fyy(jatm),fzz(jatm), &
             !     "xxx,..", xxx(jatm),yyy(jatm),zzz(jatm)
-          endif
 #endif
+          endif
 
           if(llubrication)then
             if(rrr<=rparcut)then
@@ -3262,46 +3292,22 @@
               dotuv=ux*(vxx(iatm)-vxx(jatm))+uy*(vyy(iatm)-vyy(jatm))+ &
                uz*(vzz(iatm)-vzz(jatm))
 #ifdef DEBUG_FORCEINT
-              fxx(iatm)=fxx(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fxx(jatm)=fxx(jatm)+visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fyy(iatm)=fyy(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*uy* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fyy(jatm)=fyy(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uy* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fzz(iatm)=fzz(iatm)-visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fzz(jatm)=fzz(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
+              fxb(iatm)=fxb(iatm)-visc*lubfactor*ux* dotuv*(ONE/(rrr-rpar)-ONE)
+              fxb(jatm)=fxb(jatm)+visc*lubfactor*ux* dotuv*(ONE/(rrr-rpar)-ONE)
+              fyb(iatm)=fyb(iatm)-visc*lubfactor*uy* dotuv*(ONE/(rrr-rpar)-ONE)
+              fyb(jatm)=fyb(jatm)+visc*lubfactor*uy* dotuv*(ONE/(rrr-rpar)-ONE)
+              fzb(iatm)=fzb(iatm)-visc*lubfactor*uz* dotuv*(ONE/(rrr-rpar)-ONE)
+              fzb(jatm)=fzb(jatm)+visc*lubfactor*uz* dotuv*(ONE/(rrr-rpar)-ONE)
               ! if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "fxx,..", fxb(iatm),fyb(iatm),fzb(iatm), &
               !   "jatm=", jatm, "fxx,..", fxb(jatm),fyb(jatm),fzb(jatm)
 #else
-!              fxx(iatm)=fxx(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
-!               (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
-!              fxx(jatm)=fxx(jatm)+visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
-!               (ux*(vxx(iatm)-vxx(jatm)))*(ONE/(rrr-rpar)-ONE)
-!              fyy(iatm)=fyy(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*uy* &
-!               (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
-!              fyy(jatm)=fyy(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uy* &
-!               (uy*(vyy(iatm)-vyy(jatm)))*(ONE/(rrr-rpar)-ONE)
-!              fzz(iatm)=fzz(iatm)-visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
-!               (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
-!              fzz(jatm)=fzz(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
-!               (uz*(vzz(iatm)-vzz(jatm)))*(ONE/(rrr-rpar)-ONE)
                
-              fxx(iatm)=fxx(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fxx(jatm)=fxx(jatm)+visc*lubfactor*(rdimx(itype)**FOUR)*ux* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fyy(iatm)=fyy(iatm)-visc*lubfactor*(rdimx(itype)**FOUR)*uy* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fyy(jatm)=fyy(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uy* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fzz(iatm)=fzz(iatm)-visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
-              fzz(jatm)=fzz(jatm)+visc*lubfactor*(rdimx(jtype)**FOUR)*uz* &
-               dotuv*(ONE/(rrr-rpar)-ONE)
+              fxx(iatm)=fxx(iatm)-visc*lubfactor*ux* dotuv*(ONE/(rrr-rpar)-ONE)
+              fxx(jatm)=fxx(jatm)+visc*lubfactor*ux* dotuv*(ONE/(rrr-rpar)-ONE)
+              fyy(iatm)=fyy(iatm)-visc*lubfactor*uy* dotuv*(ONE/(rrr-rpar)-ONE)
+              fyy(jatm)=fyy(jatm)+visc*lubfactor*uy* dotuv*(ONE/(rrr-rpar)-ONE)
+              fzz(iatm)=fzz(iatm)-visc*lubfactor*uz* dotuv*(ONE/(rrr-rpar)-ONE)
+              fzz(jatm)=fzz(jatm)+visc*lubfactor*uz* dotuv*(ONE/(rrr-rpar)-ONE)
               ! if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "fxx,..", fxx(iatm),fyy(iatm),fzz(iatm), &
               !   "jatm=", jatm, "fxx,..", fxx(jatm),fyy(jatm),fzz(jatm)
 #endif
