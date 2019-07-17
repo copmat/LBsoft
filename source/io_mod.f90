@@ -41,7 +41,8 @@
   lbc_fullway,partR_SC,partB_SC,set_fluid_particle_sc,theta_SC, &
   devtheta_SC,set_theta_particle_sc,set_back_value_dens_fluids, &
   backR,backB,set_init_area_dens_fluids,areaR,set_cap_force,cap_force, &
-  imass_rescale,set_mass_rescale,dmass_rescale
+  imass_rescale,set_mass_rescale,dmass_rescale,iselwetting, &
+  densR_wetting,densB_wetting,set_fluid_wall_mode
  use particles_mod,         only : set_natms_tot,natms_tot,lparticles, &
   set_ishape,set_densvar,densvar,ishape,set_rcut,rcut,delr, &
   set_delr,rotmat_2_quat,lrotate,set_lrotate,allocate_field_array, &
@@ -341,6 +342,7 @@
   integer :: temp_areaR(1:2,1:3)=0
   integer :: temp_imass_rescale=100
   integer :: temp_ifix_moment=1
+  integer :: temp_iselwetting=0
   logical :: temp_ibc=.false.
   logical :: temp_lpair_SC=.false.
   logical :: temp_ldomdec=.false.
@@ -388,6 +390,7 @@
   logical :: temp_lcap_force=.false.
   logical :: temp_lmass_rescale=.false.
   logical :: temp_lfix_moment=.false.
+  logical :: temp_lselwetting=.false.
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -480,6 +483,9 @@
   real(kind=PRC) :: temp_lubricrparcut = ONE/TEN
   real(kind=PRC) :: temp_lubricrparcap = TWO/THREE
   real(kind=PRC) :: temp_lubricconst = ONE
+  
+  real(kind=PRC) :: temp_densR_wetting = ZERO
+  real(kind=PRC) :: temp_densB_wetting = ZERO
   
   integer, dimension(mxvdw) :: temp_ltpvdw
   real(kind=PRC), dimension(mxpvdw,mxvdw) :: dtemp_prmvdw
@@ -892,6 +898,16 @@
               ltau=.true.
               dtemp_tauR=dblstr(directive,maxlen,inumchar)
               dtemp_tauB=dblstr(directive,maxlen,inumchar)
+            elseif(findstring('wetting',directive,inumchar,maxlen))then
+              if(findstring('mode',directive,inumchar,maxlen))then
+                temp_lselwetting = .true.
+                temp_iselwetting = intstr(directive,maxlen,inumchar)
+                temp_densR_wetting = dblstr(directive,maxlen,inumchar)
+                temp_densB_wetting = dblstr(directive,maxlen,inumchar)
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
+              endif
             elseif(findstring('[end room',directive,inumchar,maxlen))then
               lredo2=.false.
             elseif(findstring('[end',directive,inumchar,maxlen))then
@@ -1920,6 +1936,36 @@
       mystring=repeat(' ',dimprint)
       mystring='capping force on fluids'
       write(6,'(2a,f12.6)')mystring,": ",cap_force
+    endif
+  endif
+  
+  call bcast_world_l(temp_lselwetting)
+  if(temp_lselwetting)then
+    call bcast_world_i(temp_iselwetting)
+    call bcast_world_f(temp_densR_wetting)
+    call bcast_world_f(temp_densB_wetting)
+    call set_fluid_wall_mode(temp_iselwetting,temp_densR_wetting, &
+     temp_densB_wetting)
+    if(idrank==0)then
+      select case(iselwetting)
+      case(1)
+        mystring=repeat(' ',dimprint)
+        mystring='wetting wall mode'
+        mystring12=repeat(' ',dimprint2)
+        mystring12='fixed density'
+        mystring12=adjustr(mystring12)
+        write(6,'(3a)')mystring,": ",mystring12
+        mystring=repeat(' ',dimprint)
+        mystring='fixed fluid density'
+        write(6,'(2a,2f12.6)')mystring,": ",densR_wetting,densB_wetting
+      case default
+        mystring=repeat(' ',dimprint)
+        mystring='wetting wall mode'
+        mystring12=repeat(' ',dimprint2)
+        mystring12='averaged'
+        mystring12=adjustr(mystring12)
+        write(6,'(3a)')mystring,": ",mystring12
+      end select
     endif
   endif
   

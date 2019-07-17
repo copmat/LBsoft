@@ -78,6 +78,9 @@
  !selected area for initial density fluid values
  integer, save, protected, public :: areaR(1:2,1:3)=0
  
+ !selected wetting mode 0=average 1=fixed value (Benzi's style!)
+ integer, save, protected, public :: iselwetting=0
+ 
  integer, save :: nvar_managebc=0
  type(REALPTR_S), allocatable, dimension(:,:) :: rhoR_managebc,psiR_managebc
  type(REALPTR_S), allocatable, dimension(:,:) :: rhoB_managebc,psiB_managebc
@@ -197,6 +200,10 @@
  real(kind=PRC), save, protected, public :: partB_SC = ZERO
  
  real(kind=PRC), save, protected, public :: dmass_rescale = ZERO
+ 
+ !fixed density to set the wall wetting as in Benzi's style
+ real(kind=PRC), save, protected, public :: densR_wetting = ZERO
+ real(kind=PRC), save, protected, public :: densB_wetting = ZERO
  
  integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: isfluid
  integer(kind=1), save, protected, public, allocatable, dimension(:,:,:) :: new_isfluid
@@ -415,6 +422,7 @@
  public :: set_cap_force
  public :: set_mass_rescale
  public :: rescale_fluid_mass
+ public :: set_fluid_wall_mode
 
  contains
  
@@ -2554,6 +2562,32 @@
   return
   
  end subroutine set_fluid_force_sc 
+ 
+ subroutine set_fluid_wall_mode(itemp1,dtemp1,dtemp2)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the wetting of the fluid density 
+!     at the wall by the Benzi's approach
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: itemp1
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2
+  
+  iselwetting = itemp1
+  densR_wetting = dtemp1
+  densB_wetting = dtemp2
+  
+  return
+  
+ end subroutine set_fluid_wall_mode
  
  subroutine set_fluid_wall_sc(dtemp1,dtemp2)
  
@@ -8625,111 +8659,137 @@
   
   
    errorCount = 0
-
-   if(lsingle_fluid)then
-     do k=minz-1,maxz+1
-       do j=miny-1,maxy+1
-         do i=minx-1,maxx+1
-           if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
-             dsum1=ZERO
-             isum=ZERO
-             do l=1,linksd3q27
-               ishift=i+exd3q27(l)
-               jshift=j+eyd3q27(l)
-               kshift=k+ezd3q27(l)
-               if(isfluid(ishift,jshift,kshift)==1)then
-                 dsum1=dsum1+pd3q27(l)*rhoR(ishift,jshift,kshift)
-                 isum=isum+pd3q27(l)
-               endif
-             enddo
-             if(isum==ZERO)then
+   
+   select case(iselwetting)
+   case (1)
+     if(lsingle_fluid)then
+       do k=minz-1,maxz+1
+         do j=miny-1,maxy+1
+           do i=minx-1,maxx+1
+             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
+               rhoR(i,j,k)=densR_wetting
+             endif
+           enddo
+         enddo
+       enddo
+     else
+       do k=minz-1,maxz+1
+         do j=miny-1,maxy+1
+           do i=minx-1,maxx+1
+             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
+               rhoR(i,j,k)=densR_wetting
+               rhoB(i,j,k)=densB_wetting
+             endif
+           enddo
+         enddo
+       enddo
+     endif
+   case default
+     if(lsingle_fluid)then
+       do k=minz-1,maxz+1
+         do j=miny-1,maxy+1
+           do i=minx-1,maxx+1
+             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
                dsum1=ZERO
                isum=ZERO
-               do l=1,ndouble
-                 ishift=i+exdouble(l)
-                 jshift=j+eydouble(l)
-                 kshift=k+ezdouble(l)
-                 if(ishift<minx-nbuff)cycle
-                 if(ishift>maxx+nbuff)cycle
-                 if(jshift<miny-nbuff)cycle
-                 if(jshift>maxy+nbuff)cycle
-                 if(kshift<minz-nbuff)cycle
-                 if(kshift>maxz+nbuff)cycle
+               do l=1,linksd3q27
+                 ishift=i+exd3q27(l)
+                 jshift=j+eyd3q27(l)
+                 kshift=k+ezd3q27(l)
                  if(isfluid(ishift,jshift,kshift)==1)then
-                   dsum1=dsum1+rhoR(ishift,jshift,kshift)
-                   isum=isum+ONE
+                   dsum1=dsum1+pd3q27(l)*rhoR(ishift,jshift,kshift)
+                   isum=isum+pd3q27(l)
                  endif
                enddo
                if(isum==ZERO)then
-                 ltest(1)=.true.
-                 errorCount = errorCount + 1
-                 rhoR(i,j,k)= MINDENS
+                 dsum1=ZERO
+                 isum=ZERO
+                 do l=1,ndouble
+                   ishift=i+exdouble(l)
+                   jshift=j+eydouble(l)
+                   kshift=k+ezdouble(l)
+                   if(ishift<minx-nbuff)cycle
+                   if(ishift>maxx+nbuff)cycle
+                   if(jshift<miny-nbuff)cycle
+                   if(jshift>maxy+nbuff)cycle
+                   if(kshift<minz-nbuff)cycle
+                   if(kshift>maxz+nbuff)cycle
+                   if(isfluid(ishift,jshift,kshift)==1)then
+                     dsum1=dsum1+rhoR(ishift,jshift,kshift)
+                     isum=isum+ONE
+                   endif
+                 enddo
+                 if(isum==ZERO)then
+                   ltest(1)=.true.
+                   errorCount = errorCount + 1
+                   rhoR(i,j,k)= MINDENS
+                 else
+                   rhoR(i,j,k)=dsum1/isum
+                 endif
                else
                  rhoR(i,j,k)=dsum1/isum
                endif
-             else
-               rhoR(i,j,k)=dsum1/isum
              endif
-           endif
+           enddo
          enddo
        enddo
-     enddo
-   else
-     do k=minz-1,maxz+1
-       do j=miny-1,maxy+1
-         do i=minx-1,maxx+1
-           if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
-             dsum1=ZERO
-             dsum2=ZERO
-             isum=ZERO
-             do l=1,linksd3q27
-               ishift=i+exd3q27(l)
-               jshift=j+eyd3q27(l)
-               kshift=k+ezd3q27(l)
-               if(isfluid(ishift,jshift,kshift)==1)then
-                 dsum1=dsum1+pd3q27(l)*rhoR(ishift,jshift,kshift)
-                 dsum2=dsum2+pd3q27(l)*rhoB(ishift,jshift,kshift)
-                 isum=isum+pd3q27(l)
-               endif
-             enddo
-             if(isum==ZERO)then
+     else
+       do k=minz-1,maxz+1
+         do j=miny-1,maxy+1
+           do i=minx-1,maxx+1
+             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
                dsum1=ZERO
                dsum2=ZERO
                isum=ZERO
-               do l=1,ndouble
-                 ishift=i+exdouble(l)
-                 jshift=j+eydouble(l)
-                 kshift=k+ezdouble(l)
-                 if(ishift<minx-nbuff)cycle
-                 if(ishift>maxx+nbuff)cycle
-                 if(jshift<miny-nbuff)cycle
-                 if(jshift>maxy+nbuff)cycle
-                 if(kshift<minz-nbuff)cycle
-                 if(kshift>maxz+nbuff)cycle
+               do l=1,linksd3q27
+                 ishift=i+exd3q27(l)
+                 jshift=j+eyd3q27(l)
+                 kshift=k+ezd3q27(l)
                  if(isfluid(ishift,jshift,kshift)==1)then
-                   dsum1=dsum1+rhoR(ishift,jshift,kshift)
-                   dsum2=dsum2+rhoB(ishift,jshift,kshift)
-                   isum=isum+ONE
+                   dsum1=dsum1+pd3q27(l)*rhoR(ishift,jshift,kshift)
+                  dsum2=dsum2+pd3q27(l)*rhoB(ishift,jshift,kshift)
+                  isum=isum+pd3q27(l)
                  endif
                enddo
                if(isum==ZERO)then
-                 ltest(1)=.true.
-                 errorCount = errorCount + 1
-                 rhoR(i,j,k)= MINDENS
-                 rhoB(i,j,k)= MINDENS
+                 dsum1=ZERO
+                 dsum2=ZERO
+                 isum=ZERO
+                 do l=1,ndouble
+                   ishift=i+exdouble(l)
+                   jshift=j+eydouble(l)
+                   kshift=k+ezdouble(l)
+                   if(ishift<minx-nbuff)cycle
+                   if(ishift>maxx+nbuff)cycle
+                   if(jshift<miny-nbuff)cycle
+                   if(jshift>maxy+nbuff)cycle
+                   if(kshift<minz-nbuff)cycle
+                   if(kshift>maxz+nbuff)cycle
+                   if(isfluid(ishift,jshift,kshift)==1)then
+                     dsum1=dsum1+rhoR(ishift,jshift,kshift)
+                     dsum2=dsum2+rhoB(ishift,jshift,kshift)
+                     isum=isum+ONE
+                   endif
+                 enddo
+                 if(isum==ZERO)then
+                   ltest(1)=.true.
+                   errorCount = errorCount + 1
+                   rhoR(i,j,k)= MINDENS
+                   rhoB(i,j,k)= MINDENS
+                 else
+                   rhoR(i,j,k)=dsum1/isum
+                   rhoB(i,j,k)=dsum2/isum
+                 endif
                else
                  rhoR(i,j,k)=dsum1/isum
                  rhoB(i,j,k)=dsum2/isum
                endif
-             else
-               rhoR(i,j,k)=dsum1/isum
-               rhoB(i,j,k)=dsum2/isum
              endif
-           endif
+           enddo
          enddo
        enddo
-     enddo
-   endif
+     endif
+   end select
    
    ! call or_world_larr(ltest,1)
    if(ltest(1)) write(216,fmt=1003) nstep, idrank, errorCount

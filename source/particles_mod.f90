@@ -2058,6 +2058,18 @@
 
 
  subroutine DebugGlobalSum
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to apply the global summation of force
+!     arrays in debugging mode
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: F. Bonaccorso
+!     last modification July 2019
+!     
+!***********************************************************************
+ 
  implicit none
 
 #ifdef QUAD_FORCEINT
@@ -2082,6 +2094,18 @@
  end subroutine DebugGlobalSum
 
  subroutine GlobalSum
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to apply the global summation of force
+!     arrays
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: F. Bonaccorso
+!     last modification July 2019
+!     
+!***********************************************************************
+ 
  implicit none
 
 #ifdef QUAD_FORCEINT
