@@ -24,7 +24,7 @@
  
  private
  
- integer, public, parameter :: nmaxstatdata=35
+ integer, public, parameter :: nmaxstatdata=36
  
  real(kind=PRC), public, save, dimension(nmaxstatdata) :: statdata
  real(kind=PRC), public, save :: meancputime=0.d0
@@ -195,6 +195,9 @@
     statdata(28)=meanpfx
     statdata(29)=meanpfy
     statdata(30)=meanpfz
+    
+    statdata(36)=sqrt(meanpfx**TWO+meanpfy**TWO+meanpfz**TWO)
+    
   endif
   
   if(mxrank>1)then

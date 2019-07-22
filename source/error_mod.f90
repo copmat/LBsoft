@@ -248,6 +248,8 @@
       write(outp,'(a)') &
       "WARNING - * pvz                  * mean particle velocity along z in lb units            *"
       write(outp,'(a)') &
+      "WARNING - * pfm                  * mean particle force module in lb units                *"
+      write(outp,'(a)') &
       "WARNING - * pfx                  * mean particle force along x in lb units               *"
       write(outp,'(a)') &
       "WARNING - * pfy                  * mean particle force along y in lb units               *"

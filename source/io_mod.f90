@@ -2547,6 +2547,8 @@
     legendobs='rminp =  min pair distance between particles      '
   elseif(printcodsub(iarg)==35)then
     legendobs='pvm   =  mean particle velocity module            '
+  elseif(printcodsub(iarg)==36)then
+    legendobs='pfm   =  mean particle force module               '
   endif
   legendobs=adjustl(legendobs)
   
@@ -2677,6 +2679,9 @@
   elseif(findstring('fvz',temps,inumchar,lenstring))then
     printcodsub(iarg)=27
     lfound=.true.
+  elseif(findstring('pfm',temps,inumchar,lenstring))then
+    printcodsub(iarg)=36
+    lfound=.true.
   elseif(findstring('pfx',temps,inumchar,lenstring))then
     printcodsub(iarg)=28
     lfound=.true.
@@ -2794,6 +2799,8 @@
     printlisub(iarg)='rminp (lu)'
   elseif(printcodsub(iarg)==35)then
     printlisub(iarg)='pvm (lu)'
+  elseif(printcodsub(iarg)==36)then
+    printlisub(iarg)='pfm (lu)'
   endif
   printlisub(iarg)=adjustr(printlisub(iarg))
   enddo
