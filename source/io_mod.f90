@@ -2545,6 +2545,8 @@
     legendobs='intph =  fluid interphase volume fraction         '
   elseif(printcodsub(iarg)==34)then
     legendobs='rminp =  min pair distance between particles      '
+  elseif(printcodsub(iarg)==35)then
+    legendobs='pvm   =  mean particle velocity module            '
   endif
   legendobs=adjustl(legendobs)
   
@@ -2653,6 +2655,9 @@
     lfound=.true.
   elseif(findstring('cpu',temps,inumchar,lenstring))then
     printcodsub(iarg)=15
+    lfound=.true.
+  elseif(findstring('pvm',temps,inumchar,lenstring))then
+    printcodsub(iarg)=35
     lfound=.true.
   elseif(findstring('pvx',temps,inumchar,lenstring))then
     printcodsub(iarg)=22
@@ -2787,6 +2792,8 @@
     printlisub(iarg)='intph (#)'
   elseif(printcodsub(iarg)==34)then
     printlisub(iarg)='rminp (lu)'
+  elseif(printcodsub(iarg)==35)then
+    printlisub(iarg)='pvm (lu)'
   endif
   printlisub(iarg)=adjustr(printlisub(iarg))
   enddo

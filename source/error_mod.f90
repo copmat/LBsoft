@@ -240,6 +240,8 @@
       write(outp,'(a)') &
       "WARNING - * maxpv                * max particle velocity in lb units                     *"
       write(outp,'(a)') &
+      "WARNING - * pvm                  * mean particle velocity module in lb units             *"
+      write(outp,'(a)') &
       "WARNING - * pvx                  * mean particle velocity along x in lb units            *"
       write(outp,'(a)') &
       "WARNING - * pvy                  * mean particle velocity along y in lb units            *"

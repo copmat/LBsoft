@@ -24,7 +24,7 @@
  
  private
  
- integer, public, parameter :: nmaxstatdata=34
+ integer, public, parameter :: nmaxstatdata=35
  
  real(kind=PRC), public, save, dimension(nmaxstatdata) :: statdata
  real(kind=PRC), public, save :: meancputime=0.d0
@@ -189,6 +189,8 @@
       call sum_world_farr(dtemp,3)
     endif
     statdata(22:24)=dtemp(1:3)/real(natms_tot,kind=PRC)
+    statdata(35)=sqrt(dtemp(1)**TWO+dtemp(2)**TWO+dtemp(3)**TWO)/ &
+     real(natms_tot,kind=PRC)
     
     statdata(28)=meanpfx
     statdata(29)=meanpfy
