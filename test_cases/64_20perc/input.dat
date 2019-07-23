@@ -1,11 +1,11 @@
 [ROOM SYSTEM]
 box 64 64 64
-steps 100000
+steps 10000
 diagnostic yes
 boundary condition 1 1 1
 decomposition type 1
 decomposition dimension    1   1   1
-print list engke engrt engto dens1 maxd1 mind1 rminp intph cpu
+print list engke engrt engto pvm pfm maxd1 mind1 rminp cpu
 print every 10
 print vtk structured 100
 print xyz 100
@@ -22,13 +22,14 @@ density rescale 50 1.d0
 velocity mean 0.d0 0.d0 0.d0
 force shanchen pair 0.65d0
 fluid tau 1.d0 1.d0
+wetting mode 1 1.d0 1.d0
 [END ROOM]
 [ROOM MD]
 particle yes
 particle type 1
 C
 rotate yes
-lubric yes 0.01d0 0.66666667d0 0.5d0
+lubric yes 0.d0 0.66666667d0 0.5d0
 densvar 100.4d0
 rcut 12.d0
 delr 1.0d0
@@ -37,7 +38,7 @@ field pair hz 1 1 10.d0 10.d0 9.d0
 mass 1 472.d0
 initial temperature 0.0
 force shanchen angle 108.d0 10.d0
-force shanchen particel 0.15d0 0.15d0
+force shanchen particel 0.5d0 0.5d0
 #moment fixed 1
 [END ROOM]
 [END]

@@ -9217,15 +9217,15 @@
         if(i<imin .or. i>imax)cycle
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle
-        psiR(i,j,k) = psiR(i,j,k) + rhoR(i,j,k)*factR
+        psiR(i,j,k) = psiR(i,j,k) + psiR(i,j,k)*factR
       else
         if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
          k>=kmin .and. k<=kmax)then
-          psiR(i,j,k) = psiR(i,j,k) + rhoR(i,j,k)*factR
+          psiR(i,j,k) = psiR(i,j,k) + psiR(i,j,k)*factR
         endif
         if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
          kk>=kmin .and. kk<=kmax)then
-          psiR(ii,jj,kk) = psiR(ii,jj,kk) + rhoR(ii,jj,kk)*factR
+          psiR(ii,jj,kk) = psiR(ii,jj,kk) + psiR(ii,jj,kk)*factR
         endif
       endif
     enddo
@@ -9265,18 +9265,18 @@
         if(i<imin .or. i>imax)cycle
         if(j<jmin .or. j>jmax)cycle
         if(k<kmin .or. k>kmax)cycle
-        psiR(i,j,k) = psiR(i,j,k) + rhoR(i,j,k)*factR
-        psiB(i,j,k) = psiB(i,j,k) + rhoB(i,j,k)*factB
+        psiR(i,j,k) = psiR(i,j,k) + psiR(i,j,k)*factR
+        psiB(i,j,k) = psiB(i,j,k) + psiB(i,j,k)*factB
       else
         if(i>=imin .and. i<=imax .and. j>=jmin .and. j<=jmax .and. &
          k>=kmin .and. k<=kmax)then
-          psiR(i,j,k) = psiR(i,j,k) + rhoR(i,j,k)*factR
-          psiB(i,j,k) = psiB(i,j,k) + rhoB(i,j,k)*factB
+          psiR(i,j,k) = psiR(i,j,k) + psiR(i,j,k)*factR
+          psiB(i,j,k) = psiB(i,j,k) + psiB(i,j,k)*factB
         endif
         if(ii>=imin .and. ii<=imax .and. jj>=jmin .and. jj<=jmax .and. &
          kk>=kmin .and. kk<=kmax)then
-          psiR(ii,jj,kk) = psiR(ii,jj,kk) + rhoR(ii,jj,kk)*factR
-          psiB(ii,jj,kk) = psiB(ii,jj,kk) + rhoB(ii,jj,kk)*factB
+          psiR(ii,jj,kk) = psiR(ii,jj,kk) + psiR(ii,jj,kk)*factR
+          psiB(ii,jj,kk) = psiB(ii,jj,kk) + psiB(ii,jj,kk)*factB
         endif
       endif
     enddo
