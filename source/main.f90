@@ -328,7 +328,7 @@
     call print_timing_final(idiagnostic,itime_counter,itime_start,1,1,IOOUT)
   endif
   
-  !call write_test_map
+  call write_test_map
   
   call write_xyz_close
   
