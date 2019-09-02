@@ -21,6 +21,7 @@
   linit_seed,ltest_mode,conv_rad
  use lbempi_mod,            only : set_domdec,set_domain,domdec, &
   nprocx,nprocy,nprocz
+
  use fluids_mod,            only : nx,ny,nz,set_initial_dist_type, &
   set_mean_value_dens_fluids,set_stdev_value_dens_fluids,idistselect, &
   meanR,meanB,stdevR,stdevB,set_initial_dim_box,initial_u,initial_v, &
@@ -42,7 +43,8 @@
   devtheta_SC,set_theta_particle_sc,set_back_value_dens_fluids, &
   backR,backB,set_init_area_dens_fluids,areaR,set_cap_force,cap_force, &
   imass_rescale,set_mass_rescale,dmass_rescale,iselwetting, &
-  densR_wetting,densB_wetting,set_fluid_wall_mode
+  densR_wetting,densB_wetting,set_fluid_wall_mode, set_restore
+
  use particles_mod,         only : set_natms_tot,natms_tot,lparticles, &
   set_ishape,set_densvar,densvar,ishape,set_rcut,rcut,delr, &
   set_delr,rotmat_2_quat,lrotate,set_lrotate,allocate_field_array, &
@@ -59,7 +61,7 @@
   lubricrparcut,lubricrparcap,lubricconst
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,lvtkstruct,set_value_ixyzevery,lxyzfile,ixyzevery, &
-  set_value_istatevery
+  set_value_istatevery, set_value_dumpevery
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
  use statistic_mod,         only : reprinttime,compute_statistic, &
   statdata
@@ -321,8 +323,11 @@
   integer :: temp_nstepmax=0
   integer :: temp_idiagnostic=1
   integer :: temp_ivtkevery=1
-  integer :: temp_istatevery=10000000
+
+  integer :: temp_istatevery    =10000000
   integer :: temp_istateveryPart=10000000
+  integer :: temp_idumpevery  =10000000
+
   integer :: temp_ixyzevery=1
   integer :: temp_nfluid=0
   integer :: temp_bc_type_east=0
@@ -391,6 +396,8 @@
   logical :: temp_lmass_rescale=.false.
   logical :: temp_lfix_moment=.false.
   logical :: temp_lselwetting=.false.
+  logical :: temp_lrestore  = .false.
+
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -596,6 +603,8 @@
                 temp_nprocy=intstr(directive,maxlen,inumchar)   
                 temp_nprocz=intstr(directive,maxlen,inumchar)   
               endif
+            elseif(findstring('isrestart',directive,inumchar,maxlen))then
+              temp_lrestore=.true.
             elseif(findstring('print',directive,inumchar,maxlen))then
               if(findstring('list',directive,inumchar,maxlen))then
                 lprintlist=.true.
@@ -640,6 +649,8 @@
               elseif(findstring('stat',directive,inumchar,maxlen))then
                 temp_istatevery=intstr(directive,maxlen,inumchar)
                 temp_stat = .true.
+              elseif(findstring('dump',directive,inumchar,maxlen))then
+                temp_idumpevery=intstr(directive,maxlen,inumchar)
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1438,6 +1449,12 @@
      mystring='Dump stat every'
      write(6,'(2a,i12,a,i12)')mystring,": ",temp_istatevery, ", ",temp_istateveryPart
   endif
+
+  call bcast_world_l(temp_lrestore)
+  if (temp_lrestore) call set_restore(.true.)
+
+  call bcast_world_i(temp_idumpevery)
+  call set_value_dumpevery(temp_idumpevery)
   
   call bcast_world_l(temp_lxyzfile)
   if(temp_lxyzfile)then

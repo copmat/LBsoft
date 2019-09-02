@@ -34,7 +34,9 @@
 
 #ifdef MPI           
  use mpi_comm, only : mpisendpops, mpirecvpops, mpibounceback, mpisend_hvar, mpirecv_hvar, &
-                        mpisend_isfluid, mpirecv_isfluid, mpisendrecvhalopops
+                        mpisend_isfluid, mpirecv_isfluid, mpisendrecvhalopops, &
+                        mpi_writeFile, mpi_writeFile_int, mpi_writeFile_pops, &
+                        mpi_readFile, mpi_readFile_int, mpi_readFile_pops
 #endif
 
  
@@ -125,6 +127,9 @@
  !bounceback default is halfway
  logical, save, protected, public :: lbc_halfway=.true.
  logical, save, protected, public :: lbc_fullway=.false.
+
+ ! is a restore run?
+ logical, save, protected :: l_restore=.false.
  
  real(kind=PRC), save, protected, public :: t_LB = ONE
  
@@ -423,8 +428,22 @@
  public :: set_mass_rescale
  public :: rescale_fluid_mass
  public :: set_fluid_wall_mode
+ public :: stat_oneFile,dump_oneFile,restore_oneFile
+ public :: set_restore, get_restore
 
  contains
+ subroutine set_restore(l_temp)
+     implicit none
+     logical, intent(in) :: l_temp
+
+     l_restore = l_temp
+ end subroutine set_restore
+
+ subroutine get_restore(l_temp)
+     implicit none
+     logical  :: l_temp
+     l_temp = l_restore
+ end subroutine get_restore
  
  subroutine allocate_fluids(lparticles)
 
@@ -456,7 +475,7 @@
      iy=miny-nbuff
      iz=minz-nbuff
      mynx=maxx+nbuff
-     if(mod(nx,2)==0)mynx=mynx+1
+     !if(mod(nx,2)==0)mynx=mynx+1
      myny=maxy+nbuff
      mynz=maxz+nbuff
 
@@ -15024,6 +15043,9 @@ end subroutine fix_onebelt_density_twofluids
 
  end subroutine print_all_pops2
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! SUBS TO DO DUMP & RESTORE USING 1 FILE PER PROC
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   subroutine dumpHvar(nstep)
      implicit none
      integer, intent(in) :: nstep
@@ -15081,6 +15103,159 @@ end subroutine fix_onebelt_density_twofluids
      close(133)
 
      call print_all_pops2(1001, "red_aft",nstep)
+  end subroutine restorePops
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! SUBS TO DO DUMP & RESTORE USING MPI-IO & SINGLE FILE
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine dump_oneFile(nstep)
+     implicit none
+     integer, intent(in) :: nstep
+     character(len=120) :: mynamefile
+
+     if(idrank==0) then
+             write (6,*) "Making DUMP file at step:", nstep
+     endif
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpPopsR.' // write_fmtnumb(nstep) //'.dat'
+
+     call mpi_writeFile_pops(nstep, mynamefile, &
+       f00R,f01R,f02R,f03R,f04R, &
+       f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
+       f14R,f15R,f16R,f17R,f18R, nbuff)
+
+     if(.not. lsingle_fluid) then
+      mynamefile=repeat(' ',120)
+      mynamefile='dumpPopsB.' // write_fmtnumb(nstep) //'.dat'
+      call mpi_writeFile_pops(nstep, mynamefile, &
+       f00B,f01B,f02B,f03B,f04B, &
+       f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B, &
+       f14B,f15B,f16B,f17B,f18B, nbuff)
+     endif
+
+     ! Conservative: dump also hvars & isfluid
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpRhoR.' // write_fmtnumb(nstep) //'.dat'
+
+     call mpi_writeFile(nstep, mynamefile, rhoR, nbuff)
+
+     if(.not. lsingle_fluid) then
+      mynamefile=repeat(' ',120)
+      mynamefile='dumpRhoB.' // write_fmtnumb(nstep) //'.dat'
+      call mpi_writeFile(nstep, mynamefile, rhoB, nbuff)
+     endif
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpU.' // write_fmtnumb(nstep) //'.dat'
+     call mpi_writeFile(nstep, mynamefile, u, nbuff)
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpV.' // write_fmtnumb(nstep) //'.dat'
+     call mpi_writeFile(nstep, mynamefile, v, nbuff)
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpW.' // write_fmtnumb(nstep) //'.dat'
+     call mpi_writeFile(nstep, mynamefile, w, nbuff)
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpisFluid.' // write_fmtnumb(nstep) //'.dat'
+     call mpi_writeFile_int(nstep, mynamefile, isfluid, nbuff)
+  end subroutine dump_oneFile
+
+  subroutine restore_oneFile(nstep)
+     implicit none
+     integer, intent(in) :: nstep
+     character(len=120) :: mynamefile
+
+     if(idrank==0) then
+             write (6,*) "Restarting config"
+     endif
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpPopsR.restart.dat'
+
+     call mpi_readFile_pops(nstep, mynamefile, &
+       f00R,f01R,f02R,f03R,f04R, &
+       f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
+       f14R,f15R,f16R,f17R,f18R, nbuff)
+
+     if(.not. lsingle_fluid) then
+      mynamefile=repeat(' ',120)
+      mynamefile='dumpPopsB.restart.dat'
+      call mpi_readFile_pops(nstep, mynamefile, &
+       f00B,f01B,f02B,f03B,f04B, &
+       f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B, &
+       f14B,f15B,f16B,f17B,f18B, nbuff)
+     endif
+
+     ! Conservative: read also hvars & isfluid
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpRhoR.restart.dat'
+
+     call mpi_readFile(nstep, mynamefile, rhoR, nbuff)
+
+     if(.not. lsingle_fluid) then
+      mynamefile=repeat(' ',120)
+      mynamefile='dumpRhoB.restart.dat'
+      call mpi_readFile(nstep, mynamefile, rhoB, nbuff)
+     endif
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpU.restart.dat'
+     call mpi_readFile(nstep, mynamefile, u, nbuff)
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpV.restart.dat'
+     call mpi_readFile(nstep, mynamefile, v, nbuff)
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpW.restart.dat'
+     call mpi_readFile(nstep, mynamefile, w, nbuff)
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpisFluid.restart.dat'
+     call mpi_readFile_int(nstep, mynamefile, isfluid, nbuff)
+
+     call driver_bc_densities
+     call driver_bc_velocities
+     call driver_bc_isfluid
+  end subroutine restore_oneFile
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! SUBS TO CREATE FILE FOR STATS
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  subroutine stat_oneFile(nstep)
+     implicit none
+     integer, intent(in) :: nstep
+     character(len=120) :: mynamefile
+
+     if(idrank==0) then
+             write (6,*) "Making STAT file at step:", nstep
+     endif
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpStat/RhoR.' // write_fmtnumb(nstep) //'.raw'
+
+     call mpi_writeFile(nstep, mynamefile, rhoR, nbuff)
+
+     if(.not. lsingle_fluid) then
+      mynamefile=repeat(' ',120)
+      mynamefile='dumpStat/RhoB.' // write_fmtnumb(nstep) //'.raw'
+      call mpi_writeFile(nstep, mynamefile, rhoB, nbuff)
+     endif
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpStat/U.' // write_fmtnumb(nstep) //'.raw'
+     call mpi_writeFile(nstep, mynamefile, u, nbuff)
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpStat/V.' // write_fmtnumb(nstep) //'.raw'
+     call mpi_writeFile(nstep, mynamefile, v, nbuff)
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpStat/W.' // write_fmtnumb(nstep) //'.raw'
+     call mpi_writeFile(nstep, mynamefile, w, nbuff)
   end subroutine
 
  end module fluids_mod

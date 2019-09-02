@@ -17,8 +17,10 @@
   i4back
  use error_mod
  use utility_mod,    only : write_fmtnumb,ltest_mode
+
  use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w,lsingle_fluid, &
-  minx, maxx, miny, maxy, minz, maxz,isfluid, dumpHvar
+  minx, maxx, miny, maxy, minz, maxz,isfluid, dumpHvar,stat_oneFile,dump_oneFile
+
  use particles_mod,  only : natms,xxx,yyy,zzz,lparticles,cell, &
   ishape,lrotate,natms,natms_tot,q0,q1,q2,q3,vxx,vyy,vzz, &
   take_rotversorx,take_rotversory,take_rotversorz, &
@@ -37,6 +39,7 @@
   integer, save, public, protected :: ixyzevery=50
   logical, save, public, protected :: lxyzfile=.false.
   integer, save, public, protected :: istatevery=5000000, istateveryPart=5000000
+  integer, save, public, protected :: idumpevery=5000000
   logical, save, public, protected :: lstatevery=.false.
   character(len=mxln), save :: dir_out
   character(len=mxln), save :: dir_out_rank
@@ -53,6 +56,7 @@
   public :: set_value_ixyzevery
   public :: write_particle_xyz
   public :: set_value_istatevery, dumpForStats
+  public :: set_value_dumpevery
   public :: writePVD
   
  contains
@@ -1152,12 +1156,22 @@
   lstatevery = .true.
  end subroutine set_value_istatevery
 
+ subroutine set_value_dumpevery(itemp)
+  implicit none
+  integer, intent(in) :: itemp
+  
+  idumpevery=itemp
+ end subroutine set_value_dumpevery
+
+
  subroutine dumpForStats(nstep)
   implicit none
   integer, intent(in) :: nstep
   character(len=120) :: mynamefile
   
-  if(mod(nstep,istatevery)==0) call dumpHvar(nstep)
+  if(mod(nstep,idumpevery)==0) call dump_oneFile(nstep)
+
+  if(mod(nstep,istatevery)==0) call stat_oneFile(nstep)
 
   if(.not.lparticles)return
   if(mod(nstep,istateveryPart)/=0) return

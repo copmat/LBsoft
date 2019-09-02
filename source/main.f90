@@ -53,11 +53,14 @@
   use utility_mod,     only : init_random_seed,allocate_array_buffservice3d
   use lbempi_mod,      only : setupcom,create_findneigh_list_hvar_isfluid, &
                         create_findneigh_list_pops,deallocate_ownern
+
   use fluids_mod,      only : allocate_fluids,initialize_isfluid_bcfluid, &
                         nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
                         miny,maxy,minz,maxz,nbuff,lsingle_fluid, &
                         isfluid,initialize_fluids,driver_bc_isfluid, &
-                        driver_initialiaze_manage_bc_selfcomm, restoreHvar
+                        driver_initialiaze_manage_bc_selfcomm, restoreHvar, &
+                        restore_oneFile, get_restore
+
   use particles_mod,   only : allocate_particles,lparticles,vertest, &
                         initialize_map_particles,driver_inter_force, &
                         initialize_integrator_lf,initialize_particle_force, &
@@ -91,6 +94,7 @@
   real(kind=PRC), allocatable, dimension(:,:) :: o_inp
   
   logical :: lnewlst,lrem,lremdat,ldorefinment,lrecycle,lvelocity
+  logical :: wantRestore = .false.
   
   integer :: i,j,k,atype
   
@@ -195,6 +199,10 @@
   
 ! initialize and read the restart file if requested
   call initialize_fluids
+
+  !!!!!!! RESTORE 
+  call get_restore(wantRestore)
+  if (wantRestore) call restore_oneFile(0)
   
 ! initialize particle fluid interaction if requested
   call init_particles_fluid_interaction
@@ -320,7 +328,7 @@
     call print_timing_final(idiagnostic,itime_counter,itime_start,1,1,IOOUT)
   endif
   
-  call write_test_map
+  !call write_test_map
   
   call write_xyz_close
   
