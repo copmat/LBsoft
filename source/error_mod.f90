@@ -353,7 +353,10 @@
       write(outp,'(2a,/)')"an uniform random orientation has been set ", &
       "for each particle"
     case (20)
-      !free
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,a)')"WARNING - maxlistcell is too small"
+      write(outp,'(2a,/)')"WARNING - the actual value of maxlistcell is : ", &
+       trim(adjustl(r_char))
     case (21)
       write(outp,'(/,a)')"WARNING - link cell algorithm cannot be used"
       write(outp,'(a,/)')"WARNING - the sub cell size is too small compared to rcut"

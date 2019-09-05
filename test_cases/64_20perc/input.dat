@@ -29,7 +29,7 @@ particle yes
 particle type 1
 C
 rotate yes
-lubric yes 0.d0 0.66666667d0 0.5d0
+lubric yes 0.1d0 0.66666667d0 0.5d0
 densvar 100.4d0
 rcut 12.d0
 delr 1.0d0

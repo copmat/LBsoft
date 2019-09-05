@@ -52,7 +52,8 @@
                    omega_to_viscosity,viscR,pimage,opp, &
                    compute_sc_particle_interact_phase1, compute_sc_particle_interact_phase2, &
                    driver_bc_pops, driver_bc_densities, driver_bc_psi, &
-                   particle_bounce_back_phase2, fixPops
+                   particle_bounce_back_phase2, fixPops,linksd3q27, &
+                   exd3q27,eyd3q27,ezd3q27
  
  implicit none
  
@@ -1139,7 +1140,8 @@
   dens=dble(mxatms)/volm
   ratio=(ONE+HALF)*dens*(FOUR*pi/THREE)*(rcut+delr)**THREE
   mxlist=min(nint(ratio),(mxatms+1)/2)
-  mxlist=max(mxlist,10000)
+  !attention to this point
+  mxlist=max(mxlist,32)
   
   msatms=ceiling(real(natms_tot/mxrank,kind=PRC)*densvar)
   
@@ -1161,16 +1163,13 @@
   if(ily.lt.3)lnolink=.true.
   if(ilz.lt.3)lnolink=.true.
   ncellsmin=ilx*ily*ilz
-  
+
 #if 0
-  if(.not. lnolink)then
-    lnolink=.true.
-    if(idrank==0)then
-      write(6,'(a)')'ATTENTION: link cell within the sub domain is under developing!'
-      write(6,'(a)')'ATTENTION: link cell will be applied only over the sub domains!'
-    endif
-  endif
+  lnolink=.true.
 #endif
+  if(lnolink)then
+    call warning(21)
+  endif
   
   cellx=ZERO
   celly=ZERO
@@ -1277,11 +1276,11 @@
   endif
   
   !at the moment only verlet list
-  if(.not. lnolink)then
-    if(idrank==0)write(6,'(a)')'ATTENTION: at the moment link cell is not implemented!'
-    if(idrank==0)write(6,'(a)')'ATTENTION: automatic switch to Verlet list mode!'
-    lnolink=.true.
-  endif
+!  if(.not. lnolink)then
+!    if(idrank==0)write(6,'(a)')'ATTENTION: at the moment link cell is not implemented!'
+!    if(idrank==0)write(6,'(a)')'ATTENTION: automatic switch to Verlet list mode!'
+!    lnolink=.true.
+!  endif
   
 #endif
   
@@ -2055,8 +2054,7 @@
   call LogForces1("apply_particle_bounce_back", nstep)
 #endif
  end subroutine apply_particle_bounce_back
-
-
+ 
  subroutine DebugGlobalSum
  
 !***********************************************************************
@@ -2720,16 +2718,30 @@
   integer, intent(in) :: nstep
   logical, intent(in) :: debug
 ! separation vectors and powers thereof
-  real(kind=PRC) :: rsq,xm,ym,zm,rsqcut
+  real(kind=PRC) :: rsq,xm,ym,zm,rsqcut,rlimit
   real(kind=PRC) :: dists(3)
+! service arrays for linked cell algorithm  
+  integer, allocatable,dimension(:), save:: lentrycell
+  integer, allocatable,dimension(:,:), save:: listcell
+  real(kind=PRC), allocatable,dimension(:), save:: uxx,uyy,uzz
   
 ! Loop counters
-  integer :: iatm,ii,i, myi, myj
+  integer :: iatm,ii,i,l, myi, myj
   integer :: k,jatm
   integer :: itype,ilentry
   logical :: lchk(1)
   integer :: ibig(1),idum
-
+  integer, parameter :: irat=1
+  integer, save :: maxlistcell,mxcell
+  integer :: ilx,ily,ilz,ncells,ix,iy,iz,jx,jy,jz,icell,jcell
+! to allocate the service arrays at the first call
+  logical, save :: lfirst=.true.
+! Service floating numbers
+  real(kind=PRC) :: xdc,ydc,zdc,tx,ty,tz
+  real(kind=PRC) :: rcell(9),celprp(10),det
+  
+  
+  if(lnolink)then
 
     lchk=.false.
     ibig=0
@@ -2786,15 +2798,235 @@
 
 1001 format ("nstep=", I4, " my=", I4, " iatm=", I4, " =[", I2, "] in ", g9.2, 8I4,X)
     
-!   terminate job if neighbour list array exceeded
+  else
+    !perform the linked cell searching algorithm
+    lchk=.false.
+    ibig=0
+    
+    rsqcut = (rcut+delr)**TWO
+    rlimit = rcut+delr
+    ! call allocate_array_bdf(natms)
+    
+    lentry(1:mxatms)=0
+    
+    ! if (debug) call OpenLogFile(nstep, "parlst", 300)
+    
+    call dcell(cell,celprp)
+    call invert(cell,rcell,det)
+    
+    ilx=int(celprp(7)*dble(irat)/(rlimit))
+    ily=int(celprp(8)*dble(irat)/(rlimit))
+    ilz=int(celprp(9)*dble(irat)/(rlimit))
+    
+    ncells=ilx*ily*ilz
+    
+    !allocate the service arrays at the first call
+    if(lfirst)then
+      lfirst=.false.
+      maxlistcell=ceiling(real(mxatms,kind=PRC)/real(ncells,kind=PRC))*2
+      allocate(uxx(mxatms),uyy(mxatms),uzz(mxatms))
+      mxcell=ncells
+      allocate(lentrycell(mxcell))
+      allocate(listcell(maxlistcell,mxcell))
+    endif
+    
+    !link-cell cutoff for reduced space
+    
+    xdc=real(ilx,kind=PRC)
+    ydc=real(ily,kind=PRC)
+    zdc=real(ilz,kind=PRC)
+    
+    ! periodic boundary condition
+    call pbc_images_centered(imcon,natms_tot,cell,cx,cy,cz,xxx,yyy,zzz)
+    
+    ! reduced space coordinates
+    do i=1,natms_tot
+      tx=xxx(i)
+      ty=yyy(i)
+      tz=zzz(i)
+      uxx(i)=(rcell(1)*tx+rcell(4)*ty+rcell(7)*tz)
+      uyy(i)=(rcell(2)*tx+rcell(5)*ty+rcell(8)*tz)
+      uzz(i)=(rcell(3)*tx+rcell(6)*ty+rcell(9)*tz)
+    enddo
+    
+    ! calculate link cell service list
+    lentrycell(1:mxcell)=0
+    
+    do i=1,natms_tot
+      ix=min(int(xdc*uxx(i)),ilx-1)
+      iy=min(int(ydc*uyy(i)),ily-1)
+      iz=min(int(zdc*uzz(i)),ilz-1)
+        
+      if(ix.gt.ilx)then
+        ix=ix-ilx
+      elseif(ix.lt.1)then
+        ix=ix+ilx
+      endif
+      if(iy.gt.ily)then
+        iy=iy-ily
+      elseif(iy.lt.1)then
+        iy=iy+ily
+      endif
+      if(iz.gt.ilz)then
+        iz=iz-ilz
+      elseif(iz.lt.1)then
+        iz=iz+ilz
+      endif
+            
+      icell=1+(ix-1)+ilx*((iy-1)+ily*(iz-1))
+        
+      lentrycell(icell)=lentrycell(icell)+1
+      if(lentrycell(icell)>maxlistcell)then
+        lchk=.true.
+        ibig(1)=max(lentrycell(icell),ibig(1))
+        exit
+      endif
+      listcell(lentrycell(icell),icell)=i
+    enddo
+    
     call or_world_larr(lchk,1)
     if(lchk(1))then
       call max_world_iarr(ibig,1)
-      call warning(23,real(ibig(1),kind=PRC))
+      call warning(20,real(ibig(1),kind=PRC))
       call error(21)
     endif
+    
+    lchk=.false.
+    ibig=0
+    
+    do iatm=1,natms_tot
+      
+      ii=iatm
+      
+      ix=min(int(xdc*uxx(iatm)),ilx-1)
+      iy=min(int(ydc*uyy(iatm)),ily-1)
+      iz=min(int(zdc*uzz(iatm)),ilz-1)
+      icell=1+(ix-1)+ilx*((iy-1)+ily*(iz-1))
+      
+      ilentry=0
+      do k=0,linksd3q27
+        jx=ix+exd3q27(k)
+        jy=iy+eyd3q27(k)
+        jz=iz+ezd3q27(k)
+        if(jx.gt.ilx)then
+          jx=jx-ilx
+        elseif(jx.lt.1)then
+          jx=jx+ilx
+        endif
+        if(jy.gt.ily)then
+          jy=jy-ily
+        elseif(jy.lt.1)then
+          jy=jy+ily
+        endif
+        if(jz.gt.ilz)then
+          jz=jz-ilz
+        elseif(jz.lt.1)then
+          jz=jz+ilz
+        endif
+            
+        jcell=1+(jx-1)+ilx*((jy-1)+ily*(jz-1))
+        do l=1,lentrycell(jcell)
+          jatm=listcell(l,jcell)
+          !in this way I put the pair in only one list
+          if(jatm<=iatm)cycle
+          dists(1)=xxx(jatm)-xxx(iatm)
+          dists(2)=yyy(jatm)-yyy(iatm)
+          dists(3)=zzz(jatm)-zzz(iatm)
+          call pbc_images_onevec(imcon,cell,dists)
+          rsq=dists(1)**TWO + dists(2)**TWO + dists(3)**TWO
+          if(rsq<=rsqcut) then
+            ilentry=ilentry+1
+            if(ilentry.gt.mxlist)then
+              lchk=.true.
+              ibig(1)=max(ilentry,ibig(1))
+              write(1006,fmt=1007) __FILE__,__LINE__, nstep, iatm,jatm,ilentry,rsq,rsqcut
+              call flush(1006)
+1007 format (A,I6, " step=",I4," iatm=",I4," jatm=",I4, 3I5,X)
+              exit
+            else
+              ! if (debug) write(300,fmt=1003) jatm, dists(1),dists(2),dists(3)
+              list(ilentry,ii)=jatm
+            endif
+          endif
+        enddo
+      enddo
+      lentry(ii)=ilentry
+    enddo
+    
+    if(.not. lchk(1))then
+      call bubble_sort_list(natms_tot,lentry,list)
+    endif
+  endif
+  
+! terminate job if neighbour list array exceeded
+  call or_world_larr(lchk,1)
+  if(lchk(1))then
+    call max_world_iarr(ibig,1)
+    call warning(23,real(ibig(1),kind=PRC))
+    call error(21)
+  endif
+  
+#if 0
+  if(idrank==0)then
+    open(unit=872,file='list.dat',status='replace',action='write')
+    do iatm=1,natms_tot
+      do l=1,lentry(iatm)
+        jatm=list(l,iatm)
+        write(872,*)l,iatm,jatm
+      enddo
+    enddo
+    close(872)
+    write(6,*)'finito'
+  endif
+  call finalize_world()
+  stop
+#endif
+  
+  return
+  
  end subroutine parlst
  
+ subroutine bubble_sort_list(natms_sub,lentrysub,listsub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to apply the bubble sort algorithm to the
+!     neighbour list
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification September 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: natms_sub
+  integer, allocatable, dimension(:), intent(inout) :: lentrysub
+  integer, allocatable, dimension(:,:), intent(inout) :: listsub
+  
+  integer :: itemp
+  integer :: i,j,iatm
+  logical :: lswapped
+  
+  do iatm=1,natms_sub
+    do j=lentrysub(iatm)-1,1,-1
+      lswapped=.false.
+      do i=1,j
+        if(listsub(i,iatm)>listsub(i+1,iatm))then
+          itemp=listsub(i,iatm)
+          listsub(i,iatm)=listsub(i+1,iatm)
+          listsub(i+1,iatm)=itemp
+          lswapped=.true.
+        endif
+      enddo
+      if(.not.lswapped)exit
+    enddo
+  enddo
+  
+  return
+  
+ end subroutine bubble_sort_list
 
  subroutine initialize_particle_force
  
