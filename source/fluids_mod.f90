@@ -15114,7 +15114,7 @@ end subroutine fix_onebelt_density_twofluids
      character(len=120) :: mynamefile
 
      if(idrank==0) then
-             write (6,*) "Making DUMP file at step:", nstep
+             write (6,*) "Making DUMP file for fluid at step:", nstep
      endif
 
      mynamefile=repeat(' ',120)

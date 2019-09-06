@@ -414,6 +414,7 @@
  public :: compute_psi_sc_particles
  public :: restore_particles
  public :: set_fix_moment
+ public :: dumppart_oneFile, restorePart_oneFile
  
  contains
  
@@ -6016,5 +6017,119 @@ else
   enddo
   close(118)
  end subroutine LogForces1
+
+   subroutine dumppart_oneFile(nstep)
+     implicit none
+     integer, intent(in) :: nstep
+     character(len=120) :: mynamefile
+
+     if(idrank==0) then
+             write (6,*) "Making DUMP file for particle at step:", nstep
+     endif
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpPart.' // write_fmtnumb(nstep) //'.dat'
+
+     if(idrank==0) then
+         open(unit=133,file=trim(mynamefile),form='unformatted',status='replace')
+         write(133) xxx(1:natms_tot)
+         write(133) yyy(1:natms_tot)
+         write(133) zzz(1:natms_tot)
+         write(133) xxo(1:natms_tot)
+         write(133) yyo(1:natms_tot)
+         write(133) zzo(1:natms_tot)
+
+         write(133) vxx(1:natms_tot)
+         write(133) vyy(1:natms_tot)
+         write(133) vzz(1:natms_tot)
+         write(133) vxo(1:natms_tot)
+         write(133) vyo(1:natms_tot)
+         write(133) vzo(1:natms_tot)
+
+         write(133) fxbo(1:natms_tot)
+         write(133) fybo(1:natms_tot)
+         write(133) fzbo(1:natms_tot)
+
+         if(lrotate)then
+          write(133) q0(1:natms_tot)
+          write(133) q1(1:natms_tot)
+          write(133) q2(1:natms_tot)
+          write(133) q3(1:natms_tot)
+
+          write(133) oxx(1:natms_tot)
+          write(133) oyy(1:natms_tot)
+          write(133) ozz(1:natms_tot)
+
+          write(133) txbo(1:natms_tot)
+          write(133) tybo(1:natms_tot)
+          write(133) tzbo(1:natms_tot)
+         endif
+
+         close(133)
+     endif
+   end subroutine dumppart_oneFile
+
+     subroutine restorePart_oneFile(nstep)
+     implicit none
+     integer, intent(in) :: nstep
+     character(len=120) :: mynamefile
+     logical(kind=1), dimension(natms_tot) :: mine
+     integer :: i
+
+
+     if(idrank==0) then
+             write (6,*) "Making DUMP file for particle at step:", nstep
+     endif
+
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpPart.restart.dat'
+
+     if(idrank==0) then
+         open(unit=133,file=trim(mynamefile),form='unformatted',status='old')
+         read(133) xxx(1:natms_tot)
+         read(133) yyy(1:natms_tot)
+         read(133) zzz(1:natms_tot)
+         read(133) xxo(1:natms_tot)
+         read(133) yyo(1:natms_tot)
+         read(133) zzo(1:natms_tot)
+
+         read(133) vxx(1:natms_tot)
+         read(133) vyy(1:natms_tot)
+         read(133) vzz(1:natms_tot)
+         read(133) vxo(1:natms_tot)
+         read(133) vyo(1:natms_tot)
+         read(133) vzo(1:natms_tot)
+
+         read(133) fxbo(1:natms_tot)
+         read(133) fybo(1:natms_tot)
+         read(133) fzbo(1:natms_tot)
+
+         if(lrotate)then
+          read(133) q0(1:natms_tot)
+          read(133) q1(1:natms_tot)
+          read(133) q2(1:natms_tot)
+          read(133) q3(1:natms_tot)
+
+          read(133) oxx(1:natms_tot)
+          read(133) oyy(1:natms_tot)
+          read(133) ozz(1:natms_tot)
+
+          read(133) txbo(1:natms_tot)
+          read(133) tybo(1:natms_tot)
+          read(133) tzbo(1:natms_tot)
+         endif
+
+         close(133)
+
+         natms = natms_tot
+         do i=1,natms_tot
+              atmbook(i) = i
+         enddo
+      else
+        natms = 0
+      endif
+
+      call restore_particles
+   end subroutine restorePart_oneFile
 
  end module particles_mod

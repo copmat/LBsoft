@@ -24,7 +24,7 @@
  use particles_mod,  only : natms,xxx,yyy,zzz,lparticles,cell, &
   ishape,lrotate,natms,natms_tot,q0,q1,q2,q3,vxx,vyy,vzz, &
   take_rotversorx,take_rotversory,take_rotversorz, &
-  clean_fluid_inside_particle,q2eul, atmbook, natms_ext
+  clean_fluid_inside_particle,q2eul, atmbook, natms_ext, dumppart_oneFile
  
   private
   
@@ -1169,7 +1169,10 @@
   integer, intent(in) :: nstep
   character(len=120) :: mynamefile
   
-  if(mod(nstep,idumpevery)==0) call dump_oneFile(nstep)
+  if(mod(nstep,idumpevery)==0) then
+    call dump_oneFile(nstep)
+    if(lparticles) call dumppart_oneFile(nstep)
+  endif
 
   if(mod(nstep,istatevery)==0) call stat_oneFile(nstep)
 

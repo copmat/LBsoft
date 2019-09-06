@@ -66,7 +66,7 @@
                         initialize_integrator_lf,initialize_particle_force, &
                         parlst, &
                         init_particles_fluid_interaction, &
-                        store_old_pos_vel_part,build_new_isfluid
+                        store_old_pos_vel_part,build_new_isfluid, restorePart_oneFile
   use write_output_mod,only : write_test_map,lvtkfile,init_output, &
                         write_vtk_frame,write_xyz_close, &
                         write_particle_xyz, dumpForStats, &
@@ -202,7 +202,10 @@
 
   !!!!!!! RESTORE 
   call get_restore(wantRestore)
-  if (wantRestore) call restore_oneFile(0)
+  if (wantRestore) then
+    call restore_oneFile(0)
+    if(lparticles) call restorePart_oneFile(0)
+  endif
   
 ! initialize particle fluid interaction if requested
   call init_particles_fluid_interaction
