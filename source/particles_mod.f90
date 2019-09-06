@@ -1971,6 +1971,7 @@
     fzb(iatm)=ZERO
   enddo
   
+   if (lrotate)then
    do iatm=1,natms_tot
     txb(iatm)=ZERO
     tyb(iatm)=ZERO
@@ -2003,7 +2004,25 @@
      fxb(iatm),fyb(iatm),fzb(iatm), forceInt, oat(1),oat(2),oat(3), &
      txb(iatm),tyb(iatm),tzb(iatm))
   enddo
+else
+  do myi=1,natms_ext
+    iatm = atmbook(myi)
 
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    itype=ltype(iatm)
+    !transform oxx oyy ozz from body ref to world ref
+    
+    call particle_bounce_back(debug, nstep,iatm,myi<=natms, .false.,i,j,k,nsphere, &
+     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
+     xxx(iatm),yyy(iatm),zzz(iatm), &
+     vxx(iatm),vyy(iatm),vzz(iatm), &
+     fxb(iatm),fyb(iatm),fzb(iatm), forceInt)
+  enddo
+endif
+
+   if (lrotate)then
   do myi=1,natms_ext
     iatm = atmbook(myi)
 
@@ -2030,6 +2049,21 @@
      fxb(iatm),fyb(iatm),fzb(iatm), forceInt, oat(1),oat(2),oat(3), &
      txb(iatm),tyb(iatm),tzb(iatm))
   enddo
+else
+  do myi=1,natms_ext
+    iatm = atmbook(myi)
+
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    itype=ltype(iatm)
+    call particle_bounce_back_phase2(debug, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
+     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
+     xxx(iatm),yyy(iatm),zzz(iatm), &
+     vxx(iatm),vyy(iatm),vzz(iatm), &
+     fxb(iatm),fyb(iatm),fzb(iatm), forceInt)
+  enddo
+  endif
 
   ! Fix where pops>0
   do myi=1,natms_ext
