@@ -199,13 +199,6 @@
   
 ! initialize and read the restart file if requested
   call initialize_fluids
-
-  !!!!!!! RESTORE 
-  call get_restore(wantRestore)
-  if (wantRestore) then
-    call restore_oneFile(0)
-    if(lparticles) call restorePart_oneFile(0)
-  endif
   
 ! initialize particle fluid interaction if requested
   call init_particles_fluid_interaction
@@ -240,6 +233,13 @@
     call initialize_integrator_lf
     call store_old_pos_vel_part
     call driver_bc_isfluid
+  endif
+  
+! restore 
+  call get_restore(wantRestore)
+  if (wantRestore) then
+    call restore_oneFile(0)
+    if(lparticles) call restorePart_oneFile(0)
   endif
   
 ! initialize lrecycle 
@@ -331,7 +331,7 @@
     call print_timing_final(idiagnostic,itime_counter,itime_start,1,1,IOOUT)
   endif
   
-  call write_test_map
+  ! call write_test_map
   
   call write_xyz_close
   

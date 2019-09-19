@@ -1134,15 +1134,14 @@
   imcon=ibctype
   
   mxatms=ceiling(real(natms_tot,kind=PRC)*densvar)
-  mxatms = natms_tot    !! In this version, all processes have all atoms from begin to end!
-
 
   volm=real(nx+1,kind=PRC)*real(nx+1,kind=PRC)*real(nx+1,kind=PRC)
   dens=dble(mxatms)/volm
   ratio=(ONE+HALF)*dens*(FOUR*pi/THREE)*(rcut+delr)**THREE
   mxlist=min(nint(ratio),(mxatms+1)/2)
+  !write(6,*) idrank, natms_tot,densvar, mxatms,mxlist  
   !attention to this point
-  mxlist=max(mxlist,32)
+  !mxlist=max(mxlist,32)
   
   msatms=ceiling(real(natms_tot/mxrank,kind=PRC)*densvar)
   
@@ -2772,7 +2771,7 @@ else
 ! to allocate the service arrays at the first call
   logical, save :: lfirst=.true.
 ! Service floating numbers
-  real(kind=PRC) :: xdc,ydc,zdc,tx,ty,tz
+  real(kind=PRC) :: xdc,ydc,zdc,tx,ty,tz,dens,ratio
   real(kind=PRC) :: rcell(9),celprp(10),det
   
   
@@ -2858,11 +2857,16 @@ else
     !allocate the service arrays at the first call
     if(lfirst)then
       lfirst=.false.
-      maxlistcell=ceiling(real(mxatms,kind=PRC)/real(ncells,kind=PRC))*2
+      dens=dble(mxatms)/celprp(10)
+      ratio=(ONE+HALF)*dens*(rlimit)**THREE
+      maxlistcell=ceiling(ratio)
+      !maxlistcell=max(maxlistcell,32)
       allocate(uxx(mxatms),uyy(mxatms),uzz(mxatms))
       mxcell=ncells
       allocate(lentrycell(mxcell))
       allocate(listcell(maxlistcell,mxcell))
+      !write(6,fmt='("Rank:",I6," maxlistcell,mxcell:",3I10)') idrank, maxlistcell,mxcell,mxlist
+      !write(6,fmt='("Rank:",I6," mxatms,ncells:",2I10)') idrank, mxatms,ncells
     endif
     
     !link-cell cutoff for reduced space
@@ -2872,7 +2876,7 @@ else
     zdc=real(ilz,kind=PRC)
     
     ! periodic boundary condition
-    call pbc_images_centered(imcon,natms_tot,cell,cx,cy,cz,xxx,yyy,zzz)
+    call pbc_images_centered_tot(imcon,natms_tot,cell,cx,cy,cz,xxx,yyy,zzz)
     
     ! reduced space coordinates
     do i=1,natms_tot
@@ -5508,6 +5512,107 @@ else
   return
       
  end subroutine pbc_images_centered
+ 
+ subroutine pbc_images_centered_tot(imcons,natmssub,cells,cx,cy,cz,xxs,yys,zzs)
+      
+!***********************************************************************
+!     
+!     LBsoft subroutine for calculating the minimum image
+!     of particles within a specified cell
+!     
+!     dl_poly subroutine for calculating the minimum image
+!     of atom pairs within a specified MD cell
+!     
+!     pbc conditions
+!     0=F    1=T  periodic
+!     itemp1      itemp2      itemp3       imcon
+!          0           0           0           0
+!          1           0           0           1
+!          0           1           0           2
+!          1           1           0           3
+!          0           0           1           4
+!          1           0           1           5
+!          0           1           1           6
+!          1           1           1           7
+!     
+!     note: in all cases the centre of the cell is specified by cx cy cz 
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: imcons,natmssub
+  real(kind=PRC), intent(in) :: cells(9),cx,cy,cz
+  real(kind=PRC), allocatable, dimension(:) :: xxs,yys,zzs
+
+  integer :: i, myi
+  real(kind=PRC) aaa,bbb,ccc
+  
+  select case(imcons)
+  case(0)
+    return
+  case(1)
+    aaa=ONE/cells(1)
+    do i=1,natmssub
+      xxs(i)=xxs(i)-cx
+      xxs(i)=xxs(i)-cell(1)*nint(aaa*xxs(i))+cx
+    enddo
+  case(2)
+    bbb=ONE/cells(5)
+    do i=1,natmssub
+      yys(i)=yys(i)-cy
+      yys(i)=yys(i)-cell(5)*nint(bbb*yys(i))+cy
+    enddo
+  case(3)
+    aaa=ONE/cells(1)
+    bbb=ONE/cells(5)
+    do i=1,natmssub
+      xxs(i)=xxs(i)-cx
+      yys(i)=yys(i)-cy
+      xxs(i)=xxs(i)-cell(1)*nint(aaa*xxs(i))+cx
+      yys(i)=yys(i)-cell(5)*nint(bbb*yys(i))+cy
+    enddo
+  case(4)
+    ccc=ONE/cells(9)
+    do i=1,natmssub
+      zzs(i)=zzs(i)-cz
+      zzs(i)=zzs(i)-cell(9)*nint(ccc*zzs(i))+cz
+    enddo
+  case(5)
+    aaa=ONE/cells(1)
+    ccc=ONE/cells(9)
+    do i=1,natmssub
+      xxs(i)=xxs(i)-cx
+      zzs(i)=zzs(i)-cz
+      xxs(i)=xxs(i)-cell(1)*nint(aaa*xxs(i))+cx
+      zzs(i)=zzs(i)-cell(9)*nint(ccc*zzs(i))+cz
+    enddo
+  case(6)
+    bbb=ONE/cells(5)
+    ccc=ONE/cells(9)
+    do i=1,natmssub
+      yys(i)=yys(i)-cy
+      zzs(i)=zzs(i)-cz
+      yys(i)=yys(i)-cell(5)*nint(bbb*yys(i))+cy
+      zzs(i)=zzs(i)-cell(9)*nint(ccc*zzs(i))+cz
+    enddo
+  case(7)
+    aaa=ONE/cells(1)
+    bbb=ONE/cells(5)
+    ccc=ONE/cells(9)
+    do i=1,natmssub
+      xxs(i)=xxs(i)-cx
+      yys(i)=yys(i)-cy
+      zzs(i)=zzs(i)-cz
+      xxs(i)=xxs(i)-cell(1)*nint(aaa*xxs(i))+cx
+      yys(i)=yys(i)-cell(5)*nint(bbb*yys(i))+cy
+      zzs(i)=zzs(i)-cell(9)*nint(ccc*zzs(i))+cz
+    enddo
+  end select
+  
+  return
+      
+ end subroutine pbc_images_centered_tot
  
  subroutine pbc_images(imcons,natmssub,cells,xxs,yys,zzs)
       

@@ -3317,6 +3317,7 @@
         locu = usub(i,j,k)
         locv = vsub(i,j,k)
         locw = wsub(i,j,k)
+        
 #ifdef SCANDREA
         locfu = fusub(i,j,k)*t_LB + locu
         locfv = fvsub(i,j,k)*t_LB + locv
