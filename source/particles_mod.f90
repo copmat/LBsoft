@@ -6174,7 +6174,7 @@ else
      endif
    end subroutine dumppart_oneFile
 
-     subroutine restorePart_oneFile(nstep)
+   subroutine restorePart_oneFile(nstep)
      implicit none
      integer, intent(in) :: nstep
      character(len=120) :: mynamefile
@@ -6183,7 +6183,7 @@ else
 
 
      if(idrank==0) then
-             write (6,*) "Making DUMP file for particle at step:", nstep
+             write (6,*) "Restore from DUMP file for particle at step:", nstep
      endif
 
      mynamefile=repeat(' ',120)
@@ -6238,3 +6238,4 @@ else
    end subroutine restorePart_oneFile
 
  end module particles_mod
+ 

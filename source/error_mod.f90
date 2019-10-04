@@ -125,6 +125,9 @@
       case (34)
         write(outp,outf2)'ERROR - not possible compute average density in ', &
          'particle_create_fluids.'
+      case (35)
+        write(outp,outf2)'ERROR - the requested restart.dat ', &
+         'was file not found!'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select
@@ -483,6 +486,10 @@
     case (52)
       write(outp,'(/,2a,/)')"WARNING - 'density backgroung' can not ", &
       "be zero or less in input file!"
+    case (53)
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,4a,/)')"WARNING - simulation restarted at ", &
+       "time step ",trim(adjustl(r_char)),"!"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

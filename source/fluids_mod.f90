@@ -15170,7 +15170,7 @@ end subroutine fix_onebelt_density_twofluids
      character(len=120) :: mynamefile
 
      if(idrank==0) then
-             write (6,*) "Restarting config"
+          write (6,*) "Restore from DUMP file for fluid at step:", nstep
      endif
 
      mynamefile=repeat(' ',120)

@@ -12,7 +12,8 @@
 !     
 !***********************************************************************
   
- use version_mod,    only : idrank,mxrank,get_sync_world,finalize_world
+ use version_mod,    only : idrank,mxrank,get_sync_world,finalize_world, &
+  bcast_world_i
  use lbempi_mod,     only : gminx,gmaxx,gminy,gmaxy,gminz,gmaxz,ownern,&
   i4back
  use error_mod
@@ -58,6 +59,8 @@
   public :: set_value_istatevery, dumpForStats
   public :: set_value_dumpevery
   public :: writePVD
+  public :: write_restart_file
+  public :: read_restart_file
   
  contains
  
@@ -1199,5 +1202,86 @@
      close(133)
   endif
  end subroutine dumpForStats
+ 
+ subroutine write_restart_file(idumpevery,myunit,myname,nstep,mytime)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing data for the restarting
+!     procedure
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: idumpevery,myunit,nstep
+  
+  character(len=*), intent(in) :: myname
+  
+  real(kind=PRC), intent(in) :: mytime
+ 
+  if(mod(nstep,idumpevery)==0) then
+  
+    if(idrank==0)then
+      open(unit=myunit,file=trim(myname),status='replace', &
+       action='write',form='unformatted')
+    
+      write(myunit)nstep
+    
+      close(myunit)
+    endif
+    
+  endif
+  
+  return
+  
+ end subroutine write_restart_file
+ 
+ subroutine read_restart_file(myunit,myname,nstep_temp)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing data for the restarting
+!     procedure
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: myunit
+  
+  character(len=*), intent(in) :: myname
+  
+  integer, intent(inout) :: nstep_temp
+  
+  logical :: lexist
+  
+  inquire(file=trim(myname),exist=lexist)
+  if(.not. lexist)then
+    call error(35)
+  endif
+  
+  if(idrank==0)then
+    open(unit=myunit,file=trim(myname),status='old', &
+     action='read',form='unformatted')
+    read(myunit)nstep_temp
+    close(myunit)
+  endif
+  
+  call bcast_world_i(nstep_temp)
+  
+  call warning(53,real(nstep_temp,kind=PRC))
+  
+  return
+  
+ end subroutine read_restart_file
  
  end module write_output_mod

@@ -70,7 +70,8 @@
   use write_output_mod,only : write_test_map,lvtkfile,init_output, &
                         write_vtk_frame,write_xyz_close, &
                         write_particle_xyz, dumpForStats, &
-                        writePVD, set_value_ivtkevery
+                        writePVD, set_value_ivtkevery,idumpevery, &
+                        write_restart_file,read_restart_file
   use integrator_mod,  only : initime,endtime,tstep,set_nstep, &
                         update_nstep,nstep,driver_integrator,nstepmax
   use statistic_mod,   only : statistic_driver
@@ -96,7 +97,7 @@
   logical :: lnewlst,lrem,lremdat,ldorefinment,lrecycle,lvelocity
   logical :: wantRestore = .false.
   
-  integer :: i,j,k,atype
+  integer :: i,j,k,atype,nstep_rest
   
   
 
@@ -203,8 +204,11 @@
 ! restore
   call get_restore(wantRestore)
   if (wantRestore) then
-    call restore_oneFile(0)
-    if(lparticles) call restorePart_oneFile(0)
+    call read_restart_file(135,'restart.dat',nstep_rest)
+    call set_nstep(nstep_rest)
+    mytime=real(nstep,kind=PRC)*tstep
+    call restore_oneFile(nstep)
+    if(lparticles) call restorePart_oneFile(nstep)
   endif
 
 ! initialize particle fluid interaction if requested
@@ -236,15 +240,18 @@
     call vertest(nstep, lnewlst)
     if(lnewlst) call parlst(nstep, .true.)
     call initialize_particle_force
-    call driver_inter_force(nstep, .true.)
-    call initialize_integrator_lf
-    call store_old_pos_vel_part
+    if (.not. wantRestore) then
+		call driver_inter_force(nstep, .true.)
+		call initialize_integrator_lf
+		call store_old_pos_vel_part
+	endif
     call driver_bc_isfluid
   endif
   
-  
 ! initialize lrecycle 
-  lrecycle=.true.
+  lrecycle=(nstep<nstepmax)
+  if(.not. lrecycle)call dumpForStats(nstep)
+  
 !max  write(0,*)'Going to sleep...',idrank
 !max  call sleep(30)  
 !***********************************************************************
@@ -287,7 +294,7 @@
     ! inpjet,npjet,sprintdat,systype,linserted)
      
 !   print restart file
-    !call write_restart_file(nrestartdump,135,'save.dat',nstep,mytime)
+    call write_restart_file(idumpevery,135,'save.dat',nstep,mytime)
     
 !   cycle time check
     call time_world(ctime)
@@ -332,7 +339,7 @@
     call print_timing_final(idiagnostic,itime_counter,itime_start,1,1,IOOUT)
   endif
   
-  ! call write_test_map
+  call write_test_map
   
   call write_xyz_close
   
