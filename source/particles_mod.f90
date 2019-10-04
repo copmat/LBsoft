@@ -1767,7 +1767,7 @@
  end subroutine checkIfExtAtom
 
 
- subroutine init_particles_fluid_interaction
+ subroutine init_particles_fluid_interaction(wantRestore)
   
 !***********************************************************************
 !     
@@ -1782,13 +1782,14 @@
  
   implicit none
   integer :: myi, iatm,i,j,k,l
+  logical, intent(in) :: wantRestore
   
   if(.not. lparticles)return
   
   call spherical_template(rdimx(1),nsphere,spherelist,spheredist, &
    nspheredead,spherelistdead)
 
-
+  if(.not.wantRestore)then
  ! initialize isfluid according to the particle presence
   do myi=1,natms_ext
     iatm = atmbook(myi)
@@ -1798,7 +1799,7 @@
     call init_particle_2_isfluid(i,j,k,nsphere,spherelist,spheredist, &
      nspheredead,spherelistdead, myi <= natms)
   enddo
-  
+  endif
  !push the isfluid communication if necessary
   call push_comm_isfluid
   
@@ -6180,7 +6181,7 @@ else
      character(len=120) :: mynamefile
      logical(kind=1), dimension(natms_tot) :: mine
      integer :: i
-
+     logical :: lexist
 
      if(idrank==0) then
              write (6,*) "Restore from DUMP file for particle at step:", nstep
@@ -6188,7 +6189,11 @@ else
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpPart.restart.dat'
-
+     inquire(file=trim(mynamefile),exist=lexist)
+     if(.not. lexist)then
+       call warning(54,real(1.0,kind=PRC),trim(mynamefile))
+       call error(36)
+     endif
      if(idrank==0) then
          open(unit=133,file=trim(mynamefile),form='unformatted',status='old')
          read(133) xxx(1:natms_tot)

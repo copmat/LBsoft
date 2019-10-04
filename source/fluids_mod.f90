@@ -340,12 +340,12 @@
  
  real(kind=PRC), save, public, allocatable, target, dimension(:,:,:) :: & 
   f00R,f01R,f02R,f03R,f04R,f05R,f06R,f07R,f08R
- real(kind=PRC), save, protected, public, allocatable, target, dimension(:,:,:) :: &
+ real(kind=PRC), save, public, allocatable, target, dimension(:,:,:) :: &
   f00B,f01B,f02B,f03B,f04B,f05B,f06B,f07B,f08B
  
  real(kind=PRC), save, public, allocatable, target, dimension(:,:,:) :: & 
   f09R,f10R,f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R
- real(kind=PRC), save, protected, public, allocatable, target, dimension(:,:,:) :: &
+ real(kind=PRC), save, public, allocatable, target, dimension(:,:,:) :: &
   f09B,f10B,f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B
 
 
@@ -15164,18 +15164,35 @@ end subroutine fix_onebelt_density_twofluids
      call mpi_writeFile_int(nstep, mynamefile, isfluid, nbuff)
   end subroutine dump_oneFile
 
-  subroutine restore_oneFile(nstep)
-     implicit none
-     integer, intent(in) :: nstep
-     character(len=120) :: mynamefile
+ subroutine restore_oneFile(nstep)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for restoring all data from one dumped 
+!     file
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  integer, intent(in) :: nstep
+  character(len=120) :: mynamefile
+  logical :: lexist
 
-     if(idrank==0) then
-          write (6,*) "Restore from DUMP file for fluid at step:", nstep
-     endif
+  if(idrank==0) then
+    write (6,*) "Restore from DUMP file for fluid at step:", nstep
+  endif
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpPopsR.restart.dat'
-
+     inquire(file=trim(mynamefile),exist=lexist)
+     if(.not. lexist)then
+       call warning(54,real(1.0,kind=PRC),trim(mynamefile))
+       call error(36)
+     endif
      call mpi_readFile_pops(nstep, mynamefile, &
        f00R,f01R,f02R,f03R,f04R, &
        f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
@@ -15184,6 +15201,11 @@ end subroutine fix_onebelt_density_twofluids
      if(.not. lsingle_fluid) then
       mynamefile=repeat(' ',120)
       mynamefile='dumpPopsB.restart.dat'
+      inquire(file=trim(mynamefile),exist=lexist)
+      if(.not. lexist)then
+        call warning(54,real(1.0,kind=PRC),trim(mynamefile))
+        call error(36)
+      endif
       call mpi_readFile_pops(nstep, mynamefile, &
        f00B,f01B,f02B,f03B,f04B, &
        f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B, &
@@ -15193,29 +15215,58 @@ end subroutine fix_onebelt_density_twofluids
      ! Conservative: read also hvars & isfluid
      mynamefile=repeat(' ',120)
      mynamefile='dumpRhoR.restart.dat'
-
+     inquire(file=trim(mynamefile),exist=lexist)
+     if(.not. lexist)then
+       call warning(54,real(1.0,kind=PRC),trim(mynamefile))
+       call error(36)
+     endif
      call mpi_readFile(nstep, mynamefile, rhoR, nbuff)
 
      if(.not. lsingle_fluid) then
       mynamefile=repeat(' ',120)
       mynamefile='dumpRhoB.restart.dat'
+      inquire(file=trim(mynamefile),exist=lexist)
+      if(.not. lexist)then
+        call warning(54,real(1.0,kind=PRC),trim(mynamefile))
+        call error(36)
+      endif
       call mpi_readFile(nstep, mynamefile, rhoB, nbuff)
      endif
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpU.restart.dat'
+     inquire(file=trim(mynamefile),exist=lexist)
+     if(.not. lexist)then
+       call warning(54,real(1.0,kind=PRC),trim(mynamefile))
+       call error(36)
+     endif
      call mpi_readFile(nstep, mynamefile, u, nbuff)
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpV.restart.dat'
+     inquire(file=trim(mynamefile),exist=lexist)
+     if(.not. lexist)then
+       call warning(54,real(1.0,kind=PRC),trim(mynamefile))
+       call error(36)
+     endif
      call mpi_readFile(nstep, mynamefile, v, nbuff)
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpW.restart.dat'
+     inquire(file=trim(mynamefile),exist=lexist)
+     if(.not. lexist)then
+       call warning(54,real(1.0,kind=PRC),trim(mynamefile))
+       call error(36)
+     endif
      call mpi_readFile(nstep, mynamefile, w, nbuff)
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpisFluid.restart.dat'
+     inquire(file=trim(mynamefile),exist=lexist)
+     if(.not. lexist)then
+       call warning(54,real(1.0,kind=PRC),trim(mynamefile))
+       call error(36)
+     endif
      call mpi_readFile_int(nstep, mynamefile, isfluid, nbuff)
 
      call driver_bc_densities

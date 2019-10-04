@@ -210,14 +210,20 @@
     call restore_oneFile(nstep)
     if(lparticles) call restorePart_oneFile(nstep)
   endif
+  
+  
+ 
 
 ! initialize particle fluid interaction if requested
-  call init_particles_fluid_interaction
+  call init_particles_fluid_interaction(wantRestore)
+   
   
 ! print memory
   call get_memory(mymemory)
   call print_memory_registration(6,'memory occupied after allocation', &
    mymemory)
+   
+ 
   
 ! open the  output 'statdat.dat' file and print first record on terminal
 ! and output file
@@ -232,8 +238,8 @@
     call print_timing_partial(1,1,itime_start,IOOUT)
     call reset_timing_partial()
   endif
-  
-  call write_vtk_frame(0)
+ 
+  call write_vtk_frame(0,wantRestore)
   
 ! interpolate the particle velocity at half timestep back to apply lf
   if(lparticles)then
@@ -241,12 +247,13 @@
     if(lnewlst) call parlst(nstep, .true.)
     call initialize_particle_force
     if (.not. wantRestore) then
-		call driver_inter_force(nstep, .true.)
-		call initialize_integrator_lf
-		call store_old_pos_vel_part
-	endif
+      call driver_inter_force(nstep, .true.)
+      call initialize_integrator_lf
+      call store_old_pos_vel_part
+    endif
     call driver_bc_isfluid
   endif
+  
   
 ! initialize lrecycle 
   lrecycle=(nstep<nstepmax)
@@ -288,7 +295,7 @@
     if(ldiagnostic)call start_timing2("IO","dump_stats")
     call dumpForStats(nstep)
     if(ldiagnostic)call end_timing2("IO","dump_stats")
-     
+    
 !   print the jet geometry on the binary file (only for developers)
     !call write_dat_frame(lprintdat,130,nstep,mytime,iprintdat, &
     ! inpjet,npjet,sprintdat,systype,linserted)

@@ -165,9 +165,9 @@
   new_time = real(nstep,kind=PRC)*tstep
   
   if(lmass_rescale)then
-    if(ldiagnostic)call start_timing2("LB","build_new_isfluid")
+    if(ldiagnostic)call start_timing2("LB","rescale_fluid_mass")
     call rescale_fluid_mass(nstep)
-    if(ldiagnostic)call end_timing2("LB","build_new_isfluid")
+    if(ldiagnostic)call end_timing2("LB","rescale_fluid_mass")
   endif
   
   if(lparticles)then

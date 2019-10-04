@@ -592,7 +592,7 @@
   
  end subroutine set_value_ixyzevery
  
- subroutine write_vtk_frame(nstepsub)
+ subroutine write_vtk_frame(nstepsub,wantRestore)
  
 !***********************************************************************
 !     
@@ -608,12 +608,16 @@
   implicit none
   
   integer, intent(in) :: nstepsub
+  logical, intent(in), optional :: wantRestore
   
   if((.not. lvtkfile).and.(.not. lxyzfile))return
   
   if(mod(nstepsub,ivtkevery)/=0)return
-  
-  call clean_fluid_inside_particle
+  if(present(wantRestore))then
+    if(.not.wantRestore)call clean_fluid_inside_particle
+  else
+    call clean_fluid_inside_particle
+  endif
   
   if(lparticles)then
     call write_vtp_file(181,'outatm',nstepsub)
