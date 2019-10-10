@@ -1725,80 +1725,39 @@
   
   implicit none
   
-  integer :: i,j,k,imin,imax,jmin,jmax,kmin,kmax
-  logical :: ldo(1:3)=.false.
+  integer :: i,j,k
   
-  if(areaR(1,1)<=maxx)then
-    ldo(1)=.true.
-    if(areaR(1,1)>=minx)then
-      imin=areaR(1,1)
-    else
-      imin=minx
-    endif
-  endif
-  if(areaR(2,1)>=minx)then
-    ldo(1)=.true.
-    if(areaR(2,1)<=maxx)then
-      imax=areaR(2,1)
-    else
-      imax=maxx
-    endif
-  endif
   
-  if(areaR(1,2)<=maxy)then
-    ldo(2)=.true.
-    if(areaR(1,2)>=miny)then
-      jmin=areaR(1,2)
-    else
-      jmin=miny
-    endif
-  endif
-  if(areaR(2,2)>=miny)then
-    ldo(2)=.true.
-    if(areaR(2,2)<=maxy)then
-      jmax=areaR(2,2)
-    else
-      jmax=maxy
-    endif
-  endif
-  
-  if(areaR(1,3)<=maxz)then
-    ldo(3)=.true.
-    if(areaR(1,3)>=minz)then
-      kmin=areaR(1,3)
-    else
-      kmin=minz
-    endif
-  endif
-  if(areaR(2,3)>=minz)then
-    ldo(3)=.true.
-    if(areaR(2,3)<=maxz)then
-      kmax=areaR(2,3)
-    else
-      kmax=maxz
-    endif
-  endif
-  
-  forall (i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    rhoR(i,j,k)=backR
-  end forall
-  
-  if(all(ldo))then
-    forall (i=imin:imax,j=jmin:jmax,k=kmin:kmax)
-      rhoR(i,j,k)=meanR
-    end forall
-  endif
-    
-  if(lsingle_fluid)return
-  
-  forall (i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    rhoB(i,j,k)=backB
-  end forall
-  
-  if(all(ldo))then
-    forall (i=imin:imax,j=jmin:jmax,k=kmin:kmax)
-      rhoB(i,j,k)=meanB
-    end forall
+  if(lsingle_fluid)then
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          if(areaR(1,1)<=i .and. areaR(2,1)>=i .and. &
+           areaR(1,2)<=j .and. areaR(2,2)>=j .and. &
+           areaR(1,3)<=k .and. areaR(2,3)>=k ) then
+            rhoR(i,j,k)=meanR
+          else
+            rhoR(i,j,k)=backR
+          endif
+        enddo
+      enddo
+    enddo
+  else
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          if(areaR(1,1)<=i .and. areaR(2,1)>=i .and. &
+           areaR(1,2)<=j .and. areaR(2,2)>=j .and. &
+           areaR(1,3)<=k .and. areaR(2,3)>=k ) then
+            rhoR(i,j,k)=meanR
+            rhoB(i,j,k)=meanB
+          else
+            rhoR(i,j,k)=backR
+            rhoB(i,j,k)=backB
+          endif
+        enddo
+      enddo
+    enddo
   endif
   
   return
