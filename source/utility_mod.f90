@@ -65,6 +65,9 @@
  public :: int_cube_sphere
  public :: openLogFile
  public :: fcut
+ public :: space_fmtnumb
+ public :: space_fmtnumb12
+ public :: test_little_endian
  
  contains
  
@@ -945,6 +948,108 @@
   return
 
  end function fcut
+ 
+ function space_fmtnumb(inum)
+ 
+!***********************************************************************
+!     
+!     LBsoft function for returning the string of six characters 
+!     with integer digits and leading spaces to the left
+!     originally written in JETSPIN by M. Lauricella et al.
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
 
+  integer,intent(in) :: inum
+  character(len=6) :: space_fmtnumb
+  integer :: numdigit,irest
+  real(kind=8) :: tmp
+  character(len=22) :: cnumberlabel
+
+  numdigit=dimenumb(inum)
+  irest=6-numdigit
+  if(irest>0)then
+    write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
+    write(space_fmtnumb,fmt=cnumberlabel)repeat(' ',irest),inum
+  else
+    write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
+    write(space_fmtnumb,fmt=cnumberlabel)inum
+  endif
+  
+  return
+
+ end function space_fmtnumb
+ 
+ function space_fmtnumb12(inum)
+ 
+!***********************************************************************
+!     
+!     LBsoft function for returning the string of six characters 
+!     with integer digits and leading TWELVE spaces to the left
+!     originally written in JETSPIN by M. Lauricella et al.
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+
+  integer,intent(in) :: inum
+  character(len=12) :: space_fmtnumb12
+  integer :: numdigit,irest
+  real(kind=8) :: tmp
+  character(len=22) :: cnumberlabel
+
+  numdigit=dimenumb(inum)
+  irest=12-numdigit
+  if(irest>0)then
+    write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
+    write(space_fmtnumb12,fmt=cnumberlabel)repeat(' ',irest),inum
+  else
+    write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
+    write(space_fmtnumb12,fmt=cnumberlabel)inum
+  endif
+  
+  return
+
+ end function space_fmtnumb12
+ 
+ subroutine test_little_endian(ltest)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for checking if the computing architecture
+!     is working in little-endian or big-endian
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none 
+  integer, parameter :: ik1 = selected_int_kind(2) 
+  integer, parameter :: ik4 = selected_int_kind(9) 
+   
+  logical, intent(out) :: ltest
+   
+  if(btest(transfer(int((/1,0,0,0/),ik1),1_ik4),0)) then 
+    !it is little endian
+    ltest=.true.
+  else 
+    !it is big endian
+    ltest=.false.
+  end if 
+   
+  return
+   
+ end subroutine test_little_endian 
 
  end module utility_mod
