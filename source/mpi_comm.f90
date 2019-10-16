@@ -64,6 +64,8 @@ private
     public :: mpisendrecvhalopops
     public :: mpi_writeFile, mpi_writeFile_int, mpi_writeFile_pops
     public :: mpi_readFile, mpi_readFile_int, mpi_readFile_pops
+    public :: print_binary_1d_vtk_par
+    public :: print_binary_3d_vtk_par
 
 contains
 
@@ -1634,4 +1636,130 @@ contains
 
       call MPI_FILE_CLOSE(fh, ierr)
     end subroutine mpi_readFile_pops
+    
+ subroutine print_binary_1d_vtk_par(iotest,headoff,nbyte,nn,myvar,e_io)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a scalar field with single
+!     precision in VTK legacy binary format in parallel IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,headoff,nbyte,nn
+  real(4), intent(in), dimension(:,:,:) :: myvar
+  integer, intent(out) :: e_io
+  
+  integer(kind=MPI_OFFSET_KIND) :: myoffset
+  
+  integer, parameter :: byteint=4
+  
+  integer :: filetypesub
+  integer, parameter :: nbuffsub=0
+  
+  integer :: memDims(3),memOffs(3),mystarts(3),imemtype
+  
+  myoffset=int(headoff,kind=MPI_OFFSET_KIND)
+  
+  mystarts = mymin - 1
+  
+  if(id_rank==0)call MPI_File_write_at(iotest,myoffset,int(nbyte,kind=4),1, &
+     MPI_INTEGER,MPI_STATUS_IGNORE,e_io)
+  myoffset = myoffset + 1 * byteint
+  
+  call MPI_Type_create_subarray(3,globalDims,lDims,mystarts, &
+    MPI_ORDER_FORTRAN,MPI_REAL4,filetypesub,e_io)
+        
+  call MPI_Type_commit(filetypesub, e_io)
+   
+  call MPI_File_Set_View(iotest,myoffset,MPI_REAL4,filetypesub, &
+    "native",MPI_INFO_NULL,e_io)
+  ! We need full local sizes: memDims
+  memDims = lDims + 2*nbuffsub
+  memOffs = [ nbuffsub, nbuffsub, nbuffsub ]
+
+  call MPI_TYPE_CREATE_SUBARRAY(3,memDims,lDims,memOffs, &
+   MPI_ORDER_FORTRAN,MPI_REAL4,imemtype,e_io)
+
+  call MPI_TYPE_COMMIT(imemtype,e_io)
+
+  call MPI_FILE_WRITE_ALL(iotest,myvar,1,imemtype,MPI_STATUS_IGNORE,e_io)
+  
+  return
+  
+ end subroutine print_binary_1d_vtk_par
+ 
+ subroutine print_binary_3d_vtk_par(iotest,headoff,nbyte,nn,myvar,e_io)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a vector field with single
+!     precision in VTK legacy binary format in parallel IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,headoff,nbyte,nn
+  real(4), intent(in), dimension(:,:,:,:) :: myvar
+  integer, intent(out) :: e_io
+  
+  integer(kind=MPI_OFFSET_KIND) :: myoffset
+  
+  integer, parameter :: byteint=4
+  
+  integer :: filetypesub
+  integer, parameter :: nbuffsub=0
+  
+  integer :: imemtype
+  
+  integer, dimension(4) :: velglobalDims,velldims,velmystarts, &
+   velmemDims,velmemOffs
+  
+  myoffset=int(headoff,kind=MPI_OFFSET_KIND)
+  
+  velglobalDims(1)=3
+  velglobalDims(2:4)=globalDims(1:3)
+  velldims(1)=3
+  velldims(2:4)=lDims(1:3)
+  velmystarts(1) = 0
+  velmystarts(2:4) = mymin(1:3)-1
+  
+  if(id_rank==0)call MPI_File_write_at(iotest,myoffset,int(nbyte,kind=4),1, &
+     MPI_INTEGER,MPI_STATUS_IGNORE,e_io)
+  myoffset = myoffset + 1 * byteint
+  
+  call MPI_Type_create_subarray(4,velglobalDims,velldims,velmystarts, &
+    MPI_ORDER_FORTRAN,MPI_REAL4,filetypesub,e_io)
+        
+  call MPI_Type_commit(filetypesub, e_io)
+   
+  call MPI_File_Set_View(iotest,myoffset,MPI_REAL4,filetypesub, &
+    "native",MPI_INFO_NULL,e_io)
+  ! We need full local sizes: memDims
+  velmemDims(1) = vellDims(1)
+  velmemDims(2:4) = vellDims(2:4) + 2*nbuffsub
+  velmemOffs = [ 0, nbuffsub, nbuffsub, nbuffsub ]
+
+  call MPI_TYPE_CREATE_SUBARRAY(4,velmemDims,velldims,velmemOffs, &
+   MPI_ORDER_FORTRAN,MPI_REAL4,imemtype,e_io)
+
+  call MPI_TYPE_COMMIT(imemtype,e_io)
+
+  call MPI_FILE_WRITE_ALL(iotest,myvar,1,imemtype,MPI_STATUS_IGNORE,e_io)
+  
+  return
+  
+ end subroutine print_binary_3d_vtk_par
+   
 end module mpi_comm

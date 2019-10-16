@@ -130,6 +130,14 @@
          'was file not found!'
       case (36)
         write(outp,outf)'ERROR - error occurs in the restarting procedure.'
+      case (37)
+        write(outp,outf)'ERROR - error occurs in subroutine header_vtk.'
+      case (38)
+        write(outp,outf)'ERROR - error occurs in subroutine init_output.'
+      case (39)
+        write(outp,outf)'ERROR - error occurs in subroutine footer_vtk.'
+      case (40)
+        write(outp,outf)'ERROR - error occurs in subroutine write_vtk_frame.'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select
@@ -495,6 +503,38 @@
     case (54)
       write(outp,'(/,3a,/)')"WARNING - the restarting file of name '", &
        trim(wstring),"' was not found!"
+    case (55)
+      write(outp,'(/,2a,/)')"WARNING - 'print vtk' requested but ", &
+      "'every' was not defined in input file"
+    case (56)
+      write(outp,'(/,a)') &
+      "WARNING - possible [keys] to be used are reported in the following table"
+      write(outp,'(a)') &
+      "WARNING - each [key] should be separated by a space character (e.g. rho1 vel part)"
+      write(outp,'(a)') &
+      "WARNING - ********************************************************************************"
+      write(outp,'(a)') &
+      "WARNING - * [keys]               * [meanings]                                            *"
+      write(outp,'(a)') &
+      "WARNING - ********************************************************************************"
+      write(outp,'(a)') &
+      "WARNING - * rho1                 * fluid density of first component in lb units          *"
+      write(outp,'(a)') &
+      "WARNING - * rho2                 * fluid density of second component in lb units         *"
+      write(outp,'(a)') &
+      "WARNING - * phase                * phase field of the two fluid components               *"
+      write(outp,'(a)') &
+      "WARNING - * vel                  * vector velocity field of the fluid in lb units        *"
+      write(outp,'(a)') &
+      "WARNING - * part                 * particle positions and orientations in lb units       *"
+      write(outp,'(a,/)') &
+      "WARNING - ********************************************************************************"
+    case (57)
+      write(outp,'(/,a)')"WARNING - 'print vtk list' is not correctly specified"
+      write(outp,'(a,/)')"WARNING - 'print vtk list' should be specified as 'print list [keys]'"
+    case (58)
+      write(outp,'(/,a)')"WARNING - 'print vtk list' is not specified in input file"
+      write(outp,'(a,/)')"WARNING - 'print vtk list' should be specified as 'print list [keys]'"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

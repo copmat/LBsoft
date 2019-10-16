@@ -13,11 +13,18 @@
 !***********************************************************************
   
  use version_mod,    only : idrank,mxrank,get_sync_world,finalize_world, &
-  bcast_world_i
+  bcast_world_i,open_file_vtk_par,close_file_vtk_par, &
+  print_header_vtk_par,print_footer_vtk_par
  use lbempi_mod,     only : gminx,gmaxx,gminy,gmaxy,gminz,gmaxz,ownern,&
   i4back
  use error_mod
- use utility_mod,    only : write_fmtnumb,ltest_mode
+ use utility_mod,    only : write_fmtnumb,ltest_mode, &
+  test_little_endian,space_fmtnumb12,space_fmtnumb
+  
+#ifdef MPI           
+ use mpi_comm, only : print_binary_1d_vtk_par,print_binary_3d_vtk_par
+#endif
+
 
  use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w,lsingle_fluid, &
   minx, maxx, miny, maxy, minz, maxz,isfluid, dumpHvar,stat_oneFile,dump_oneFile
@@ -35,16 +42,26 @@
   character(len=*), parameter :: filenamevtk='out'
   integer, save, public, protected :: ivtkevery=50
   logical, save, public, protected :: lvtkfile=.false.
-  logical, save, public, protected :: lvtkstruct=.false.
   logical, save, public, protected :: lvtkownern=.false.
   integer, save, public, protected :: ixyzevery=50
   logical, save, public, protected :: lxyzfile=.false.
   integer, save, public, protected :: istatevery=5000000, istateveryPart=5000000
   integer, save, public, protected :: idumpevery=5000000
   logical, save, public, protected :: lstatevery=.false.
+  logical, save, public, protected :: lelittle=.true.
   character(len=mxln), save :: dir_out
   character(len=mxln), save :: dir_out_rank
   character(len=mxln), allocatable, save :: dir_out_grank(:)
+  character(len=mxln), save :: extentvtk
+  character(len=8), save, allocatable, dimension(:) :: namevarvtk
+  character(len=500), save, allocatable, dimension(:) :: headervtk
+  character(len=30), save, allocatable, dimension(:) :: footervtk
+  integer, save, allocatable, dimension(:) :: ndimvtk
+  integer, save, allocatable, dimension(:) :: vtkoffset
+  integer, save, allocatable, dimension(:) :: ndatavtk
+  integer, save, allocatable, dimension(:) :: nheadervtk
+  integer, save :: nfilevtk
+  integer, save, allocatable, dimension(:) :: varlistvtk
   
   character, save :: delimiter
   
@@ -58,13 +75,12 @@
   public :: write_particle_xyz
   public :: set_value_istatevery, dumpForStats
   public :: set_value_dumpevery
-  public :: writePVD
   public :: write_restart_file
   public :: read_restart_file
   
  contains
  
- subroutine init_output()
+ subroutine init_output(nprintlistvtk,printlistvtk)
  
 !***********************************************************************
 !     
@@ -79,13 +95,17 @@
  
   implicit none
   
-  
+  integer, intent(in) :: nprintlistvtk
+  integer, intent(in), allocatable, dimension(:) :: printlistvtk
   character(len=255) :: path,makedirectory
   logical :: lexist
   
-  integer :: i
+  integer :: i,nn,indent,myoffset,new_myoffset,iend
+  integer, parameter :: byter4=4
   
   if((.not. lvtkfile).and.(.not. lxyzfile) .and. (.not. lstatevery))return
+  
+  call test_little_endian(lelittle)
   
   path = repeat(' ',255)
   call getcwd(path)
@@ -141,7 +161,59 @@
   makedirectory=repeat(' ',255)
   makedirectory=trim(path)//delimiter//'output'//delimiter
   
+  extentvtk =  space_fmtnumb(1) // ' ' // space_fmtnumb(nx) // ' ' &
+        // space_fmtnumb(1) // ' ' // space_fmtnumb(ny) // ' ' &
+        // space_fmtnumb(1) // ' ' // space_fmtnumb(nz)
+  
+  nfilevtk=nprintlistvtk
+  
+  allocate(varlistvtk(nfilevtk))
+  allocate(namevarvtk(nfilevtk))
+  allocate(ndimvtk(nfilevtk))
+  allocate(headervtk(nfilevtk))
+  allocate(footervtk(nfilevtk))
+  allocate(nheadervtk(nfilevtk))
+  allocate(vtkoffset(nfilevtk))
+  allocate(ndatavtk(nfilevtk))
+  varlistvtk(1:nfilevtk)=printlistvtk(1:nfilevtk)
+  do i=1,nfilevtk
+    select case(printlistvtk(i))
+    case(1)
+      namevarvtk(i)='rho1    '
+      ndimvtk(i)=1
+    case(2)
+      namevarvtk(i)='rho2    '
+      ndimvtk(i)=1
+    case(3)
+      namevarvtk(i)='phase   '
+      ndimvtk(i)=1
+    case(4)
+      namevarvtk(i)='vel     '
+      ndimvtk(i)=3
+    case(5)
+      namevarvtk(i)='part    '
+      ndimvtk(i)=1
+    case default
+      call error(38)
+    end select
+  enddo
+  
+  nn=nx*ny*nz
+  
+  do i=1,nfilevtk
+    myoffset=0
+    indent=0
+    call header_vtk(headervtk(i),namevarvtk(i),extentvtk,ndimvtk(i),0,iend,myoffset, &
+    new_myoffset,indent)
+    vtkoffset(i)=new_myoffset
+    myoffset=new_myoffset+ndimvtk(i)*nn*byter4
+    ndatavtk(i)=ndimvtk(i)*nn*byter4
+    nheadervtk(i)=iend
+    call footer_vtk(footervtk(i),0,iend,myoffset, &
+     new_myoffset,indent)
+  enddo
 
+#if 0
   call chdir(makedirectory)
   
   if(idrank==0)then
@@ -169,182 +241,26 @@
   
   call chdir(path)
   
+#endif
+  
   call get_sync_world
   
   return
 
  end subroutine init_output
-
- subroutine writeImageDataVTI(fname)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for writing the hydrodynamic variables
-!     in image VTK legacy binary format
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: F. Bonaccorso
-!     last modification October 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  character(len=120),intent(in) :: fname
-  character(len=120) :: fnameFull,extent
-  integer i,j,k
-  
-1000 format ("     ", f15.8)
-1001 format (f20.8)
-1003 format (3f20.8)
-  
-  fnameFull = trim(dir_out_rank)// trim(fname) // '_' // trim(write_fmtnumb(idrank)) //'.vti'
-  open(unit=iotest,file=trim(fnameFull),status='replace',action='write')
-
-  extent =  trim(write_fmtnumb(minx)) // ' ' // trim(write_fmtnumb(maxx+1)) // ' ' &
-        // trim(write_fmtnumb(miny)) // ' ' // trim(write_fmtnumb(maxy+1)) // ' ' &
-        // trim(write_fmtnumb(minz)) // ' ' // trim(write_fmtnumb(maxz+1))
-
-  write(iotest,'(a)') '<VTKFile type="ImageData" version="1.0">'
-  write(iotest,'(a)') ' <ImageData WholeExtent="' // trim(extent) // '" >'
-  write(iotest,'(a)') ' <Piece Extent="' // trim(extent) // '">'
-  write(iotest,'(a)') '   <CellData>'
-  write(iotest,'(a)') '    <DataArray type="Float32" Name="density1" format="ascii" >'
-
-  do k=minz,maxz
-     do j=miny,maxy
-       do i=minx,maxx
-         write(iotest,fmt=1001) rhoR(i,j,k)
-       enddo
-     enddo
-  enddo
-  write(iotest,'(a)') '    </DataArray>'
-  if(.not. lsingle_fluid)then
-  write(iotest,'(a)') '    <DataArray type="Float32" Name="density2" format="ascii" >'
-
-  do k=minz,maxz
-     do j=miny,maxy
-       do i=minx,maxx
-         write(iotest,fmt=1001) rhoB(i,j,k)
-       enddo
-     enddo
-  enddo
-  write(iotest,'(a)') '    </DataArray>'
-  endif
-  write(iotest,'(2a)') '    <DataArray type="Float32" Name="velocity" ', &
-   'NumberOfComponents="3" format="ascii" >'
-
-  do k=minz,maxz
-     do j=miny,maxy
-       do i=minx,maxx
-         write(iotest,fmt=1003) u(i,j,k),v(i,j,k),w(i,j,k)
-       enddo
-     enddo
-  enddo
-  write(iotest,'(a)') '    </DataArray>'
-  
-  write(iotest,'(a)') '   </CellData>'
-  write(iotest,'(a)') ' </Piece>'
-  write(iotest,'(a)') ' </ImageData>'
-  write(iotest,'(a)') '</VTKFile >'
-  close(iotest)
-  
-  return
-  
- end subroutine writeImageDataVTI
-
- subroutine writeImageDataPVTI(fname)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for writing the parallel driving file
-!     for image VTK legacy output
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: F. Bonaccorso
-!     last modification October 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  character(len=120),intent(in) :: fname
-  character(len=120) :: fnameFull,extent
-  character(len=255) :: makedirectory
-  integer i
-  
-  if(idrank/=0)return
-  
-  fnameFull = trim(dir_out) // trim(fname) // '.pvti'
-  open(unit=iotest,file=trim(fnameFull),status='replace',action='write')
-
-  extent =  '1 ' // trim(write_fmtnumb(nx+1)) // ' ' &
-        // '1 ' // trim(write_fmtnumb(ny+1)) // ' ' &
-        // '1 ' // trim(write_fmtnumb(nz+1))
-
-  write(iotest,'(a)') '<VTKFile type="PImageData" version="1.0">'
-  write(iotest,'(a)') '  <PImageData WholeExtent="' // trim(extent) // '">'
-  write(iotest,'(a)') '   <PCellData>'
-  write(iotest,'(a)') '    <PDataArray type="Float32" Name="density1" />'
-  if(.not. lsingle_fluid)then
-  write(iotest,'(a)') '    <PDataArray type="Float32" Name="density2" />'
-  endif
-  write(iotest,'(2a)')'    <PDataArray type="Float32" Name="velocity" ', &
-   'NumberOfComponents="3"/>'
-  write(iotest,'(a)') '   </PCellData>'
-
-  do i=0,mxrank-1
-   extent =  trim(write_fmtnumb(gminx(i))) // ' ' // trim(write_fmtnumb(gmaxx(i)+1)) // ' ' &
-        // trim(write_fmtnumb(gminy(i))) // ' ' // trim(write_fmtnumb(gmaxy(i)+1)) // ' ' &
-        // trim(write_fmtnumb(gminz(i))) // ' ' // trim(write_fmtnumb(gmaxz(i)+1))
-    makedirectory=repeat(' ',255)
-    makedirectory = 'rank'//trim(write_fmtnumb(i))//delimiter
-    write(iotest,'(a)') '    <Piece Extent="' // trim(extent) // '" Source="' // &
-    trim(makedirectory)//trim(fname) // '_' // trim(write_fmtnumb(i)) //'.vti" />'
-  enddo
-
-  write(iotest,'(a)') '  </PImageData>'
-  write(iotest,'(a)') '</VTKFile>'
-  close(iotest)
- 
-  return
- 
- end subroutine writeImageDataPVTI
-
- subroutine writeImageDataPVD(fname)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for writing the collection driving PVD file
-!     for VTK legacy output
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: F. Bonaccorso
-!     last modification October 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  character(len=120),intent(in) :: fname
-
-  character(len=120) :: fnameFull
-
-  fnameFull = trim(fname) // '.pvd'
-
-  open(unit=iotest,file=trim(fnameFull),status='replace',action='write')
-
-  write(iotest,'(a)') '<VTKFile type="Collection" version="1.0">'
-  write(iotest,'(a)') '  <Collection>'
-  write(iotest,'(a)') '   <DataSet part="0" file="output/' // trim(fname) // '.pvti"/>'
-  write(iotest,'(a)') '  </Collection>'
-  write(iotest,'(a)') '</VTKFile>'
-  close(iotest)
-  
-  return
-  
- end subroutine writeImageDataPVD
  
  subroutine write_vtp_file(iunitsub,fnamesub,istepsub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the POLYDATA VTK file
+!     for the particles
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
  
   implicit none
   
@@ -423,41 +339,7 @@
    
   return
   
- end subroutine
-
- subroutine writePVD(nstepsub)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for driving the write of the PVD file
-!     for VTK legacy output
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: F. Bonaccorso
-!     last modification October 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer, intent(in) :: nstepsub
-  character(len=120) :: fname
-
-  if(mod(nstepsub,ivtkevery)/=0)return
-  
-  fname=repeat(' ',120)
-  fname = trim(filenamevtk) // trim(write_fmtnumb(nstepsub))
-  
-  if(idrank==0)then
-    !! call writeImageDataPVD(fname)
-    call writeImageDataPVTI(fname)
-  endif
-  
-  call writeImageDataVTI(fname)
-  
-  return
-  
- end subroutine writePVD
+ end subroutine write_vtp_file
  
  subroutine write_xyz_open(filename)
  
@@ -541,7 +423,7 @@
     
  end subroutine write_xyz_close
 
- subroutine set_value_ivtkevery(ltemp,ltemp2,itemp)
+ subroutine set_value_ivtkevery(ltemp,itemp)
  
 !***********************************************************************
 !     
@@ -556,11 +438,10 @@
  
   implicit none
   
-  logical, intent(in) :: ltemp,ltemp2
+  logical, intent(in) :: ltemp
   integer, intent(in) :: itemp
   
   lvtkfile=ltemp
-  lvtkstruct=ltemp2
   ivtkevery=itemp
   
   return
@@ -610,6 +491,9 @@
   integer, intent(in) :: nstepsub
   logical, intent(in), optional :: wantRestore
   
+  integer, parameter :: vtkoutput=55
+  integer :: i
+  
   if((.not. lvtkfile).and.(.not. lxyzfile))return
   
   if(mod(nstepsub,ivtkevery)/=0)return
@@ -619,25 +503,68 @@
     call clean_fluid_inside_particle
   endif
   
-  if(lparticles)then
-    call write_vtp_file(181,'outatm',nstepsub)
-  endif
-  
-  if(lvtkstruct)then
-    if(mxrank==1)then
-      call write_vtk_frame_serial(nstepsub)
-    else
-      call write_vtk_frame_parallel(nstepsub)
-    endif
+  if(mxrank==1)then
+    do i=1,nfilevtk
+      select case(varlistvtk(i))
+      case(1)
+        call write_vtk_frame_serial(vtkoutput+i,nstepsub,ndatavtk(i), &
+         nheadervtk(i),headervtk(i),vtkoffset(i),footervtk(i), &
+         namevarvtk(i),ndimvtk(i),varlistvtk(i),rhoR)
+      case(2)
+        call write_vtk_frame_serial(vtkoutput+i,nstepsub,ndatavtk(i), &
+         nheadervtk(i),headervtk(i),vtkoffset(i),footervtk(i), &
+         namevarvtk(i),ndimvtk(i),varlistvtk(i),rhoB)
+      case(3)
+        call write_vtk_frame_serial(vtkoutput+i,nstepsub,ndatavtk(i), &
+         nheadervtk(i),headervtk(i),vtkoffset(i),footervtk(i), &
+         namevarvtk(i),ndimvtk(i),varlistvtk(i),rhoR,rhoB)
+      case(4)
+        call write_vtk_frame_serial(vtkoutput+i,nstepsub,ndatavtk(i), &
+         nheadervtk(i),headervtk(i),vtkoffset(i),footervtk(i), &
+         namevarvtk(i),ndimvtk(i),varlistvtk(i),u,v,w)
+      case(5)
+        if(lparticles)then
+          call write_vtp_file(181,'outatm',nstepsub)
+        endif
+      case default
+        call error(40)
+      end select
+    enddo
   else
-    call writePVD(nstepsub)
+    do i=1,nfilevtk
+      select case(varlistvtk(i))
+      case(1)
+        call write_vtk_frame_parallel(vtkoutput+i,nstepsub,ndatavtk(i), &
+         nheadervtk(i),headervtk(i),vtkoffset(i),footervtk(i), &
+         namevarvtk(i),ndimvtk(i),varlistvtk(i),rhoR)
+      case(2)
+        call write_vtk_frame_parallel(vtkoutput+i,nstepsub,ndatavtk(i), &
+         nheadervtk(i),headervtk(i),vtkoffset(i),footervtk(i), &
+         namevarvtk(i),ndimvtk(i),varlistvtk(i),rhoB)
+      case(3)
+        call write_vtk_frame_parallel(vtkoutput+i,nstepsub,ndatavtk(i), &
+         nheadervtk(i),headervtk(i),vtkoffset(i),footervtk(i), &
+         namevarvtk(i),ndimvtk(i),varlistvtk(i),rhoR,rhoB)
+      case(4)
+        call write_vtk_frame_parallel(vtkoutput+i,nstepsub,ndatavtk(i), &
+         nheadervtk(i),headervtk(i),vtkoffset(i),footervtk(i), &
+         namevarvtk(i),ndimvtk(i),varlistvtk(i),u,v,w)
+      case(5)
+        if(lparticles)then
+          call write_vtp_file(181,'outatm',nstepsub)
+        endif
+      case default
+        call error(40)
+      end select
+    enddo
   endif
   
   return
   
  end subroutine write_vtk_frame
   
- subroutine write_vtk_frame_serial(nstepsub)
+ subroutine write_vtk_frame_serial(ioprint,nstepsub,ndata,nheader,header, &
+  headoff,footer,filenamevar,ndim,ntype,myvar,myvary,myvarz)
  
 !***********************************************************************
 !     
@@ -646,38 +573,43 @@
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
-!     last modification july 2018
+!     last modification October 2019
 !     
 !***********************************************************************
-     
-  use IR_Precision
-  use Lib_VTK_IO, only : VTK_INI_XML,VTK_GEO_XML,VTK_DAT_XML,VTK_VAR_XML,VTK_END_XML,&
-   VTK_FLD_XML,PVTK_INI_XML,PVTK_GEO_XML,PVTK_DAT_XML,PVTK_VAR_XML,PVTK_END_XML
  
  
   implicit none
   
-  integer, intent(in) :: nstepsub
-  
-  real(kind=4), allocatable, dimension(:,:,:), save ::x,y,z
+  integer, intent(in) :: ioprint,nstepsub,ndata,nheader,headoff,ndim, &
+   ntype
+  character(len=8), intent(in) :: filenamevar
+  character(len=500), intent(in) :: header
+  character(len=30), intent(in) :: footer
+  real(kind=PRC), allocatable, dimension(:,:,:) :: myvar
+  real(kind=PRC), allocatable, dimension(:,:,:), optional :: myvary,myvarz
   integer :: e_io,nnt
-  real(kind=4), allocatable, dimension(:,:,:), save :: service1, &
+  real(kind=4), allocatable, dimension(:,:,:) :: service1 , &
    service2,service3
   
   character(len=120) :: sevt
-  integer :: l,ii,jj,kk,i,j,k,myindex
+  integer :: l,ii,jj,kk,i,j,k,myindex,iost,endoff
   
   integer :: nx1,nx2,ny1,ny2,nz1,nz2,nn,nxmin,nymin,nnn
   
-  logical, save :: lfirst=.true.
+  character(len=120) :: s_buffer
   
+  character(len=500) :: mystring500
+  integer, parameter :: byter4=4
+  integer, parameter :: byteint=4
   real(kind=PRC) :: miomax,vmod
+  real(kind=4) :: r4temp,b4temp
   
   if(.not. lvtkfile)return
   
   if(mxrank/=1)call error(11)
   
   if(idrank/=0)return
+  
   
   if(mod(nstepsub,ivtkevery)/=0)return
   
@@ -691,75 +623,364 @@
   nnn=nx*ny*nz
   nn=(nx2-nx1+1)*(ny2-ny1+1)*(nz2-nz1+1)
   
-  if(lfirst)then
-    lfirst=.false.
-    allocate(x(nx1:nx2,ny1:ny2,nz1:nz2))
-    allocate(y(nx1:nx2,ny1:ny2,nz1:nz2))
-    allocate(z(nx1:nx2,ny1:ny2,nz1:nz2))
-    allocate(service1(nx1:nx2,ny1:ny2,nz1:nz2))
+  allocate(service1(nx1:nx2,ny1:ny2,nz1:nz2))
+  service1(nx1:nx2,ny1:ny2,nz1:nz2)=ZERO
+  
+  if(ndim==1)then
+  !requested scalar field in output
+    if(ntype==3)then
+       !requested phase field in output
+       !compute phase field on fly
+       do k=minz,maxz
+        do j=miny,maxy
+          do i=minx,maxx
+            if(isfluid(i,j,k)==3)cycle
+            r4temp=real(myvar(i,j,k),kind=4)
+            b4temp=real(myvary(i,j,k),kind=4)
+            service1(i,j,k)=(r4temp-b4temp)/(r4temp+b4temp)
+          enddo
+        enddo
+      enddo
+    else
+      do k=minz,maxz
+        do j=miny,maxy
+          do i=minx,maxx
+            service1(i,j,k)=real(myvar(i,j,k),kind=4)
+          enddo
+        enddo
+      enddo
+    endif
+  elseif(ndim==3)then
+    !requested vector field in output
     allocate(service2(nx1:nx2,ny1:ny2,nz1:nz2))
     allocate(service3(nx1:nx2,ny1:ny2,nz1:nz2))
-    
-    forall(i=nx1:nx2,j=ny1:ny2,k=nz1:nz2)
-      x(i,j,k) = real(i,kind=R4P)
-      y(i,j,k) = real(j,kind=R4P)
-      z(i,j,k) = real(k,kind=R4P)
-    end forall
+    service2(nx1:nx2,ny1:ny2,nz1:nz2)=ZERO
+    service3(nx1:nx2,ny1:ny2,nz1:nz2)=ZERO
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          service1(i,j,k)=real(myvar(i,j,k),kind=4)
+          service2(i,j,k)=real(myvary(i,j,k),kind=4)
+          service3(i,j,k)=real(myvarz(i,j,k),kind=4)
+        enddo
+      enddo
+    enddo
   endif
   
   sevt=repeat(' ',120)
-  !sevt=trim(filenamevtk)// &
-  ! trim(write_fmtnumb(nstepsub))//'.vts'
-  sevt = trim(dir_out) // trim(filenamevtk)// &
-   trim(write_fmtnumb(nstepsub)) // '.vts'
- 
-  E_IO = VTK_INI_XML(output_format='raw', &
-   filename=trim(sevt),mesh_topology='StructuredGrid', &
-   nx1=nx1,nx2=nx2,ny1=ny1, &
-   ny2=ny2,nz1=nz1,nz2=nz2)
-   
-  E_IO = VTK_GEO_XML(nx1=nx1,nx2=nx2,ny1=ny1, &
-   ny2=ny2,nz1=nz1,nz2=nz2,NN=nn, &
-   X=reshape(x,(/nn/) ),Y=reshape(y,(/nn/)),Z=reshape(z,(/nn/)))
-   
-  E_IO = VTK_DAT_XML(var_location = 'node', &
-   var_block_action = 'open')
- 
-  service1(nx1:nx2,ny1:ny2,nz1:nz2)=rhoR(1:nx,1:ny,1:nz)
-  E_IO = VTK_VAR_XML(NC_NN=nn,varname ='density1', &
-   var=reshape(service1,(/nn/)))
   
-  if(.not. lsingle_fluid)then
-    service2(nx1:nx2,ny1:ny2,nz1:nz2)=rhoB(1:nx,1:ny,1:nz)
-    E_IO = VTK_VAR_XML(NC_NN=nn,varname ='density2', &
-     var=reshape(service2,(/nn/)))
+  sevt = trim(dir_out) // trim(filenamevtk)//'_'//trim(filenamevar)// &
+   '_'//trim(write_fmtnumb(nstepsub)) // '.vti'
+  
+  call open_file_vtk(ioprint,120,sevt,e_io)
+  
+  call print_header_vtk(ioprint,0,nheader,header,E_IO)
+  
+  if(ndim==1)then
+    call print_binary_1d_vtk(ioprint,headoff,ndata,nn,reshape(service1,(/nn/)), &
+     iost)
+  elseif(ndim==3)then
+    call print_binary_3d_vtk(ioprint,headoff,ndata,nn,reshape(service1,(/nn/)), &
+     reshape(service2,(/nn/)),reshape(service3,(/nn/)),iost)
   endif
   
- 
-  service1(nx1:nx2,ny1:ny2,nz1:nz2)=u(1:nx,1:ny,1:nz)
-  service2(nx1:nx2,ny1:ny2,nz1:nz2)=v(1:nx,1:ny,1:nz)
-  service3(nx1:nx2,ny1:ny2,nz1:nz2)=w(1:nx,1:ny,1:nz)
-  E_IO = VTK_VAR_XML(NC_NN=nn,varname='velocity', &
-   varX=reshape(service1,(/nn/)), &
-   varY=reshape(service2,(/nn/)), &
-   varZ=reshape(service3,(/nn/)))
-   
-#if 0
-  service1(nx1:nx2,ny1:ny2,nz1:nz2)=real(isfluid(1:nx,1:ny,1:nz),kind=R4P)
-  E_IO = VTK_VAR_XML(NC_NN=nn,varname ='isfluid', &
-   var=reshape(service1,(/nn/))) 
-#endif
-   
-  E_IO = VTK_DAT_XML(var_location = 'node', &
-   var_block_action = 'close')
+  endoff=headoff+ndata+byteint
+  call print_footer_vtk(ioprint,endoff,footer,E_IO)
   
-  E_IO = VTK_GEO_XML()
-  E_IO = VTK_END_XML()
- 
+  call close_file_vtk(ioprint,e_io)
+  
+  if(allocated(service1))deallocate(service1)
+  if(allocated(service2))deallocate(service2)
+  if(allocated(service3))deallocate(service3)
  
   return
      
  end subroutine write_vtk_frame_serial
+ 
+ subroutine write_vtk_frame_parallel(ioprint,nstepsub,ndata,nheader,header, &
+  headoff,footer,filenamevar,ndim,ntype,myvar,myvary,myvarz)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the hydrodynamic variables
+!     in structured VTK legacy binary format in parallel IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+ 
+  implicit none
+  
+  integer, intent(in) :: ioprint,nstepsub,ndata,nheader,headoff,ndim, &
+   ntype
+  character(len=8), intent(in) :: filenamevar
+  character(len=500), intent(in) :: header
+  character(len=30), intent(in) :: footer
+  real(kind=PRC), allocatable, dimension(:,:,:) :: myvar
+  real(kind=PRC), allocatable, dimension(:,:,:), optional :: myvary,myvarz
+  integer :: e_io,nnt
+  real(kind=4), allocatable, dimension(:,:,:) :: service1
+   
+  real(kind=4), allocatable, dimension(:,:,:,:) :: service4
+  
+  character(len=120) :: sevt
+  integer :: l,ii,jj,kk,i,j,k,myindex,iost,endoff
+  
+  integer :: nx1,nx2,ny1,ny2,nz1,nz2,nn,nxmin,nymin,nnn
+  
+  character(len=120) :: s_buffer
+  
+  character(len=500) :: mystring500
+  integer, parameter :: byter4=4
+  integer, parameter :: byteint=4
+  real(kind=PRC) :: miomax,vmod
+  real(kind=4) :: r4temp,b4temp
+  
+  if(.not. lvtkfile)return
+  
+  if(mod(nstepsub,ivtkevery)/=0)return
+  
+  nx1=minx
+  nx2=maxx
+  ny1=miny
+  ny2=maxy
+  nz1=minz
+  nz2=maxz
+  
+  nnn=nx*ny*nz
+  nn=(nx2-nx1+1)*(ny2-ny1+1)*(nz2-nz1+1)
+  
+  
+  
+  if(ndim==1)then
+    allocate(service1(nx1:nx2,ny1:ny2,nz1:nz2))
+    service1(nx1:nx2,ny1:ny2,nz1:nz2)=ZERO
+  !requested scalar field in output
+    if(ntype==3)then
+       !requested phase field in output
+       !compute phase field on fly
+       do k=minz,maxz
+        do j=miny,maxy
+          do i=minx,maxx
+            if(isfluid(i,j,k)==3)cycle
+            r4temp=real(myvar(i,j,k),kind=4)
+            b4temp=real(myvary(i,j,k),kind=4)
+            service1(i,j,k)=(r4temp-b4temp)/(r4temp+b4temp)
+          enddo
+        enddo
+      enddo
+    else
+      do k=minz,maxz
+        do j=miny,maxy
+          do i=minx,maxx
+            service1(i,j,k)=real(myvar(i,j,k),kind=4)
+          enddo
+        enddo
+      enddo
+    endif
+  elseif(ndim==3)then
+    !requested vector field in output
+    allocate(service4(1:3,nx1:nx2,ny1:ny2,nz1:nz2))
+    service4(1:3,nx1:nx2,ny1:ny2,nz1:nz2)=ZERO
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          service4(1,i,j,k)=real(myvar(i,j,k),kind=4)
+          service4(2,i,j,k)=real(myvary(i,j,k),kind=4)
+          service4(3,i,j,k)=real(myvarz(i,j,k),kind=4)
+        enddo
+      enddo
+    enddo
+  endif
+  
+  sevt=repeat(' ',120)
+  
+  sevt = trim(dir_out) // trim(filenamevtk)//'_'//trim(filenamevar)// &
+   '_'//trim(write_fmtnumb(nstepsub)) // '.vti'
+  
+  call open_file_vtk_par(ioprint,120,sevt,e_io)
+  
+  call print_header_vtk_par(ioprint,0,nheader,header,E_IO)
+  
+  endoff=headoff+ndata+byteint
+  
+  call print_footer_vtk_par(ioprint,endoff,footer,E_IO)
+  
+  if(ndim==1)then
+    call print_binary_1d_vtk_par(ioprint,headoff,ndata,nn,service1, &
+     iost)
+  elseif(ndim==3)then
+    call print_binary_3d_vtk_par(ioprint,headoff,ndata,nn,service4,iost)
+  endif
+  
+  call close_file_vtk_par(ioprint,e_io)
+  
+  if(allocated(service1))deallocate(service1)
+  if(allocated(service4))deallocate(service4)
+ 
+  return
+     
+ end subroutine write_vtk_frame_parallel
+ 
+ subroutine open_file_vtk(iotest,nn,myname,E_IO)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for opening the vtk legacy file
+!     in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,nn
+  character(len=nn) :: myname
+  integer, intent(out) :: e_io
+  
+  open(unit=iotest,file=trim(myname),&
+   form='unformatted',access='stream',action='write',status='replace', &
+   iostat=e_io)
+  
+  return
+  
+ endsubroutine open_file_vtk
+ 
+ subroutine close_file_vtk(iotest,e_io)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for closing the vtk legacy file
+!     in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest
+  integer, intent(out) :: e_io
+   
+  close(unit=iotest,iostat=e_io)
+  
+  return
+  
+ endsubroutine close_file_vtk
+ 
+ subroutine print_header_vtk(iotest,offsetsub,nn,header,E_IO)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the header part of
+!     in VTK legacy file in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,offsetsub,nn
+  character(len=500) :: header
+  integer, intent(out) :: E_IO
+  
+  write(iotest, iostat=E_IO)header(1:nn)
+  
+  return
+  
+ endsubroutine print_header_vtk
+ 
+ subroutine print_footer_vtk(iotest,offsetsub,footer,E_IO)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the footer part of
+!     in VTK legacy file in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,offsetsub
+  character(len=30) :: footer
+  integer, intent(out) :: E_IO
+  
+  write(iotest, iostat=E_IO)footer(1:30)
+  
+  return
+  
+ endsubroutine print_footer_vtk
+ 
+ subroutine print_binary_1d_vtk(iotest,headoff,nbyte,nn,myvar1d,E_IO)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a scalar field with single
+!     precision in VTK legacy binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,headoff,nbyte,nn
+  real(4), intent(in), dimension(nn) :: myvar1d
+  integer, intent(out) :: E_IO
+  
+  integer :: ii
+  
+  write(iotest,iostat=E_IO)int(nbyte,kind=4),(myvar1d(ii),ii=1,nn)
+  
+  return
+  
+ end subroutine print_binary_1d_vtk
+ 
+ subroutine print_binary_3d_vtk(iotest,headoff,nbyte,nn,myvarx,myvary,myvarz, &
+  E_IO)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a vector field with single
+!     precision in VTK legacy binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,headoff,nbyte,nn
+  real(4), intent(in), dimension(nn) :: myvarx,myvary,myvarz
+  integer, intent(out) :: E_IO
+  
+  integer :: ii
+  
+  write(iotest,iostat=E_IO)int(nbyte,kind=4),(myvarx(ii),myvary(ii), &
+   myvarz(ii),ii=1,nn)
+  
+  return
+  
+ end subroutine print_binary_3d_vtk
  
  subroutine initialize_vtk
  
@@ -807,229 +1028,6 @@
      
      return
  end subroutine
- 
- subroutine write_vtk_frame_parallel(nstepsub)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for writing the hydrodynamic variables
-!     in structured VTK legacy binary format in parallel IO
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification july 2018
-!     
-!***********************************************************************
-     
-  use IR_Precision
-  use Lib_VTK_IO, only : VTK_INI_XML,VTK_GEO_XML,VTK_DAT_XML,VTK_VAR_XML,VTK_END_XML,&
-   VTK_FLD_XML,PVTK_INI_XML,PVTK_GEO_XML,PVTK_DAT_XML,PVTK_VAR_XML,PVTK_END_XML
- 
- 
-  implicit none
-  
-  integer, intent(in) :: nstepsub
-  
-  real(kind=4), allocatable, dimension(:,:,:), save ::x,y,z
-  integer :: e_io,nnt
-  real(kind=4), allocatable, dimension(:,:,:), save :: service1, &
-   service2,service3
-  
-  character(len=120) :: sevt
-  integer :: l,ii,jj,kk,i,j,k,myindex
- 
- 
-  integer :: nx1,nx2,ny1,ny2,nz1,nz2,nn,nxmin,nymin,nnn
-  integer :: mf(0:mxrank-1)
-  
-  integer(4),dimension(0:mxrank-1) :: nx1_p,nx2_p, &
-   ny1_p,ny2_p,nz1_p,nz2_p,nn_p
-  
-  logical, save :: lfirst=.true.
-  
-  logical, save :: lfirstdel=.true.
-  character*1, save :: delimiter
-  INTEGER(kind=IPRC) :: i4
-     
-  if(lfirstdel)then
-    call getcwd(sevt)
-    sevt=trim(sevt)
-    delimiter=sevt(1:1)
-    if(delimiter==' ')delimiter='/'
-    lfirstdel=.false.
-    !call initialize_vtk
-   endif
-  
-  if(.not. lvtkfile)return
-  
-  if(mxrank==1)call error(11)
-  
-  if(mod(nstepsub,ivtkevery)/=0)return
-  
-  nx1=1
-  nx2=nx
-  ny1=1
-  ny2=ny
-  nz1=1
-  nz2=nz
-  
-  do i=0,mxrank-1
-    mf(i)=i
-  enddo
-  
-  do i=0,mxrank-1
-    nx1_p(i)=gminx(i)
-    nx2_p(i)=gmaxx(i)
-    ny1_p(i)=gminy(i)
-    ny2_p(i)=gmaxy(i)
-    nz1_p(i)=gminz(i)
-    nz2_p(i)=gmaxz(i)
-    if(nx2_p(i)<nx)then
-      nx2_p(i)=nx2_p(i)+1
-    endif
-    if(ny2_p(i)<ny)then
-      ny2_p(i)=ny2_p(i)+1
-    endif
-    if(nz2_p(i)<nz)then
-      nz2_p(i)=nz2_p(i)+1
-    endif
-    nn_p(i)=(nx2_p(i)-nx1_p(i)+1)*(ny2_p(i)-ny1_p(i)+1)*(nz2_p(i)-nz1_p(i)+1)
-  enddo
-  
-  if(idrank==0)then
-    sevt=repeat(' ',120)
-    !sevt=trim(filenamevtk)//trim(write_fmtnumb(nstepsub))//'.pvts'
-    sevt=trim(dir_out)//trim(filenamevtk)//trim(write_fmtnumb(nstepsub)) &
-     // '.pvts'
-    ! pvts
-    E_IO = PVTK_INI_XML(filename = trim(sevt), &
-     mesh_topology = 'PStructuredGrid', &
-     nx1=nx1,nx2=nx2,ny1=ny1,ny2=ny2,nz1=nz1,nz2=nz2, tp='Float32')
-    do i=0,mxrank-1
-      sevt=repeat(' ',120)
-      !sevt='rank'//trim(write_fmtnumb(i))//delimiter//trim(filenamevtk)// &
-      ! trim(write_fmtnumb(nstepsub))//'_part'//trim(write_fmtnumb(i))//'.vts'
-      sevt='rank'//trim(write_fmtnumb(i))//delimiter//trim(filenamevtk)// &
-       trim(write_fmtnumb(nstepsub))//'_'//trim(write_fmtnumb(i))//'.vts'
-      E_IO = PVTK_GEO_XML(nx1=nx1_p(i),nx2=nx2_p(i),ny1=ny1_p(i), &
-        ny2=ny2_p(i),nz1=nz1_p(i),nz2=nz2_p(i),source=trim(sevt))
-    enddo
-    E_IO = PVTK_DAT_XML(var_location = 'node', &
-     var_block_action = 'open')
-    E_IO = PVTK_VAR_XML(varname='density1',tp='Float32')
-    if(.not. lsingle_fluid)then
-      E_IO = PVTK_VAR_XML(varname='density2',tp='Float32')
-    endif
-    if(lvtkownern)then
-      E_IO = PVTK_VAR_XML(varname='ownern',tp='Float32')
-    endif
-    E_IO = PVTK_VAR_XML(Nc=3_I4P,varname='velocity',tp='Float32')
-    E_IO = PVTK_DAT_XML(var_location = 'node', &
-     var_block_action = 'close')
-    E_IO = PVTK_END_XML()
-  endif
-  
-  nnn=nx*ny*nz
-  nn=(nx2-nx1+1)*(ny2-ny1+1)*(nz2-nz1+1)
-  
-  if(lfirst)then
-    lfirst=.false.
-    allocate(x(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-     nz1_p(idrank):nz2_p(idrank)))
-    allocate(y(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-     nz1_p(idrank):nz2_p(idrank)))
-    allocate(z(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-     nz1_p(idrank):nz2_p(idrank)))
-    
-    forall(i=nx1_p(idrank):nx2_p(idrank),j=ny1_p(idrank):ny2_p(idrank), &
-     k=nz1_p(idrank):nz2_p(idrank))
-      x(i,j,k) = real(i,kind=R4P)
-      y(i,j,k) = real(j,kind=R4P)
-      z(i,j,k) = real(k,kind=R4P)
-    end forall
-       
-    allocate(service1(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-     nz1_p(idrank):nz2_p(idrank)))
-    allocate(service2(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-     nz1_p(idrank):nz2_p(idrank)))
-    allocate(service3(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-     nz1_p(idrank):nz2_p(idrank)))
-  endif
-  
-  sevt=repeat(' ',120)
-  !sevt='rank'//trim(write_fmtnumb(idrank))//delimiter//trim(filenamevtk)// &
-  ! trim(write_fmtnumb(nstepsub))//'_part'//trim(write_fmtnumb(idrank))//'.vts'
-  sevt=trim(dir_out_rank)//trim(filenamevtk)//trim(write_fmtnumb(nstepsub)) &
-   // '_' // trim(write_fmtnumb(idrank)) //'.vts'
-     
-  E_IO = VTK_INI_XML(cf=mf(idrank),output_format='raw', &
-   filename=trim(sevt),mesh_topology='StructuredGrid', &
-   nx1=nx1_p(idrank),nx2=nx2_p(idrank),ny1=ny1_p(idrank), &
-   ny2=ny2_p(idrank),nz1=nz1_p(idrank),nz2=nz2_p(idrank))
-      
-  E_IO = VTK_GEO_XML(cf=mf(idrank),nx1=nx1_p(idrank),nx2=nx2_p(idrank),ny1=ny1_p(idrank), &
-   ny2=ny2_p(idrank),nz1=nz1_p(idrank),nz2=nz2_p(idrank),NN=nn_p(idrank), &
-   X=reshape(x,(/nn_p(idrank)/) ),Y=reshape(y,(/nn_p(idrank)/)),Z=reshape(z,(/nn_p(idrank)/)))
-       
-  E_IO = VTK_DAT_XML(cf=mf(idrank),var_location = 'node', &
-   var_block_action = 'open')
-     
-  service1(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-   nz1_p(idrank):nz2_p(idrank))= &
-   rhoR(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-   nz1_p(idrank):nz2_p(idrank))
-  E_IO = VTK_VAR_XML(cf=mf(idrank),NC_NN=nn_p(idrank),varname ='density1', &
-   var=reshape(service1,(/nn_p(idrank)/)))
-     
-  if(.not. lsingle_fluid)then
-    service1(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-     nz1_p(idrank):nz2_p(idrank))= &
-     rhoB(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-     nz1_p(idrank):nz2_p(idrank))
-    E_IO = VTK_VAR_XML(cf=mf(idrank),NC_NN=nn_p(idrank),varname ='density2', &
-     var=reshape(service1,(/nn_p(idrank)/)))
-  endif
-  if(lvtkownern)then
-    do k=nz1_p(idrank),nz2_p(idrank)
-      do j=ny1_p(idrank),ny2_p(idrank)
-        do i=nx1_p(idrank),nx2_p(idrank)
-          i4=i4back(i,j,k)
-          service1(i,j,k)= ownern(i4)
-        enddo
-      enddo
-    enddo
-    E_IO = VTK_VAR_XML(cf=mf(idrank),NC_NN=nn_p(idrank),varname ='ownern', &
-     var=reshape(service1,(/nn_p(idrank)/)))
-  endif
-     
-  service1(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-   nz1_p(idrank):nz2_p(idrank))= &
-   u(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-   nz1_p(idrank):nz2_p(idrank))
-  service2(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-   nz1_p(idrank):nz2_p(idrank))= &
-   v(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-   nz1_p(idrank):nz2_p(idrank))
-  service3(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-   nz1_p(idrank):nz2_p(idrank))= &
-   w(nx1_p(idrank):nx2_p(idrank),ny1_p(idrank):ny2_p(idrank), &
-   nz1_p(idrank):nz2_p(idrank))
-     
-  E_IO = VTK_VAR_XML(cf=mf(idrank),NC_NN=nn_p(idrank),varname='velocity', &
-   varX=reshape(service1,(/nn_p(idrank)/)), &
-   varY=reshape(service2,(/nn_p(idrank)/)), &
-   varZ=reshape(service3,(/nn_p(idrank)/)))
-      
-     
-  E_IO = VTK_DAT_XML(cf=mf(idrank),var_location = 'node', &
-   var_block_action = 'close')
-      
-  E_IO = VTK_GEO_XML(cf=mf(idrank))
-  E_IO = VTK_END_XML(cf=mf(idrank))
-  
-  return
-     
- end subroutine write_vtk_frame_parallel
  
  subroutine write_test_map()
   
@@ -1287,5 +1285,204 @@
   return
   
  end subroutine read_restart_file
+ 
+ subroutine header_vtk(mystring500,namevar,extent,ncomp,iinisub,iend,myoffset, &
+  new_myoffset,indent)
+ 
+  implicit none
+  
+  character(len=8),intent(in) :: namevar
+  character(len=120),intent(in) :: extent
+  integer, intent(in) :: ncomp,iinisub,myoffset
+  integer, intent(out) :: iend,new_myoffset
+  integer, intent(inout) :: indent
+  
+  !namevar='density1'
+  
+  character(len=500), intent(out) :: mystring500
+  ! End-character for binary-record finalize.
+  character(1), parameter:: end_rec = char(10) 
+  character(1) :: string1
+  character(len=*),parameter :: topology='ImageData' 
+  integer :: ioffset,nele,bytechar,byteint,byter4,byter8,iini
+  
+  iini=iinisub
+  bytechar=kind(end_rec)
+  byteint=kind(iini)
+  byter4  = 4
+  byter8  = 8
+  
+  mystring500=repeat(' ',500)
+  
+  iend=iini
+  
+  iini=iend+1
+  nele=22
+  iend=iend+nele
+  mystring500(iini:iend)='<?xml version="1.0"?>'//end_rec
+  
+  new_myoffset=myoffset
+  new_myoffset = new_myoffset + nele * bytechar
+ 
+  
+  iini=iend+1
+  nele=67
+  iend=iend+nele
+  if(lelittle)then  
+    mystring500(iini:iend) = '<VTKFile type="'//trim(topology)// &
+     '" version="0.1" byte_order="LittleEndian">'//end_rec
+  else
+    mystring500(iini:iend) = '<VTKFile type="'//trim(topology)// &
+     '" version="0.1" byte_order="BigEndian">   '//end_rec
+  endif
+  
+  new_myoffset = new_myoffset + 67 * bytechar
+ 
+  
+  indent = indent + 2
+  iini=iend+1
+  nele=70
+  iend=iend+nele
+  mystring500(iini:iend) = repeat(' ',indent)//'<'//trim(topology)//' WholeExtent="'//&
+                 trim(extent)//'">'//end_rec
+  
+
+  new_myoffset = new_myoffset + 70 * bytechar
+ 
+  
+  indent = indent + 2
+  iini=iend+1
+  nele=63
+  iend=iend+nele
+  mystring500(iini:iend) = repeat(' ',indent)//'<Piece Extent="'//trim(extent)//'">'//end_rec
+  
+  new_myoffset = new_myoffset + 63 * bytechar
+ 
+  
+! initializing offset pointer
+  ioffset = 0 
+  
+  indent = indent + 2
+  iini=iend+1
+  nele=18
+  iend=iend+nele
+  mystring500(iini:iend)=repeat(' ',indent)//'<PointData>'//end_rec
+  
+  new_myoffset = new_myoffset + 18 * bytechar
+  
+  indent = indent + 2
+  iini=iend+1
+  nele=115
+  iend=iend+nele
+  
+  if(ncomp/=1 .and. ncomp/=3)call error(37)
+  write(string1,'(i1)')ncomp
+  mystring500(iini:iend)=repeat(' ',indent)//'<DataArray type="Float32" Name="'// &
+   namevar//'" NumberOfComponents="'//string1// '" '//&
+   'format="appended" offset="'//space_fmtnumb12(ioffset)//'"/>'//end_rec
+  
+  new_myoffset = new_myoffset + 115 * bytechar
+ 
+  
+  indent = indent - 2
+  iini=iend+1
+  nele=19
+  iend=iend+nele
+  mystring500(iini:iend)=repeat(' ',indent)//'</PointData>'//end_rec
+  
+  new_myoffset = new_myoffset + 19 * bytechar
+  
+  
+  indent = indent - 2
+  iini=iend+1
+  nele=13
+  iend=iend+nele
+  mystring500(iini:iend)=repeat(' ',indent)//'</Piece>'//end_rec
+  
+  
+  new_myoffset = new_myoffset + 13 * bytechar
+ 
+  
+  indent = indent - 2
+  iini=iend+1
+  nele=15
+  iend=iend+nele
+  mystring500(iini:iend)=repeat(' ',indent)//'</'//trim(topology)//'>'//end_rec
+
+  new_myoffset = new_myoffset + 15 * bytechar
+ 
+
+  iini=iend+1
+  nele=32
+  iend=iend+nele
+  mystring500(iini:iend)=repeat(' ',indent)//'<AppendedData encoding="raw">'//end_rec
+  
+  new_myoffset = new_myoffset + 32 * bytechar
+  
+  iini=iend+1
+  nele=1
+  iend=iend+nele
+  mystring500(iini:iend)='_'
+  
+  return
+  
+ end subroutine header_vtk
+ 
+ subroutine footer_vtk(mystring30,iinisub,iend,myoffset, &
+  new_myoffset,indent)
+ 
+  implicit none
+  
+  integer, intent(in) :: iinisub,myoffset
+  integer, intent(out) :: iend,new_myoffset
+  integer, intent(inout) :: indent
+  
+  
+  character(len=30), intent(out) :: mystring30
+  ! End-character for binary-record finalize.
+  character(1), parameter:: end_rec = char(10) 
+  character(1) :: string1
+  character(len=*),parameter :: topology='ImageData' 
+  integer :: ioffset,nele,bytechar,byteint,byter4,byter8,iini
+  
+  iini=iinisub
+  bytechar=kind(end_rec)
+  byteint=kind(iini)
+  byter4  = 4
+  byter8  = 8
+  
+  mystring30=repeat(' ',30)
+  
+  iend=iini
+  
+  iini=iend+1
+  nele=1
+  iend=iend+nele
+  mystring30(iini:iend)=end_rec
+  
+  new_myoffset = myoffset
+  new_myoffset = new_myoffset + 1 * bytechar
+ 
+  
+  
+  iini=iend+1
+  nele=18
+  iend=iend+nele
+  mystring30(iini:iend)=repeat(' ',indent)//'</AppendedData>'//end_rec
+  
+  new_myoffset = new_myoffset + 18 * bytechar
+  
+  iini=iend+1
+  nele=11
+  iend=iend+nele
+  mystring30(iini:iend)='</VTKFile>'//end_rec
+  
+  if(iend/=30)then
+    call error(39)
+  endif
+  
+  return
+  
+ end subroutine footer_vtk
  
  end module write_output_mod

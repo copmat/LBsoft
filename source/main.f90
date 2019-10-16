@@ -70,7 +70,7 @@
   use write_output_mod,only : write_test_map,lvtkfile,init_output, &
                         write_vtk_frame,write_xyz_close, &
                         write_particle_xyz, dumpForStats, &
-                        writePVD, set_value_ivtkevery,idumpevery, &
+                        set_value_ivtkevery,idumpevery, &
                         write_restart_file,read_restart_file
   use integrator_mod,  only : initime,endtime,tstep,set_nstep, &
                         update_nstep,nstep,driver_integrator,nstepmax
@@ -126,7 +126,7 @@
 #endif
 
 ! initialize output files
-  call init_output()
+  call init_output(nprintlistvtk,printlistvtk)
    
 ! set the seed
   call init_random_seed(init_seed)
@@ -143,11 +143,9 @@
 #ifdef CONVERTVTK
   call set_nstep(10)
   call set_value_ivtkevery(.true., .false., 1)
-  call init_output()
   write(6,*) "Restoring hvars.."
   call restoreHvar(10)
   ! write(6,*) "Writing VTK .."
-  ! call writePVD(10)
   stop
 #endif
   

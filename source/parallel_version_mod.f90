@@ -80,6 +80,10 @@
  public :: wait_world
  public :: waitall_world
  public :: sum_world_qarr
+ public :: open_file_vtk_par
+ public :: close_file_vtk_par
+ public :: print_header_vtk_par
+ public :: print_footer_vtk_par
  
  integer, allocatable, dimension(:), save :: ibuffer
  real(kind=PRC), allocatable, dimension(:), save :: fbuffer
@@ -1487,8 +1491,21 @@
   endif
  end subroutine allocate_qbuffer
 
-  subroutine sum_world_qarr(argument,narr,buffersub)
+ subroutine sum_world_qarr(argument,narr,buffersub)
+  
+!***********************************************************************
+!     
+!     LBsoft global summation subroutine for a float array
+!     in quadruple-precision
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+  
   implicit none
+  
   real(kind=PRC*2), intent(inout), dimension(narr) :: argument
   integer, intent(in) :: narr
   real(kind=PRC*2), intent(inout), dimension(narr), optional :: buffersub
@@ -1500,16 +1517,126 @@
 
   if(present(buffersub))then
     call MPI_ALLREDUCE(argument,buffersub,narr,MPI_REAL16, &
-      MPI_SUM,MPI_COMM_WORLD,ier)
-  else
+       MPI_SUM,MPI_COMM_WORLD,ier)
+   else
     call allocate_qbuffer(narr)
-
     call MPI_ALLREDUCE(converted,qbuffer,narr,MPI_REAL16, &
      MPI_SUM,MPI_COMM_WORLD,ier)
-
     argument(1:narr)=qbuffer(1:narr)
   endif
+  
+  return
 
  end subroutine sum_world_qarr
+ 
+ subroutine open_file_vtk_par(iotest,nn,myname,e_io)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for opening the vtk legacy file
+!     in parallel IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,nn
+  character(len=nn) :: myname
+  integer, intent(out) :: e_io
+  
+  call MPI_FILE_OPEN(MPI_COMM_WORLD,trim(myname), &
+                       MPI_MODE_WRONLY + MPI_MODE_CREATE, &
+                       MPI_INFO_NULL,iotest,e_io)
+  return
+  
+ endsubroutine open_file_vtk_par
+ 
+ subroutine close_file_vtk_par(iotest,e_io)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for closing the vtk legacy file
+!     in parallel IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest
+  integer, intent(out) :: e_io
+  
+  call MPI_FILE_CLOSE(iotest, e_io)
+  
+  return
+  
+ endsubroutine close_file_vtk_par
+ 
+ subroutine print_header_vtk_par(iotest,offsetsub,nn,header,e_io)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the header part of
+!     in VTK legacy file in parallel IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,offsetsub,nn
+  character(len=500) :: header
+  integer, intent(out) :: e_io
+  
+  integer(kind=MPI_OFFSET_KIND) :: myoffset
+  
+  myoffset=int(offsetsub,kind=MPI_OFFSET_KIND)
+  
+  if(idrank==0)call MPI_File_write_at(iotest,myoffset,header(1:nn),nn, &
+   MPI_CHARACTER,MPI_STATUS_IGNORE,e_io)
+  
+  return
+  
+ endsubroutine print_header_vtk_par
+ 
+ subroutine print_footer_vtk_par(iotest,offsetsub,footer,e_io)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the footer part of
+!     in VTK legacy file in parallel IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,offsetsub
+  character(len=30) :: footer
+  integer, intent(out) :: e_io
+  
+  integer(kind=MPI_OFFSET_KIND) :: myoffset
+  
+  myoffset=int(offsetsub,kind=MPI_OFFSET_KIND)
+  
+  if(idrank==0)call MPI_File_write_at(iotest,myoffset,footer(1:30),30, &
+   MPI_CHARACTER,MPI_STATUS_IGNORE,e_io)
+  
+  return
+  
+ endsubroutine print_footer_vtk_par
   
  end module version_mod

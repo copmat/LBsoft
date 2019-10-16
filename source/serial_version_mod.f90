@@ -59,7 +59,11 @@
  public :: isend_world_larr
  public :: wait_world
  public :: waitall_world
- 
+ public :: sum_world_qarr
+ public :: open_file_vtk_par
+ public :: close_file_vtk_par
+ public :: print_header_vtk_par
+ public :: print_footer_vtk_par
  
  contains
  
@@ -942,5 +946,123 @@
   return
   
  end subroutine waitall_world
+ 
+ subroutine sum_world_qarr(argument,narr,buffersub)
+ 
+!***********************************************************************
+!     
+!     LBsoft global summation subroutine for a float array
+!     originally written in JETSPIN by M. Lauricella et al.
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification March 2015
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC*2), intent(inout), dimension(narr) :: argument
+  integer, intent(in) :: narr
+  real(kind=PRC*2), intent(inout), dimension(narr), optional :: buffersub
+  
+  integer ier
+  
+  if(present(buffersub))buffersub(1:narr)=argument(1:narr)
+  
+  return
+  
+ end subroutine sum_world_qarr
+ 
+ subroutine open_file_vtk_par(iotest,nn,myname,E_IO)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for opening the vtk legacy file
+!     in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,nn
+  character(len=nn) :: myname
+  integer, intent(out) :: e_io
+  
+  return
+  
+ endsubroutine open_file_vtk_par
+ 
+ subroutine close_file_vtk_par(iotest,e_io)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for closing the vtk legacy file
+!     in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest
+  integer, intent(out) :: e_io
+  
+  return
+  
+ endsubroutine close_file_vtk_par
+ 
+ subroutine print_header_vtk_par(iotest,offsetsub,nn,header,E_IO)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the header part of
+!     in VTK legacy file in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,offsetsub,nn
+  character(len=500) :: header
+  integer, intent(out) :: E_IO
+  
+  return
+  
+ endsubroutine print_header_vtk_par
+ 
+ subroutine print_footer_vtk_par(iotest,offsetsub,footer,E_IO)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the footer part of
+!     in VTK legacy file in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,offsetsub
+  character(len=30) :: footer
+  integer, intent(out) :: E_IO
+  
+  return
+  
+ endsubroutine print_footer_vtk_par
  
  end module version_mod

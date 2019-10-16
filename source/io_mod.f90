@@ -60,7 +60,7 @@
   cap_force_part,ltype,lfix_moment,ifix_moment,set_fix_moment, &
   lubricrparcut,lubricrparcap,lubricconst
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
-  lvtkfile,lvtkstruct,set_value_ixyzevery,lxyzfile,ixyzevery, &
+  lvtkfile,set_value_ixyzevery,lxyzfile,ixyzevery, &
   set_value_istatevery, set_value_dumpevery
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
  use statistic_mod,         only : reprinttime,compute_statistic, &
@@ -78,7 +78,9 @@
  integer, public, protected, save :: iprinttime=0
  integer, public, protected, save :: eprinttime=0
  integer, public, protected, save :: nxyzlist=0
+ integer, public, protected, save :: nprintlistvtk=0
  logical, public, protected, save :: lprintlist=.false.
+ logical, public, protected, save :: lprintlistvtk=.false.
  logical, public, protected, save :: lprinttime=.false.
  real(kind=PRC), public, protected, save :: printtime=FIFTY
  real(kind=PRC), public, protected, save :: timcls=ZERO
@@ -87,6 +89,7 @@
  
  character(len=20), public, protected, save, allocatable, dimension(:) :: printarg(:)
  integer, public, protected, save, allocatable, dimension(:) :: printlist
+ integer, public, protected, save, allocatable, dimension(:) :: printlistvtk
  real(kind=PRC), public, protected, allocatable, save :: xprint(:)
  
  integer, public, protected, allocatable, dimension(:), save :: xyzlist
@@ -305,7 +308,7 @@
   
   character(len=maxlen) :: redstring,directive
   logical :: safe,lredo,lredo2,ltest
-  logical :: ltestread,lexists,lfoundprint
+  logical :: ltestread,lexists,lfoundprint,lfoundprintvtk
   integer :: inumchar,i,j,k,nwords,iline,itest,itype,jtype
   character(len=maxlen) ,allocatable :: outwords(:),outwords2(:)
   
@@ -356,9 +359,10 @@
   logical :: ltau=.false.
   logical :: lnstepmax=.false.
   logical :: lprintlisterror=.false.
+  logical :: lprintlisterrorvtk=.false.
   logical :: temp_ldiagnostic=.false.
   logical :: temp_lvtkfile=.false.
-  logical :: temp_lvtkstruct=.false.
+  logical :: temp_livtkfile=.false.
   logical :: temp_lxyzfile=.false.
   logical :: temp_stat=.false.
   logical :: lidiagnostic=.false.
@@ -606,7 +610,44 @@
             elseif(findstring('isrestart',directive,inumchar,maxlen))then
               temp_lrestore=.true.
             elseif(findstring('print',directive,inumchar,maxlen))then
-              if(findstring('list',directive,inumchar,maxlen))then
+              if(findstring('vtk',directive,inumchar,maxlen))then
+                if(findstring('every',directive,inumchar,maxlen))then
+                  temp_livtkfile=.true.
+                  temp_ivtkevery=intstr(directive,maxlen,inumchar)
+                elseif(findstring('list',directive,inumchar,maxlen))then
+                  lprintlistvtk=.true.
+                  lprintlisterrorvtk=.false.
+                  call findwords(nwords,outwords,directive,maxlen)
+                  nprintlistvtk=max(0,nwords-3)
+                  directive=outwords(1)
+                  if(.not.findstring('print',directive,inumchar,maxlen))then
+                    lprintlisterrorvtk=.true.
+                  endif
+                  directive=outwords(2)
+                  if(.not.findstring('vtk',directive,inumchar,maxlen))then
+                    lprintlisterrorvtk=.true.
+                  endif
+                  directive=outwords(3)
+                  if(.not.findstring('list',directive,inumchar,maxlen))then
+                    lprintlisterrorvtk=.true.
+                  endif
+                  if(nprintlistvtk<=0)lprintlisterrorvtk=.true.
+                  if(nprintlistvtk>0)allocate(printlistvtk(nprintlist))
+                  if(allocated(outwords2))deallocate(outwords2)
+                  if(nprintlistvtk>0)allocate(outwords2(nprintlist))
+                  do i=1,nprintlistvtk
+                    outwords2(i)=outwords(i+3)
+                    call identify_argument_vtk(i,outwords2,printlistvtk,maxlen, &
+                     lfoundprintvtk)
+                    lprintlisterrorvtk=(lprintlisterrorvtk .or. (.not.lfoundprintvtk))
+                  enddo
+                elseif(findstring('yes',directive,inumchar,maxlen))then
+                  temp_lvtkfile=.true.
+                else
+                  call warning(1,dble(iline),redstring)
+                  lerror6=.true.
+                endif
+              elseif(findstring('list',directive,inumchar,maxlen))then
                 lprintlist=.true.
                 lprintlisterror=.false.
                 call findwords(nwords,outwords,directive,maxlen)
@@ -631,15 +672,6 @@
               elseif(findstring('every',directive,inumchar,maxlen))then
                 printtime=real(intstr(directive,maxlen,inumchar),kind=PRC)
                 lprinttime=.true.
-              elseif(findstring('vtk',directive,inumchar,maxlen))then
-                if(findstring('struct',directive,inumchar,maxlen))then
-                  temp_lvtkfile=.true.
-                  temp_ivtkevery=intstr(directive,maxlen,inumchar)
-                  temp_lvtkstruct=.true.
-                else
-                  temp_ivtkevery=intstr(directive,maxlen,inumchar)
-                  temp_lvtkfile=.true.
-                endif
               elseif(findstring('xyz',directive,inumchar,maxlen))then
                 temp_ixyzevery=intstr(directive,maxlen,inumchar)
                 temp_lxyzfile=.true.
@@ -1422,22 +1454,49 @@
   endif
   
   call bcast_world_l(temp_lvtkfile)
+  call bcast_world_l(temp_livtkfile)
   if(temp_lvtkfile)then
-    call bcast_world_i(temp_ivtkevery)
-    call bcast_world_l(temp_lvtkstruct)
-    call set_value_ivtkevery(temp_lvtkfile,temp_lvtkstruct, &
-     temp_ivtkevery)
-    if(idrank==0)then
-      if(lvtkstruct)then
-        mystring=repeat(' ',dimprint)
-        mystring='print structured VTK file every'
-        write(6,'(2a,i12)')mystring,": ",ivtkevery
-      else
+    if(.not. temp_livtkfile)then
+      call warning(55)
+      call error(7)
+    endif
+    call bcast_world_i(nprintlistvtk)
+    call bcast_world_l(lprintlistvtk)
+    call bcast_world_l(lprintlisterrorvtk)
+    if(lprintlisterrorvtk)then
+      call warning(57)
+      call warning(56)
+      call error(7)
+    endif
+    if(lprintlistvtk)then
+      if(idrank/=0)allocate(printlistvtk(nprintlistvtk))
+      call bcast_world_iarr(printlistvtk,nprintlistvtk)
+      call bcast_world_i(temp_ivtkevery)
+      call set_value_ivtkevery(temp_lvtkfile, &
+       temp_ivtkevery)
+      if(idrank==0)then
         mystring=repeat(' ',dimprint)
         mystring='print VTK file every'
         write(6,'(2a,i12)')mystring,": ",ivtkevery
+        mystring=repeat(' ',dimprint)
+        mystring='print VTK list'
+        mystring12=repeat(' ',dimprint2)
+        mystring12='yes'
+        mystring12=adjustr(mystring12)
+        write(6,'(3a)')mystring,": ",mystring12
+        mystring=repeat(' ',dimprint)
+        mystring='list specified in VTK file'
+        mystring12=repeat(' ',dimprint2)
+        write(6,'(3a)')mystring,": ",mystring12
+        do i=1,nprintlistvtk
+          write(6,'(36x,2a)')": ",legendobs_vtk(i,printlistvtk)
+        enddo
       endif
-   endif
+    else
+      call warning(58)
+      call warning(56)
+      call error(7)
+    endif
   endif
 
   call bcast_world_i(temp_istatevery)
@@ -2825,6 +2884,98 @@
   return
   
  end subroutine label_argument
+ 
+ function legendobs_vtk(iarg,printcodsub)
+ 
+!***********************************************************************
+!     
+!     LBsoft function for returning the legend_vtk which is associated
+!      tothe integer contained in the printcod array for vtk files
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iarg
+  integer, intent(in), allocatable, dimension(:) :: printcodsub
+  
+  character(len=52) :: legendobs_vtk
+  
+  legendobs_vtk=repeat(' ',52)
+  if(printcodsub(iarg)==1)then
+    legendobs_vtk='rho1  =  fluid density of first component         '
+  elseif(printcodsub(iarg)==2)then
+    legendobs_vtk='rho2  =  fluid density of second component        '
+  elseif(printcodsub(iarg)==3)then
+    legendobs_vtk='phase =  phase field of the two fluid components  '
+  elseif(printcodsub(iarg)==4)then
+    legendobs_vtk='vel   =  vector velocity field of the fluid       '
+  elseif(printcodsub(iarg)==5)then
+    legendobs_vtk='part  =  particle positions and orientations      '
+  endif
+  legendobs_vtk=adjustl(legendobs_vtk)
+  
+  return
+  
+ end function legendobs_vtk
+ 
+ subroutine identify_argument_vtk(iarg,arg,printcodsub,lenstring,lfound)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for identifying the symbolic string of the 
+!     output observables for the vtk files
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: lenstring
+  integer ,intent(in) :: iarg
+  character(len=lenstring) ,allocatable, intent(in) :: arg(:)
+  logical, intent(out) :: lfound
+  integer, allocatable, intent(inout) :: printcodsub(:)
+  
+  integer :: inumchar
+  character(len=lenstring) :: temps
+  
+  lfound=.false.
+  temps=arg(iarg)
+  
+! for each symbolic string we associate an integer defined in 
+!  printcodsub
+
+  if(findstring('phase',temps,inumchar,lenstring))then
+    printcodsub(iarg)=3
+    lfound=.true.
+  elseif(findstring('part',temps,inumchar,lenstring))then
+    printcodsub(iarg)=5
+    lfound=.true.
+  elseif(findstring('rho1',temps,inumchar,lenstring))then
+    printcodsub(iarg)=1
+    lfound=.true.
+  elseif(findstring('rho2',temps,inumchar,lenstring))then
+    printcodsub(iarg)=2
+    lfound=.true.
+  elseif(findstring('vel',temps,inumchar,lenstring))then
+    printcodsub(iarg)=4
+    lfound=.true.
+  else
+    lfound=.false.
+  endif
+  
+  
+  return
+  
+ end subroutine identify_argument_vtk
  
  subroutine identify_argument_xyz(iarg,arg,printcodsub,lenstring,lfound)
  
