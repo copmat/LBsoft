@@ -61,7 +61,7 @@
   lubricrparcut,lubricrparcap,lubricconst
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,set_value_ixyzevery,lxyzfile,ixyzevery, &
-  set_value_ibinevery, set_value_dumpevery
+  set_value_ibinevery,set_value_dumpevery,idumpevery
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
  use statistic_mod,         only : reprinttime,compute_statistic, &
   statdata
@@ -400,6 +400,7 @@
   logical :: temp_lfix_moment=.false.
   logical :: temp_lselwetting=.false.
   logical :: temp_lrestore  = .false.
+  logical :: temp_lidumpevery= .false.
 
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
@@ -611,6 +612,7 @@
                 temp_lrestore=.true.
               elseif(findstring('dump',directive,inumchar,maxlen))then
                 temp_idumpevery=intstr(directive,maxlen,inumchar)
+                temp_lidumpevery=.true.
               endif
             elseif(findstring('print',directive,inumchar,maxlen))then
               if(findstring('vtk',directive,inumchar,maxlen))then
@@ -1508,9 +1510,17 @@
 
   call bcast_world_l(temp_lrestore)
   if (temp_lrestore) call set_restore(.true.)
-
-  call bcast_world_i(temp_idumpevery)
-  call set_value_dumpevery(temp_idumpevery)
+  
+  call bcast_world_l(temp_lidumpevery)
+  if(temp_lidumpevery)then
+    call bcast_world_i(temp_idumpevery)
+    call set_value_dumpevery(temp_idumpevery)
+    if(idrank==0)then
+     mystring=repeat(' ',dimprint)
+     mystring='print restart file every'
+     write(6,'(2a,i12)')mystring,": ",idumpevery
+   endif
+  endif
   
   call bcast_world_l(temp_lxyzfile)
   if(temp_lxyzfile)then

@@ -46,7 +46,7 @@
   integer, save, public, protected :: ixyzevery=50
   logical, save, public, protected :: lxyzfile=.false.
   integer, save, public, protected :: ibinevery=5000000
-  integer, save, public, protected :: idumpevery=5000000
+  integer, save, public, protected :: idumpevery=10000
   logical, save, public, protected :: lbinevery=.false.
   logical, save, public, protected :: lelittle=.true.
   character(len=mxln), save :: dir_out
@@ -1153,6 +1153,18 @@
 
 
  subroutine set_value_ibinevery(ltemp,itemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for settimg time interval value
+!     used to print the raw data in binary files
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
   implicit none
   logical, intent(in) :: ltemp
   integer, intent(in) :: itemp
@@ -1165,12 +1177,26 @@
  end subroutine set_value_ibinevery
 
  subroutine set_value_dumpevery(itemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for settimg time interval value
+!     used to print the restart files
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
   implicit none
   integer, intent(in) :: itemp
   
   idumpevery=itemp
+  
+  return
+  
  end subroutine set_value_dumpevery
-
 
  subroutine dumpForOutput(nstep,mytime)
  
