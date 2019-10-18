@@ -69,9 +69,9 @@
                         store_old_pos_vel_part,build_new_isfluid, restorePart_oneFile
   use write_output_mod,only : write_test_map,lvtkfile,init_output, &
                         write_vtk_frame,write_xyz_close, &
-                        write_particle_xyz, dumpForStats, &
+                        write_particle_xyz, dumpForOutput, &
                         set_value_ivtkevery,idumpevery, &
-                        write_restart_file,read_restart_file
+                        read_restart_file
   use integrator_mod,  only : initime,endtime,tstep,set_nstep, &
                         update_nstep,nstep,driver_integrator,nstepmax
   use statistic_mod,   only : statistic_driver
@@ -255,7 +255,8 @@
   
 ! initialize lrecycle 
   lrecycle=(nstep<nstepmax)
-  if(.not. lrecycle)call dumpForStats(nstep)
+  mytime=real(nstep,kind=PRC)*tstep
+  if(.not. lrecycle)call dumpForOutput(nstep,mytime)
   
 !max  write(0,*)'Going to sleep...',idrank
 !max  call sleep(30)  
@@ -289,17 +290,11 @@
     call outprint_driver(nstep,mytime)
     if(ldiagnostic)call end_timing2("IO","outprint_driver")
 
-!   dump Stats
+!   dump outdata and print restart file
     if(ldiagnostic)call start_timing2("IO","dump_stats")
-    call dumpForStats(nstep)
+    call dumpForOutput(nstep,mytime)
     if(ldiagnostic)call end_timing2("IO","dump_stats")
     
-!   print the jet geometry on the binary file (only for developers)
-    !call write_dat_frame(lprintdat,130,nstep,mytime,iprintdat, &
-    ! inpjet,npjet,sprintdat,systype,linserted)
-     
-!   print restart file
-    call write_restart_file(idumpevery,135,'save.dat',nstep,mytime)
     
 !   cycle time check
     call time_world(ctime)
@@ -326,8 +321,6 @@
 ! print last record on terminal and close the output 'statdat.dat' file
   !call finish_print(nstep,mytime,itime,ftime)
   
-! print restart file
-  !call write_restart_file(1,135,'save.dat',nstep,mytime)
   
 ! close the XYZ formatted output file 
   !call close_xyz_file(lprintxyz,120)

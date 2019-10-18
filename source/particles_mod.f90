@@ -6128,13 +6128,13 @@ else
      implicit none
      integer, intent(in) :: nstep
      character(len=120) :: mynamefile
-
+     character(len=*), parameter :: mysave='save'
      if(idrank==0) then
              write (6,*) "Making DUMP file for particle at step:", nstep
      endif
 
      mynamefile=repeat(' ',120)
-     mynamefile='dumpPart.' // write_fmtnumb(nstep) //'.dat'
+     mynamefile='dumpPart.' // mysave //'.dat'
 
      if(idrank==0) then
          open(unit=133,file=trim(mynamefile),form='unformatted',status='replace')

@@ -45,9 +45,9 @@
   logical, save, public, protected :: lvtkownern=.false.
   integer, save, public, protected :: ixyzevery=50
   logical, save, public, protected :: lxyzfile=.false.
-  integer, save, public, protected :: istatevery=5000000, istateveryPart=5000000
+  integer, save, public, protected :: ibinevery=5000000
   integer, save, public, protected :: idumpevery=5000000
-  logical, save, public, protected :: lstatevery=.false.
+  logical, save, public, protected :: lbinevery=.false.
   logical, save, public, protected :: lelittle=.true.
   character(len=mxln), save :: dir_out
   character(len=mxln), save :: dir_out_rank
@@ -73,9 +73,9 @@
   public :: write_xyz_close
   public :: set_value_ixyzevery
   public :: write_particle_xyz
-  public :: set_value_istatevery, dumpForStats
+  public :: set_value_ibinevery
+  public :: dumpForOutput
   public :: set_value_dumpevery
-  public :: write_restart_file
   public :: read_restart_file
   
  contains
@@ -103,7 +103,7 @@
   integer :: i,nn,indent,myoffset,new_myoffset,iend
   integer, parameter :: byter4=4
   
-  if((.not. lvtkfile).and.(.not. lxyzfile) .and. (.not. lstatevery))return
+  if((.not. lvtkfile).and.(.not. lxyzfile) .and. (.not. lbinevery))return
   
   call test_little_endian(lelittle)
   
@@ -116,9 +116,9 @@
   if (delimiter==' ') delimiter='/'
 
 
-  if(lstatevery) then
+  if(lbinevery) then
      makedirectory=repeat(' ',255)
-     makedirectory = 'dumpStat'
+     makedirectory = 'dumpBin'
      dir_out=trim(makedirectory)
 #ifdef INTEL
      inquire(directory=trim(makedirectory),exist=lexist)
@@ -129,7 +129,7 @@
      if(.not. lexist)then
        if(idrank==0) then
          makedirectory=repeat(' ',255)
-         makedirectory = 'mkdir dumpStat'
+         makedirectory = 'mkdir dumpBin'
          call system(makedirectory)
        endif
      endif
@@ -1152,14 +1152,17 @@
  end subroutine write_particle_xyz
 
 
- subroutine set_value_istatevery(itemp,itemp2)
+ subroutine set_value_ibinevery(ltemp,itemp)
   implicit none
-  integer, intent(in) :: itemp,itemp2
+  logical, intent(in) :: ltemp
+  integer, intent(in) :: itemp
   
-  istatevery=itemp
-  istateveryPart=itemp2
-  lstatevery = .true.
- end subroutine set_value_istatevery
+  ibinevery=itemp
+  lbinevery = .true.
+  
+  return
+  
+ end subroutine set_value_ibinevery
 
  subroutine set_value_dumpevery(itemp)
   implicit none
@@ -1169,41 +1172,61 @@
  end subroutine set_value_dumpevery
 
 
- subroutine dumpForStats(nstep)
+ subroutine dumpForOutput(nstep,mytime)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing raw output data for the restarting
+!     procedure and binary files
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!*********************************************************************** 
+ 
   implicit none
   integer, intent(in) :: nstep
+  real(kind=PRC), intent(in) :: mytime
   character(len=120) :: mynamefile
   
   if(mod(nstep,idumpevery)==0) then
     call dump_oneFile(nstep)
     if(lparticles) call dumppart_oneFile(nstep)
+    call write_restart_file(idumpevery,135,'save.dat',nstep,mytime)
   endif
+  
+  if(lbinevery)then
+    if(mod(nstep,ibinevery)/=0) return
+    
+    call stat_oneFile(nstep)
+  
+    if(.not.lparticles)return
 
-  if(mod(nstep,istatevery)==0) call stat_oneFile(nstep)
-
-  if(.not.lparticles)return
-  if(mod(nstep,istateveryPart)/=0) return
-
-  if(idrank==0) then
-     mynamefile=repeat(' ',120)
-     mynamefile='dumpStat'//delimiter//'dumpParticles.' // write_fmtnumb(nstep) // '.dat'
-     open(unit=133,file=trim(mynamefile),form='unformatted',status='replace')
-     write(133) xxx(1:natms_tot)
-     write(133) yyy(1:natms_tot)
-     write(133) zzz(1:natms_tot)
-     write(133) vxx(1:natms_tot)
-     write(133) vyy(1:natms_tot)
-     write(133) vzz(1:natms_tot)
-     
-     if(lrotate)then
-      write(133) q0(1:natms_tot)
-      write(133) q1(1:natms_tot)
-      write(133) q2(1:natms_tot)
-      write(133) q3(1:natms_tot)
+    if(idrank==0) then
+       mynamefile=repeat(' ',120)
+       mynamefile='dumpBin'//delimiter//'dumpParticles.' // write_fmtnumb(nstep) // '.dat'
+       open(unit=133,file=trim(mynamefile),form='unformatted',status='replace')
+       write(133) xxx(1:natms_tot)
+       write(133) yyy(1:natms_tot)
+       write(133) zzz(1:natms_tot)
+       write(133) vxx(1:natms_tot)
+       write(133) vyy(1:natms_tot)
+       write(133) vzz(1:natms_tot)
+       
+       if(lrotate)then
+        write(133) q0(1:natms_tot)
+        write(133) q1(1:natms_tot)
+        write(133) q2(1:natms_tot)
+        write(133) q3(1:natms_tot)
+       endif
+       close(133)
      endif
-     close(133)
   endif
- end subroutine dumpForStats
+  
+  return
+  
+ end subroutine dumpForOutput
  
  subroutine write_restart_file(idumpevery,myunit,myname,nstep,mytime)
   

@@ -15072,13 +15072,14 @@ end subroutine fix_onebelt_density_twofluids
      implicit none
      integer, intent(in) :: nstep
      character(len=120) :: mynamefile
-
+     character(len=*), parameter :: mysave='save'
      if(idrank==0) then
              write (6,*) "Making DUMP file for fluid at step:", nstep
      endif
 
      mynamefile=repeat(' ',120)
-     mynamefile='dumpPopsR.' // write_fmtnumb(nstep) //'.dat'
+     !mynamefile='dumpPopsR.' // write_fmtnumb(nstep) //'.dat'
+     mynamefile='dumpPopsR.' // mysave //'.dat'
 
      call mpi_writeFile_pops(nstep, mynamefile, &
        f00R,f01R,f02R,f03R,f04R, &
@@ -15087,7 +15088,7 @@ end subroutine fix_onebelt_density_twofluids
 
      if(.not. lsingle_fluid) then
       mynamefile=repeat(' ',120)
-      mynamefile='dumpPopsB.' // write_fmtnumb(nstep) //'.dat'
+      mynamefile='dumpPopsB.' // mysave //'.dat'
       call mpi_writeFile_pops(nstep, mynamefile, &
        f00B,f01B,f02B,f03B,f04B, &
        f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B, &
@@ -15096,30 +15097,29 @@ end subroutine fix_onebelt_density_twofluids
 
      ! Conservative: dump also hvars & isfluid
      mynamefile=repeat(' ',120)
-     mynamefile='dumpRhoR.' // write_fmtnumb(nstep) //'.dat'
-
+     mynamefile='dumpRhoR.' // mysave //'.dat'
      call mpi_writeFile(nstep, mynamefile, rhoR, nbuff)
 
      if(.not. lsingle_fluid) then
       mynamefile=repeat(' ',120)
-      mynamefile='dumpRhoB.' // write_fmtnumb(nstep) //'.dat'
+      mynamefile='dumpRhoB.' // mysave //'.dat'
       call mpi_writeFile(nstep, mynamefile, rhoB, nbuff)
      endif
 
      mynamefile=repeat(' ',120)
-     mynamefile='dumpU.' // write_fmtnumb(nstep) //'.dat'
+     mynamefile='dumpU.' // mysave //'.dat'
      call mpi_writeFile(nstep, mynamefile, u, nbuff)
 
      mynamefile=repeat(' ',120)
-     mynamefile='dumpV.' // write_fmtnumb(nstep) //'.dat'
+     mynamefile='dumpV.' // mysave //'.dat'
      call mpi_writeFile(nstep, mynamefile, v, nbuff)
 
      mynamefile=repeat(' ',120)
-     mynamefile='dumpW.' // write_fmtnumb(nstep) //'.dat'
+     mynamefile='dumpW.' // mysave //'.dat'
      call mpi_writeFile(nstep, mynamefile, w, nbuff)
 
      mynamefile=repeat(' ',120)
-     mynamefile='dumpisFluid.' // write_fmtnumb(nstep) //'.dat'
+     mynamefile='dumpisFluid.' // mysave //'.dat'
      call mpi_writeFile_int(nstep, mynamefile, isfluid, nbuff)
   end subroutine dump_oneFile
 

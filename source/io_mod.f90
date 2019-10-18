@@ -61,7 +61,7 @@
   lubricrparcut,lubricrparcap,lubricconst
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,set_value_ixyzevery,lxyzfile,ixyzevery, &
-  set_value_istatevery, set_value_dumpevery
+  set_value_ibinevery, set_value_dumpevery
  use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
  use statistic_mod,         only : reprinttime,compute_statistic, &
   statdata
@@ -327,9 +327,8 @@
   integer :: temp_idiagnostic=1
   integer :: temp_ivtkevery=1
 
-  integer :: temp_istatevery    =10000000
-  integer :: temp_istateveryPart=10000000
-  integer :: temp_idumpevery  =10000000
+  integer :: temp_ibinevery   =10000000
+  integer :: temp_idumpevery  =10000
 
   integer :: temp_ixyzevery=1
   integer :: temp_nfluid=0
@@ -364,7 +363,7 @@
   logical :: temp_lvtkfile=.false.
   logical :: temp_livtkfile=.false.
   logical :: temp_lxyzfile=.false.
-  logical :: temp_stat=.false.
+  logical :: temp_lbinary=.false.
   logical :: lidiagnostic=.false.
   logical :: temp_lnfluid=.false.
   logical :: temp_wall_SC=.false.
@@ -607,8 +606,12 @@
                 temp_nprocy=intstr(directive,maxlen,inumchar)   
                 temp_nprocz=intstr(directive,maxlen,inumchar)   
               endif
-            elseif(findstring('isrestart',directive,inumchar,maxlen))then
-              temp_lrestore=.true.
+            elseif(findstring('restart',directive,inumchar,maxlen))then
+              if(findstring('yes',directive,inumchar,maxlen))then
+                temp_lrestore=.true.
+              elseif(findstring('dump',directive,inumchar,maxlen))then
+                temp_idumpevery=intstr(directive,maxlen,inumchar)
+              endif
             elseif(findstring('print',directive,inumchar,maxlen))then
               if(findstring('vtk',directive,inumchar,maxlen))then
                 if(findstring('every',directive,inumchar,maxlen))then
@@ -675,14 +678,9 @@
               elseif(findstring('xyz',directive,inumchar,maxlen))then
                 temp_ixyzevery=intstr(directive,maxlen,inumchar)
                 temp_lxyzfile=.true.
-              elseif(findstring('partstat',directive,inumchar,maxlen))then
-                temp_istateveryPart=intstr(directive,maxlen,inumchar)
-                temp_stat = .true.
-              elseif(findstring('stat',directive,inumchar,maxlen))then
-                temp_istatevery=intstr(directive,maxlen,inumchar)
-                temp_stat = .true.
-              elseif(findstring('dump',directive,inumchar,maxlen))then
-                temp_idumpevery=intstr(directive,maxlen,inumchar)
+              elseif(findstring('binary',directive,inumchar,maxlen))then
+                temp_ibinevery=intstr(directive,maxlen,inumchar)
+                temp_lbinary = .true.
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1499,14 +1497,13 @@
     endif
   endif
 
-  call bcast_world_i(temp_istatevery)
-  call bcast_world_i(temp_istateveryPart)
-  call bcast_world_l(temp_stat)
-  if (temp_stat) call set_value_istatevery(temp_istatevery, temp_istateveryPart)
+  call bcast_world_i(temp_ibinevery)
+  call bcast_world_l(temp_lbinary)
+  if (temp_lbinary) call set_value_ibinevery(temp_lbinary,temp_ibinevery)
   if(idrank==0) then
      mystring=repeat(' ',dimprint)
-     mystring='Dump stat every'
-     write(6,'(2a,i12,a,i12)')mystring,": ",temp_istatevery, ", ",temp_istateveryPart
+     mystring='print binary every'
+     write(6,'(2a,i12)')mystring,": ",temp_ibinevery
   endif
 
   call bcast_world_l(temp_lrestore)
