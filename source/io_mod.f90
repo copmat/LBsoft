@@ -596,6 +596,11 @@
               elseif(findstring('every',directive,inumchar,maxlen))then
                 temp_idiagnostic=intstr(directive,maxlen,inumchar)
                 lidiagnostic=.true.
+              elseif(findstring('no',directive,inumchar,maxlen))then
+                temp_ldiagnostic=.false.
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
               endif
             elseif(findstring('decompos',directive,inumchar,maxlen))then
               if(findstring('type',directive,inumchar,maxlen))then
@@ -613,6 +618,11 @@
               elseif(findstring('every',directive,inumchar,maxlen))then
                 temp_idumpevery=intstr(directive,maxlen,inumchar)
                 temp_lidumpevery=.true.
+              elseif(findstring('no',directive,inumchar,maxlen))then
+                temp_lrestore=.false.
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
               endif
             elseif(findstring('print',directive,inumchar,maxlen))then
               if(findstring('vtk',directive,inumchar,maxlen))then
@@ -648,6 +658,8 @@
                   enddo
                 elseif(findstring('yes',directive,inumchar,maxlen))then
                   temp_lvtkfile=.true.
+                elseif(findstring('no',directive,inumchar,maxlen))then
+                  temp_lvtkfile=.false.
                 else
                   call warning(1,dble(iline),redstring)
                   lerror6=.true.
@@ -918,10 +930,10 @@
                 if(findstring('pair',directive,inumchar,maxlen))then
                   temp_lpair_SC=.true.
                   temp_pair_SC=dblstr(directive,maxlen,inumchar)
-                elseif(findstring('wall',directive,inumchar,maxlen))then
-                  temp_wall_SC = .true.
-                  dtemp_wallR_SC = dblstr(directive,maxlen,inumchar)
-                  dtemp_wallB_SC = dblstr(directive,maxlen,inumchar)
+                !elseif(findstring('wall',directive,inumchar,maxlen))then
+                !  temp_wall_SC = .true.
+                !  dtemp_wallR_SC = dblstr(directive,maxlen,inumchar)
+                !  dtemp_wallB_SC = dblstr(directive,maxlen,inumchar)
                 else
                   call warning(1,dble(iline),redstring)
                   lerror6=.true.

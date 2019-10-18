@@ -330,9 +330,9 @@
       write(outp,'(a)') &
       "WARNING - * radx                 * radius of the particle along x in lb units            *"
       write(outp,'(a)') &
-      "WARNING - * rady                 * radius of the particle along x in lb units            *"
+      "WARNING - * rady                 * radius of the particle along y in lb units            *"
       write(outp,'(a)') &
-      "WARNING - * radz                 * radius of the particle along x in lb units            *"
+      "WARNING - * radz                 * radius of the particle along z in lb units            *"
       write(outp,'(a)') &
       "WARNING - * phi                  * first Euler angle in the range [−Pi,Pi]               *"
       write(outp,'(a)') &
