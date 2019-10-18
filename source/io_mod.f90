@@ -610,7 +610,7 @@
             elseif(findstring('restart',directive,inumchar,maxlen))then
               if(findstring('yes',directive,inumchar,maxlen))then
                 temp_lrestore=.true.
-              elseif(findstring('dump',directive,inumchar,maxlen))then
+              elseif(findstring('every',directive,inumchar,maxlen))then
                 temp_idumpevery=intstr(directive,maxlen,inumchar)
                 temp_lidumpevery=.true.
               endif
