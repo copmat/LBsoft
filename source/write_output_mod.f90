@@ -102,6 +102,7 @@
   
   integer :: i,nn,indent,myoffset,new_myoffset,iend
   integer, parameter :: byter4=4
+  integer, parameter :: byteint=4
   
   if((.not. lvtkfile).and.(.not. lxyzfile) .and. (.not. lbinevery))return
   
@@ -206,7 +207,7 @@
     call header_vtk(headervtk(i),namevarvtk(i),extentvtk,ndimvtk(i),0,iend,myoffset, &
     new_myoffset,indent)
     vtkoffset(i)=new_myoffset
-    myoffset=new_myoffset+ndimvtk(i)*nn*byter4
+    myoffset=new_myoffset+byteint+ndimvtk(i)*nn*byter4
     ndatavtk(i)=ndimvtk(i)*nn*byter4
     nheadervtk(i)=iend
     call footer_vtk(footervtk(i),0,iend,myoffset, &
@@ -803,11 +804,11 @@
   
   call open_file_vtk_par(ioprint,120,sevt,e_io)
   
-  call print_header_vtk_par(ioprint,0,nheader,header,E_IO)
+  if(idrank==0)call print_header_vtk_par(ioprint,0,nheader,header,E_IO)
   
   endoff=headoff+ndata+byteint
   
-  call print_footer_vtk_par(ioprint,endoff,footer,E_IO)
+  if(idrank==0)call print_footer_vtk_par(ioprint,endoff,footer,E_IO)
   
   if(ndim==1)then
     call print_binary_1d_vtk_par(ioprint,headoff,ndata,nn,service1, &
@@ -1472,6 +1473,8 @@
   nele=1
   iend=iend+nele
   mystring500(iini:iend)='_'
+  
+  new_myoffset = new_myoffset + 1 * bytechar
   
   return
   

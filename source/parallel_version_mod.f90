@@ -1602,7 +1602,7 @@
   
   myoffset=int(offsetsub,kind=MPI_OFFSET_KIND)
   
-  if(idrank==0)call MPI_File_write_at(iotest,myoffset,header(1:nn),nn, &
+  call MPI_File_write_at(iotest,myoffset,header(1:nn),nn, &
    MPI_CHARACTER,MPI_STATUS_IGNORE,e_io)
   
   return
@@ -1632,7 +1632,7 @@
   
   myoffset=int(offsetsub,kind=MPI_OFFSET_KIND)
   
-  if(idrank==0)call MPI_File_write_at(iotest,myoffset,footer(1:30),30, &
+  call MPI_File_write_at(iotest,myoffset,footer(1:30),30, &
    MPI_CHARACTER,MPI_STATUS_IGNORE,e_io)
   
   return
