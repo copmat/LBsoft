@@ -27,7 +27,7 @@
 
 
  use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w,lsingle_fluid, &
-  minx, maxx, miny, maxy, minz, maxz,isfluid, dumpHvar,stat_oneFile,dump_oneFile
+  minx, maxx, miny, maxy, minz, maxz,isfluid, dumpHvar,bin_oneFile,dump_oneFile
 
  use particles_mod,  only : natms,xxx,yyy,zzz,lparticles,cell, &
   ishape,lrotate,natms,natms_tot,q0,q1,q2,q3,vxx,vyy,vzz, &
@@ -40,12 +40,12 @@
   integer, parameter :: ioxyz=190
   integer, parameter :: mxln=120
   character(len=*), parameter :: filenamevtk='out'
-  integer, save, public, protected :: ivtkevery=50
+  integer, save, public, protected :: ivtkevery=100
   logical, save, public, protected :: lvtkfile=.false.
   logical, save, public, protected :: lvtkownern=.false.
-  integer, save, public, protected :: ixyzevery=50
+  integer, save, public, protected :: ixyzevery=100
   logical, save, public, protected :: lxyzfile=.false.
-  integer, save, public, protected :: ibinevery=5000000
+  integer, save, public, protected :: ibinevery=100
   integer, save, public, protected :: idumpevery=10000
   logical, save, public, protected :: lbinevery=.false.
   logical, save, public, protected :: lelittle=.true.
@@ -1199,7 +1199,7 @@
   
  end subroutine set_value_dumpevery
 
- subroutine dumpForOutput(nstep,mytime)
+ subroutine dumpForOutput(nstep,mytime,lprint)
  
 !***********************************************************************
 !     
@@ -1215,18 +1215,20 @@
   implicit none
   integer, intent(in) :: nstep
   real(kind=PRC), intent(in) :: mytime
+  logical, intent(in) :: lprint
   character(len=120) :: mynamefile
   
-  if(mod(nstep,idumpevery)==0) then
+  if(mod(nstep,idumpevery)==0 .or. lprint) then
     call dump_oneFile(nstep)
     if(lparticles) call dumppart_oneFile(nstep)
-    call write_restart_file(idumpevery,135,'save.dat',nstep,mytime)
+    call write_restart_file(idumpevery,135,'dumpGlobal.save.dat', &
+     nstep,mytime)
   endif
   
   if(lbinevery)then
     if(mod(nstep,ibinevery)/=0) return
     
-    call stat_oneFile(nstep)
+    call bin_oneFile(nstep)
   
     if(.not.lparticles)return
 
@@ -1276,16 +1278,14 @@
   
   real(kind=PRC), intent(in) :: mytime
  
-  if(mod(nstep,idumpevery)==0) then
   
-    if(idrank==0)then
-      open(unit=myunit,file=trim(myname),status='replace', &
-       action='write',form='unformatted')
+  if(idrank==0)then
+    open(unit=myunit,file=trim(myname),status='replace', &
+     action='write',form='unformatted')
     
-      write(myunit)nstep
+    write(myunit)nstep
     
-      close(myunit)
-    endif
+    close(myunit)
     
   endif
   

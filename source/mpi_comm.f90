@@ -1375,6 +1375,9 @@ contains
       !if (id_rank== 0) print *, "MPI_FILE_WRITE_ALL)ierr=",ierr
 
       call MPI_FILE_CLOSE(fh, ierr)
+      
+      
+      
     end subroutine mpi_writeFile
 
     subroutine mpi_writeFile_int(it, mynamefile, myvar, nbuff)

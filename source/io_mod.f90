@@ -43,7 +43,7 @@
   devtheta_SC,set_theta_particle_sc,set_back_value_dens_fluids, &
   backR,backB,set_init_area_dens_fluids,areaR,set_cap_force,cap_force, &
   imass_rescale,set_mass_rescale,dmass_rescale,iselwetting, &
-  densR_wetting,densB_wetting,set_fluid_wall_mode, set_restore
+  densR_wetting,densB_wetting,set_fluid_wall_mode
 
  use particles_mod,         only : set_natms_tot,natms_tot,lparticles, &
   set_ishape,set_densvar,densvar,ishape,set_rcut,rcut,delr, &
@@ -61,8 +61,9 @@
   lubricrparcut,lubricrparcap,lubricconst
  use write_output_mod,      only: set_value_ivtkevery,ivtkevery, &
   lvtkfile,set_value_ixyzevery,lxyzfile,ixyzevery, &
-  set_value_ibinevery,set_value_dumpevery,idumpevery
- use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime
+  set_value_ibinevery,set_value_dumpevery,idumpevery,ibinevery
+ use integrator_mod,        only : set_nstepmax,nstepmax,tstep,endtime,&
+  set_restore,l_restore
  use statistic_mod,         only : reprinttime,compute_statistic, &
   statdata
   
@@ -327,10 +328,10 @@
   integer :: temp_idiagnostic=1
   integer :: temp_ivtkevery=1
 
-  integer :: temp_ibinevery   =10000000
+  integer :: temp_ibinevery   =100
   integer :: temp_idumpevery  =10000
 
-  integer :: temp_ixyzevery=1
+  integer :: temp_ixyzevery=100
   integer :: temp_nfluid=0
   integer :: temp_bc_type_east=0
   integer :: temp_bc_type_west=0
@@ -664,6 +665,28 @@
                   call warning(1,dble(iline),redstring)
                   lerror6=.true.
                 endif
+              elseif(findstring('xyz',directive,inumchar,maxlen))then
+                if(findstring('every',directive,inumchar,maxlen))then
+                  temp_ixyzevery=intstr(directive,maxlen,inumchar)
+                elseif(findstring('yes',directive,inumchar,maxlen))then
+                  temp_lxyzfile=.true.
+                elseif(findstring('no',directive,inumchar,maxlen))then
+                  temp_lxyzfile=.false.
+                else
+                  call warning(1,dble(iline),redstring)
+                  lerror6=.true.
+                endif
+              elseif(findstring('binary',directive,inumchar,maxlen))then
+                if(findstring('every',directive,inumchar,maxlen))then
+                  temp_ibinevery=intstr(directive,maxlen,inumchar)
+                elseif(findstring('yes',directive,inumchar,maxlen))then
+                  temp_lbinary=.true.
+                elseif(findstring('no',directive,inumchar,maxlen))then
+                  temp_lbinary=.false.
+                else
+                  call warning(1,dble(iline),redstring)
+                  lerror6=.true.
+                endif
               elseif(findstring('list',directive,inumchar,maxlen))then
                 lprintlist=.true.
                 lprintlisterror=.false.
@@ -689,12 +712,6 @@
               elseif(findstring('every',directive,inumchar,maxlen))then
                 printtime=real(intstr(directive,maxlen,inumchar),kind=PRC)
                 lprinttime=.true.
-              elseif(findstring('xyz',directive,inumchar,maxlen))then
-                temp_ixyzevery=intstr(directive,maxlen,inumchar)
-                temp_lxyzfile=.true.
-              elseif(findstring('binary',directive,inumchar,maxlen))then
-                temp_ibinevery=intstr(directive,maxlen,inumchar)
-                temp_lbinary = .true.
               else
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
@@ -1510,18 +1527,30 @@
       call error(7)
     endif
   endif
-
-  call bcast_world_i(temp_ibinevery)
+  
   call bcast_world_l(temp_lbinary)
-  if (temp_lbinary) call set_value_ibinevery(temp_lbinary,temp_ibinevery)
-  if(idrank==0) then
-     mystring=repeat(' ',dimprint)
-     mystring='print binary every'
-     write(6,'(2a,i12)')mystring,": ",temp_ibinevery
+  if (temp_lbinary)then
+    call bcast_world_i(temp_ibinevery)
+    call set_value_ibinevery(temp_lbinary,temp_ibinevery)
+    if(idrank==0) then
+       mystring=repeat(' ',dimprint)
+       mystring='print binary every'
+       write(6,'(2a,i12)')mystring,": ",ibinevery
+     endif
   endif
-
+  
   call bcast_world_l(temp_lrestore)
-  if (temp_lrestore) call set_restore(.true.)
+  if(temp_lrestore)then
+    call set_restore(temp_lrestore)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='restart job'
+      mystring12=repeat(' ',dimprint2)
+      mystring12='yes'
+      mystring12=adjustr(mystring12)
+      write(6,'(3a)')mystring,": ",mystring12
+    endif
+  endif
   
   call bcast_world_l(temp_lidumpevery)
   if(temp_lidumpevery)then

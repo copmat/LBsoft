@@ -6129,10 +6129,12 @@ else
      integer, intent(in) :: nstep
      character(len=120) :: mynamefile
      character(len=*), parameter :: mysave='save'
+     
+#if 0
      if(idrank==0) then
              write (6,*) "Making DUMP file for particle at step:", nstep
      endif
-
+#endif
      mynamefile=repeat(' ',120)
      mynamefile='dumpPart.' // mysave //'.dat'
 

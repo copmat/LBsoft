@@ -26,8 +26,7 @@
   character(len=1) :: delimiter
   integer :: imio1,imio2,inumchar
   integer, dimension(3) :: imio3,imio4
-  real(8), dimension(:,:,:,:), allocatable :: dmio1,dmio2
-  real(8), dimension(:,:), allocatable :: dmio3,dmio4
+  double precision, dimension(:), allocatable :: arr1,arr2
   integer :: mxrank1,mxrank2,nx1,ny1,nz1,nx2,ny2,nz2
   integer :: minx1,maxx1,miny1,maxy1,minz1,maxz1,type1,iselect1
   integer :: minx2,maxx2,miny2,maxy2,minz2,maxz2,type2,iselect2
@@ -35,8 +34,14 @@
   logical :: ltest(ntest)
   logical :: lxyzfile(ntest)
   logical :: lskip(ntest)
+  logical :: lsingle_fluid(ntest)
   
-  integer :: i,j,k,l,ii,jj,kk,idrank,ncpu,ndec,xdim,ydim,zdim,iii
+  integer :: ndims(3,ntest)
+  integer :: nparticles(ntest)
+  
+  integer :: i,j,k,l,ii,jj,kk,idrank,ncpu,ndec,xdim,ydim,zdim,iii, &
+   nmio,ifield
+
   
   character(len=256) :: file_loc_proc
   logical :: lmpi=.false.
@@ -44,11 +49,25 @@
   logical :: lexist
   character(len=40) :: mystring40
   
-  real, parameter :: mytol=5.e-15
+  character(len=5), parameter :: mysave = '.save'
+  character(len=5), parameter :: myreff = '.reff'
   
-  integer :: natms1,natms2,iatm,nargxyz1,nargxyz2
-  logical :: lrotate1,lrotate2,lerase
+  character(len=maxlen) :: namerestfile(8)
   
+  double precision, parameter :: mytol=1.d-8
+  
+  integer :: natms1,natms2,iatm,nargxyz1,nargxyz2,timestep1,timestep2
+  integer :: ifile
+  logical :: lrotate(ntest)
+  
+  character(len=maxlen) :: myorigfile
+  character(len=maxlen) :: myactufile
+  
+  integer(kind=1) :: isf1,isf2
+  
+  logical :: lforcestop,lerase
+  
+  double precision :: rtemp1,rtemp2
   
   if(iargc()/=0 .and. iargc()/=6)then
     write(6,*) 'error!'
@@ -109,6 +128,20 @@
   labeltest(1:ntest)=repeat(' ',maxlen)
   origpath=repeat(' ',maxlen)
   
+  namerestfile(1:8)=repeat(' ',maxlen)
+  
+  namerestfile(1)='dumpGlobal'
+  namerestfile(2)='dumpisFluid'
+  namerestfile(3)='dumpPart'
+  namerestfile(4)='dumpRhoR'
+  namerestfile(5)='dumpRhoB'
+  namerestfile(6)='dumpU'
+  namerestfile(7)='dumpV'
+  namerestfile(8)='dumpW'
+  
+  
+  
+  
   labeltest(1)='2D_Poiseuille_gradP_xy'
   labeltest(2)='2D_Poiseuille_gradP_xz'
   labeltest(3)='2D_Poiseuille_gradP_yz'
@@ -122,15 +155,30 @@
   labeltest(11)='3D_Particle_pbc'
   labeltest(12)='3D_Rotating_Particle'
   labeltest(13)='3D_Shear_Particle'
-  labeltest(14)='3D_Particles_box'
-  labeltest(15)='3D_Particle_SC'
+  labeltest(14)='3D_Particle_SC'
+  labeltest(15)='3D_Particles_box'
+  
+  ndims(1:3,14)=32
+  ndims(1:3,15)=64
+  
+  nparticles(1:10)=0
+  nparticles(11:14)=1
+  nparticles(15)=137
+  
+  lrotate(1:11)=.false.
+  lrotate(12:15)=.true.
+  
+  lsingle_fluid(1:ntest)=.true.
+  lsingle_fluid(10)=.false.
+  lsingle_fluid(14:15)=.false.
   
   lxyzfile(1:10)=.false.
   lxyzfile(11:ntest)=.true.
   !lskip(1:ntest)=.true.
   lskip(1:ntest)=.false.
   !lskip(14)=.false.
-  lerase=.false.
+  lerase=.true.
+  lforcestop=.false.
   
   call getcwd(origpath)
   origpath=trim(origpath)
@@ -174,408 +222,301 @@
     write(6,'(2a)')'execute test: ',labeltest(i)
     call execute_command_line(trim(lbsoftpath),wait=.true.)
     write(6,'(2a)')'check test  : ',labeltest(i)
-    open(unit=orig_mapio,file=trim(origmap_file),status='old',action='read')
-    read(orig_mapio,'(4i10)')mxrank1,nx1,ny1,nz1
-    close(orig_mapio)
     
-    inquire(file=trim(map_file),exist=lexist)
+    
+    ifile=1
+    myorigfile=repeat(' ',maxlen)
+    myactufile=repeat(' ',maxlen)
+    myorigfile=trim(namerestfile(ifile))//myreff//'.dat'
+    myactufile=trim(namerestfile(ifile))//mysave//'.dat'
+    
+    open(unit=orig_io,file=trim(myorigfile),status='old',action='read', &
+     form='unformatted')
+    read(orig_io)timestep1
+    close(orig_io)
+    
+    inquire(file=trim(myactufile),exist=lexist)
     if(.not.lexist)then
       ltest(i)=.false.
-      cycle
+      goto 100
     endif
-    open(unit=map_io,file=trim(map_file),status='old',action='read')
-    read(map_io,'(4i10)')mxrank2,nx2,ny2,nz2
-    close(map_io)
+    open(unit=actual_io,file=trim(myactufile),status='old',action='read', &
+     form='unformatted')
+    read(actual_io)timestep2
+    close(actual_io)
     
-    open(unit=orig_io,file=trim(orig_file),status='old',action='read')
-    
-    read(orig_io,'(i10)')imio1
-    
-    read(orig_io,'(8i10)')minx1,maxx1,miny1,maxy1,minz1,maxz1,type1,iselect1
-    
-    !if(any(imio1.ne.imio2)
-    
-    if(nx1/=nx2 .and. ny1/=ny2 .and. nz1/=nz2)then
+    if(timestep1/=timestep2)then
       ltest(i)=.false.
-    else
-      if(iselect1==4)then
-        allocate(dmio1(4,nx1,ny1,nz1))
-        allocate(dmio2(4,nx2,ny2,nz2))
-        
-        dmio1(:,:,:,:)=0.e0
-        dmio2(:,:,:,:)=0.e0
-        
-        do l=0,mxrank1-1
-          file_loc_proc=repeat(' ',256)
-          file_loc_proc = 'output'//trim(write_fmtnumb(l))//'.map.orig'
-          open(unit=orig_io+l,file=trim(file_loc_proc),status='old',action='read')
-          do kk=minz1,maxz1
-            do jj=miny1,maxy1
-              do ii=minx1,maxx1
-                read(orig_io+l,'(3i8,4f24.16)',end=100,err=100)imio3(1:3),dmio1(1:4,ii,jj,kk)
-              enddo
-            enddo
-          enddo
-          close(orig_io+l)
-        enddo
-        
-        do l=0,mxrank2-1
-          file_loc_proc=repeat(' ',256)
-          file_loc_proc = 'output'//trim(write_fmtnumb(l))//'.map'
-          inquire(file=trim(file_loc_proc),exist=lexist)
-          if(.not.lexist)goto 100
-          inquire(unit=actual_io+l,opened=lexist)
-          if(lexist)close(actual_io+l)
-          open(unit=actual_io+l,file=trim(file_loc_proc),status='old',action='read')
-          read(actual_io+l,'(i10)')imio2
-          read(actual_io+l,'(8i10)')minx2,maxx2,miny2,maxy2,minz2,maxz2,type2,iselect2
-          if(iselect1.ne.iselect2)then
-            ltest(i)=.false.
-          endif
-          do kk=minz2,maxz2
-            do jj=miny2,maxy2
-              do ii=minx2,maxx2
-                read(actual_io+l,'(3i8,4f24.16)',end=100,err=100)imio4(1:3),dmio2(1:4,ii,jj,kk)
-              enddo
-            enddo
-          enddo
-          close(actual_io+l)
-        enddo
-        
-        do kk=1,nz1
-          do jj=1,ny1
-            do ii=1,nx1
-              do l=1,4
-                if(abs(dmio1(l,ii,jj,kk)-dmio2(l,ii,jj,kk))>mytol)then
-                  ! write (*,*) "i,j,k, l", ii,jj,kk,l, dmio1(l,ii,jj,kk),dmio2(l,ii,jj,kk)
-                  ltest(i)=.false.
-                  cycle
-                endif
-              enddo
-            enddo
-          enddo
-        enddo
-        
-        if(lxyzfile(i))then
-          open(unit=orig_ioxyz,file=trim(orig_xyzfile),status='old',action='read')
-          read(orig_ioxyz,*)natms1
-          mystring40=repeat(' ',40)
-          read(orig_ioxyz,'(a)')mystring40
-          if(trim(mystring40)=='read list vxx vyy vzz phi theta psi')then
-            lrotate1=.true.
-            nargxyz1=9
-          else
-            lrotate1=.false.
-            nargxyz1=6
-          endif
-          if(lrotate1)then
-            allocate(dmio3(10,natms1))
-            dmio3(:,:)=0.e0
-            do iatm=1,natms1
-               read(orig_ioxyz,'(a8,10g16.8)')atmname,(dmio3(iii,iatm),iii=1,nargxyz1)
-            enddo
-          else
-            allocate(dmio3(6,natms1))
-            dmio3(:,:)=0.e0
-            do iatm=1,natms1
-               read(orig_ioxyz,'(a8,6g16.8)')atmname,(dmio3(iii,iatm),iii=1,nargxyz1)
-            enddo
-          endif
-          close(orig_ioxyz)
-          
-          open(unit=actual_ioxyz,file=trim(actual_xyzfile),status='old',action='read')
-          read(actual_ioxyz,*)natms2
-          mystring40=repeat(' ',40)
-          read(actual_ioxyz,'(a)')mystring40
-          if(trim(mystring40)=='read list vxx vyy vzz phi theta psi')then
-            lrotate2=.true.
-            nargxyz2=9
-          else
-            lrotate2=.false.
-            nargxyz2=6
-          endif
-          if(lrotate2)then
-            allocate(dmio4(10,natms2))
-            dmio4(:,:)=0.e0
-            do iatm=1,natms2
-               read(actual_ioxyz,'(a8,10g16.8)')atmname,(dmio4(iii,iatm),iii=1,nargxyz2)
-            enddo
-          else
-            allocate(dmio4(6,natms2))
-            dmio4(:,:)=0.e0
-            do iatm=1,natms2
-               read(actual_ioxyz,'(a8,6g16.8)')atmname,(dmio4(iii,iatm),iii=1,nargxyz2)
-            enddo
-          endif
-          close(actual_ioxyz)
-          
-          if((natms1/=natms2) .or. (nargxyz1/=nargxyz2) .or. &
-           (lrotate1 .neqv. lrotate2))then
-            ltest(i)=.false.
-          else
-            do iatm=1,natms1
-              do iii=1,nargxyz1
-                if(abs(dmio3(iii,iatm)-dmio4(iii,iatm))>mytol)then
-                  ! write (*,*) "iii,iatm", iii,iatm, dmio3(iii,iatm),dmio4(iii,iatm)
-                  ltest(i)=.false.
-                  cycle
-                endif
-              enddo
-            enddo
-          endif
-          
-          deallocate(dmio3,dmio4)
-        endif
-        
-        open(unit=remove_file_io,file='rm.sh',status='replace')
-        if(lmpi)then
-          if(lxyzfile(i))then
-            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-             'rm -f output00*.map global.map time.dat mysed.sh restart.xyz rm.sh'
-          else
-            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-             'rm -f output00*.map global.map time.dat mysed.sh rm.sh'
-          endif
-        else
-          if(lxyzfile(i))then
-            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-             'rm -f output00*.map global.map time.dat restart.xyz rm.sh'
-          else
-            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-             'rm -f output00*.map global.map time.dat rm.sh'
-          endif
-        endif
-        close(remove_file_io)
-        call execute_command_line('chmod 777 rm.sh',wait=.true.)
-        if(lerase)call execute_command_line('./rm.sh',wait=.true.)
-        deallocate(dmio1)
-        deallocate(dmio2)
-        if(ltest(i))then
-          write(6,'(3a)')'test ',labeltest(i),' : OK'
-        else
-          write(6,'(3a)')'test ',labeltest(i),' : NOK'
-        endif
-        cycle
- 100    ltest(i)=.false.
-        close(orig_io)
-        close(actual_io)
-        open(unit=remove_file_io,file='rm.sh',status='replace')
-        if(lmpi)then
-          write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-         'rm -f output00*.map global.map time.dat mysed.sh rm.sh'
-        else 
-          write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-           'rm -f output00*.map global.map time.dat rm.sh'
-        endif
-        close(remove_file_io)
-        call execute_command_line('chmod 777 rm.sh',wait=.true.)
-        if(lerase)call execute_command_line('./rm.sh',wait=.true.)
-        deallocate(dmio1)
-        deallocate(dmio2)
-        if(ltest(i))then
-          write(6,'(3a)')'test ',labeltest(i),' : OK'
-        else
-          write(6,'(3a)')'test ',labeltest(i),' : NOK'
-        endif
-        cycle
-      elseif(iselect1==5)then
-        
-        allocate(dmio1(5,nx1,ny1,nz1))
-        allocate(dmio2(5,nx2,ny2,nz2))
-        
-        dmio1(:,:,:,:)=0.e0
-        dmio2(:,:,:,:)=0.e0
-        
-        do l=0,mxrank1-1
-          file_loc_proc=repeat(' ',256)
-          file_loc_proc = 'output'//trim(write_fmtnumb(l))//'.map.orig'
-          open(unit=orig_io+l,file=trim(file_loc_proc),status='old',action='read')
-          do kk=minz1,maxz1
-            do jj=miny1,maxy1
-              do ii=minx1,maxx1
-                read(orig_io+l,'(3i8,5f24.16)',end=110,err=110)imio3(1:3),dmio1(1:5,ii,jj,kk)
-              enddo
-            enddo
-          enddo
-          close(orig_io+l)
-        enddo
-        
-        do l=0,mxrank2-1
-          file_loc_proc=repeat(' ',256)
-          file_loc_proc = 'output'//trim(write_fmtnumb(l))//'.map'
-          inquire(file=trim(file_loc_proc),exist=lexist)
-          if(.not.lexist)goto 110
-          inquire(unit=actual_io+l,opened=lexist)
-          if(lexist)close(actual_io+l)
-          open(unit=actual_io+l,file=trim(file_loc_proc),status='old',action='read')
-          read(actual_io+l,'(i10)')imio2
-          read(actual_io+l,'(8i10)')minx2,maxx2,miny2,maxy2,minz2,maxz2,type2,iselect2
-          if(iselect1.ne.iselect2)then
-            ltest(i)=.false.
-          endif
-          do kk=minz2,maxz2
-            do jj=miny2,maxy2
-              do ii=minx2,maxx2
-                read(actual_io+l,'(3i8,5f24.16)',end=110,err=110)imio4(1:3),dmio2(1:5,ii,jj,kk)
-              enddo
-            enddo
-          enddo
-          close(actual_io+l)
-        enddo
-        
-        do kk=1,nz1
-          do jj=1,ny1
-            do ii=1,nx1
-              do l=1,5
-                if(abs(dmio1(l,ii,jj,kk)-dmio2(l,ii,jj,kk))>mytol)then
-                  ltest(i)=.false.
-                  cycle
-                endif
-              enddo
-            enddo
-          enddo
-        enddo
-        
-        if(lxyzfile(i))then
-          open(unit=orig_ioxyz,file=trim(orig_xyzfile),status='old',action='read')
-          read(orig_ioxyz,*)natms1
-          mystring40=repeat(' ',40)
-          read(orig_ioxyz,'(a)')mystring40
-          if(trim(mystring40)=='read list vxx vyy vzz phi theta psi')then
-            lrotate1=.true.
-            nargxyz1=9
-          else
-            lrotate1=.false.
-            nargxyz1=6
-          endif
-          if(lrotate1)then
-            allocate(dmio3(10,natms1))
-            dmio3(:,:)=0.e0
-            do iatm=1,natms1
-               read(orig_ioxyz,'(a8,10g16.8)')atmname,(dmio3(iii,iatm),iii=1,nargxyz1)
-            enddo
-          else
-            allocate(dmio3(6,natms1))
-            dmio3(:,:)=0.e0
-            do iatm=1,natms1
-               read(orig_ioxyz,'(a8,6g16.8)')atmname,(dmio3(iii,iatm),iii=1,nargxyz1)
-            enddo
-          endif
-          close(orig_ioxyz)
-          
-          open(unit=actual_ioxyz,file=trim(actual_xyzfile),status='old',action='read')
-          read(actual_ioxyz,*)natms2
-          mystring40=repeat(' ',40)
-          read(actual_ioxyz,'(a)')mystring40
-          if(trim(mystring40)=='read list vxx vyy vzz phi theta psi')then
-            lrotate2=.true.
-            nargxyz2=9
-          else
-            lrotate2=.false.
-            nargxyz2=6
-          endif
-          if(lrotate2)then
-            allocate(dmio4(10,natms2))
-            dmio4(:,:)=0.e0
-            do iatm=1,natms2
-               read(actual_ioxyz,'(a8,10g16.8)')atmname,(dmio4(iii,iatm),iii=1,nargxyz2)
-            enddo
-          else
-            allocate(dmio4(6,natms2))
-            dmio4(:,:)=0.e0
-            do iatm=1,natms2
-               read(actual_ioxyz,'(a8,6g16.8)')atmname,(dmio4(iii,iatm),iii=1,nargxyz2)
-            enddo
-          endif
-          close(actual_ioxyz)
-          
-          if((natms1/=natms2) .or. (nargxyz1/=nargxyz2) .or. &
-           (lrotate1 .neqv. lrotate2))then
-            ltest(i)=.false.
-          else
-            do iatm=1,natms1
-              do iii=1,nargxyz1
-                if(abs(dmio3(iii,iatm)-dmio4(iii,iatm))>mytol)then
-                  ltest(i)=.false.
-                  cycle
-                endif
-              enddo
-            enddo
-          endif
-          
-          deallocate(dmio3,dmio4)
-        endif
-        
-        open(unit=remove_file_io,file='rm.sh',status='replace')
-        if(lmpi)then
-         if(lxyzfile(i))then
-            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-             'rm -f output00*.map global.map time.dat mysed.sh restart.xyz rm.sh'
-          else
-            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-             'rm -f output00*.map global.map time.dat mysed.sh rm.sh'
-          endif
-        else 
-          if(lxyzfile(i))then
-            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-             'rm -f output00*.map global.map time.dat restart.xyz rm.sh'
-          else
-            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-             'rm -f output00*.map global.map time.dat rm.sh'
-          endif
-        endif
-        close(remove_file_io)
-        call execute_command_line('chmod 777 rm.sh',wait=.true.)
-        if(lerase)call execute_command_line('./rm.sh',wait=.true.)
-        deallocate(dmio1)
-        deallocate(dmio2)
-        if(ltest(i))then
-          write(6,'(3a)')'test ',labeltest(i),' : OK'
-        else
-          write(6,'(3a)')'test ',labeltest(i),' : NOK'
-        endif
-        cycle
- 110    ltest(i)=.false.
-        close(orig_io)
-        close(actual_io)
-        open(unit=remove_file_io,file='rm.sh',status='replace')
-        if(lmpi)then
-          if(lxyzfile(i))then
-            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-             'rm -f output00*.map global.map time.dat mysed.sh restart.xyz rm.sh'
-          else
-            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-             'rm -f output00*.map global.map time.dat mysed.sh rm.sh'
-          endif
-        else 
-          if(lxyzfile(i))then
-            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-             'rm -f output00*.map global.map time.dat restart.xyz rm.sh'
-          else
-            write(remove_file_io,'(a,/,a)')'#!/bin/bash', &
-             'rm -f output00*.map global.map time.dat rm.sh'
-          endif
-        endif
-        close(remove_file_io)
-        call execute_command_line('chmod 777 rm.sh',wait=.true.)
-        if(lerase)call execute_command_line('./rm.sh',wait=.true.)
-        deallocate(dmio1)
-        deallocate(dmio2)
-        if(ltest(i))then
-          write(6,'(3a)')'test ',labeltest(i),' : OK'
-        else
-          write(6,'(3a)')'test ',labeltest(i),' : NOK'
-        endif
-        cycle
-      else
-        write(6,*)'error test',iselect1,iselect2
-        write(6,*)'error test',nx1, ny1, nz1
-        write(6,*)'error test',nx2, ny2, nz2
-        stop
-      endif
+      goto 100
     endif
+    
+    
+    if(lxyzfile(i))then
+      ifile=3
+      myorigfile=repeat(' ',maxlen)
+      myactufile=repeat(' ',maxlen)
+      myorigfile=trim(namerestfile(ifile))//myreff//'.dat'
+      myactufile=trim(namerestfile(ifile))//mysave//'.dat'
+      
+      nmio=nparticles(i)
+      if(allocated(arr1))deallocate(arr1)
+      if(allocated(arr2))deallocate(arr2)
+      allocate(arr1(nmio),arr2(nmio))
+      
+      open(unit=orig_io,file=trim(myorigfile),status='old',action='read', &
+       form='unformatted')
+      
+      inquire(file=trim(myactufile),exist=lexist)
+      if(.not.lexist)then
+        ltest(i)=.false.
+        goto 100
+      endif
+      open(unit=actual_io,file=trim(myactufile),status='old',action='read', &
+       form='unformatted')
+       
+       
+      do ifield=1,15
+        read(orig_io)(arr1(ii),ii=1,nmio)
+        read(actual_io)(arr2(ii),ii=1,nmio)
+        do ii=1,nmio
+          if(abs(arr1(ii)-arr2(ii))>mytol)then
+            ltest(i)=.false.
+            if(lforcestop)goto 120
+            goto 100
+          endif
+        enddo
+      enddo
+      if(lrotate(i))then
+        do ifield=16,25
+          read(orig_io)(arr1(ii),ii=1,nmio)
+          read(actual_io)(arr2(ii),ii=1,nmio)
+          do ii=1,nmio
+            if(abs(arr1(ii)-arr2(ii))>mytol)then
+              ltest(i)=.false.
+              if(lforcestop)goto 120
+              goto 100
+            endif
+          enddo
+        enddo
+      endif
+      
+      close(orig_io)
+      close(actual_io)
+      
+    endif
+    
+    
+    
+    ifile=4
+    myorigfile=repeat(' ',maxlen)
+    myactufile=repeat(' ',maxlen)
+    myorigfile=trim(namerestfile(ifile))//myreff//'.dat'
+    myactufile=trim(namerestfile(ifile))//mysave//'.dat'
+    
+    open(unit=orig_io,file=trim(myorigfile),status='old',action='read', &
+     form='unformatted',access='stream')
+    
+    inquire(file=trim(myactufile),exist=lexist)
+    if(.not.lexist)then
+      ltest(i)=.false.
+      goto 100
+    endif
+    open(unit=actual_io,file=trim(myactufile),status='old',action='read', &
+     form='unformatted',access='stream')
+    
+    do kk=1,ndims(3,i)
+      do jj=1,ndims(2,i)
+        do ii=1,ndims(1,i)
+          read(orig_io)rtemp1
+          read(actual_io)rtemp2
+          if(abs(rtemp1-rtemp2)>mytol)then
+            ltest(i)=.false.
+            if(lforcestop)goto 110
+            goto 100
+          endif
+        enddo
+      enddo
+    enddo
+    
+    if(.not. lsingle_fluid(i))then
+      ifile=5
+      myorigfile=repeat(' ',maxlen)
+      myactufile=repeat(' ',maxlen)
+      myorigfile=trim(namerestfile(ifile))//myreff//'.dat'
+      myactufile=trim(namerestfile(ifile))//mysave//'.dat'
+      
+      open(unit=orig_io,file=trim(myorigfile),status='old',action='read', &
+       form='unformatted',access='stream')
+      
+      inquire(file=trim(myactufile),exist=lexist)
+      if(.not.lexist)then
+        ltest(i)=.false.
+        goto 100
+      endif
+      open(unit=actual_io,file=trim(myactufile),status='old',action='read', &
+       form='unformatted',access='stream')
+      
+      do kk=1,ndims(3,i)
+        do jj=1,ndims(2,i)
+          do ii=1,ndims(1,i)
+            read(orig_io)rtemp1
+            read(actual_io)rtemp2
+            if(abs(rtemp1-rtemp2)>mytol)then
+              ltest(i)=.false.
+              if(lforcestop)goto 110
+              goto 100
+            endif
+          enddo
+        enddo
+      enddo
+    endif
+    
+    ifile=6
+    myorigfile=repeat(' ',maxlen)
+    myactufile=repeat(' ',maxlen)
+    myorigfile=trim(namerestfile(ifile))//myreff//'.dat'
+    myactufile=trim(namerestfile(ifile))//mysave//'.dat'
+    
+    open(unit=orig_io,file=trim(myorigfile),status='old',action='read', &
+     form='unformatted',access='stream')
+    
+    inquire(file=trim(myactufile),exist=lexist)
+    if(.not.lexist)then
+      ltest(i)=.false.
+      goto 100
+    endif
+    open(unit=actual_io,file=trim(myactufile),status='old',action='read', &
+     form='unformatted',access='stream')
+    
+    do kk=1,ndims(3,i)
+      do jj=1,ndims(2,i)
+        do ii=1,ndims(1,i)
+          read(orig_io)rtemp1
+          read(actual_io)rtemp2
+          if(abs(rtemp1-rtemp2)>mytol)then
+            ltest(i)=.false.
+            if(lforcestop)goto 110
+            goto 100
+          endif
+        enddo
+      enddo
+    enddo
+    
+    ifile=7
+    myorigfile=repeat(' ',maxlen)
+    myactufile=repeat(' ',maxlen)
+    myorigfile=trim(namerestfile(ifile))//myreff//'.dat'
+    myactufile=trim(namerestfile(ifile))//mysave//'.dat'
+    
+    open(unit=orig_io,file=trim(myorigfile),status='old',action='read', &
+     form='unformatted',access='stream')
+    
+    inquire(file=trim(myactufile),exist=lexist)
+    if(.not.lexist)then
+      ltest(i)=.false.
+      goto 100
+    endif
+    open(unit=actual_io,file=trim(myactufile),status='old',action='read', &
+     form='unformatted',access='stream')
+    
+    do kk=1,ndims(3,i)
+      do jj=1,ndims(2,i)
+        do ii=1,ndims(1,i)
+          read(orig_io)rtemp1
+          read(actual_io)rtemp2
+          if(abs(rtemp1-rtemp2)>mytol)then
+            ltest(i)=.false.
+            if(lforcestop)goto 110
+            goto 100
+          endif
+        enddo
+      enddo
+    enddo
+    
+    ifile=8
+    myorigfile=repeat(' ',maxlen)
+    myactufile=repeat(' ',maxlen)
+    myorigfile=trim(namerestfile(ifile))//myreff//'.dat'
+    myactufile=trim(namerestfile(ifile))//mysave//'.dat'
+    
+    open(unit=orig_io,file=trim(myorigfile),status='old',action='read', &
+     form='unformatted',access='stream')
+    
+    inquire(file=trim(myactufile),exist=lexist)
+    if(.not.lexist)then
+      ltest(i)=.false.
+      goto 100
+    endif
+    open(unit=actual_io,file=trim(myactufile),status='old',action='read', &
+     form='unformatted',access='stream')
+    
+    do kk=1,ndims(3,i)
+      do jj=1,ndims(2,i)
+        do ii=1,ndims(1,i)
+          read(orig_io)rtemp1
+          read(actual_io)rtemp2
+          if(abs(rtemp1-rtemp2)>mytol)then
+            ltest(i)=.false.
+            if(lforcestop)goto 110
+            goto 100
+          endif
+        enddo
+      enddo
+    enddo
+    
+100 continue
+    
+    close(orig_io)
+    close(actual_io)
+ 
+        
+    open(unit=remove_file_io,file='rm.sh',status='replace')
+    
+    write(remove_file_io,'(a)')'#!/bin/bash'
+    write(remove_file_io,'(a)')'if [ -f "time.dat" ]; then rm time.dat; fi'
+    write(remove_file_io,'(a)')'if [ -f "mysed.sh" ]; then rm mysed.sh; fi'
+    write(remove_file_io,'(a)')'if [ -f "restart.xyz" ]; then rm restart.xyz; fi'
+    write(remove_file_io,'(a)')'if [ -f "restart.xyz.orig" ]; then rm restart.xyz.orig; fi'
+    write(remove_file_io,'(a)')'if [ -f "global.map" ]; then rm global.map; fi'
+    write(remove_file_io,'(a)')'if [ -f "global.map.orig" ]; then rm global.map.orig; fi'
+    write(remove_file_io,'(a)')'if [ -f "dumpPopsR.save.dat" ]; then rm dumpPopsR.save.dat; fi'
+    write(remove_file_io,'(a)')'if [ -f "dumpPopsB.save.dat" ]; then rm dumpPopsB.save.dat; fi'
+    do ifile=1,8
+      myactufile=trim(namerestfile(ifile))//mysave//'.dat'
+      write(remove_file_io,'(5a)')'if [ -f "',trim(myactufile), &
+       '" ]; then rm ',trim(myactufile),'; fi'
+    enddo
+    
+    !write(remove_file_io,'(a)')'rm -f output*.map'
+    !write(remove_file_io,'(a)')'rm -f output*.map.*'
+    write(remove_file_io,'(a)')'if [ -f "rm.sh" ]; then rm rm.sh; fi'
+    
+
+    close(remove_file_io)
+    call execute_command_line('chmod 777 rm.sh',wait=.true.)
+    if(lerase)call execute_command_line('./rm.sh',wait=.true.)
+    if(ltest(i))then
+      write(6,'(3a)')'test ',labeltest(i),' : OK'
+    else
+     write(6,'(3a)')'test ',labeltest(i),' : NOK'
+    endif
+    cycle
+    
+110 continue
+    write(6,*)'error test quantity: ',rtemp1,rtemp2
+    write(6,*)'error test position: ',ii, jj, kk
+    write(6,*)'error test file: ',trim(myactufile)
+    stop
+    
+120 continue
+    write(6,*)'error test quantity: ',arr1(ii),arr2(ii)
+    write(6,*)'error test position: ',ii,ifield
+    write(6,*)'error test file: ',trim(myactufile)
+    stop
+   
   enddo
   
+  call chdir(trim(origpath))
   
   write(6,'(/,a,/)')repeat('*',80)
   write(6,'(a)')'list of test results: '

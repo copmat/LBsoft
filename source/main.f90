@@ -59,7 +59,7 @@
                         miny,maxy,minz,maxz,nbuff,lsingle_fluid, &
                         isfluid,initialize_fluids,driver_bc_isfluid, &
                         driver_initialiaze_manage_bc_selfcomm, restoreHvar, &
-                        restore_oneFile, get_restore
+                        restore_oneFile
 
   use particles_mod,   only : allocate_particles,lparticles,vertest, &
                         initialize_map_particles,driver_inter_force, &
@@ -73,7 +73,8 @@
                         set_value_ivtkevery,idumpevery, &
                         read_restart_file
   use integrator_mod,  only : initime,endtime,tstep,set_nstep, &
-                        update_nstep,nstep,driver_integrator,nstepmax
+                        update_nstep,nstep,driver_integrator,nstepmax, &
+                        get_restore
   use statistic_mod,   only : statistic_driver
   use io_mod
   
@@ -256,7 +257,7 @@
 ! initialize lrecycle 
   lrecycle=(nstep<nstepmax)
   mytime=real(nstep,kind=PRC)*tstep
-  if(.not. lrecycle)call dumpForOutput(nstep,mytime)
+  if(.not. lrecycle)call dumpForOutput(nstep,mytime,.false.)
   
 !max  write(0,*)'Going to sleep...',idrank
 !max  call sleep(30)  
@@ -292,7 +293,7 @@
 
 !   dump outdata and print restart file
     if(ldiagnostic)call start_timing2("IO","dump_stats")
-    call dumpForOutput(nstep,mytime)
+    call dumpForOutput(nstep,mytime,.false.)
     if(ldiagnostic)call end_timing2("IO","dump_stats")
     
     
@@ -318,9 +319,8 @@
 ! print final particle coordinates
   call write_particle_xyz
   
-! print last record on terminal and close the output 'statdat.dat' file
-  !call finish_print(nstep,mytime,itime,ftime)
-  
+! print restart file
+  call dumpForOutput(nstep,mytime,.true.)
   
 ! close the XYZ formatted output file 
   !call close_xyz_file(lprintxyz,120)
@@ -337,7 +337,7 @@
     call print_timing_final(idiagnostic,itime_counter,itime_start,1,1,IOOUT)
   endif
   
-  call write_test_map
+  !call write_test_map
   
   call write_xyz_close
   

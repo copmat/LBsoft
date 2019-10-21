@@ -58,6 +58,9 @@
  integer, public, protected, save :: nstepmax=0
  logical, public, protected, save :: lintegrator=.false.
  
+ ! is a restore run?
+ logical, public, protected, save :: l_restore=.false.
+ 
  real(kind=PRC), public, save :: tstep = ONE
  real(kind=PRC), public, save :: initime = ZERO
  real(kind=PRC), public, save :: endtime = ZERO
@@ -67,6 +70,8 @@
  public :: update_nstep
  public :: driver_integrator
  public :: set_nstepmax
+ public :: set_restore
+ public :: get_restore
  
  contains
  
@@ -134,6 +139,50 @@
   return
   
  end subroutine update_nstep
+ 
+ subroutine set_restore(l_temp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for setting the l_restore flag for the
+!     restarting procedure
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification october 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  logical, intent(in) :: l_temp
+
+  l_restore = l_temp
+  
+  return
+  
+ end subroutine set_restore
+
+ subroutine get_restore(l_temp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for inquiring the l_restore flag for the
+!     restarting procedure
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification october 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  logical, intent(out)  :: l_temp
+  
+  l_temp = l_restore
+  
+  return
+  
+ end subroutine get_restore
  
  subroutine driver_integrator(mytime)
  

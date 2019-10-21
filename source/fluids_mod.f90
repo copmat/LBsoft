@@ -127,9 +127,6 @@
  !bounceback default is halfway
  logical, save, protected, public :: lbc_halfway=.true.
  logical, save, protected, public :: lbc_fullway=.false.
-
- ! is a restore run?
- logical, save, protected :: l_restore=.false.
  
  real(kind=PRC), save, protected, public :: t_LB = ONE
  
@@ -428,22 +425,14 @@
  public :: set_mass_rescale
  public :: rescale_fluid_mass
  public :: set_fluid_wall_mode
- public :: stat_oneFile,dump_oneFile,restore_oneFile
- public :: set_restore, get_restore
+ public :: bin_oneFile
+ public :: dump_oneFile
+ public :: restore_oneFile
+ 
 
  contains
- subroutine set_restore(l_temp)
-     implicit none
-     logical, intent(in) :: l_temp
+ 
 
-     l_restore = l_temp
- end subroutine set_restore
-
- subroutine get_restore(l_temp)
-     implicit none
-     logical  :: l_temp
-     l_temp = l_restore
- end subroutine get_restore
  
  subroutine allocate_fluids(lparticles)
 
@@ -15073,14 +15062,134 @@ end subroutine fix_onebelt_density_twofluids
      integer, intent(in) :: nstep
      character(len=120) :: mynamefile
      character(len=*), parameter :: mysave='save'
+     
+     integer :: ierror,myo,nn
+     integer, parameter :: myunit=116
+     
+#if 0
      if(idrank==0) then
              write (6,*) "Making DUMP file for fluid at step:", nstep
      endif
+#endif
+     
+ if(mxrank==1)then
+     
+     nn=nx*ny*nz
+     
+     
+     myo=myunit+1
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpPopsR.' // mysave //'.dat'
+     call open_file_binary(myo,trim(mynamefile),ierror)
+     call print_binary_pop_array(myo,nn, &
+      reshape(f00R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f01R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f02R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f03R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f04R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f05R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f06R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f07R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f08R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f09R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f10R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f11R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f12R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f13R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f14R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f15R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f16R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f17R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f18R(1:nx,1:ny,1:nz),(/nn/)), &
+      ierror)
+     call close_file_binary(myo,ierror)
+     
+     if(.not. lsingle_fluid) then
+       myo=myunit+2
+       mynamefile=repeat(' ',120)
+       mynamefile='dumpPopsB.' // mysave //'.dat'
+       call open_file_binary(myo,trim(mynamefile),ierror)
+       call print_binary_pop_array(myo,nn, &
+        reshape(f00B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f01B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f02B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f03B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f04B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f05B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f06B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f07B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f08B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f09B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f10B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f11B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f12B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f13B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f14B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f15B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f16B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f17B(1:nx,1:ny,1:nz),(/nn/)), &
+        reshape(f18B(1:nx,1:ny,1:nz),(/nn/)), &
+        ierror)
+       call close_file_binary(myo,ierror)
+     endif
+     
+     myo=myunit+3
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpRhoR.' // mysave //'.dat'
+     call open_file_binary(myo,trim(mynamefile),ierror)
+     call print_binary_1d_array(myo,nn, &
+      reshape(rhoR(1:nx,1:ny,1:nz),(/nn/)),ierror)
+     call close_file_binary(myo,ierror)
+
+     if(.not. lsingle_fluid) then
+       myo=myunit+4
+       mynamefile=repeat(' ',120)
+       mynamefile='dumpRhoB.' // mysave //'.dat'
+       call open_file_binary(myo,trim(mynamefile),ierror)
+       call print_binary_1d_array(myo,nn, &
+        reshape(rhoB(1:nx,1:ny,1:nz),(/nn/)),ierror)
+       call close_file_binary(myo,ierror)
+     endif
+     
+     myo=myunit+5
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpU.' // mysave //'.dat'
+     call open_file_binary(myo,trim(mynamefile),ierror)
+     call print_binary_1d_array(myo,nn, &
+      reshape(u(1:nx,1:ny,1:nz),(/nn/)),ierror)
+     call close_file_binary(myo,ierror)
+     
+     myo=myunit+6
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpV.' // mysave //'.dat'
+     call open_file_binary(myo,trim(mynamefile),ierror)
+     call print_binary_1d_array(myo,nn, &
+      reshape(v(1:nx,1:ny,1:nz),(/nn/)),ierror)
+     call close_file_binary(myo,ierror)
+     
+     myo=myunit+7
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpW.' // mysave //'.dat'
+     call open_file_binary(myo,trim(mynamefile),ierror)
+     call print_binary_1d_array(myo,nn, &
+      reshape(w(1:nx,1:ny,1:nz),(/nn/)),ierror)
+     call close_file_binary(myo,ierror)
+     
+     myo=myunit+8
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpisFluid.' // mysave //'.dat'
+     call open_file_binary(myo,trim(mynamefile),ierror)
+     call print_binary_1d_array_int1(myo,nn, &
+      reshape(isfluid(1:nx,1:ny,1:nz),(/nn/)),ierror)
+     call close_file_binary(myo,ierror)
+     
+  else
+     
 
      mynamefile=repeat(' ',120)
      !mynamefile='dumpPopsR.' // write_fmtnumb(nstep) //'.dat'
      mynamefile='dumpPopsR.' // mysave //'.dat'
-
+#ifdef MPI
      call mpi_writeFile_pops(nstep, mynamefile, &
        f00R,f01R,f02R,f03R,f04R, &
        f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
@@ -15121,6 +15230,12 @@ end subroutine fix_onebelt_density_twofluids
      mynamefile=repeat(' ',120)
      mynamefile='dumpisFluid.' // mysave //'.dat'
      call mpi_writeFile_int(nstep, mynamefile, isfluid, nbuff)
+#endif
+
+   endif
+   
+   return
+
   end subroutine dump_oneFile
 
  subroutine restore_oneFile(nstep)
@@ -15236,37 +15351,264 @@ end subroutine fix_onebelt_density_twofluids
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! SUBS TO CREATE FILE FOR STATS
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine stat_oneFile(nstep)
-     implicit none
-     integer, intent(in) :: nstep
-     character(len=120) :: mynamefile
+ subroutine bin_oneFile(nstep)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing output data with double
+!     precision in binary format
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  integer, intent(in) :: nstep
+  character(len=120) :: mynamefile
+  integer, parameter :: myunit=86
+  
+  integer :: myo,ierror,nn
 
-     if(idrank==0) then
-             write (6,*) "Making STAT file at step:", nstep
+#if 0
+  if(idrank==0) then
+    write (6,'(a)') "Making STAT file at step:", nstep
+  endif
+#endif
+
+  if(mxrank==1)then
+     
+     nn=nx*ny*nz
+     
+     myo=myunit+1
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpBin/RhoR.' // write_fmtnumb(nstep) //'.raw'
+     call open_file_binary(myo,trim(mynamefile),ierror)
+     call print_binary_1d_array(myo,nn, &
+      reshape(rhoR(1:nx,1:ny,1:nz),(/nn/)),ierror)
+     call close_file_binary(myo,ierror)
+
+     if(.not. lsingle_fluid) then
+       myo=myunit+2
+       mynamefile=repeat(' ',120)
+       mynamefile='dumpBin/RhoB.' // write_fmtnumb(nstep) //'.raw'
+       call open_file_binary(myo,trim(mynamefile),ierror)
+       call print_binary_1d_array(myo,nn, &
+        reshape(rhoB(1:nx,1:ny,1:nz),(/nn/)),ierror)
+       call close_file_binary(myo,ierror)
      endif
+     
+     myo=myunit+3
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpBin/U.' // write_fmtnumb(nstep) //'.raw'
+     call open_file_binary(myo,trim(mynamefile),ierror)
+     call print_binary_1d_array(myo,nn, &
+      reshape(u(1:nx,1:ny,1:nz),(/nn/)),ierror)
+     call close_file_binary(myo,ierror)
+     
+     myo=myunit+4
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpBin/V.' // write_fmtnumb(nstep) //'.raw'
+     call open_file_binary(myo,trim(mynamefile),ierror)
+     call print_binary_1d_array(myo,nn, &
+      reshape(v(1:nx,1:ny,1:nz),(/nn/)),ierror)
+     call close_file_binary(myo,ierror)
+     
+     myo=myunit+5
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpBin/W.' // write_fmtnumb(nstep) //'.raw'
+     call open_file_binary(myo,trim(mynamefile),ierror)
+     call print_binary_1d_array(myo,nn, &
+      reshape(w(1:nx,1:ny,1:nz),(/nn/)),ierror)
+     call close_file_binary(myo,ierror)
+     
+  else
 
      mynamefile=repeat(' ',120)
-     mynamefile='dumpStat/RhoR.' // write_fmtnumb(nstep) //'.raw'
-
+     mynamefile='dumpBin/RhoR.' // write_fmtnumb(nstep) //'.raw'
+#ifdef MPI
      call mpi_writeFile(nstep, mynamefile, rhoR, nbuff)
 
      if(.not. lsingle_fluid) then
       mynamefile=repeat(' ',120)
-      mynamefile='dumpStat/RhoB.' // write_fmtnumb(nstep) //'.raw'
+      mynamefile='dumpBin/RhoB.' // write_fmtnumb(nstep) //'.raw'
       call mpi_writeFile(nstep, mynamefile, rhoB, nbuff)
      endif
 
      mynamefile=repeat(' ',120)
-     mynamefile='dumpStat/U.' // write_fmtnumb(nstep) //'.raw'
+     mynamefile='dumpBin/U.' // write_fmtnumb(nstep) //'.raw'
      call mpi_writeFile(nstep, mynamefile, u, nbuff)
 
      mynamefile=repeat(' ',120)
-     mynamefile='dumpStat/V.' // write_fmtnumb(nstep) //'.raw'
+     mynamefile='dumpBin/V.' // write_fmtnumb(nstep) //'.raw'
      call mpi_writeFile(nstep, mynamefile, v, nbuff)
 
      mynamefile=repeat(' ',120)
-     mynamefile='dumpStat/W.' // write_fmtnumb(nstep) //'.raw'
+     mynamefile='dumpBin/W.' // write_fmtnumb(nstep) //'.raw'
      call mpi_writeFile(nstep, mynamefile, w, nbuff)
-  end subroutine
+#endif
+  endif
+  
+  return
+  
+ end subroutine bin_oneFile
+ 
+ subroutine open_file_binary(iotest,myname,E_IO)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for opening a binary stream file
+!     in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest
+  character(len=*), intent(in) :: myname
+  integer, intent(out) :: e_io
+  
+  open(unit=iotest,file=trim(myname),&
+   form='unformatted',access='stream',action='write',status='replace', &
+   iostat=e_io)
+  
+  return
+  
+ endsubroutine open_file_binary
+ 
+ subroutine print_binary_1d_array(iotest,nn,myvar1d,E_IO)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a vector with double
+!     precision in binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,nn
+  double precision, intent(in), dimension(nn) :: myvar1d
+  integer, intent(out) :: E_IO
+  
+  integer :: ii
+  
+  write(iotest,iostat=E_IO)(myvar1d(ii),ii=1,nn)
+  
+  return
+  
+ end subroutine print_binary_1d_array
+ 
+ subroutine print_binary_pop_array(iotest,nn,myvar00,myvar01, &
+   myvar02,myvar03,myvar04,myvar05,myvar06,myvar07,myvar08,myvar09, &
+   myvar10,myvar11,myvar12,myvar13,myvar14,myvar15,myvar16,myvar17, &
+   myvar18,E_IO)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a vector with double
+!     precision in binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,nn
+  double precision, intent(in), dimension(nn) :: myvar00,myvar01, &
+   myvar02,myvar03,myvar04,myvar05,myvar06,myvar07,myvar08,myvar09, &
+   myvar10,myvar11,myvar12,myvar13,myvar14,myvar15,myvar16,myvar17, &
+   myvar18
+  
+  integer, intent(out) :: E_IO
+  
+  integer :: ii
+  
+  write(iotest,iostat=E_IO)(myvar00(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar01(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar02(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar03(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar04(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar05(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar06(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar07(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar08(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar09(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar10(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar11(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar12(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar13(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar14(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar15(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar16(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar17(ii),ii=1,nn)
+  write(iotest,iostat=E_IO)(myvar18(ii),ii=1,nn)
+  
+  return
+  
+ end subroutine print_binary_pop_array
+ 
+ subroutine print_binary_1d_array_int1(iotest,nn,myvar1d,E_IO)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a vector with double
+!     precision in binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,nn
+  integer(kind=1), intent(in), dimension(nn) :: myvar1d
+  integer, intent(out) :: E_IO
+  
+  integer :: ii
+  
+  write(iotest,iostat=E_IO)(myvar1d(ii),ii=1,nn)
+  
+  return
+  
+ end subroutine print_binary_1d_array_int1
+ 
+ subroutine close_file_binary(iotest,E_IO)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for closing a binary stream file
+!     in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest
+  integer, intent(out) :: e_io
+  
+  close(unit=iotest,iostat=e_io)
+  
+  return
+  
+ endsubroutine close_file_binary
 
  end module fluids_mod
