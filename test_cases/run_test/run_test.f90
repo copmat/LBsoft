@@ -1,4 +1,4 @@
-
+#define ONLYPOS
  program run_test
  
   implicit none
@@ -42,7 +42,7 @@
   integer :: i,j,k,l,ii,jj,kk,idrank,ncpu,ndec,xdim,ydim,zdim,iii, &
    nmio,ifield
 
-  
+  character(len=4) :: atmfield(25)
   character(len=256) :: file_loc_proc
   logical :: lmpi=.false.
   character(len=8) :: mystring8,atmname
@@ -54,7 +54,7 @@
   
   character(len=maxlen) :: namerestfile(8)
   
-  double precision, parameter :: mytol=1.d-8
+  double precision, parameter :: mytol=1.d-16
   
   integer :: natms1,natms2,iatm,nargxyz1,nargxyz2,timestep1,timestep2
   integer :: ifile
@@ -68,6 +68,8 @@
   logical :: lforcestop,lerase
   
   double precision :: rtemp1,rtemp2
+  
+  double precision :: testreport(3,8,ntest)
   
   if(iargc()/=0 .and. iargc()/=6)then
     write(6,*) 'error!'
@@ -139,7 +141,31 @@
   namerestfile(7)='dumpV'
   namerestfile(8)='dumpW'
   
-  
+  atmfield(1) ='xxx '
+  atmfield(2) ='yyy '
+  atmfield(3) ='zzz '
+  atmfield(4) ='xxo '
+  atmfield(5) ='yyo '
+  atmfield(6) ='zzo '
+  atmfield(7) ='vxx '
+  atmfield(8) ='vyy '
+  atmfield(9) ='vzz '
+  atmfield(10)='vxo '
+  atmfield(11)='vyo '
+  atmfield(12)='vzo '
+  atmfield(13)='fxbo'
+  atmfield(14)='fybo'
+  atmfield(15)='fzbo'
+  atmfield(16)='q0  '
+  atmfield(17)='q1  '
+  atmfield(18)='q2  '
+  atmfield(19)='q3  '
+  atmfield(20)='oxx '
+  atmfield(21)='oyy '
+  atmfield(22)='ozz '
+  atmfield(23)='txbo'
+  atmfield(24)='tybo'
+  atmfield(25)='tzbo'
   
   
   labeltest(1)='2D_Poiseuille_gradP_xy'
@@ -157,6 +183,8 @@
   labeltest(13)='3D_Shear_Particle'
   labeltest(14)='3D_Particle_SC'
   labeltest(15)='3D_Particles_box'
+  
+  testreport(1:3,1:8,1:ntest)=0.d0
   
   ndims(1:3,14)=32
   ndims(1:3,15)=64
@@ -176,7 +204,7 @@
   lxyzfile(11:ntest)=.true.
   !lskip(1:ntest)=.true.
   lskip(1:ntest)=.false.
-  !lskip(14)=.false.
+  !lskip(15)=.false.
   lerase=.true.
   lforcestop=.false.
   
@@ -223,6 +251,7 @@
     call execute_command_line(trim(lbsoftpath),wait=.true.)
     write(6,'(2a)')'check test  : ',labeltest(i)
     
+    !cycle
     
     ifile=1
     myorigfile=repeat(' ',maxlen)
@@ -247,6 +276,8 @@
     
     if(timestep1/=timestep2)then
       ltest(i)=.false.
+      testreport(1,ifile,i)=1.d+6
+      testreport(2,ifile,i)=dble(ifile)
       goto 100
     endif
     
@@ -274,18 +305,27 @@
       open(unit=actual_io,file=trim(myactufile),status='old',action='read', &
        form='unformatted')
        
-       
+#ifdef ONLYPOS
+      do ifield=1,3
+#else
       do ifield=1,15
+#endif
         read(orig_io)(arr1(ii),ii=1,nmio)
         read(actual_io)(arr2(ii),ii=1,nmio)
         do ii=1,nmio
           if(abs(arr1(ii)-arr2(ii))>mytol)then
             ltest(i)=.false.
+            testreport(1,ifile,i)=max(abs(rtemp1-rtemp2),testreport(1,ifile,i))
+            if(testreport(1,ifile,i)==abs(rtemp1-rtemp2))then
+              testreport(2,ifile,i)=dble(ifile)
+              testreport(3,ifile,i)=dble(ifield)
+            endif
             if(lforcestop)goto 120
-            goto 100
+            !goto 100
           endif
         enddo
       enddo
+#ifndef ONLYPOS
       if(lrotate(i))then
         do ifield=16,25
           read(orig_io)(arr1(ii),ii=1,nmio)
@@ -293,13 +333,18 @@
           do ii=1,nmio
             if(abs(arr1(ii)-arr2(ii))>mytol)then
               ltest(i)=.false.
+              testreport(1,ifile,i)=max(abs(rtemp1-rtemp2),testreport(1,ifile,i))
+              if(testreport(1,ifile,i)==abs(rtemp1-rtemp2))then
+                testreport(2,ifile,i)=dble(ifile)
+                testreport(3,ifile,i)=dble(ifield)
+              endif
               if(lforcestop)goto 120
-              goto 100
+              !goto 100
             endif
           enddo
         enddo
       endif
-      
+#endif
       close(orig_io)
       close(actual_io)
       
@@ -331,8 +376,12 @@
           read(actual_io)rtemp2
           if(abs(rtemp1-rtemp2)>mytol)then
             ltest(i)=.false.
+            testreport(1,ifile,i)=max(abs(rtemp1-rtemp2),testreport(1,ifile,i))
+            if(testreport(1,ifile,i)==abs(rtemp1-rtemp2))then
+              testreport(2,ifile,i)=dble(ifile)
+            endif
             if(lforcestop)goto 110
-            goto 100
+            !goto 100
           endif
         enddo
       enddo
@@ -363,8 +412,12 @@
             read(actual_io)rtemp2
             if(abs(rtemp1-rtemp2)>mytol)then
               ltest(i)=.false.
+              testreport(1,ifile,i)=max(abs(rtemp1-rtemp2),testreport(1,ifile,i))
+              if(testreport(1,ifile,i)==abs(rtemp1-rtemp2))then
+                testreport(2,ifile,i)=dble(ifile)
+              endif
               if(lforcestop)goto 110
-              goto 100
+              !goto 100
             endif
           enddo
         enddo
@@ -395,8 +448,12 @@
           read(actual_io)rtemp2
           if(abs(rtemp1-rtemp2)>mytol)then
             ltest(i)=.false.
+            testreport(1,ifile,i)=max(abs(rtemp1-rtemp2),testreport(1,ifile,i))
+            if(testreport(1,ifile,i)==abs(rtemp1-rtemp2))then
+              testreport(2,ifile,i)=dble(ifile)
+            endif
             if(lforcestop)goto 110
-            goto 100
+            !goto 100
           endif
         enddo
       enddo
@@ -426,8 +483,12 @@
           read(actual_io)rtemp2
           if(abs(rtemp1-rtemp2)>mytol)then
             ltest(i)=.false.
+            testreport(1,ifile,i)=max(abs(rtemp1-rtemp2),testreport(1,ifile,i))
+            if(testreport(1,ifile,i)==abs(rtemp1-rtemp2))then
+              testreport(2,ifile,i)=dble(ifile)
+            endif
             if(lforcestop)goto 110
-            goto 100
+            !goto 100
           endif
         enddo
       enddo
@@ -457,8 +518,12 @@
           read(actual_io)rtemp2
           if(abs(rtemp1-rtemp2)>mytol)then
             ltest(i)=.false.
+            testreport(1,ifile,i)=max(abs(rtemp1-rtemp2),testreport(1,ifile,i))
+            if(testreport(1,ifile,i)==abs(rtemp1-rtemp2))then
+              testreport(2,ifile,i)=dble(ifile)
+            endif
             if(lforcestop)goto 110
-            goto 100
+            !goto 100
           endif
         enddo
       enddo
@@ -525,6 +590,15 @@
       write(6,'(3a)')'test ',labeltest(i),' : OK'
     else
       write(6,'(3a)')'test ',labeltest(i),' : NOK'
+      write(6,'(a)')'ERROR REPORT:'
+      do ifile=1,8
+        if(ifile==2)cycle
+        write(6,'(a,es16.8)')'max error = ',testreport(1,ifile,i)
+        write(6,'(2a)')'in file : ',namerestfile(ifile)
+        if(ifile==3)then
+          write(6,'(2a)')'in field : ',atmfield(nint(testreport(3,ifile,i)))
+        endif
+      enddo
     endif
   enddo
   write(6,'(/,a,/)')repeat('*',80)

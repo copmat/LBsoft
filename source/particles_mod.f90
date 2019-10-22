@@ -3957,7 +3957,11 @@ else
 ! working variables
   real(kind=PRC) :: oqx,oqy,oqz
   real(kind=PRC) :: opx,opy,opz
-  
+#ifdef QUAD_FORCEINT
+  real(kind=PRC*2) :: myone=real(1.d0,kind=PRC*2)
+#else
+  real(kind=PRC) :: myone=real(1.d0,kind=PRC)
+#endif
 ! working arrays
   real(kind=PRC), allocatable :: bxx(:),byy(:),bzz(:)
   
@@ -3985,9 +3989,9 @@ else
     do myi=1,natms
       i = atmbook(myi)
 !     capping forces   
-      if(dabs(fxx(i))>cap_force_part)fxx(i)=sign(fxx(i),ONE)*cap_force_part
-      if(dabs(fyy(i))>cap_force_part)fyy(i)=sign(fyy(i),ONE)*cap_force_part
-      if(dabs(fzz(i))>cap_force_part)fzz(i)=sign(fzz(i),ONE)*cap_force_part
+      if(abs(fxx(i))>cap_force_part)fxx(i)=sign(fxx(i),myone)*cap_force_part
+      if(abs(fyy(i))>cap_force_part)fyy(i)=sign(fyy(i),myone)*cap_force_part
+      if(abs(fzz(i))>cap_force_part)fzz(i)=sign(fzz(i),myone)*cap_force_part
 !     update velocities   
       bxx(i)=vxx(i)+tstepatm*rmass(ltype(i))*fxx(i)
       byy(i)=vyy(i)+tstepatm*rmass(ltype(i))*fyy(i)
