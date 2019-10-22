@@ -3619,6 +3619,218 @@
       enddo
 
      end subroutine stream_nocopy
+     
+  subroutine stream_nocopy_isfluid(f01sub,&
+  f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub)
+    
+!***********************************************************************
+!     
+!     LBsoft subroutine for streaming the populations without
+!     a buffer copy
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: F. Bonaccorso
+!     last modification April 2019
+!     
+!***********************************************************************
+
+  implicit none
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: f01sub,f02sub,f03sub,f04sub, &
+   f05sub,f06sub,f07sub,f08sub,f09sub,f10sub,f11sub,f12sub,f13sub, &
+   f14sub,f15sub,f16sub,f17sub,f18sub
+  integer :: i,j,k
+  logical, save :: isFirst = .true.
+
+
+  if (isFirst) then
+        isFirst = .false.
+        if (idrank == 0) write(6,*) "STREAM: Using stream_nocopy_isfluid"
+  endif
+     
+  do k=minz-1, maxz+1
+    do j=miny-1, maxy+1
+      do i=maxx+1, minx, -1
+        if ( isfluid(i-1,j,k)<3 .or. isfluid(i-1,j,k)>4) then
+          f01sub(i,j,k) =  f01sub(i-1,j,k)
+        endif
+      enddo
+    enddo
+  enddo
+  
+  do k=minz-1, maxz+1
+    do j=miny-1, maxy+1
+      do i=minx-1, maxx
+        if ( isfluid(i+1,j,k)<3 .or. isfluid(i+1,j,k)>4) then
+          f02sub(i,j,k) =  f02sub(i+1,j,k)
+        endif
+      enddo
+    enddo
+  enddo
+  
+  do k=minz-1, maxz+1
+    do j=maxy+1, miny, -1
+      do i=minx-1, maxx+1
+        if ( isfluid(i,j-1,k)<3 .or. isfluid(i,j-1,k)>4) then
+          f03sub(i,j,k) =  f03sub(i,j-1,k)
+        endif
+      enddo
+    enddo
+  enddo
+  
+  do k=minz-1, maxz+1
+    do j=miny-1, maxy
+      do i=minx-1, maxx+1
+        if ( isfluid(i,j+1,k)<3 .or. isfluid(i,j+1,k)>4) then
+          f04sub(i,j,k) =  f04sub(i,j+1,k)
+        endif
+      enddo
+    enddo
+  enddo
+  
+  do k=maxz+1, minz, -1
+    do j=miny-1, maxy+1
+      do i=minx-1, maxx+1
+        if ( isfluid(i,j,k-1)<3 .or. isfluid(i,j,k-1)>4) then
+          f05sub(i,j,k) =  f05sub(i,j,k-1)
+        endif
+      enddo
+    enddo
+  enddo
+  
+  do k=minz-1, maxz
+    do j=miny-1, maxy+1
+      do i=minx-1, maxx+1
+        if ( isfluid(i,j,k+1)<3 .or. isfluid(i,j,k+1)>4) then
+          f06sub(i,j,k) =  f06sub(i,j,k+1)
+        endif
+      enddo
+    enddo
+  enddo
+  
+  do k=minz-1, maxz+1
+    do i=maxx+1, minx, -1
+      do j=maxy+1, miny, -1
+        if ( isfluid(i-1,j-1,k)<3 .or. isfluid(i-1,j-1,k)>4) then
+          f07sub(i,j,k) =  f07sub(i-1,j-1,k)
+        endif
+      enddo
+    enddo
+  enddo
+  
+  do k=minz-1, maxz+1
+    do i=minx-1, maxx
+      do j=miny-1, maxy
+        if ( isfluid(i+1,j+1,k)<3 .or. isfluid(i+1,j+1,k)>4) then
+          f08sub(i,j,k) =  f08sub(i+1,j+1,k)
+        endif
+      enddo
+    enddo
+  enddo
+  
+  do k=minz-1, maxz+1
+    do i=minx-1, maxx
+      do j=maxy+1, miny, -1
+        if ( isfluid(i+1,j-1,k)<3 .or. isfluid(i+1,j-1,k)>4) then
+          f09sub(i,j,k) =  f09sub(i+1,j-1,k)
+        endif
+      enddo
+    enddo
+  enddo
+   
+  do k=minz-1, maxz+1
+    do i=maxx+1, minx, -1
+      do j=miny-1, maxy
+        if ( isfluid(i-1,j+1,k)<3 .or. isfluid(i-1,j+1,k)>4) then
+          f10sub(i,j,k) =  f10sub(i-1,j+1,k)
+        endif
+      enddo
+    enddo
+  enddo
+   
+  do k=maxz+1, minz, -1
+    do j=miny-1, maxy+1
+      do i=maxx+1, minx, -1
+        if ( isfluid(i-1,j,k-1)<3 .or. isfluid(i-1,j,k-1)>4) then
+          f11sub(i,j,k) =  f11sub(i-1,j,k-1)
+        endif
+      enddo
+    enddo
+  enddo
+    
+  do k=minz-1, maxz
+    do j=miny-1, maxy+1
+      do i=minx-1, maxx
+        if ( isfluid(i+1,j,k+1)<3 .or. isfluid(i+1,j,k+1)>4) then
+          f12sub(i,j,k) =  f12sub(i+1,j,k+1)
+        endif
+      enddo
+    enddo
+  enddo
+    
+  do k=maxz+1, minz, -1
+    do j=miny-1, maxy+1
+      do i=minx-1, maxx
+        if ( isfluid(i+1,j,k-1)<3 .or. isfluid(i+1,j,k-1)>4) then
+          f13sub(i,j,k) =  f13sub(i+1,j,k-1)
+        endif
+       enddo
+     enddo
+  enddo
+  
+  do k=minz-1, maxz
+    do j=miny-1, maxy+1
+      do i=maxx+1, minx, -1
+        if ( isfluid(i-1,j,k+1)<3 .or. isfluid(i-1,j,k+1)>4) then
+          f14sub(i,j,k) =  f14sub(i-1,j,k+1)
+        endif
+      enddo
+    enddo
+  enddo
+  
+  do k=maxz+1, minz, -1
+    do j=maxy+1, miny, -1
+      do i=minx-1, maxx+1
+        if ( isfluid(i,j-1,k-1)<3 .or. isfluid(i,j-1,k-1)>4) then
+          f15sub(i,j,k) =  f15sub(i,j-1,k-1)
+        endif
+      enddo
+    enddo
+  enddo
+      
+  do k=minz-1, maxz
+    do j=miny-1, maxy
+      do i=minx-1, maxx+1
+        if ( isfluid(i,j+1,k+1)<3 .or. isfluid(i,j+1,k+1)>4) then
+          f16sub(i,j,k) =  f16sub(i,j+1,k+1)
+        endif
+      enddo
+    enddo
+  enddo
+   
+  do k=maxz+1, minz, -1
+    do j=miny-1, maxy
+      do i=minx-1, maxx+1
+        if ( isfluid(i,j+1,k-1)<3 .or. isfluid(i,j+1,k-1)>4) then
+          f17sub(i,j,k) =  f17sub(i,j+1,k-1)
+        endif
+      enddo
+    enddo
+  enddo
+      
+  do k=minz-1, maxz
+    do j=maxy+1, miny, -1
+      do i=minx-1, maxx+1
+        if ( isfluid(i,j-1,k+1)<3 .or. isfluid(i,j-1,k+1)>4) then
+          f18sub(i,j,k) =  f18sub(i,j-1,k+1)
+        endif
+      enddo
+    enddo
+  enddo
+  
+  return
+  
+  end subroutine stream_nocopy_isfluid
 
   subroutine stream_copy(fsub, l)
   implicit none
@@ -3733,11 +3945,22 @@
 
 #ifdef ALLAFAB
 #else
-#define noSTREAM_NOCOPY
+
 #ifdef STREAM_NOCOPY
+
+  if(lparticles)then
+  
+  call stream_nocopy_isfluid(f01R,&
+  f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
+  f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+  
+  else
+  
   call stream_nocopy(f01R,&
   f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
   f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+  
+  endif
 #else
   call stream_copy(f01R, 1)
   call stream_copy(f02R, 2)
@@ -3804,9 +4027,19 @@
 #ifdef ALLAFAB
 #else
 #ifdef STREAM_NOCOPY
+  if(lparticles)then
+  
+  call stream_nocopy_isfluid(f01B,&
+  f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
+  f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+  
+  else
+  
   call stream_nocopy(f01B,&
   f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
   f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+  
+  endif
 #else
   call stream_copy(f01B, 1)
   call stream_copy(f02B, 2)

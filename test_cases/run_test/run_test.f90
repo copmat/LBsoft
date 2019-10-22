@@ -54,7 +54,7 @@
   
   character(len=maxlen) :: namerestfile(8)
   
-  double precision, parameter :: mytol=1.d-16
+  double precision, parameter :: mytol=1.d-14
   
   integer :: natms1,natms2,iatm,nargxyz1,nargxyz2,timestep1,timestep2
   integer :: ifile
@@ -202,7 +202,7 @@
   
   lxyzfile(1:10)=.false.
   lxyzfile(11:ntest)=.true.
-  !lskip(1:ntest)=.true.
+  lskip(1:ntest)=.true.
   lskip(1:ntest)=.false.
   !lskip(15)=.false.
   lerase=.true.
@@ -267,7 +267,8 @@
     inquire(file=trim(myactufile),exist=lexist)
     if(.not.lexist)then
       ltest(i)=.false.
-      goto 100
+      write(6,'(3a)')'file ',trim(myactufile),' not found!'
+      !goto 100
     endif
     open(unit=actual_io,file=trim(myactufile),status='old',action='read', &
      form='unformatted')
@@ -300,7 +301,8 @@
       inquire(file=trim(myactufile),exist=lexist)
       if(.not.lexist)then
         ltest(i)=.false.
-        goto 100
+        write(6,'(3a)')'file ',trim(myactufile),' not found!'
+        !goto 100
       endif
       open(unit=actual_io,file=trim(myactufile),status='old',action='read', &
        form='unformatted')
@@ -315,8 +317,8 @@
         do ii=1,nmio
           if(abs(arr1(ii)-arr2(ii))>mytol)then
             ltest(i)=.false.
-            testreport(1,ifile,i)=max(abs(rtemp1-rtemp2),testreport(1,ifile,i))
-            if(testreport(1,ifile,i)==abs(rtemp1-rtemp2))then
+            testreport(1,ifile,i)=max(abs(arr1(ii)-arr2(ii)),testreport(1,ifile,i))
+            if(testreport(1,ifile,i)==abs(arr1(ii)-arr2(ii)))then
               testreport(2,ifile,i)=dble(ifile)
               testreport(3,ifile,i)=dble(ifield)
             endif
@@ -332,7 +334,7 @@
           read(actual_io)(arr2(ii),ii=1,nmio)
           do ii=1,nmio
             if(abs(arr1(ii)-arr2(ii))>mytol)then
-              ltest(i)=.false.
+              !ltest(i)=.false.
               testreport(1,ifile,i)=max(abs(rtemp1-rtemp2),testreport(1,ifile,i))
               if(testreport(1,ifile,i)==abs(rtemp1-rtemp2))then
                 testreport(2,ifile,i)=dble(ifile)
@@ -364,7 +366,8 @@
     inquire(file=trim(myactufile),exist=lexist)
     if(.not.lexist)then
       ltest(i)=.false.
-      goto 100
+      write(6,'(3a)')'file ',trim(myactufile),' not found!'
+      !goto 100
     endif
     open(unit=actual_io,file=trim(myactufile),status='old',action='read', &
      form='unformatted',access='stream')
@@ -400,7 +403,8 @@
       inquire(file=trim(myactufile),exist=lexist)
       if(.not.lexist)then
         ltest(i)=.false.
-        goto 100
+        write(6,'(3a)')'file ',trim(myactufile),' not found!'
+        !goto 100
       endif
       open(unit=actual_io,file=trim(myactufile),status='old',action='read', &
        form='unformatted',access='stream')
@@ -436,7 +440,8 @@
     inquire(file=trim(myactufile),exist=lexist)
     if(.not.lexist)then
       ltest(i)=.false.
-      goto 100
+      write(6,'(3a)')'file ',trim(myactufile),' not found!'
+      !goto 100
     endif
     open(unit=actual_io,file=trim(myactufile),status='old',action='read', &
      form='unformatted',access='stream')
@@ -471,7 +476,8 @@
     inquire(file=trim(myactufile),exist=lexist)
     if(.not.lexist)then
       ltest(i)=.false.
-      goto 100
+      write(6,'(3a)')'file ',trim(myactufile),' not found!'
+      !goto 100
     endif
     open(unit=actual_io,file=trim(myactufile),status='old',action='read', &
      form='unformatted',access='stream')
@@ -506,7 +512,8 @@
     inquire(file=trim(myactufile),exist=lexist)
     if(.not.lexist)then
       ltest(i)=.false.
-      goto 100
+      write(6,'(3a)')'file ',trim(myactufile),' not found!'
+      !goto 100
     endif
     open(unit=actual_io,file=trim(myactufile),status='old',action='read', &
      form='unformatted',access='stream')
@@ -591,8 +598,7 @@
     else
       write(6,'(3a)')'test ',labeltest(i),' : NOK'
       write(6,'(a)')'ERROR REPORT:'
-      do ifile=1,8
-        if(ifile==2)cycle
+      do ifile=3,8
         write(6,'(a,es16.8)')'max error = ',testreport(1,ifile,i)
         write(6,'(2a)')'in file : ',namerestfile(ifile)
         if(ifile==3)then

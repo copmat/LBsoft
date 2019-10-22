@@ -3,8 +3,8 @@
 #
 
 FC=gfortran
-FFLAGS= -O1 -cpp -c
-LDFLAGS= -O1 -cpp -o
+FFLAGS= -O0 -cpp -c
+LDFLAGS= -O0 -cpp -o
 EX=test.x
 SHELL=/bin/sh
 

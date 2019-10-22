@@ -7,6 +7,7 @@
 #define noQUAD_FORCEINT
 #define noLOGFORCES
 
+#define STREAM_NOCOPY
 
 #define IPRC 4
 #define LPRC 4
