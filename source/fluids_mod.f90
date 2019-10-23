@@ -687,10 +687,6 @@
        if(i==idrank)then
          write(6,*)'fluids id=',idrank,'minx=',minx,'maxx=',maxx, &
           'miny=',miny,'maxy=',maxy,'minz=',minz,'maxz=',maxz
-#ifdef ALLAMAX
-         write(6,*)'fluids id=',idrank,'wminx=',wminx,'wmaxx=',wmaxx, &
-          'wminy=',wminy,'wmaxy=',wmaxy,'wminz=',wminz,'wmaxz=',wmaxz
-#endif
        endif
        call flush(6)
        call get_sync_world
@@ -863,9 +859,8 @@
  
   call initialiaze_manage_bc_hvar_selfcomm
   
-#ifndef ALLAMAX
   call initialiaze_manage_bc_pop_selfcomm
-#endif
+
   
   return
   
@@ -3896,27 +3891,7 @@
 
 
   
-#ifdef ALLAMAX
-   
-#ifdef DIAGNSTREAM
-  if(iter.eq.NDIAGNSTREAM)call print_all_pops(100,'mioprima',iter,aoptpR)
-#endif
-  
-  call streaming_fluids(lparticles,f00R,f01R,f02R,f03R,f04R, &
-   f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
-   f14R,f15R,f16R,f17R,f18R,aoptpR)
-   
-#ifdef DIAGNSTREAM
-  if(iter.eq.NDIAGNSTREAM)call print_all_pops(300,'miodopo',iter,aoptpR)
-#endif
-   
-  if(lsingle_fluid)return
-  
-  call streaming_fluids(lparticles,f00B,f01B,f02B,f03B,f04B, &
-   f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B, &
-   f14B,f15B,f16B,f17B,f18B,aoptpB)
-   
-#else
+
 
 
 #ifdef DIAGNSTREAM
@@ -3940,7 +3915,7 @@
 #else
   call commspop(aoptpR)
 #endif
-#endif
+
 
 
 #ifdef ALLAFAB
@@ -4074,7 +4049,7 @@
   call manage_bc_pop_selfcomm(aoptpB,lparticles)
 #endif
   
-!! #ifdef ALLAMAX
+
 #endif
   
   
@@ -6788,20 +6763,6 @@
   
   iter=iter+1
   
-#ifdef ALLAMAX
-   !ml qui c'è un errore
-   call bounceback_pop(aoptpR)
-   
-#ifdef DIAGNSTREAM
-  if(iter==NDIAGNSTREAM)call print_all_pops(100,'miodopobounce',iter,aoptpR)
-#endif
-   
-   if(lsingle_fluid)return
-   
-   call bounceback_pop(aoptpB)
-   
-#else
-  
   call set_bc_variable_hvar
   
 #ifdef ALLAFAB
@@ -6819,8 +6780,6 @@
   call apply_bounceback_pop(bc_rhoB,bc_u,bc_v,bc_w,aoptpB)
 
   return
-  
-#endif
   
  end subroutine driver_apply_bounceback_pop
  
