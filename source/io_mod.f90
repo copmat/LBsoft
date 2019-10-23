@@ -904,14 +904,6 @@
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
               endif
-            elseif(findstring('object',directive,inumchar,maxlen))then
-              temp_lobjectliq=.true.
-              temp_nobjectliq=intstr(directive,maxlen,inumchar)
-              if(temp_nobjectliq>nmaxobjectliq)then
-                lerror5=.true.
-                lredo=.false.
-                call warning(59,dble(nmaxobjectliq))
-              endif
             elseif(findstring('dens',directive,inumchar,maxlen))then
               if(findstring('mean',directive,inumchar,maxlen))then
                 dtemp_meanR=dblstr(directive,maxlen,inumchar)
@@ -919,6 +911,14 @@
               elseif(findstring('stdev',directive,inumchar,maxlen))then
                 dtemp_stdevR=dblstr(directive,maxlen,inumchar)
                 dtemp_stdevB=dblstr(directive,maxlen,inumchar)
+              elseif(findstring('object',directive,inumchar,maxlen))then
+                temp_lobjectliq=.true.
+                temp_nobjectliq=intstr(directive,maxlen,inumchar)
+                if(temp_nobjectliq>nmaxobjectliq)then
+                  lerror5=.true.
+                  lredo=.false.
+                  call warning(59,dble(nmaxobjectliq))
+                endif
               elseif(findstring('back',directive,inumchar,maxlen))then
                 dtemp_backR=dblstr(directive,maxlen,inumchar)
                 dtemp_backB=dblstr(directive,maxlen,inumchar)
@@ -940,7 +940,7 @@
                   temp_objectdata(7,itemp)=dblstr(directive,maxlen,inumchar)
                   temp_objectdata(8,itemp)=dblstr(directive,maxlen,inumchar)
                 endif
-              elseif(findstring('spheric',directive,inumchar,maxlen))then
+              elseif(findstring('spher',directive,inumchar,maxlen))then
                 itemp=intstr(directive,maxlen,inumchar)
                 if(itemp>nmaxobjectliq)then
                   lerror5=.true.
@@ -1998,7 +1998,7 @@
           exit
         endif
       enddo
-      if(.not. ltest)then
+      if(ltest)then
         call warning(61,dble(itemp))
         call error(7)
       endif

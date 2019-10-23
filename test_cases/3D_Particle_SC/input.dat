@@ -13,8 +13,9 @@ close time 10 s
 [END ROOM]
 [ROOM LB]
 components 2
-density area
-density selection 1 32 1 32 16 32
+density special
+density object 1
+density ortho 1 1.0 32.0 1.0 32.0 16.0 32.0 2.342603952 0.3700077342d-1
 density mean 2.342603952 0.3700077342d-1
 density back 0.3700077342d-1 2.342603952
 velocity mean 0.d0 0.d0 0.d0
