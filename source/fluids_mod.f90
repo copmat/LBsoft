@@ -6692,7 +6692,7 @@
       ktemp2 = poplistbc(6,i)
       idir=ipoplistbc(i)
       iopp=opp(idir)
-      if(isfluid(itemp+ex(iopp),jtemp+ey(iopp),ktemp+ez(iopp))<3 .or. &
+      if(isfluid(itemp+ex(iopp),jtemp+ey(iopp),ktemp+ez(iopp))<2 .or. &
        isfluid(itemp+ex(iopp),jtemp+ey(iopp),ktemp+ez(iopp))>5)then
         aoptp(idir)%p(itemp,jtemp,ktemp)=aoptp(idir)%p(itemp2,jtemp2,ktemp2)
       endif
