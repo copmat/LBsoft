@@ -535,6 +535,27 @@
     case (58)
       write(outp,'(/,a)')"WARNING - 'print vtk list' is not specified in input file"
       write(outp,'(a,/)')"WARNING - 'print vtk list' should be specified as 'print list [keys]'"
+    case (59)
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,4a)')"WARNING - number of objects beyond", &
+       " the actual limit of ",trim(adjustl(r_char)),"!"
+      write(outp,'(2a,/)')"WARNING - you should decrease the number of 'objects'", &
+       " in input file!"
+    case (60)
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,4a)')"WARNING - number of the object beyond", &
+       " the actual limit of ",trim(adjustl(r_char)),"!"
+      write(outp,'(2a,/)')"WARNING - you should decrease the number of 'object'", &
+       " in input file!"
+    case (61)
+      write (r_char,'(i10)')nint(ddata)
+      write(outp,'(/,4a)')"WARNING - the object with", &
+       " number ",trim(adjustl(r_char))," was not specified in input file!"
+      write(outp,'(2a,/)')"WARNING - you should specify all the objects", &
+       " in input file!"
+    case (62)
+      write(outp,'(/,2a,/)')"WARNING - 'density special' can not ", &
+      "be used without specifying objects in input file!"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

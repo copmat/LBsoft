@@ -77,11 +77,11 @@
  !timestep interval to rescale the total fluid mass
  integer, save, protected, public :: imass_rescale=100
  
- !selected area for initial density fluid values
- integer, save, protected, public :: areaR(1:2,1:3)=0
- 
  !selected wetting mode 0=average 1=fixed value (Benzi's style!)
  integer, save, protected, public :: iselwetting=0
+ 
+ integer, save, protected, public, allocatable, dimension(:) :: &
+  typeobjectliq
  
  integer, save :: nvar_managebc=0
  type(REALPTR_S), allocatable, dimension(:,:) :: rhoR_managebc,psiR_managebc
@@ -95,6 +95,9 @@
  integer, save :: nfluidnodes=0
  !integer denoting the total fluid nodes at initial time
  integer, save :: totnfluidnodes_init=0
+ 
+ !number of object drawn in fluid initialization
+ integer, save, protected, public :: nobjectliq=0
  
  logical, save, protected, public :: lalloc_hvars=.false.
  logical, save, protected, public :: lalloc_pops=.false.
@@ -127,6 +130,9 @@
  !bounceback default is halfway
  logical, save, protected, public :: lbc_halfway=.true.
  logical, save, protected, public :: lbc_fullway=.false.
+ 
+ !are there specified object in fuild initialization
+ logical, save, protected, public :: lobjectliq=.false.
  
  real(kind=PRC), save, protected, public :: t_LB = ONE
  
@@ -237,6 +243,9 @@
  real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_u
  real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_v
  real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_w
+ 
+ real(kind=PRC), save, protected, public, allocatable, dimension(:,:) :: &
+  objectdata
  
 !real denoting the LOCAL fluid mass at actual time for red and blue
 !(it changes if particles are presents)
@@ -355,7 +364,6 @@
  public :: set_mean_value_dens_fluids
  public :: set_stdev_value_dens_fluids
  public :: set_back_value_dens_fluids
- public :: set_init_area_dens_fluids
  public :: set_initial_dist_type
  public :: set_initial_dim_box
  public :: set_mean_value_vel_fluids
@@ -428,6 +436,8 @@
  public :: bin_oneFile
  public :: dump_oneFile
  public :: restore_oneFile
+ public :: set_objectliq
+ public :: set_objectdata
  
 
  contains
@@ -1412,7 +1422,7 @@
   case(3)
     call set_fake_dens_fluids
   case(4)
-    call set_uniform_area_dens_fluids
+    call set_special_objects_dens_fluids
   case default
     call set_initial_dens_fluids
   end select
@@ -1694,35 +1704,56 @@
   
  end subroutine set_uniform_dens_fluids
  
- subroutine set_uniform_area_dens_fluids
+ subroutine set_special_objects_dens_fluids
  
 !***********************************************************************
 !     
 !     LBsoft subroutine for setting the initial density of fluids 
-!     following a random uniform distribution
+!     following a set of given objects
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
-!     last modification January 2019
+!     last modification October 2019
 !     
 !***********************************************************************
   
   implicit none
   
-  integer :: i,j,k
+  integer :: i,j,k,l
+  real(kind=PRC), dimension(3) :: dists,dbox
+  real(kind=PRC) :: rdist,dtemp
   
+  dbox=[real(nx,kind=PRC),real(ny,kind=PRC),real(nz,kind=PRC)]
   
   if(lsingle_fluid)then
     do k=minz,maxz
       do j=miny,maxy
         do i=minx,maxx
-          if(areaR(1,1)<=i .and. areaR(2,1)>=i .and. &
-           areaR(1,2)<=j .and. areaR(2,2)>=j .and. &
-           areaR(1,3)<=k .and. areaR(2,3)>=k ) then
-            rhoR(i,j,k)=meanR
-          else
-            rhoR(i,j,k)=backR
-          endif
+          rhoR(i,j,k)=backR
+        enddo
+      enddo
+    enddo
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          do l=1,nobjectliq
+            select case(typeobjectliq(l))
+            case(1)
+              dists(1)=real(i,kind=PRC)-objectdata(1,l)
+              dists(2)=real(j,kind=PRC)-objectdata(2,l)
+              dists(3)=real(k,kind=PRC)-objectdata(3,l)
+              call minimage_onevec(ibctype,dbox,dists)
+              rdist=sqrt(dists(1)**TWO+dists(2)**TWO+dists(3)**TWO)
+              dtemp=fcut(rdist,objectdata(4,l),objectdata(3,l)+objectdata(4,l))
+              rhoR(i,j,k)=backR+(objectdata(6,l)-backR)*dtemp
+            case(2)
+              if(nint(objectdata(1,l))<=i .and. nint(objectdata(2,l))>=i .and. &
+              nint(objectdata(3,l))<=j .and. nint(objectdata(4,l))>=j .and. &
+              nint(objectdata(5,l))<=k .and. nint(objectdata(6,l))>=k ) then
+              rhoR(i,j,k)=objectdata(7,l)
+              endif
+            end select
+          enddo
         enddo
       enddo
     enddo
@@ -1730,15 +1761,34 @@
     do k=minz,maxz
       do j=miny,maxy
         do i=minx,maxx
-          if(areaR(1,1)<=i .and. areaR(2,1)>=i .and. &
-           areaR(1,2)<=j .and. areaR(2,2)>=j .and. &
-           areaR(1,3)<=k .and. areaR(2,3)>=k ) then
-            rhoR(i,j,k)=meanR
-            rhoB(i,j,k)=meanB
-          else
-            rhoR(i,j,k)=backR
-            rhoB(i,j,k)=backB
-          endif
+          rhoR(i,j,k)=backR
+          rhoB(i,j,k)=backB
+        enddo
+      enddo
+    enddo
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          do l=1,nobjectliq
+            select case(typeobjectliq(l))
+            case(1)
+              dists(1)=real(i,kind=PRC)-objectdata(1,l)
+              dists(2)=real(j,kind=PRC)-objectdata(2,l)
+              dists(3)=real(k,kind=PRC)-objectdata(3,l)
+              call minimage_onevec(ibctype,dbox,dists)
+              rdist=sqrt(dists(1)**TWO+dists(2)**TWO+dists(3)**TWO)
+              dtemp=fcut(rdist,objectdata(4,l),objectdata(3,l)+objectdata(4,l))
+              rhoR(i,j,k)=backR+(objectdata(6,l)-backR)*dtemp
+              rhoB(i,j,k)=backB+(objectdata(7,l)-backB)*dtemp
+            case(2)
+              if(nint(objectdata(1,l))<=i .and. nint(objectdata(2,l))>=i .and. &
+              nint(objectdata(3,l))<=j .and. nint(objectdata(4,l))>=j .and. &
+              nint(objectdata(5,l))<=k .and. nint(objectdata(6,l))>=k ) then
+              rhoR(i,j,k)=objectdata(7,l)
+              rhoB(i,j,k)=objectdata(8,l)
+              endif
+            end select
+          enddo
         enddo
       enddo
     enddo
@@ -1746,7 +1796,7 @@
   
   return
   
- end subroutine set_uniform_area_dens_fluids
+ end subroutine set_special_objects_dens_fluids
  
  subroutine set_fake_dens_fluids
  
@@ -2260,29 +2310,6 @@
   
  end subroutine set_back_value_dens_fluids
  
- subroutine set_init_area_dens_fluids(itemp)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for setting the area extremes of fluids 
-!     density
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification January 2019
-!     
-!***********************************************************************
-  
-  implicit none
-  
-  integer, intent(in), dimension(1:2,1:3) :: itemp
-  
-  areaR(1:2,1:3) = itemp(1:2,1:3)
-  
-  return
- 
- end subroutine set_init_area_dens_fluids
- 
  subroutine set_initial_value_vel_fluids(dtemp1,dtemp2,dtemp3)
  
 !***********************************************************************
@@ -2773,6 +2800,63 @@
   return
   
  end subroutine set_mass_rescale
+ 
+ subroutine set_objectliq(ltemp1,itemp1)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the number and type of objects in  
+!     the special fluid initialization
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(in) :: ltemp1
+  integer, intent(in) :: itemp1
+  
+  lobjectliq=ltemp1
+  nobjectliq=itemp1
+  
+  if(allocated(typeobjectliq))deallocate(typeobjectliq)
+  if(allocated(objectdata))deallocate(objectdata)
+  allocate(typeobjectliq(nobjectliq))
+  allocate(objectdata(8,nobjectliq))
+  
+  return
+  
+ end subroutine set_objectliq
+ 
+ subroutine set_objectdata(itemp1,itemp2,dtemp1)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the value of objectdata for special 
+!     fluid initialization
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: itemp1
+  integer, intent(in), dimension(itemp1) :: itemp2
+  real(kind=PRC), intent(in), dimension(8,itemp1) :: dtemp1
+    
+  typeobjectliq(1:itemp1)=itemp2(1:itemp1)
+  
+  objectdata(1:8,1:itemp1)=dtemp1(1:8,1:itemp1)
+  
+  return
+  
+ end subroutine set_objectdata
  
  pure function viscosity_to_omega(dtemp1)
  
@@ -15802,5 +15886,53 @@ end subroutine fix_onebelt_density_twofluids
   return
   
  endsubroutine close_file_binary
+ 
+ subroutine minimage_onevec(imcons,dimms,dists)
+  implicit none
+  
+  integer, intent(in) :: imcons
+  real(kind=PRC), intent(in) :: dimms(3)
+  real(kind=PRC) :: dists(3)
+
+  integer :: i
+  real(kind=PRC) aaa,bbb,ccc
+  
+  select case(imcons)
+  case(0)
+    return
+  case(1)
+    aaa=ONE/dimms(1)
+      dists(1)=dists(1)-dimms(1)*nint(aaa*dists(1))
+  case(2)
+    bbb=ONE/dimms(2)
+      dists(2)=dists(2)-dimms(2)*nint(bbb*dists(2))
+  case(3)
+    aaa=ONE/dimms(1)
+    bbb=ONE/dimms(2)
+      dists(1)=dists(1)-dimms(1)*nint(aaa*dists(1))
+      dists(2)=dists(2)-dimms(2)*nint(bbb*dists(2))
+  case(4)
+    ccc=ONE/dimms(3)
+      dists(3)=dists(3)-dimms(3)*nint(ccc*dists(3))
+  case(5)
+    aaa=ONE/dimms(1)
+    ccc=ONE/dimms(3)
+      dists(1)=dists(1)-dimms(1)*nint(aaa*dists(1))
+      dists(3)=dists(3)-dimms(3)*nint(ccc*dists(3))
+  case(6)
+    bbb=ONE/dimms(2)
+    ccc=ONE/dimms(3)
+      dists(2)=dists(2)-dimms(2)*nint(bbb*dists(2))
+      dists(3)=dists(3)-dimms(3)*nint(ccc*dists(3))
+  case(7)
+    aaa=ONE/dimms(1)
+    bbb=ONE/dimms(2)
+    ccc=ONE/dimms(3)
+      dists(1)=dists(1)-dimms(1)*nint(aaa*dists(1))
+      dists(2)=dists(2)-dimms(2)*nint(bbb*dists(2))
+      dists(3)=dists(3)-dimms(3)*nint(ccc*dists(3))
+  end select
+  
+ end subroutine minimage_onevec
 
  end module fluids_mod

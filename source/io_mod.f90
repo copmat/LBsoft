@@ -41,9 +41,10 @@
   set_LBintegrator_type,lbc_halfway,set_lbc_halfway,set_lbc_fullway, &
   lbc_fullway,partR_SC,partB_SC,set_fluid_particle_sc,theta_SC, &
   devtheta_SC,set_theta_particle_sc,set_back_value_dens_fluids, &
-  backR,backB,set_init_area_dens_fluids,areaR,set_cap_force,cap_force, &
+  backR,backB,set_cap_force,cap_force, &
   imass_rescale,set_mass_rescale,dmass_rescale,iselwetting, &
-  densR_wetting,densB_wetting,set_fluid_wall_mode
+  densR_wetting,densB_wetting,set_fluid_wall_mode,set_objectliq, &
+  set_objectdata,nobjectliq,typeobjectliq,objectdata
 
  use particles_mod,         only : set_natms_tot,natms_tot,lparticles, &
   set_ishape,set_densvar,densvar,ishape,set_rcut,rcut,delr, &
@@ -310,8 +311,10 @@
   character(len=maxlen) :: redstring,directive
   logical :: safe,lredo,lredo2,ltest
   logical :: ltestread,lexists,lfoundprint,lfoundprintvtk
-  integer :: inumchar,i,j,k,nwords,iline,itest,itype,jtype
+  integer :: inumchar,i,j,k,nwords,iline,itest,itype,jtype,itemp
   character(len=maxlen) ,allocatable :: outwords(:),outwords2(:)
+  
+  integer, parameter :: nmaxobjectliq=24
   
   character(len=1) :: hms=' '
   character(len=8), dimension(mxntype) :: temp_atmnamtype
@@ -327,6 +330,7 @@
   integer :: temp_nstepmax=0
   integer :: temp_idiagnostic=1
   integer :: temp_ivtkevery=1
+  integer :: temp_nobjectliq=0
 
   integer :: temp_ibinevery   =100
   integer :: temp_idumpevery  =10000
@@ -347,10 +351,10 @@
   integer, dimension(mxntype) :: temp_ishape(1:mxntype)=0
   integer, dimension(mxntype,mxntype) :: temp_mskvdw(1:mxntype,1:mxntype)=0
   integer :: temp_ntype=0
-  integer :: temp_areaR(1:2,1:3)=0
   integer :: temp_imass_rescale=100
   integer :: temp_ifix_moment=1
   integer :: temp_iselwetting=0
+  integer, dimension(nmaxobjectliq) :: temp_typeobjectliq=0
   logical :: temp_ibc=.false.
   logical :: temp_lpair_SC=.false.
   logical :: temp_ldomdec=.false.
@@ -402,7 +406,9 @@
   logical :: temp_lselwetting=.false.
   logical :: temp_lrestore  = .false.
   logical :: temp_lidumpevery= .false.
-
+  logical :: temp_lobjectliq=.false.
+  logical, dimension(nmaxobjectliq) :: temp_lobjectdata = .false.
+  
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
   real(kind=PRC) :: dtemp_stdevR = ZERO
@@ -498,6 +504,8 @@
   
   real(kind=PRC) :: temp_densR_wetting = ZERO
   real(kind=PRC) :: temp_densB_wetting = ZERO
+  
+  real(kind=PRC), dimension(8,nmaxobjectliq) :: temp_objectdata = ZERO
   
   integer, dimension(mxvdw) :: temp_ltpvdw
   real(kind=PRC), dimension(mxpvdw,mxvdw) :: dtemp_prmvdw
@@ -896,6 +904,14 @@
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
               endif
+            elseif(findstring('object',directive,inumchar,maxlen))then
+              temp_lobjectliq=.true.
+              temp_nobjectliq=intstr(directive,maxlen,inumchar)
+              if(temp_nobjectliq>nmaxobjectliq)then
+                lerror5=.true.
+                lredo=.false.
+                call warning(59,dble(nmaxobjectliq))
+              endif
             elseif(findstring('dens',directive,inumchar,maxlen))then
               if(findstring('mean',directive,inumchar,maxlen))then
                 dtemp_meanR=dblstr(directive,maxlen,inumchar)
@@ -906,13 +922,41 @@
               elseif(findstring('back',directive,inumchar,maxlen))then
                 dtemp_backR=dblstr(directive,maxlen,inumchar)
                 dtemp_backB=dblstr(directive,maxlen,inumchar)
-              elseif(findstring('selec',directive,inumchar,maxlen))then
-                temp_areaR(1,1)=intstr(directive,maxlen,inumchar)
-                temp_areaR(2,1)=intstr(directive,maxlen,inumchar)
-                temp_areaR(1,2)=intstr(directive,maxlen,inumchar)
-                temp_areaR(2,2)=intstr(directive,maxlen,inumchar)
-                temp_areaR(1,3)=intstr(directive,maxlen,inumchar)
-                temp_areaR(2,3)=intstr(directive,maxlen,inumchar)
+              elseif(findstring('ortho',directive,inumchar,maxlen))then
+                itemp=intstr(directive,maxlen,inumchar)
+                if(itemp>nmaxobjectliq)then
+                  lerror5=.true.
+                  lredo=.false.
+                  call warning(60,dble(nmaxobjectliq))
+                else
+                  temp_lobjectdata(itemp)=.true.
+                  temp_typeobjectliq(itemp)=2
+                  temp_objectdata(1,itemp)=dblstr(directive,maxlen,inumchar)
+                  temp_objectdata(2,itemp)=dblstr(directive,maxlen,inumchar)
+                  temp_objectdata(3,itemp)=dblstr(directive,maxlen,inumchar)
+                  temp_objectdata(4,itemp)=dblstr(directive,maxlen,inumchar)
+                  temp_objectdata(5,itemp)=dblstr(directive,maxlen,inumchar)
+                  temp_objectdata(6,itemp)=dblstr(directive,maxlen,inumchar)
+                  temp_objectdata(7,itemp)=dblstr(directive,maxlen,inumchar)
+                  temp_objectdata(8,itemp)=dblstr(directive,maxlen,inumchar)
+                endif
+              elseif(findstring('spheric',directive,inumchar,maxlen))then
+                itemp=intstr(directive,maxlen,inumchar)
+                if(itemp>nmaxobjectliq)then
+                  lerror5=.true.
+                  lredo=.false.
+                  call warning(60,dble(nmaxobjectliq))
+                else
+                  temp_lobjectdata(itemp)=.true.
+                  temp_typeobjectliq(itemp)=1
+                  temp_objectdata(1,itemp)=dblstr(directive,maxlen,inumchar)
+                  temp_objectdata(2,itemp)=dblstr(directive,maxlen,inumchar)
+                  temp_objectdata(3,itemp)=dblstr(directive,maxlen,inumchar)
+                  temp_objectdata(4,itemp)=dblstr(directive,maxlen,inumchar)
+                  temp_objectdata(5,itemp)=dblstr(directive,maxlen,inumchar)
+                  temp_objectdata(6,itemp)=dblstr(directive,maxlen,inumchar)
+                  temp_objectdata(7,itemp)=dblstr(directive,maxlen,inumchar)
+                endif
               elseif(findstring('rescal',directive,inumchar,maxlen))then
                 temp_imass_rescale=intstr(directive,maxlen,inumchar)
                 temp_dmass_rescale=dblstr(directive,maxlen,inumchar)
@@ -923,7 +967,7 @@
                 temp_idistselect=2
               elseif(findstring('fake',directive,inumchar,maxlen))then
                 temp_idistselect=3
-              elseif(findstring('area',directive,inumchar,maxlen))then
+              elseif(findstring('special',directive,inumchar,maxlen))then
                 temp_idistselect=4
               else
                 call warning(1,dble(iline),redstring)
@@ -1886,14 +1930,14 @@
         mystring12=repeat(' ',dimprint2)
         mystring12='fake from id fluid node'
         mystring12=adjustr(mystring12)
-        write(6,'(3a)')mystring,": ",mystring12
+        write(6,'(3a)')mystring,": ",'fake from id fluid node'
       case(4)
         mystring=repeat(' ',dimprint)
         mystring='initial density distribution'
         mystring12=repeat(' ',dimprint2)
-        mystring12='uniform areas'
+        mystring12='specified objects'
         mystring12=adjustr(mystring12)
-        write(6,'(3a)')mystring,": ",mystring12
+        write(6,'(3a)')mystring,": ",'specified objects'
       end select
     endif
   endif
@@ -1921,8 +1965,12 @@
   endif
   
   if(idistselect==4)then
-    call bcast_world_iarr(temp_areaR,6)
-    if(any(temp_areaR/=0))then
+    call bcast_world_l(temp_lobjectliq)
+    call bcast_world_i(temp_nobjectliq)
+    call bcast_world_larr(temp_lobjectdata,nmaxobjectliq)
+    call bcast_world_iarr(temp_typeobjectliq,nmaxobjectliq)
+    call bcast_world_farr(temp_objectdata,8*nmaxobjectliq)
+    if(any(temp_lobjectdata(1:temp_nobjectliq)))then
       call bcast_world_f(dtemp_backR)
       call bcast_world_f(dtemp_backB)
       if(lsingle_fluid)then
@@ -1942,16 +1990,74 @@
         mystring='initial background density values'
         write(6,'(2a,2f12.6)')mystring,": ",backR,backB
       endif
-      call set_init_area_dens_fluids(temp_areaR)
+      ltest=.false.
+      do i=1,temp_nobjectliq
+        if(.not. temp_lobjectdata(i))then
+          ltest=.true.
+          itemp=i
+          exit
+        endif
+      enddo
+      if(.not. ltest)then
+        call warning(61,dble(itemp))
+        call error(7)
+      endif
+      call set_objectliq(temp_lobjectliq,temp_nobjectliq)
+      call set_objectdata(nobjectliq,temp_typeobjectliq,temp_objectdata)
       if(idrank==0)then
         mystring=repeat(' ',dimprint)
-        mystring='initial density area extremes in x'
-        write(6,'(2a,2i12)')mystring,": ",areaR(1,1),areaR(2,1)
-        mystring='initial density area extremes in y'
-        write(6,'(2a,2i12)')mystring,": ",areaR(1,2),areaR(2,2)
-        mystring='initial density area extremes in z'
-        write(6,'(2a,2i12)')mystring,": ",areaR(1,3),areaR(2,3)
+        mystring='initial background density values'
+        write(6,'(2a,2f12.6)')mystring,": ",backR,backB
       endif
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='number of objects'
+        write(6,'(2a,i12)')mystring,": ",nobjectliq
+        do i=1,nobjectliq
+          select case(typeobjectliq(i))
+          case(1)
+            mystring=repeat(' ',dimprint)
+            mystring='object type'
+            mystring12=repeat(' ',dimprint2)
+            mystring12='sphere'
+            mystring12=adjustr(mystring12)
+            write(6,'(3a)')mystring,": ",mystring12
+            mystring=repeat(' ',dimprint)
+            mystring='sphere center'
+            write(6,'(2a,3f12.6)')mystring,": ",objectdata(1,i), &
+             objectdata(2,i),objectdata(3,i)
+            mystring=repeat(' ',dimprint)
+            mystring='radius of sphere'
+            write(6,'(2a,f12.6)')mystring,": ",objectdata(4,i)
+            mystring=repeat(' ',dimprint)
+            mystring='width of sphere'
+            write(6,'(2a,f12.6)')mystring,": ",objectdata(5,i)
+            mystring=repeat(' ',dimprint)
+            mystring='internal density value'
+            write(6,'(2a,2f12.6)')mystring,": ",objectdata(6,i),objectdata(7,i)
+          case(2)
+            mystring=repeat(' ',dimprint)
+            mystring='object type'
+            mystring12=repeat(' ',dimprint2)
+            mystring12='orthogonal'
+            mystring12=adjustr(mystring12)
+            write(6,'(3a)')mystring,": ",mystring12
+            mystring=repeat(' ',dimprint)
+            mystring='initial density box extremes in x'
+            write(6,'(2a,2f12.6)')mystring,": ",objectdata(1,i),objectdata(2,i)
+            mystring='initial density box extremes in y'
+            write(6,'(2a,2f12.6)')mystring,": ",objectdata(3,i),objectdata(4,i)
+            mystring='initial density box extremes in z'
+            write(6,'(2a,2f12.6)')mystring,": ",objectdata(5,i),objectdata(6,i)
+            mystring=repeat(' ',dimprint)
+            mystring='internal density value'
+            write(6,'(2a,2f12.6)')mystring,": ",objectdata(7,i),objectdata(8,i)
+          end select
+        enddo
+      endif
+    else
+      call warning(62)
+      call error(7)
     endif
   endif
   
