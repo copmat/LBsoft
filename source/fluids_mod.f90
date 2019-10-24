@@ -6656,7 +6656,9 @@
               ktemp=pimage(izpbc,ktemp,nz)
               i4=i4back(itemp,jtemp,ktemp) 
               i4orig=i4back(itemp2,jtemp2,ktemp2)
-              if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank &
+              !if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank &
+              ! .AND. isfluid(i,j,k)/=3) THEN
+              if(ownern(i4).EQ.idrank &
                .AND. isfluid(i,j,k)/=3) THEN
                 npoplistbc=npoplistbc+1
               endif
@@ -6695,7 +6697,8 @@
               ktemp=pimage(izpbc,ktemp,nz)
               i4=i4back(itemp,jtemp,ktemp) 
               i4orig=i4back(itemp2,jtemp2,ktemp2)
-              if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank &
+              !if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank &
+              if(ownern(i4).EQ.idrank &
                .AND. isfluid(i,j,k)/=3) THEN
                 npoplistbc=npoplistbc+1
                 ipoplistbc(npoplistbc)=l
