@@ -44,16 +44,16 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
   use version_mod,     only : init_world,get_rank_world,get_size_world,&
-                        time_world,time_world,finalize_world,idrank
+                        time_world,time_world,finalize_world,idrank, &
+                        setupcom,create_findneigh_list_hvar_isfluid, &
+                        create_findneigh_list_pops,deallocate_ownern, &
+                        create_findneigh_list_single_halo
   use profiling_mod,   only : get_memory,timer_init,itime_start, &
                         startPreprocessingTime,print_timing_partial, &
                         reset_timing_partial,printSimulationTime, &
                         print_timing_final,itime_counter,idiagnostic, &
                         ldiagnostic,start_timing2,end_timing2
   use utility_mod,     only : init_random_seed,allocate_array_buffservice3d
-  use lbempi_mod,      only : setupcom,create_findneigh_list_hvar_isfluid, &
-                        create_findneigh_list_pops,deallocate_ownern
-
   use fluids_mod,      only : allocate_fluids,initialize_isfluid_bcfluid, &
                         nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
                         miny,maxy,minz,maxz,nbuff,lsingle_fluid, &
@@ -152,6 +152,10 @@
   
 ! prepare list for neighbour comm of hydrodynamic variables (also ISFLUID)
   call create_findneigh_list_hvar_isfluid(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc, &
+   izpbc,minx,maxx,miny,maxy,minz,maxz)
+
+! prepare list for neighbour comm of a single halo only
+  call create_findneigh_list_single_halo(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc, &
    izpbc,minx,maxx,miny,maxy,minz,maxz)
    
 ! initialize isfluid and bcfluid (type of node and bc adopted)

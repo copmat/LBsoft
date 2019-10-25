@@ -23,7 +23,11 @@
                    waitall_world,irecv_world_farr,isend_world_iarr, &
                    irecv_world_iarr,max_world_iarr,sum_world_iarr, &
                    sum_world_farr, bcast_world_i, bcast_world_farr, &
-                   or1_world_larr, sum_world_qarr
+                   or1_world_larr, sum_world_qarr,commspop,commrpop,  &
+                   i4find, i4back,ownern,deallocate_ownern,commexch_dens, &
+                   commwait_dens,comm_init_isfluid,commexch_vel_component, &
+                   commwait_vel_component,ownernfind,ownernfind_arr, &
+                   ownern,gminx,gmaxx,gminy,gmaxy,gminz,gmaxz
 
  use error_mod
  use aop_mod
@@ -34,12 +38,6 @@
                    nbuffservice3d,buffservice3d,allocate_array_bdf, &
                    xdf,ydf,zdf,rand_noseeded,linit_seed,gauss_noseeded,&
                    write_fmtnumb,dcell,invert, openLogFile
-
- use lbempi_mod,  only : commspop, commrpop, i4find, i4back, &
-                   ownern,deallocate_ownern,commexch_dens, &
-                   commwait_dens,comm_init_isfluid,commexch_vel_component, &
-                   commwait_vel_component,ownernfind,ownernfind_arr, &
-                   ownern,gminx,gmaxx,gminy,gmaxy,gminz,gmaxz
  
  use fluids_mod,  only : nx,ny,nz,nbuff,minx,maxx,miny,maxy,minz,maxz, &
                    set_lbc_halfway,lbc_halfway,cssq,links,ex,ey,ez, &

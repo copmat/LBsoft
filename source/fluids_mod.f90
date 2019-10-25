@@ -15,7 +15,12 @@
 !***********************************************************************
  
  use version_mod,    only : idrank,mxrank,or_world_larr,finalize_world, &
-                   get_sync_world,sum_world_farr
+                   get_sync_world,sum_world_farr,commspop,commrpop, &
+                   i4find,i4back,ownern,deallocate_ownern,commexch_dens, &
+                   commwait_dens,comm_init_isfluid,commexch_vel_component, &
+                   commwait_vel_component,commexch_isfluid, &
+                   commwait_isfluid,commexch_single_halo, &
+                   commwait_single_halo
  use error_mod
  use aop_mod
  use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
@@ -25,12 +30,6 @@
                    nbuffservice3d,buffservice3d,int_cube_sphere,fcut, &
                    rand_noseeded,linit_seed,gauss_noseeded,write_fmtnumb, &
                    openLogFile
-
- use lbempi_mod,  only : commspop, commrpop, i4find, i4back, &
-                   ownern,deallocate_ownern,commexch_dens, &
-                   commwait_dens,comm_init_isfluid,commexch_vel_component, &
-                   commwait_vel_component,commexch_isfluid, &
-                   commwait_isfluid
 
 #ifdef MPI           
  use mpi_comm, only : mpisendpops, mpirecvpops, mpibounceback, mpisend_hvar, mpirecv_hvar, &
@@ -267,6 +266,9 @@
  
  integer, allocatable, save :: isguards(:,:)
  integer, save :: nguards=0
+ 
+ integer, allocatable, save :: isinglehalo(:,:)
+ integer, save :: nsinglehalo=0
 
  integer(kind=1), allocatable, save :: ipoplistbc(:)
  integer, allocatable, save :: poplistbc(:,:)
@@ -1199,6 +1201,9 @@
   
   !initialize the bc if necessary within the same process
   call initialiaze_manage_bc_isfluid_selfcomm
+  
+  !initialize the bc if necessary within the same process for a single halo
+  call initialiaze_manage_bc_singlehalo_selfcomm
   
   !apply the bc if necessary within the same process
   call manage_bc_isfluid_selfcomm(isfluid)
@@ -6326,6 +6331,167 @@
    
  end subroutine manage_bc_isfluid_selfcomm
  
+ subroutine initialiaze_manage_bc_singlehalo_selfcomm()
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to manage the buffer of isfluid nodes
+!     within the same process for applying the boundary conditions
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer :: i,j,k,l,itemp,jtemp,ktemp,itemp2,jtemp2,ktemp2
+  integer(kind=IPRC) :: i4orig,i4
+  
+  logical, parameter :: lverbose=.false.
+  
+  nsinglehalo=0
+  if(ixpbc.eq.0 .and. iypbc.eq.0 .and. izpbc.eq.0)return
+  
+  do k=minz-nbuff,maxz+nbuff
+    do j=miny-nbuff,maxy+nbuff
+      do i=minx-nbuff,maxx+nbuff
+        if(i<minx.or.j<miny.or.k<minz.or.i>maxx.or.j>maxy.or.k>maxz)then
+          if(ixpbc.eq.0 .and. iypbc.eq.0 .and. izpbc.eq.0)cycle
+          itemp=i
+          jtemp=j
+          ktemp=k
+          itemp2=i
+          jtemp2=j
+          ktemp2=k
+          !apply periodic conditions if necessary
+          if(ixpbc.eq.1) then
+            if(itemp<1) then
+              itemp=itemp+nx
+            endif
+            if(itemp>nx) then
+              itemp=itemp-nx
+            endif
+          endif
+          if(iypbc.eq.1) then
+            if(jtemp<1) then
+              jtemp=jtemp+ny
+            endif
+           if(jtemp>ny) then
+              jtemp=jtemp-ny
+            endif
+          endif
+          if(izpbc.eq.1) then
+            if(ktemp<1) then
+              ktemp=ktemp+nz
+            endif
+            if(ktemp>nz) then
+              ktemp=ktemp-nz
+            endif
+          endif
+          i4=i4back(itemp,jtemp,ktemp) 
+          i4orig=i4back(itemp2,jtemp2,ktemp2) 
+          if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
+            nsinglehalo=nsinglehalo+1
+          endif
+        endif
+      enddo
+    enddo
+  enddo
+  
+  if(lverbose)write(6,*)'id=',idrank,'nsinglehalo=',nsinglehalo
+  
+  allocate(isinglehalo(6,nsinglehalo))
+  
+  nsinglehalo=0
+  do k=minz-nbuff,maxz+nbuff
+    do j=miny-nbuff,maxy+nbuff
+      do i=minx-nbuff,maxx+nbuff
+        if(i<minx.or.j<miny.or.k<minz.or.i>maxx.or.j>maxy.or.k>maxz)then
+          if(ixpbc.eq.0 .and. iypbc.eq.0 .and. izpbc.eq.0)cycle
+          itemp=i
+          jtemp=j
+          ktemp=k
+          itemp2=i
+          jtemp2=j
+          ktemp2=k
+          !apply periodic conditions if necessary
+          if(ixpbc.eq.1) then
+            if(itemp<1) then
+              itemp=itemp+nx
+            endif
+            if(itemp>nx) then
+              itemp=itemp-nx
+            endif
+          endif
+          if(iypbc.eq.1) then
+            if(jtemp<1) then
+              jtemp=jtemp+ny
+            endif
+           if(jtemp>ny) then
+              jtemp=jtemp-ny
+            endif
+          endif
+          if(izpbc.eq.1) then
+            if(ktemp<1) then
+              ktemp=ktemp+nz
+            endif
+            if(ktemp>nz) then
+              ktemp=ktemp-nz
+            endif
+          endif
+          i4=i4back(itemp,jtemp,ktemp) 
+          i4orig=i4back(itemp2,jtemp2,ktemp2) 
+          if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
+            nsinglehalo=nsinglehalo+1
+            isinglehalo(1,nsinglehalo)=itemp
+            isinglehalo(2,nsinglehalo)=jtemp
+            isinglehalo(3,nsinglehalo)=ktemp
+            isinglehalo(4,nsinglehalo)=itemp2
+            isinglehalo(5,nsinglehalo)=jtemp2
+            isinglehalo(6,nsinglehalo)=ktemp2
+          endif
+        endif
+      enddo
+    enddo
+  enddo
+   
+  return
+   
+ end subroutine initialiaze_manage_bc_singlehalo_selfcomm
+ 
+ subroutine manage_bc_singlehalo_selfcomm(dtemp)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to manage the buffer of isfluid nodes
+!     within the same process for applying the boundary conditions
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  real(kind=PRC), dimension(:,:,:), allocatable :: dtemp
+  
+  integer :: i,j,k,l,itemp,jtemp,ktemp,itemp2,jtemp2,ktemp2
+  integer(kind=IPRC) :: i4orig,i4
+  
+  if(nsinglehalo>=1)then
+    do i=1,nsinglehalo
+      dtemp(isinglehalo(4,i),isinglehalo(5,i),isinglehalo(6,i))= &
+       dtemp(isinglehalo(1,i),isinglehalo(2,i),isinglehalo(3,i))
+    enddo
+  endif
+   
+  return
+   
+ end subroutine manage_bc_singlehalo_selfcomm
+ 
  subroutine initialiaze_manage_bc_hvar_selfcomm
  
 !***********************************************************************
@@ -6809,21 +6975,175 @@
  
  subroutine driver_bc_pops()
   implicit none
+ 
+#if 1
+ 
+ call commexch_single_halo(f00R)
+ call manage_bc_singlehalo_selfcomm(f00R)
+ call commwait_single_halo(f00R)
+ 
+ call commexch_single_halo(f01R)
+ call manage_bc_singlehalo_selfcomm(f01R)
+ call commwait_single_halo(f01R)
+ 
+ call commexch_single_halo(f02R)
+ call manage_bc_singlehalo_selfcomm(f02R)
+ call commwait_single_halo(f02R)
+ 
+ call commexch_single_halo(f03R)
+ call manage_bc_singlehalo_selfcomm(f03R)
+ call commwait_single_halo(f03R)
+ 
+ call commexch_single_halo(f04R)
+ call manage_bc_singlehalo_selfcomm(f04R)
+ call commwait_single_halo(f04R)
+ 
+ call commexch_single_halo(f05R)
+ call manage_bc_singlehalo_selfcomm(f05R)
+ call commwait_single_halo(f05R)
+ 
+ call commexch_single_halo(f06R)
+ call manage_bc_singlehalo_selfcomm(f06R)
+ call commwait_single_halo(f06R)
+ 
+ call commexch_single_halo(f07R)
+ call manage_bc_singlehalo_selfcomm(f07R)
+ call commwait_single_halo(f07R)
+ 
+ call commexch_single_halo(f08R)
+ call manage_bc_singlehalo_selfcomm(f08R)
+ call commwait_single_halo(f08R)
+ 
+ call commexch_single_halo(f09R)
+ call manage_bc_singlehalo_selfcomm(f09R)
+ call commwait_single_halo(f09R)
+ 
+ call commexch_single_halo(f10R)
+ call manage_bc_singlehalo_selfcomm(f10R)
+ call commwait_single_halo(f10R)
+ 
+ call commexch_single_halo(f11R)
+ call manage_bc_singlehalo_selfcomm(f11R)
+ call commwait_single_halo(f11R)
+ 
+ call commexch_single_halo(f12R)
+ call manage_bc_singlehalo_selfcomm(f12R)
+ call commwait_single_halo(f12R)
+ 
+ call commexch_single_halo(f13R)
+ call manage_bc_singlehalo_selfcomm(f13R)
+ call commwait_single_halo(f13R)
+ 
+ call commexch_single_halo(f14R)
+ call manage_bc_singlehalo_selfcomm(f14R)
+ call commwait_single_halo(f14R)
+ 
+ call commexch_single_halo(f15R)
+ call manage_bc_singlehalo_selfcomm(f15R)
+ call commwait_single_halo(f15R)
+ 
+ call commexch_single_halo(f16R)
+ call manage_bc_singlehalo_selfcomm(f16R)
+ call commwait_single_halo(f16R)
+ 
+ call commexch_single_halo(f17R)
+ call manage_bc_singlehalo_selfcomm(f17R)
+ call commwait_single_halo(f17R)
+ 
+ call commexch_single_halo(f18R)
+ call manage_bc_singlehalo_selfcomm(f18R)
+ call commwait_single_halo(f18R)
+ 
+ if(lsingle_fluid)return
+ 
+ call commexch_single_halo(f00B)
+ call manage_bc_singlehalo_selfcomm(f00B)
+ call commwait_single_halo(f00B)
+ 
+ call commexch_single_halo(f01B)
+ call manage_bc_singlehalo_selfcomm(f01B)
+ call commwait_single_halo(f01B)
+ 
+ call commexch_single_halo(f02B)
+ call manage_bc_singlehalo_selfcomm(f02B)
+ call commwait_single_halo(f02B)
+ 
+ call commexch_single_halo(f03B)
+ call manage_bc_singlehalo_selfcomm(f03B)
+ call commwait_single_halo(f03B)
+ 
+ call commexch_single_halo(f04B)
+ call manage_bc_singlehalo_selfcomm(f04B)
+ call commwait_single_halo(f04B)
+ 
+ call commexch_single_halo(f05B)
+ call manage_bc_singlehalo_selfcomm(f05B)
+ call commwait_single_halo(f05B)
+ 
+ call commexch_single_halo(f06B)
+ call manage_bc_singlehalo_selfcomm(f06B)
+ call commwait_single_halo(f06B)
+ 
+ call commexch_single_halo(f07B)
+ call manage_bc_singlehalo_selfcomm(f07B)
+ call commwait_single_halo(f07B)
+ 
+ call commexch_single_halo(f08B)
+ call manage_bc_singlehalo_selfcomm(f08B)
+ call commwait_single_halo(f08B)
+ 
+ call commexch_single_halo(f09B)
+ call manage_bc_singlehalo_selfcomm(f09B)
+ call commwait_single_halo(f09B)
+ 
+ call commexch_single_halo(f10B)
+ call manage_bc_singlehalo_selfcomm(f10B)
+ call commwait_single_halo(f10B)
+ 
+ call commexch_single_halo(f11B)
+ call manage_bc_singlehalo_selfcomm(f11B)
+ call commwait_single_halo(f11B)
+ 
+ call commexch_single_halo(f12B)
+ call manage_bc_singlehalo_selfcomm(f12B)
+ call commwait_single_halo(f12B)
+ 
+ call commexch_single_halo(f13B)
+ call manage_bc_singlehalo_selfcomm(f13B)
+ call commwait_single_halo(f13B)
+ 
+ call commexch_single_halo(f14B)
+ call manage_bc_singlehalo_selfcomm(f14B)
+ call commwait_single_halo(f14B)
+ 
+ call commexch_single_halo(f15B)
+ call manage_bc_singlehalo_selfcomm(f15B)
+ call commwait_single_halo(f15B)
+ 
+ call commexch_single_halo(f16B)
+ call manage_bc_singlehalo_selfcomm(f16B)
+ call commwait_single_halo(f16B)
+ 
+ call commexch_single_halo(f17B)
+ call manage_bc_singlehalo_selfcomm(f17B)
+ call commwait_single_halo(f17B)
+ 
+ call commexch_single_halo(f18B)
+ call manage_bc_singlehalo_selfcomm(f18B)
+ call commwait_single_halo(f18B)
 
+
+#else
   call mpisendrecvHALOpops(aoptpR, rhoR)
   if(lsingle_fluid)return
-
+  
   call mpisendrecvHALOpops(aoptpB, rhoB)
+#endif
+
+  
  end subroutine driver_bc_pops
 
-! subroutine driver_bc_pops_bak()
-!  implicit none
-!
-!  call mpibakhalopops(aoptpR, rhoR)
-!  if(lsingle_fluid)return
-!
-!  call mpibakhalopops(aoptpB, rhoB)
-! end subroutine driver_bc_pops_bak
+
 
 
 !******************END PART TO MANAGE THE PERIODIC BC*******************

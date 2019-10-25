@@ -12,11 +12,10 @@
 !     
 !***********************************************************************
 
- use version_mod,     only : idrank,finalize_world
+ use version_mod,     only : idrank,finalize_world,i4back,ownern
  use error_mod
  use profiling_mod,   only : start_timing2,end_timing2, &
                        ldiagnostic
- use lbempi_mod,      only : i4back,ownern
  use fluids_mod,      only : initialize_fluid_force,compute_fluid_force_sc, &
                         driver_bc_densities,compute_psi_sc,&
                         driver_collision_fluids,compute_omega, &

@@ -138,23 +138,23 @@ intel-mpidebugger:
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi
 	
-seq:mem.o serial_version_mod.o \
-	profiling_mod.o parse_mod.o error_mod.o aop_mod.o utility_mod.o \
-	comsetup_mod.o fluids_mod.o particles_mod.o write_output_mod.o \
+seq:get_mem.o aop_mod.o serial_version_mod.o \
+	profiling_mod.o parse_mod.o error_mod.o utility_mod.o \
+	fluids_mod.o particles_mod.o write_output_mod.o \
 	integrator_mod.o statistic_mod.o io_mod.o main.o
-	$(FC) $(LDFLAGS) $(EX) get_mem.o \
+	$(FC) $(LDFLAGS) $(EX) get_mem.o aop_mod.o \
 	serial_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
-	aop_mod.o utility_mod.o comsetup_mod.o fluids_mod.o particles_mod.o \
+	utility_mod.o fluids_mod.o particles_mod.o \
 	write_output_mod.o integrator_mod.o statistic_mod.o io_mod.o main.o
 	mv $(EX) $(EXE)
 	
-mpi:get_mem.o parallel_version_mod.o \
-	profiling_mod.o parse_mod.o error_mod.o aop_mod.o utility_mod.o \
-	comsetup_mod.o mpi_comm.o fluids_mod.o particles_mod.o write_output_mod.o \
+mpi:get_mem.o aop_mod.o parallel_version_mod.o \
+	profiling_mod.o parse_mod.o error_mod.o utility_mod.o \
+	mpi_comm.o fluids_mod.o particles_mod.o write_output_mod.o \
 	integrator_mod.o statistic_mod.o io_mod.o main.o
-	$(FC) $(LDFLAGS) $(EX) get_mem.o \
+	$(FC) $(LDFLAGS) $(EX) get_mem.o aop_mod.o \
 	parallel_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
-	aop_mod.o utility_mod.o comsetup_mod.o mpi_comm.o fluids_mod.o particles_mod.o \
+	utility_mod.o mpi_comm.o fluids_mod.o particles_mod.o \
 	write_output_mod.o integrator_mod.o statistic_mod.o io_mod.o main.o
 	mv $(EXP) $(EXEP)
 	
@@ -182,9 +182,6 @@ aop_mod.o:aop_mod.f90
 utility_mod.o:utility_mod.f90
 	$(FC) $(FFLAGS) utility_mod.f90
 	
-comsetup_mod.o:comsetup_mod.f90
-	$(FC) $(FFLAGS) comsetup_mod.f90
-	
 fluids_mod.o:fluids_mod.f90
 	$(FC) $(FFLAGS) fluids_mod.f90
 	
@@ -203,7 +200,7 @@ statistic_mod.o:statistic_mod.f90
 io_mod.o:io_mod.f90
 	$(FC) $(FFLAGS) io_mod.f90
 	
-mpi_comm.o:	mpi_comm.f90 aop_mod.o comsetup_mod.o
+mpi_comm.o:	mpi_comm.f90
 	$(FC) $(FFLAGS) mpi_comm.f90
 	
 qsort_mod.o:	qsort_mod.f90

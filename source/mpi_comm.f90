@@ -1,7 +1,7 @@
 #include <default_macro.h>
 module mpi_comm
     use aop_mod
-    use lbempi_mod,  only : domdec
+    use version_mod,  only : domdec
 
 !    use mpi
     implicit none

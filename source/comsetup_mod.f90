@@ -14,19 +14,21 @@ MODULE lbempi_mod
    get_sync_world,sum_world_iarr
   use aop_mod 
   IMPLICIT NONE
+  
+  private
 
   INTEGER :: myid=0, numprocs=1
   
   
 #if LATTICE==319
- integer, parameter, private :: links=18
+ integer, parameter :: links=18
   !lattice vectors
- integer, dimension(0:links), parameter, private :: &
+ integer, dimension(0:links), parameter :: &
   ex = (/ 0, 1,-1, 0, 0, 0, 0, 1,-1,-1, 1, 1,-1,-1, 1, 0, 0, 0, 0/)
    !      0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,17,18
- integer, dimension(0:links), parameter, private :: &
+ integer, dimension(0:links), parameter :: &
   ey = (/ 0, 0, 0, 1,-1, 0, 0, 1,-1, 1,-1, 0, 0, 0, 0, 1,-1,-1, 1/)
- integer, dimension(0:links), parameter, private :: &
+ integer, dimension(0:links), parameter :: &
   ez = (/ 0, 0, 0, 0, 0, 1,-1, 0, 0, 0, 0, 1,-1, 1,-1, 1,-1, 1,-1/)
  integer, dimension(0:links), parameter, public :: &
   opp =(/ 0, 2, 1, 4, 3, 6, 5, 8, 7,10, 9,12,11,14,13,16,15,18,17/)
@@ -37,11 +39,11 @@ MODULE lbempi_mod
 
   ! USE mpi 
   include 'mpif.h'
-  INTEGER, SAVE :: MYFLOAT=MPI_DOUBLE_PRECISION
-  INTEGER, SAVE :: MYINT=MPI_INTEGER
-  INTEGER, SAVE :: MYINT1=MPI_INTEGER1
-  INTEGER, SAVE :: MYINT2=MPI_INTEGER2
-  INTEGER, SAVE :: MYCOMM=MPI_COMM_WORLD
+  INTEGER, parameter :: MYFLOAT=MPI_DOUBLE_PRECISION
+  INTEGER, parameter :: MYINT=MPI_INTEGER
+  INTEGER, parameter :: MYINT1=MPI_INTEGER1
+  INTEGER, parameter :: MYINT2=MPI_INTEGER2
+  INTEGER, parameter :: MYCOMM=MPI_COMM_WORLD
 
 #endif
 !!! temporary parameter
@@ -60,7 +62,7 @@ MODULE lbempi_mod
   INTEGER, PARAMETER :: tag_isfluid=movetag*4
   
   integer rc, ierr
-  integer,PUBLIC :: lnofsite, itpppsize
+  integer,PUBLIC, protected :: lnofsite, itpppsize
 
   integer, protected, public :: domdec
   integer, parameter :: syncsend=1

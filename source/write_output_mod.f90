@@ -14,9 +14,9 @@
   
  use version_mod,    only : idrank,mxrank,get_sync_world,finalize_world, &
   bcast_world_i,open_file_vtk_par,close_file_vtk_par, &
-  print_header_vtk_par,print_footer_vtk_par
- use lbempi_mod,     only : gminx,gmaxx,gminy,gmaxy,gminz,gmaxz,ownern,&
-  i4back
+  print_header_vtk_par,print_footer_vtk_par,gminx,gmaxx,gminy,gmaxy, &
+  gminz,gmaxz,ownern,i4back,driving_print_binary_1d_vtk, &
+  driving_print_binary_3d_vtk
  use error_mod
  use utility_mod,    only : write_fmtnumb,ltest_mode, &
   test_little_endian,space_fmtnumb12,space_fmtnumb
@@ -678,11 +678,11 @@
   call print_header_vtk(ioprint,0,nheader,header,E_IO)
   
   if(ndim==1)then
-    call print_binary_1d_vtk(ioprint,headoff,ndata,nn,reshape(service1,(/nn/)), &
+    call driving_print_binary_1d_vtk(ioprint,headoff,ndata,nn,service1, &
      iost)
   elseif(ndim==3)then
-    call print_binary_3d_vtk(ioprint,headoff,ndata,nn,reshape(service1,(/nn/)), &
-     reshape(service2,(/nn/)),reshape(service3,(/nn/)),iost)
+    call driving_print_binary_3d_vtk(ioprint,headoff,ndata,nn,service1, &
+     service2,service3,iost)
   endif
   
   endoff=headoff+ndata+byteint
@@ -723,9 +723,7 @@
   real(kind=PRC), allocatable, dimension(:,:,:) :: myvar
   real(kind=PRC), allocatable, dimension(:,:,:), optional :: myvary,myvarz
   integer :: e_io,nnt
-  real(kind=4), allocatable, dimension(:,:,:) :: service1
-   
-  real(kind=4), allocatable, dimension(:,:,:,:) :: service4
+  real(kind=4), allocatable, dimension(:,:,:) :: service1,service2,service3
   
   character(len=120) :: sevt
   integer :: l,ii,jj,kk,i,j,k,myindex,iost,endoff
@@ -784,14 +782,18 @@
     endif
   elseif(ndim==3)then
     !requested vector field in output
-    allocate(service4(1:3,nx1:nx2,ny1:ny2,nz1:nz2))
-    service4(1:3,nx1:nx2,ny1:ny2,nz1:nz2)=ZERO
+    allocate(service1(nx1:nx2,ny1:ny2,nz1:nz2))
+    allocate(service2(nx1:nx2,ny1:ny2,nz1:nz2))
+    allocate(service3(nx1:nx2,ny1:ny2,nz1:nz2))
+    service1(nx1:nx2,ny1:ny2,nz1:nz2)=ZERO
+    service2(nx1:nx2,ny1:ny2,nz1:nz2)=ZERO
+    service3(nx1:nx2,ny1:ny2,nz1:nz2)=ZERO
     do k=minz,maxz
       do j=miny,maxy
         do i=minx,maxx
-          service4(1,i,j,k)=real(myvar(i,j,k),kind=4)
-          service4(2,i,j,k)=real(myvary(i,j,k),kind=4)
-          service4(3,i,j,k)=real(myvarz(i,j,k),kind=4)
+          service1(i,j,k)=real(myvar(i,j,k),kind=4)
+          service2(i,j,k)=real(myvary(i,j,k),kind=4)
+          service3(i,j,k)=real(myvarz(i,j,k),kind=4)
         enddo
       enddo
     enddo
@@ -811,17 +813,19 @@
   if(idrank==0)call print_footer_vtk_par(ioprint,endoff,footer,E_IO)
   
   if(ndim==1)then
-    call print_binary_1d_vtk_par(ioprint,headoff,ndata,nn,service1, &
+    call driving_print_binary_1d_vtk(ioprint,headoff,ndata,nn,service1, &
      iost)
   elseif(ndim==3)then
-    call print_binary_3d_vtk_par(ioprint,headoff,ndata,nn,service4,iost)
+    call driving_print_binary_3d_vtk(ioprint,headoff,ndata,nn,service1, &
+     service2,service3,iost)
   endif
   
   call close_file_vtk_par(ioprint,e_io)
   
   if(allocated(service1))deallocate(service1)
-  if(allocated(service4))deallocate(service4)
- 
+  if(allocated(service2))deallocate(service2)
+  if(allocated(service3))deallocate(service3)
+  
   return
      
  end subroutine write_vtk_frame_parallel
@@ -926,62 +930,6 @@
   return
   
  endsubroutine print_footer_vtk
- 
- subroutine print_binary_1d_vtk(iotest,headoff,nbyte,nn,myvar1d,E_IO)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for writing a scalar field with single
-!     precision in VTK legacy binary format in serial IO
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification October 2019
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer, intent(in) :: iotest,headoff,nbyte,nn
-  real(4), intent(in), dimension(nn) :: myvar1d
-  integer, intent(out) :: E_IO
-  
-  integer :: ii
-  
-  write(iotest,iostat=E_IO)int(nbyte,kind=4),(myvar1d(ii),ii=1,nn)
-  
-  return
-  
- end subroutine print_binary_1d_vtk
- 
- subroutine print_binary_3d_vtk(iotest,headoff,nbyte,nn,myvarx,myvary,myvarz, &
-  E_IO)
-  
-!***********************************************************************
-!     
-!     LBsoft subroutine for writing a vector field with single
-!     precision in VTK legacy binary format in serial IO
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification October 2019
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer, intent(in) :: iotest,headoff,nbyte,nn
-  real(4), intent(in), dimension(nn) :: myvarx,myvary,myvarz
-  integer, intent(out) :: E_IO
-  
-  integer :: ii
-  
-  write(iotest,iostat=E_IO)int(nbyte,kind=4),(myvarx(ii),myvary(ii), &
-   myvarz(ii),ii=1,nn)
-  
-  return
-  
- end subroutine print_binary_3d_vtk
  
  subroutine initialize_vtk
  

@@ -12,15 +12,16 @@
 !     
 !***********************************************************************
  
- use version_mod
+ use version_mod,           only : idrank,set_domdec,set_domain, &
+  domdec,nprocx,nprocy,nprocz,bcast_world_l,bcast_world_larr, &
+  bcast_world_i,bcast_world_iarr,bcast_world_f,bcast_world_farr, &
+  get_sync_world,bcast_world_carr,print_version
  use parse_module
  use error_mod
  use profiling_mod,         only : set_value_idiagnostic, &
   set_value_ldiagnostic,idiagnostic,ldiagnostic
  use utility_mod,           only : write_fmtnumb,pi,get_prntime, &
   linit_seed,ltest_mode,conv_rad
- use lbempi_mod,            only : set_domdec,set_domain,domdec, &
-  nprocx,nprocy,nprocz
 
  use fluids_mod,            only : nx,ny,nz,set_initial_dist_type, &
   set_mean_value_dens_fluids,set_stdev_value_dens_fluids,idistselect, &
