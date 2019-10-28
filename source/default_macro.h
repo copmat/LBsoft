@@ -1,6 +1,5 @@
 #define CYCLE_OUT_INTERVAL(x, a,b) if ((x)<(a) .or. (x)>(b)) cycle
 
-#define noALLAFAB
 #define DEOWERN
 
 #define noDEBUG_FORCEINT

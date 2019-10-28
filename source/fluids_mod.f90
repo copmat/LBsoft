@@ -3989,22 +3989,11 @@
     
 
 #ifdef MPI
-#ifdef ALLAFAB
-  call mpisendpops(aoptpR)
 
-  call mpirecvpops(aoptpR)
-
-  call stream_nocopy(f01R,&
-  f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
-  f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
-#else
   call commspop(aoptpR)
-#endif
 
 
 
-#ifdef ALLAFAB
-#else
 
 #ifdef STREAM_NOCOPY
 
@@ -4041,17 +4030,15 @@
   call stream_copy(f17R, 17)
   call stream_copy(f18R, 18)
 #endif /* STREAM_NOCOPY */
-#endif
+
 
 
 #ifdef MPI
-#ifdef ALLAFAB
-  call mpibounceback(aoptpR)
-#else
+
   call manage_bc_pop_selfcomm(aoptpR,lparticles)
 
   call commrpop(aoptpR,lparticles,isfluid)
-#endif
+
 #else
   call manage_bc_pop_selfcomm(aoptpR,lparticles)
 #endif
@@ -4070,22 +4057,13 @@
   if(lsingle_fluid)return
   
 #ifdef MPI
-#ifdef ALLAFAB
-  call mpisendpops(aoptpB)
 
-  call mpirecvpops(aoptpB)
-
-  call stream_nocopy(f01B,&
-  f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
-  f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
-#else
   call commspop(aoptpB)
-#endif
+
 #endif
 
 
-#ifdef ALLAFAB
-#else
+
 #ifdef STREAM_NOCOPY
   if(lparticles)then
   
@@ -4120,16 +4098,14 @@
   call stream_copy(f17B, 17)
   call stream_copy(f18B, 18)
 #endif /* STREAM_NOCOPY */
-#endif
+
   
 #ifdef MPI
-#ifdef ALLAFAB
-  call mpibounceback(aoptpB)
-#else
+
   call manage_bc_pop_selfcomm(aoptpB,lparticles)
 
   call commrpop(aoptpB,lparticles,isfluid)
-#endif
+
 #else
   call manage_bc_pop_selfcomm(aoptpB,lparticles)
 #endif
@@ -6057,13 +6033,7 @@
   implicit none
   Logical, save   :: isFirst = .true.
 
-#ifdef ALLAFAB
-    call mpisend_isfluid(isfluid, isFirst)
-    call mpirecv_isfluid(isfluid)
 
-    isFirst = .false.
-    return
-#endif
   
 #ifdef MPI
     call commexch_isfluid(isfluid)
@@ -6107,19 +6077,7 @@
   implicit none
   Logical, save   :: isFirst = .true.
   
-#ifdef ALLAFAB
-    if(lexch_dens)then
-        call mpisend_hvar(rhoR, isFirst)
-        call mpirecv_hvar(rhoR)
-        if(.not. lsingle_fluid)then
-            call mpisend_hvar(rhoB, isFirst)
-            call mpirecv_hvar(rhoB)
-        endif
 
-        isFirst = .false.
-    endif
-    return
-#endif
   
   if(lexch_dens)then
 #ifdef MPI
@@ -6698,67 +6656,55 @@
 
   if(lexch_u)then
 #ifdef MPI
-#ifdef ALLAFAB
-    call mpisend_hvar(u, isFirst)
-#else
+
     call commexch_vel_component(u)
-#endif
+
 #endif
 
-#ifndef ALLAFAB
+
     call manage_bc_hvar_selfcomm(u_managebc)
-#endif
+
 
 #ifdef MPI
-#ifdef ALLAFAB
-    call mpirecv_hvar(u)
-#else
+
     call commwait_vel_component(u)
-#endif
+
 #endif
   endif
   
   if(lexch_v)then
 #ifdef MPI
-#ifdef ALLAFAB
-    call mpisend_hvar(v, isFirst)
-#else
+
     call commexch_vel_component(v)
-#endif
+
 #endif
 
-#ifndef ALLAFAB
+
     call manage_bc_hvar_selfcomm(v_managebc)
-#endif
+
 
 #ifdef MPI
-#ifdef ALLAFAB
-    call mpirecv_hvar(v)
-#else
+
     call commwait_vel_component(v)
-#endif
+
 #endif
   endif
   
   if(lexch_w)then
 #ifdef MPI
-#ifdef ALLAFAB
-    call mpisend_hvar(w, isFirst)
-#else
+
     call commexch_vel_component(w)
-#endif
+
 #endif
 
-#ifndef ALLAFAB
+
     call manage_bc_hvar_selfcomm(w_managebc)
-#endif
+
 
 #ifdef MPI
-#ifdef ALLAFAB
-    call mpirecv_hvar(w)
-#else
+
     call commwait_vel_component(w)
-#endif
+
 #endif
   endif
   
@@ -7159,10 +7105,9 @@
   
   call set_bc_variable_hvar
   
-#ifdef ALLAFAB
-#else
+
   call apply_bounceback_pop(bc_rhoR,bc_u,bc_v,bc_w,aoptpR)
-#endif
+
 
   
 #ifdef DIAGNSTREAM
