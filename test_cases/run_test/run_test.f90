@@ -202,7 +202,7 @@
   
   lxyzfile(1:10)=.false.
   lxyzfile(11:ntest)=.true.
-  lskip(1:ntest)=.true.
+  !lskip(1:ntest)=.true.
   lskip(1:ntest)=.false.
   !lskip(15)=.false.
   lerase=.true.

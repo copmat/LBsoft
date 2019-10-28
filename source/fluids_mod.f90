@@ -34,13 +34,6 @@
                    rand_noseeded,linit_seed,gauss_noseeded,write_fmtnumb, &
                    openLogFile
 
-#ifdef MPI           
- use mpi_comm, only : mpisendpops, mpirecvpops, mpibounceback, mpisend_hvar, mpirecv_hvar, &
-                        mpisend_isfluid, mpirecv_isfluid, mpisendrecvhalopops, &
-                        mpi_writeFile, mpi_writeFile_int, mpi_writeFile_pops, &
-                        mpi_readFile, mpi_readFile_int, mpi_readFile_pops
-#endif
-
  
  implicit none
  
@@ -16020,27 +16013,27 @@ end subroutine fix_onebelt_density_twofluids
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpBin/RhoR.' // write_fmtnumb(nstep) //'.raw'
-#ifdef MPI
-     call mpi_writeFile(nstep, mynamefile, rhoR, nbuff)
+
+     call collective_writeFile(nstep, mynamefile, rhoR, nbuff)
 
      if(.not. lsingle_fluid) then
       mynamefile=repeat(' ',120)
       mynamefile='dumpBin/RhoB.' // write_fmtnumb(nstep) //'.raw'
-      call mpi_writeFile(nstep, mynamefile, rhoB, nbuff)
+      call collective_writeFile(nstep, mynamefile, rhoB, nbuff)
      endif
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpBin/U.' // write_fmtnumb(nstep) //'.raw'
-     call mpi_writeFile(nstep, mynamefile, u, nbuff)
+     call collective_writeFile(nstep, mynamefile, u, nbuff)
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpBin/V.' // write_fmtnumb(nstep) //'.raw'
-     call mpi_writeFile(nstep, mynamefile, v, nbuff)
+     call collective_writeFile(nstep, mynamefile, v, nbuff)
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpBin/W.' // write_fmtnumb(nstep) //'.raw'
-     call mpi_writeFile(nstep, mynamefile, w, nbuff)
-#endif
+     call collective_writeFile(nstep, mynamefile, w, nbuff)
+
   endif
   
   return

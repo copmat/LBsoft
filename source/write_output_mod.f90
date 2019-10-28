@@ -21,9 +21,6 @@
  use utility_mod,    only : write_fmtnumb,ltest_mode, &
   test_little_endian,space_fmtnumb12,space_fmtnumb
   
-#ifdef MPI           
- use mpi_comm, only : print_binary_1d_vtk_par,print_binary_3d_vtk_par
-#endif
 
 
  use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w,lsingle_fluid, &
