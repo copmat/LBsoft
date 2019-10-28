@@ -40,7 +40,7 @@
  
  integer, protected, public :: domdec
  
- integer, save, dimension(3) :: ipbc
+ integer, save, dimension(3) :: ipbc,globalDims
  integer(kind=2), public, protected, allocatable :: ownern(:)
  integer, dimension(:), allocatable, public, protected :: gminx,gmaxx, &
    gminy,gmaxy,gminz,gmaxz
@@ -100,6 +100,8 @@
  public :: commwait_dens
  public :: commexch_vel_component
  public :: commwait_vel_component
+ public :: commexch_single_halo
+ public :: commwait_single_halo
  public :: commexch_isfluid
  public :: commwait_isfluid
  public :: comm_init_isfluid
@@ -110,7 +112,13 @@
  public :: ownernfind_arr
  public :: driving_print_binary_1d_vtk
  public :: driving_print_binary_3d_vtk
+ public :: collective_readFile_pops
+ public :: collective_writeFile_pops
  
+ public :: collective_readFile
+ public :: collective_readFile_int
+ public :: collective_writeFile
+ public :: collective_writeFile_int
  
  public :: commspop
  public :: commrpop
@@ -1167,6 +1175,10 @@
   nx_comm=nx
   ny_comm=ny
   nz_comm=nz
+  
+  globalDims(1)=nx
+  globalDims(2)=ny
+  globalDims(3)=nz
 
   nxy2=(nx+2*nbuff)*(ny+2*nbuff)
   nx2=nx+(2*nbuff)
@@ -1549,6 +1561,48 @@
    return
    
  END SUBROUTINE commwait_vel_component
+ 
+ subroutine commexch_single_halo(dtemp)
+
+!***********************************************************************
+!     
+!     LBsoft subroutine for exchanging velocities variables
+!     among MPI ranks
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+   
+   IMPLICIT NONE
+   
+   REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp
+   
+   return
+   
+ END SUBROUTINE commexch_single_halo
+   
+ SUBROUTINE commwait_single_halo(dtemp)
+
+!***********************************************************************
+!     
+!     LBsoft subroutine for waiting the exchange velocities 
+!     variables among MPI ranks
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+   
+   IMPLICIT NONE
+   
+   REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp
+   
+   return
+   
+ END SUBROUTINE commwait_single_halo
 
  pure function ownernfind_arr(i,j,k,nxs,nys,nzs,nbuffs,ownerns)
   
@@ -1735,13 +1789,382 @@
    return
 
  end subroutine deallocate_ownern
+ 
+ subroutine collective_writeFile(it, mynamefile, myvar, nbuff)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a scalar field with PRC
+!     precision in binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  REAL(KIND=PRC), dimension(:,:,:), allocatable :: myvar
+  integer, intent(in) :: it, nbuff
+  character(len=120),intent(in) :: mynamefile
+  integer :: ierr
+  
+  integer, parameter :: fh=914
+  
+  open(unit=fh,file=trim(mynamefile),action='write', &
+   status='replace',form='unformatted',access='stream',iostat=ierr)
+  
+  call write_binary_1d_bynary(fh,globalDims,myvar)
+  
+  close(unit=fh,iostat=ierr)
+  
+  return
+  
+ end subroutine collective_writeFile
+
+ subroutine collective_writeFile_int(it, mynamefile, myvar, nbuff)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a scalar field with INTEGER
+!     of 1 byte in binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  integer(kind=1), allocatable, dimension(:,:,:) :: myvar
+  integer, intent(in) :: it, nbuff
+  character(len=120),intent(in) :: mynamefile
+  integer :: ierr
+
+  integer, parameter :: fh=915
+  
+  open(unit=fh,file=trim(mynamefile),action='write', &
+   status='replace',form='unformatted',access='stream',iostat=ierr)
+  
+  call write_binary_1d_bynary_int(fh,globalDims,myvar)
+  
+  close(unit=fh,iostat=ierr)
+  
+  return
+  
+ end subroutine collective_writeFile_int
+ 
+ subroutine collective_readFile(it, mynamefile, myvar, nbuff)
+
+!***********************************************************************
+!     
+!     LBsoft subroutine for reading a scalar field with PRC
+!     precision in binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+
+  implicit none
+  REAL(KIND=PRC), dimension(:,:,:), allocatable :: myvar
+  integer, intent(in) :: it, nbuff
+  character(len=120),intent(in) :: mynamefile
+  integer :: ierr
+  
+  integer, parameter :: fh=912
+  
+  open(unit=fh,file=trim(mynamefile),action='read', &
+   status='old',form='unformatted',access='stream',iostat=ierr)
+  
+  call read_binary_1d_bynary(fh,globalDims,myvar)
+  
+  close(unit=fh,iostat=ierr)
+  
+  return
+ 
+ end subroutine collective_readFile
+
+ subroutine collective_readFile_int(it, mynamefile, myvar, nbuff)
+    
+!***********************************************************************
+!     
+!     LBsoft subroutine for reading a scalar field with INTEGER
+!     of 1 byte in binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+  implicit none
+  integer(kind=1), allocatable, dimension(:,:,:) :: myvar
+  integer, intent(in) :: it, nbuff
+  character(len=120),intent(in) :: mynamefile
+  integer :: ierr
+  
+  integer, parameter :: fh=913
+  
+  open(unit=fh,file=trim(mynamefile),action='read', &
+   status='old',form='unformatted',access='stream',iostat=ierr)
+  
+  call read_binary_1d_bynary_int(fh,globalDims,myvar)
+  
+  close(unit=fh,iostat=ierr)
+  
+  return
+  
+ end subroutine collective_readFile_int
+ 
+ subroutine collective_readFile_pops(it, mynamefile, f00,f01, &
+  f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18, &
+  nbuff)
+
+!***********************************************************************
+!     
+!     LBsoft subroutine for reading the pops with PRC
+!     precision in binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  REAL(kind=PRC), allocatable, dimension(:,:,:)  :: f00,f01, &
+   f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18
+  integer, intent(in) :: it, nbuff
+  character(len=120),intent(in) :: mynamefile
+  integer :: ierr
+  
+  integer, parameter :: fh=911
+  
+  open(unit=fh,file=trim(mynamefile),action='read', &
+   status='old',form='unformatted',access='stream',iostat=ierr)
+  
+  
+  call read_binary_1d_bynary(fh,globalDims,f00)
+  call read_binary_1d_bynary(fh,globalDims,f01)
+  call read_binary_1d_bynary(fh,globalDims,f02)
+  call read_binary_1d_bynary(fh,globalDims,f03)
+  call read_binary_1d_bynary(fh,globalDims,f04)
+  call read_binary_1d_bynary(fh,globalDims,f05)
+  call read_binary_1d_bynary(fh,globalDims,f06)
+  call read_binary_1d_bynary(fh,globalDims,f07)
+  call read_binary_1d_bynary(fh,globalDims,f08)
+  call read_binary_1d_bynary(fh,globalDims,f09)
+  call read_binary_1d_bynary(fh,globalDims,f10)
+  call read_binary_1d_bynary(fh,globalDims,f11)
+  call read_binary_1d_bynary(fh,globalDims,f12)
+  call read_binary_1d_bynary(fh,globalDims,f13)
+  call read_binary_1d_bynary(fh,globalDims,f14)
+  call read_binary_1d_bynary(fh,globalDims,f15)
+  call read_binary_1d_bynary(fh,globalDims,f16)
+  call read_binary_1d_bynary(fh,globalDims,f17)
+  call read_binary_1d_bynary(fh,globalDims,f18)
+  
+
+  close(unit=fh,iostat=ierr)
+  
+  return
+  
+ end subroutine collective_readFile_pops
+ 
+ subroutine read_binary_1d_bynary(myio,mydim,myvar)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for reading a scalar field with PRC
+!     precision in binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: myio
+  integer, intent(in), dimension(3) :: mydim
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: myvar
+  
+  integer :: i,j,k
+  
+  do k=1,mydim(3)
+    do j=1,mydim(2)
+      do i=1,mydim(1)
+        read(myio)myvar(i,j,k)
+      enddo
+    enddo
+  enddo
+  
+  return
+ 
+ end subroutine read_binary_1d_bynary
+ 
+ subroutine read_binary_1d_bynary_int(myio,mydim,myvar)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for reading a scalar field of INTEGER
+!     with 1 byte in binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: myio
+  integer, intent(in), dimension(3) :: mydim
+  integer(kind=1), allocatable, dimension(:,:,:)  :: myvar
+  
+  integer :: i,j,k
+  
+  do k=1,mydim(3)
+    do j=1,mydim(2)
+      do i=1,mydim(1)
+        read(myio)myvar(i,j,k)
+      enddo
+    enddo
+  enddo
+  
+  return
+ 
+ end subroutine read_binary_1d_bynary_int
+ 
+ subroutine collective_writeFile_pops(it, mynamefile, f00,f01, &
+  f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18, &
+  nbuff)
+
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the pops with PRC
+!     precision in binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  REAL(kind=PRC), allocatable, dimension(:,:,:)  :: f00,f01, &
+   f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18
+  integer, intent(in) :: it, nbuff
+  character(len=120),intent(in) :: mynamefile
+  integer :: ierr
+  
+  integer, parameter :: fh=911
+  
+  open(unit=fh,file=trim(mynamefile),action='write', &
+   status='replace',form='unformatted',access='stream',iostat=ierr)
+  
+  
+  call write_binary_1d_bynary(fh,globalDims,f00)
+  call write_binary_1d_bynary(fh,globalDims,f01)
+  call write_binary_1d_bynary(fh,globalDims,f02)
+  call write_binary_1d_bynary(fh,globalDims,f03)
+  call write_binary_1d_bynary(fh,globalDims,f04)
+  call write_binary_1d_bynary(fh,globalDims,f05)
+  call write_binary_1d_bynary(fh,globalDims,f06)
+  call write_binary_1d_bynary(fh,globalDims,f07)
+  call write_binary_1d_bynary(fh,globalDims,f08)
+  call write_binary_1d_bynary(fh,globalDims,f09)
+  call write_binary_1d_bynary(fh,globalDims,f10)
+  call write_binary_1d_bynary(fh,globalDims,f11)
+  call write_binary_1d_bynary(fh,globalDims,f12)
+  call write_binary_1d_bynary(fh,globalDims,f13)
+  call write_binary_1d_bynary(fh,globalDims,f14)
+  call write_binary_1d_bynary(fh,globalDims,f15)
+  call write_binary_1d_bynary(fh,globalDims,f16)
+  call write_binary_1d_bynary(fh,globalDims,f17)
+  call write_binary_1d_bynary(fh,globalDims,f18)
+  
+
+  close(unit=fh,iostat=ierr)
+  
+  return
+  
+ end subroutine collective_writeFile_pops
+ 
+ subroutine write_binary_1d_bynary(myio,mydim,myvar)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a scalar field with PRC
+!     precision in binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: myio
+  integer, intent(in), dimension(3) :: mydim
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: myvar
+  
+  integer :: i,j,k
+  
+  do k=1,mydim(3)
+    do j=1,mydim(2)
+      do i=1,mydim(1)
+        write(myio)myvar(i,j,k)
+      enddo
+    enddo
+  enddo
+  
+  return
+ 
+ end subroutine write_binary_1d_bynary
+ 
+ subroutine write_binary_1d_bynary_int(myio,mydim,myvar)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a scalar field of INTEGER
+!     with 1 byte in binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: myio
+  integer, intent(in), dimension(3) :: mydim
+  integer(kind=1), allocatable, dimension(:,:,:)  :: myvar
+  
+  integer :: i,j,k
+  
+  do k=1,mydim(3)
+    do j=1,mydim(2)
+      do i=1,mydim(1)
+        write(myio)myvar(i,j,k)
+      enddo
+    enddo
+  enddo
+  
+  return
+ 
+ end subroutine write_binary_1d_bynary_int
   
  subroutine driving_print_binary_1d_vtk(iotest,headoff,nbyte,nn,myvar,e_io)
  
 !***********************************************************************
 !     
 !     LBsoft subroutine for writing a scalar field with single
-!     precision in VTK legacy binary format in parallel IO
+!     precision in VTK legacy binary format in serial IO
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella
@@ -1795,7 +2218,7 @@
 !***********************************************************************
 !     
 !     LBsoft subroutine for writing a vector field with single
-!     precision in VTK legacy binary format in parallel IO
+!     precision in VTK legacy binary format in serial IO
 !     
 !     licensed under Open Software License v. 3.0 (OSL-3.0)
 !     author: M. Lauricella

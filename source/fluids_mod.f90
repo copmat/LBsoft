@@ -20,7 +20,10 @@
                    commwait_dens,comm_init_isfluid,commexch_vel_component, &
                    commwait_vel_component,commexch_isfluid, &
                    commwait_isfluid,commexch_single_halo, &
-                   commwait_single_halo
+                   commwait_single_halo,collective_readFile_pops, &
+                   collective_writeFile_pops,collective_readFile, &
+                   collective_readFile_int,collective_writeFile, &
+                   collective_writeFile_int
  use error_mod
  use aop_mod
  use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
@@ -6976,7 +6979,6 @@
  subroutine driver_bc_pops()
   implicit none
  
-#if 1
  
  call commexch_single_halo(f00R)
  call manage_bc_singlehalo_selfcomm(f00R)
@@ -7131,14 +7133,6 @@
  call commexch_single_halo(f18B)
  call manage_bc_singlehalo_selfcomm(f18B)
  call commwait_single_halo(f18B)
-
-
-#else
-  call mpisendrecvHALOpops(aoptpR, rhoR)
-  if(lsingle_fluid)return
-  
-  call mpisendrecvHALOpops(aoptpB, rhoB)
-#endif
 
   
  end subroutine driver_bc_pops
@@ -15788,8 +15782,8 @@ end subroutine fix_onebelt_density_twofluids
      mynamefile=repeat(' ',120)
      !mynamefile='dumpPopsR.' // write_fmtnumb(nstep) //'.dat'
      mynamefile='dumpPopsR.' // mysave //'.dat'
-#ifdef MPI
-     call mpi_writeFile_pops(nstep, mynamefile, &
+
+     call collective_writeFile_pops(nstep, mynamefile, &
        f00R,f01R,f02R,f03R,f04R, &
        f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
        f14R,f15R,f16R,f17R,f18R, nbuff)
@@ -15797,7 +15791,7 @@ end subroutine fix_onebelt_density_twofluids
      if(.not. lsingle_fluid) then
       mynamefile=repeat(' ',120)
       mynamefile='dumpPopsB.' // mysave //'.dat'
-      call mpi_writeFile_pops(nstep, mynamefile, &
+      call collective_writeFile_pops(nstep, mynamefile, &
        f00B,f01B,f02B,f03B,f04B, &
        f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B, &
        f14B,f15B,f16B,f17B,f18B, nbuff)
@@ -15806,30 +15800,30 @@ end subroutine fix_onebelt_density_twofluids
      ! Conservative: dump also hvars & isfluid
      mynamefile=repeat(' ',120)
      mynamefile='dumpRhoR.' // mysave //'.dat'
-     call mpi_writeFile(nstep, mynamefile, rhoR, nbuff)
+     call collective_writeFile(nstep, mynamefile, rhoR, nbuff)
 
      if(.not. lsingle_fluid) then
       mynamefile=repeat(' ',120)
       mynamefile='dumpRhoB.' // mysave //'.dat'
-      call mpi_writeFile(nstep, mynamefile, rhoB, nbuff)
+      call collective_writeFile(nstep, mynamefile, rhoB, nbuff)
      endif
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpU.' // mysave //'.dat'
-     call mpi_writeFile(nstep, mynamefile, u, nbuff)
+     call collective_writeFile(nstep, mynamefile, u, nbuff)
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpV.' // mysave //'.dat'
-     call mpi_writeFile(nstep, mynamefile, v, nbuff)
+     call collective_writeFile(nstep, mynamefile, v, nbuff)
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpW.' // mysave //'.dat'
-     call mpi_writeFile(nstep, mynamefile, w, nbuff)
+     call collective_writeFile(nstep, mynamefile, w, nbuff)
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpisFluid.' // mysave //'.dat'
-     call mpi_writeFile_int(nstep, mynamefile, isfluid, nbuff)
-#endif
+     call collective_writeFile_int(nstep, mynamefile, isfluid, nbuff)
+
 
    endif
    
@@ -15866,7 +15860,7 @@ end subroutine fix_onebelt_density_twofluids
        call warning(54,real(1.0,kind=PRC),trim(mynamefile))
        call error(36)
      endif
-     call mpi_readFile_pops(nstep, mynamefile, &
+     call collective_readFile_pops(nstep, mynamefile, &
        f00R,f01R,f02R,f03R,f04R, &
        f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
        f14R,f15R,f16R,f17R,f18R, nbuff)
@@ -15879,7 +15873,7 @@ end subroutine fix_onebelt_density_twofluids
         call warning(54,real(1.0,kind=PRC),trim(mynamefile))
         call error(36)
       endif
-      call mpi_readFile_pops(nstep, mynamefile, &
+      call collective_readFile_pops(nstep, mynamefile, &
        f00B,f01B,f02B,f03B,f04B, &
        f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B, &
        f14B,f15B,f16B,f17B,f18B, nbuff)
@@ -15893,7 +15887,7 @@ end subroutine fix_onebelt_density_twofluids
        call warning(54,real(1.0,kind=PRC),trim(mynamefile))
        call error(36)
      endif
-     call mpi_readFile(nstep, mynamefile, rhoR, nbuff)
+     call collective_readFile(nstep, mynamefile, rhoR, nbuff)
 
      if(.not. lsingle_fluid) then
       mynamefile=repeat(' ',120)
@@ -15903,7 +15897,7 @@ end subroutine fix_onebelt_density_twofluids
         call warning(54,real(1.0,kind=PRC),trim(mynamefile))
         call error(36)
       endif
-      call mpi_readFile(nstep, mynamefile, rhoB, nbuff)
+      call collective_readFile(nstep, mynamefile, rhoB, nbuff)
      endif
 
      mynamefile=repeat(' ',120)
@@ -15913,7 +15907,7 @@ end subroutine fix_onebelt_density_twofluids
        call warning(54,real(1.0,kind=PRC),trim(mynamefile))
        call error(36)
      endif
-     call mpi_readFile(nstep, mynamefile, u, nbuff)
+     call collective_readFile(nstep, mynamefile, u, nbuff)
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpV.restart.dat'
@@ -15922,7 +15916,7 @@ end subroutine fix_onebelt_density_twofluids
        call warning(54,real(1.0,kind=PRC),trim(mynamefile))
        call error(36)
      endif
-     call mpi_readFile(nstep, mynamefile, v, nbuff)
+     call collective_readFile(nstep, mynamefile, v, nbuff)
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpW.restart.dat'
@@ -15931,7 +15925,7 @@ end subroutine fix_onebelt_density_twofluids
        call warning(54,real(1.0,kind=PRC),trim(mynamefile))
        call error(36)
      endif
-     call mpi_readFile(nstep, mynamefile, w, nbuff)
+     call collective_readFile(nstep, mynamefile, w, nbuff)
 
      mynamefile=repeat(' ',120)
      mynamefile='dumpisFluid.restart.dat'
@@ -15940,7 +15934,7 @@ end subroutine fix_onebelt_density_twofluids
        call warning(54,real(1.0,kind=PRC),trim(mynamefile))
        call error(36)
      endif
-     call mpi_readFile_int(nstep, mynamefile, isfluid, nbuff)
+     call collective_readFile_int(nstep, mynamefile, isfluid, nbuff)
 
      call driver_bc_densities
      call driver_bc_velocities

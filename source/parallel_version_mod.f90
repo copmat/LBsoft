@@ -227,6 +227,13 @@
  public :: create_findneigh_list_pops
  public :: driving_print_binary_1d_vtk
  public :: driving_print_binary_3d_vtk
+ public :: collective_readFile_pops
+ public :: collective_writeFile_pops
+ 
+ public :: collective_readFile
+ public :: collective_readFile_int
+ public :: collective_writeFile
+ public :: collective_writeFile_int
  
  public :: ownernfind
  public :: ownernfind_arr
@@ -4799,6 +4806,406 @@
   return
   
  end subroutine driving_print_binary_1d_vtk
+ 
+ subroutine collective_writeFile(it, mynamefile, myvar, nbuff)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a scalar field with PRC
+!     precision in binary format in parallel IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  REAL(KIND=PRC), dimension(:,:,:), allocatable :: myvar
+  integer, intent(in) :: it, nbuff
+  character(len=120),intent(in) :: mynamefile
+  integer :: ierr,fh, filetype,mystarts(3),i
+  integer :: memDims(3),memOffs(3), imemtype
+  integer (kind=MPI_OFFSET_KIND) offset
+  INTEGER STATUS(MPI_STATUS_SIZE)
+
+
+  call MPI_FILE_OPEN(MPI_COMM_WORLD, mynamefile, &
+   MPI_MODE_CREATE+MPI_MODE_WRONLY, &
+   MPI_INFO_NULL, fh, ierr)
+  !if (idrank== 0) print *, "MPI_FILE_OPEN)fh=",fh,"ierr=",ierr
+
+  ! We need global sizes: globalDims
+  ! We need local sizes: lDims
+  ! We need start indices: mymin-1
+  mystarts = mymin - 1
+
+  call MPI_Type_create_subarray(3, globalDims, lDims, mystarts, &
+   MPI_ORDER_FORTRAN, MPI_DOUBLE_PRECISION, filetype, ierr);
+  !if (idrank== 0) print *, "MPI_Type_create_subarray)ierr=",ierr, globalDims, lDims, mystarts
+
+  call MPI_Type_commit(filetype, ierr);
+
+  call MPI_File_Set_View(fh, 0_MPI_OFFSET_KIND, MPI_DOUBLE, filetype, &
+   "native", MPI_INFO_NULL, ierr)
+  !if (idrank== 0) print *, "MPI_File_Set_View)ierr=",ierr
+
+  ! We need full local sizes: memDims
+  memDims = lDims + 2*nbuff
+  memOffs = [ nbuff, nbuff, nbuff ]
+
+  call MPI_TYPE_CREATE_SUBARRAY(3, memDims, lDims, memOffs, &
+   MPI_ORDER_FORTRAN, MPI_DOUBLE, imemtype, ierr)
+  !if (idrank== 0) print *, "MPI_Type_create_subarray)ierr=",ierr, memDims, lDims, memOffs
+
+  call MPI_TYPE_COMMIT(imemtype, ierr)
+
+  call MPI_FILE_WRITE_ALL(fh, myvar, 1, imemtype, status, ierr)
+  !if (idrank== 0) print *, "MPI_FILE_WRITE_ALL)ierr=",ierr
+
+  call MPI_FILE_CLOSE(fh, ierr)
+  
+  return
+  
+ end subroutine collective_writeFile
+
+ subroutine collective_writeFile_int(it, mynamefile, myvar, nbuff)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a scalar field with INTEGER
+!     of 1 byte in binary format in parallel IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  integer(kind=1), allocatable, dimension(:,:,:) :: myvar
+  integer, intent(in) :: it, nbuff
+  character(len=120),intent(in) :: mynamefile
+  integer :: ierr,fh, filetype,mystarts(3),i
+  integer :: memDims(3),memOffs(3), imemtype
+  integer (kind=MPI_OFFSET_KIND) offset
+  INTEGER STATUS(MPI_STATUS_SIZE)
+
+
+  call MPI_FILE_OPEN(MPI_COMM_WORLD, mynamefile, &
+   MPI_MODE_CREATE+MPI_MODE_WRONLY, &
+   MPI_INFO_NULL, fh, ierr)
+  !if (id_rank== 0) print *, "MPI_FILE_OPEN)fh=",fh,"ierr=",ierr
+
+  ! We need global sizes: globalDims
+  ! We need local sizes: lDims
+  ! We need start indices: mymin-1
+  mystarts = mymin - 1
+
+  call MPI_Type_create_subarray(3, globalDims, lDims, mystarts, &
+   MPI_ORDER_FORTRAN, MPI_CHAR, filetype, ierr);
+  !if (id_rank== 0) print *, "MPI_Type_create_subarray)ierr=",ierr, globalDims, lDims, mystarts
+
+  call MPI_Type_commit(filetype, ierr);
+
+  call MPI_File_Set_View(fh, 0_MPI_OFFSET_KIND, MPI_CHAR, filetype, &
+   "native", MPI_INFO_NULL, ierr)
+  !if (id_rank== 0) print *, "MPI_File_Set_View)ierr=",ierr
+
+  ! We need full local sizes: memDims
+  memDims = lDims + 2*nbuff
+  memOffs = [ nbuff, nbuff, nbuff ]
+
+  call MPI_TYPE_CREATE_SUBARRAY(3, memDims, lDims, memOffs, &
+   MPI_ORDER_FORTRAN, MPI_CHAR, imemtype, ierr)
+  !if (id_rank== 0) print *, "MPI_Type_create_subarray)ierr=",ierr, memDims, lDims, memOffs
+
+  call MPI_TYPE_COMMIT(imemtype, ierr)
+
+  call MPI_FILE_WRITE_ALL(fh, myvar, 1, imemtype, status, ierr)
+  !if (id_rank== 0) print *, "MPI_FILE_WRITE_ALL)ierr=",ierr
+
+  call MPI_FILE_CLOSE(fh, ierr)
+  
+  return
+  
+ end subroutine collective_writeFile_int
+ 
+ subroutine collective_readFile(it, mynamefile, myvar, nbuff)
+
+!***********************************************************************
+!     
+!     LBsoft subroutine for reading a scalar field with PRC
+!     precision in binary format in parallel IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+
+  implicit none
+  REAL(KIND=PRC), dimension(:,:,:), allocatable :: myvar
+  integer, intent(in) :: it, nbuff
+  character(len=120),intent(in) :: mynamefile
+  integer :: ierr,fh, filetype,mystarts(3),i
+  integer :: memDims(3),memOffs(3), imemtype
+  integer (kind=MPI_OFFSET_KIND) offset
+  INTEGER STATUS(MPI_STATUS_SIZE)
+
+
+  call MPI_FILE_OPEN(MPI_COMM_WORLD, mynamefile, &
+    MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
+  !if (id_rank== 0) print *, "MPI_FILE_OPEN)fh=",fh,"ierr=",ierr
+
+  ! We need global sizes: globalDims
+  ! We need local sizes: lDims
+  ! We need start indices: mymin-1
+  mystarts = mymin - 1
+
+  call MPI_Type_create_subarray(3, globalDims, lDims, mystarts, &
+    MPI_ORDER_FORTRAN, MPI_DOUBLE_PRECISION, filetype, ierr);
+  !if (id_rank== 0) print *, "MPI_Type_create_subarray)ierr=",ierr, globalDims, lDims, mystarts
+
+  call MPI_Type_commit(filetype, ierr);
+
+  call MPI_File_Set_View(fh, 0_MPI_OFFSET_KIND, MPI_DOUBLE, filetype, &
+    "native", MPI_INFO_NULL, ierr)
+  !if (id_rank== 0) print *, "MPI_File_Set_View)ierr=",ierr
+
+  ! We need full local sizes: memDims
+  memDims = lDims + 2*nbuff
+  memOffs = [ nbuff, nbuff, nbuff ]
+
+  call MPI_TYPE_CREATE_SUBARRAY(3, memDims, lDims, memOffs, &
+   MPI_ORDER_FORTRAN, MPI_DOUBLE, imemtype, ierr)
+  !if (id_rank== 0) print *, "MPI_Type_create_subarray)ierr=",ierr, memDims, lDims, memOffs
+
+  call MPI_TYPE_COMMIT(imemtype, ierr)
+
+  call MPI_FILE_READ_ALL(fh, myvar, 1, imemtype, status, ierr)
+  !if (id_rank== 0) print *, "MPI_FILE_WRITE_ALL)ierr=",ierr
+
+  call MPI_FILE_CLOSE(fh, ierr)
+  
+  return
+ 
+ end subroutine collective_readFile
+
+ subroutine collective_readFile_int(it, mynamefile, myvar, nbuff)
+    
+!***********************************************************************
+!     
+!     LBsoft subroutine for reading a scalar field with INTEGER
+!     of 1 byte in binary format in parallel IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+  implicit none
+  integer(kind=1), allocatable, dimension(:,:,:) :: myvar
+  integer, intent(in) :: it, nbuff
+  character(len=120),intent(in) :: mynamefile
+  integer :: ierr,fh, filetype,mystarts(3),i
+  integer :: memDims(3),memOffs(3), imemtype
+  integer (kind=MPI_OFFSET_KIND) offset
+  INTEGER STATUS(MPI_STATUS_SIZE)
+
+
+  call MPI_FILE_OPEN(MPI_COMM_WORLD, mynamefile, &
+    MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
+  !if (id_rank== 0) print *, "MPI_FILE_OPEN)fh=",fh,"ierr=",ierr
+
+  ! We need global sizes: globalDims
+  ! We need local sizes: lDims
+  ! We need start indices: mymin-1
+  mystarts = mymin - 1
+
+  call MPI_Type_create_subarray(3, globalDims, lDims, mystarts, &
+    MPI_ORDER_FORTRAN, MPI_CHAR, filetype, ierr);
+
+  call MPI_Type_commit(filetype, ierr);
+
+  call MPI_File_Set_View(fh, 0_MPI_OFFSET_KIND, MPI_CHAR, filetype, &
+    "native", MPI_INFO_NULL, ierr)
+
+  ! We need full local sizes: memDims
+  memDims = lDims + 2*nbuff
+  memOffs = [ nbuff, nbuff, nbuff ]
+
+  call MPI_TYPE_CREATE_SUBARRAY(3, memDims, lDims, memOffs, &
+   MPI_ORDER_FORTRAN, MPI_CHAR, imemtype, ierr)
+
+  call MPI_TYPE_COMMIT(imemtype, ierr)
+
+  call MPI_FILE_READ_ALL(fh, myvar, 1, imemtype, status, ierr)
+
+  call MPI_FILE_CLOSE(fh, ierr)
+  
+  return
+  
+ end subroutine collective_readFile_int
+ 
+ subroutine collective_readFile_pops(it, mynamefile, f00,f01, &
+  f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18, &
+  nbuff)
+
+!***********************************************************************
+!     
+!     LBsoft subroutine for reading a scalar field with PRC
+!     precision in binary format in parallel IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  REAL(kind=PRC), allocatable, dimension(:,:,:)  :: f00,f01, &
+   f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18
+  integer, intent(in) :: it, nbuff
+  character(len=120),intent(in) :: mynamefile
+  integer :: ierr,fh, filetype,mystarts(3),i
+  integer :: memDims(3),memOffs(3), imemtype
+  integer (kind=MPI_OFFSET_KIND) offset
+  INTEGER STATUS(MPI_STATUS_SIZE)
+
+
+  call MPI_FILE_OPEN(MPI_COMM_WORLD, mynamefile, &
+   MPI_MODE_RDONLY, MPI_INFO_NULL, fh, ierr)
+  !if (id_rank== 0) print *, "MPI_FILE_OPEN)fh=",fh,"ierr=",ierr
+
+  ! We need global sizes: globalDims
+  ! We need local sizes: lDims
+  ! We need start indices: mymin-1
+  mystarts = mymin - 1
+
+  call MPI_Type_create_subarray(3, globalDims, lDims, mystarts, &
+   MPI_ORDER_FORTRAN, MPI_DOUBLE_PRECISION, filetype, ierr);
+
+  call MPI_Type_commit(filetype, ierr);
+
+  call MPI_File_Set_View(fh, 0_MPI_OFFSET_KIND, MPI_DOUBLE, filetype, &
+    "native", MPI_INFO_NULL, ierr)
+
+  ! We need full local sizes: memDims
+  memDims = lDims + 2*nbuff
+  memOffs = [ nbuff, nbuff, nbuff ]
+
+  call MPI_TYPE_CREATE_SUBARRAY(3, memDims, lDims, memOffs, &
+   MPI_ORDER_FORTRAN, MPI_DOUBLE, imemtype, ierr)
+
+  call MPI_TYPE_COMMIT(imemtype, ierr)
+
+  call MPI_FILE_READ_ALL(fh, f00, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f01, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f02, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f03, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f04, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f05, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f06, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f07, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f08, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f09, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f10, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f11, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f12, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f13, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f14, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f15, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f16, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f17, 1, imemtype, status, ierr)
+  call MPI_FILE_READ_ALL(fh, f18, 1, imemtype, status, ierr)
+
+  call MPI_FILE_CLOSE(fh, ierr)
+  
+  return
+  
+ end subroutine collective_readFile_pops
+ 
+ subroutine collective_writeFile_pops(it, mynamefile, f00,f01, &
+  f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18,nbuff)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a scalar field with PRC
+!     precision in binary format in parallel IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  REAL(kind=PRC), allocatable, dimension(:,:,:)  :: f00,f01, &
+   f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18
+  integer, intent(in) :: it, nbuff
+  character(len=120),intent(in) :: mynamefile
+  integer :: ierr,fh, filetype,mystarts(3),i
+  integer :: memDims(3),memOffs(3), imemtype
+  integer (kind=MPI_OFFSET_KIND) offset
+  INTEGER STATUS(MPI_STATUS_SIZE)
+
+
+  call MPI_FILE_OPEN(MPI_COMM_WORLD, mynamefile, &
+   MPI_MODE_CREATE+MPI_MODE_WRONLY, &
+   MPI_INFO_NULL, fh, ierr)
+  !if (id_rank== 0) print *, "MPI_FILE_OPEN)fh=",fh,"ierr=",ierr
+
+  ! We need global sizes: globalDims
+  ! We need local sizes: lDims
+  ! We need start indices: mymin-1
+  mystarts = mymin - 1
+
+  call MPI_Type_create_subarray(3, globalDims, lDims, mystarts, &
+   MPI_ORDER_FORTRAN, MPI_DOUBLE_PRECISION, filetype, ierr);
+  !if (idrank== 0) print *, "MPI_Type_create_subarray)ierr=",ierr, globalDims, lDims, mystarts
+
+  call MPI_Type_commit(filetype, ierr);
+
+  call MPI_File_Set_View(fh, 0_MPI_OFFSET_KIND, MPI_DOUBLE, filetype, &
+   "native", MPI_INFO_NULL, ierr)
+  !if (idrank== 0) print *, "MPI_File_Set_View)ierr=",ierr
+  
+  ! We need full local sizes: memDims
+  memDims = lDims + 2*nbuff
+  memOffs = [ nbuff, nbuff, nbuff ]
+  
+  call MPI_TYPE_CREATE_SUBARRAY(3, memDims, lDims, memOffs, MPI_ORDER_FORTRAN, MPI_DOUBLE, imemtype, ierr)
+  !if (idrank== 0) print *, "MPI_Type_create_subarray)ierr=",ierr, memDims, lDims, memOffs
+  
+  call MPI_TYPE_COMMIT(imemtype, ierr)
+  
+  call MPI_FILE_WRITE_ALL(fh, f00, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f01, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f02, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f03, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f04, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f05, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f06, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f07, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f08, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f09, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f10, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f11, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f12, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f13, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f14, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f15, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f16, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f17, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f18, 1, imemtype, status, ierr)
+  !if (idrank== 0) print *, "MPI_FILE_WRITE_ALL)ierr=",ierr
+
+  call MPI_FILE_CLOSE(fh, ierr)
+  
+  return
+      
+ end subroutine collective_writeFile_pops
   
  subroutine print_binary_1d_vtk_col(iotest,headoff,nbyte,nn,myvar,e_io)
  
