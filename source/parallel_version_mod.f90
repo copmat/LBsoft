@@ -3620,7 +3620,7 @@
        ALLOCATE(buffs_isfluid(0:maxsender-1,0:n_pe2send_fluid_hvar-1))
 
     ENDIF
-#if defined(MPI)
+    
     DO i=0, n_pe2send_fluid_hvar-1
        CALL MPI_IRECV(i_var2send_fluid(0,0,i),2*n_var2send_fluid(i),MYINT, &
             & i_pe2send_fluid_hvar(i),i_pe2send_fluid_hvar(i)+findntag_hvar, &
@@ -3634,7 +3634,7 @@
     IF(n_pe2recv_fluid_hvar.GT.0) THEN
        CALL MPI_WAITALL(n_pe2send_fluid_hvar,request,status,ierr)
     ENDIF
-#endif
+    
     
     call get_sync_world
     
@@ -4000,7 +4000,7 @@
     enddo
     !send the number of pops which should be received
     !determine how much I have to received
-#if defined(MPI)
+    
     DO i=0, n_pe2recv_fluid-1
        CALL MPI_IRECV(n_pop2recv_fluid(i),1,MPI_INTEGER, &
             & i_pe2recv_fluid(i),i_pe2recv_fluid(i)+findntag, &
@@ -4014,7 +4014,7 @@
     IF(n_pe2recv_fluid.GT.0) THEN
        CALL MPI_WAITALL(n_pe2recv_fluid,request,status,ierr)
     ENDIF
-#endif
+    
     !determine the maximum numper of pops which should be received
     maxreceiver=0
     DO i=0,n_pe2recv_fluid-1
@@ -4029,7 +4029,7 @@
        ALLOCATE(buffpopr(0:maxreceiver-1,0:n_pe2recv_fluid-1))
 
     ENDIF
-#if defined(MPI)
+    
     DO i=0, n_pe2recv_fluid-1
        CALL MPI_IRECV(i_pop2recv_fluid(0,0,i),2*n_pop2recv_fluid(i),MYINT, &
             & i_pe2recv_fluid(i),i_pe2recv_fluid(i)+findntag, &
@@ -4043,7 +4043,7 @@
     IF(n_pe2recv_fluid.GT.0) THEN
        CALL MPI_WAITALL(n_pe2recv_fluid,request,status,ierr)
     ENDIF
-#endif
+    
     ltemp(1)=.false.
     DO i=0, n_pe2recv_fluid-1
        DO j=0,n_pop2recv_fluid(i)-1

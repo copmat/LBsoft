@@ -4141,8 +4141,6 @@
   
   
   iter=iter+1
-   
-#if defined(MPI)
 
 #if 0
    if(iter.eq.1) then
@@ -4401,7 +4399,7 @@
   endif
 #endif
    
-#endif
+
 
 
   
