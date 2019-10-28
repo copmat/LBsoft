@@ -1478,7 +1478,7 @@
    
  END subroutine commwait_isfluid
  
- subroutine commexch_dens(dtemp)
+ subroutine commexch_dens(dtemp,dtemp2)
  
 !***********************************************************************
 !     
@@ -1493,13 +1493,13 @@
    
    IMPLICIT NONE
    
-   REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp
+   REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp,dtemp2
    
    return
    
   END subroutine commexch_dens
   
- subroutine commwait_dens(dtemp)
+ subroutine commwait_dens(dtemp,dtemp2)
  
 !***********************************************************************
 !     
@@ -1514,7 +1514,7 @@
    
    IMPLICIT NONE
    
-   REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp
+   REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp,dtemp2
    
    return
    

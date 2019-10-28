@@ -50,8 +50,8 @@ gfortran-mpi:
 	$(MAKE) CC=mpicc \
 	FC=mpif90 \
 	CFLAGS="-O2 -cpp -I $(CURDIR) -c" \
-	FFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -c" \
-	LDFLAGS="-O2 -cpp -DMPI -I $(CURDIR) -o" \
+	FFLAGS="-O2 -cpp -I $(CURDIR) -c" \
+	LDFLAGS="-O2 -cpp -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi
 	
@@ -68,8 +68,8 @@ intel-mpi:
 	$(MAKE) CC=mpiicc \
 	FC=mpiifort \
 	CFLAGS="-O2 -I $(CURDIR) -c" \
-	FFLAGS="-O2 -cpp -DINTEL -DMPI -I $(CURDIR) -c" \
-	LDFLAGS="-O2 -cpp -DINTEL -DMPI -I $(CURDIR) -o" \
+	FFLAGS="-O2 -cpp -DINTEL -I $(CURDIR) -c" \
+	LDFLAGS="-O2 -cpp -DINTEL -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi
 	
@@ -77,8 +77,8 @@ intel-mpi-fast:
 	$(MAKE) CC=mpiicc \
 	FC=mpiifort \
 	CFLAGS="-O2 -I $(CURDIR) -c" \
-	FFLAGS="-fast -cpp -DINTEL -DMPI -I $(CURDIR) -c" \
-	LDFLAGS="-cpp -DINTEL -DMPI -I $(CURDIR) -o" \
+	FFLAGS="-fast -cpp -DINTEL -I $(CURDIR) -c" \
+	LDFLAGS="-cpp -DINTEL -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi
 	
@@ -86,8 +86,8 @@ intel-mpi-skylake:
 	$(MAKE) CC=mpiicc \
 	FC=mpiifort \
 	CFLAGS="-O2 -I $(CURDIR) -xSKYLAKE-AVX512 -c" \
-	FFLAGS="-O2 -cpp -DINTEL -DMPI -I $(CURDIR) -xSKYLAKE-AVX512 -c" \
-	LDFLAGS="-O2 -cpp -DINTEL -DMPI -I $(CURDIR) -xSKYLAKE-AVX512 -o" \
+	FFLAGS="-O2 -cpp -DINTEL -I $(CURDIR) -xSKYLAKE-AVX512 -c" \
+	LDFLAGS="-O2 -cpp -DINTEL -I $(CURDIR) -xSKYLAKE-AVX512 -o" \
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi
 
@@ -97,8 +97,8 @@ intel-mpi-knl:
 	$(MAKE) CC=mpiicc \
        FC=mpiifort \
        CFLAGS="-O2 -I $(CURDIR) -xMIC-AVX512 -c" \
-       FFLAGS="-Ofast -cpp -DINTEL -DMPI -I $(CURDIR) -xMIC-AVX512 -c" \
-       LDFLAGS="-Ofast -cpp -DINTEL -DMPI -I $(CURDIR) -xMIC-AVX512 -o" \
+       FFLAGS="-Ofast -cpp -DINTEL -I $(CURDIR) -xMIC-AVX512 -c" \
+       LDFLAGS="-Ofast -cpp -DINTEL -I $(CURDIR) -xMIC-AVX512 -o" \
        TYPE=mpi \
        EX=$(EXP) BINROOT=$(BINROOT) mpi
 
@@ -122,10 +122,10 @@ gfortran-mpidebugger:
 	CFLAGS="-O2 -g -cpp -I $(CURDIR) -c" \
 	FFLAGS="-O2 -g -fcheck=all -fbacktrace \
 	-ffpe-trap=invalid,zero,overflow,underflow,denormal \
-	-cpp -DMPI -I $(CURDIR) -c" \
+	-cpp -I $(CURDIR) -c" \
 	LDFLAGS="-O2 -g -fcheck=all -fbacktrace \
 	-ffpe-trap=invalid,zero,overflow,underflow,denormal \
-	-cpp -DMPI -I $(CURDIR) -o" \
+	-cpp -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi
 	
@@ -133,8 +133,8 @@ intel-mpidebugger:
 	$(MAKE) CC=mpiicc \
 	FC=mpiifort \
 	CFLAGS="-O0 -g -I $(CURDIR) -c" \
-	FFLAGS="-O0 -g -check all -traceback -check bounds -cpp -DINTEL -DMPI -I $(CURDIR) -c" \
-	LDFLAGS="-O0 -g -check all -traceback -check bounds -cpp -DINTEL -DMPI -I $(CURDIR) -o" \
+	FFLAGS="-O0 -g -check all -traceback -check bounds -cpp -DINTEL -I $(CURDIR) -c" \
+	LDFLAGS="-O0 -g -check all -traceback -check bounds -cpp -DINTEL -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi
 	

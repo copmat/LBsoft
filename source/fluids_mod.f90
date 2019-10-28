@@ -1434,16 +1434,16 @@
   call print_all_hvar(100,'inithvar_prima',0,rhoR,u,v,w)
 #endif
   
-#ifdef MPI
+
   call commexch_dens(rhoR,rhoB)
-#endif
+  
   call manage_bc_hvar_selfcomm(rhoR_managebc)
   if(.not. lsingle_fluid)then
     call manage_bc_hvar_selfcomm(rhoB_managebc)
   endif
-#ifdef MPI
+  
   call commwait_dens(rhoR,rhoB)
-#endif
+  
   
 #ifdef DIAGNINIT
   call print_all_hvar(100,'inithvar_dopo',0,rhoR,u,v,w)
@@ -3988,8 +3988,6 @@
 #endif
     
 
-#ifdef MPI
-
   call commspop(aoptpR)
 
 
@@ -4033,15 +4031,13 @@
 
 
 
-#ifdef MPI
+
 
   call manage_bc_pop_selfcomm(aoptpR,lparticles)
 
   call commrpop(aoptpR,lparticles,isfluid)
 
-#else
-  call manage_bc_pop_selfcomm(aoptpR,lparticles)
-#endif
+
 
 
 #ifdef DIAGNSTREAM
@@ -4055,12 +4051,11 @@
 
   
   if(lsingle_fluid)return
-  
-#ifdef MPI
+
 
   call commspop(aoptpB)
 
-#endif
+
 
 
 
@@ -4100,18 +4095,15 @@
 #endif /* STREAM_NOCOPY */
 
   
-#ifdef MPI
 
   call manage_bc_pop_selfcomm(aoptpB,lparticles)
 
   call commrpop(aoptpB,lparticles,isfluid)
 
-#else
-  call manage_bc_pop_selfcomm(aoptpB,lparticles)
-#endif
+
   
 
-#endif
+
   
   
   return
@@ -6035,28 +6027,41 @@
 
 
   
-#ifdef MPI
+
     call commexch_isfluid(isfluid)
-#endif
+  
     call manage_bc_isfluid_selfcomm(isfluid)
     
-#ifdef MPI
+   
     call commwait_isfluid(isfluid)
-#endif
+   
 
  end subroutine driver_bc_isfluid
+ 
  subroutine driver_bc_new_isfluid
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the boundary conditions
+!     to new_isfluid array
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+ 
   implicit none
   Logical, save   :: isFirst = .true.
 
-#ifdef MPI
+
     call commexch_isfluid(new_isfluid)
-#endif
+    
     call manage_bc_isfluid_selfcomm(new_isfluid)
     
-#ifdef MPI
+   
     call commwait_isfluid(new_isfluid)
-#endif
+  
 
  end subroutine driver_bc_new_isfluid
 
@@ -6080,16 +6085,16 @@
 
   
   if(lexch_dens)then
-#ifdef MPI
+  
     call commexch_dens(rhoR,rhoB)
-#endif
+  
     call manage_bc_hvar_selfcomm(rhoR_managebc)
     if(.not. lsingle_fluid)then
       call manage_bc_hvar_selfcomm(rhoB_managebc)
     endif
-#ifdef MPI
+  
     call commwait_dens(rhoR,rhoB)
-#endif
+  
   endif
   
  end subroutine driver_bc_densities
@@ -6108,18 +6113,18 @@
 !***********************************************************************
   implicit none
   
-#ifdef MPI
+  
     call commexch_dens(psiR,psiB)
-#endif
+  
 
     call manage_bc_hvar_selfcomm(psiR_managebc)
     if(.not. lsingle_fluid)then
       call manage_bc_hvar_selfcomm(psiB_managebc)
     endif
 
-#ifdef MPI
+  
     call commwait_dens(psiR,psiB)
-#endif
+  
   
  end subroutine driver_bc_psi
 
@@ -6655,57 +6660,38 @@
   Logical, save   :: isFirst = .true.
 
   if(lexch_u)then
-#ifdef MPI
+  
 
     call commexch_vel_component(u)
 
-#endif
-
-
     call manage_bc_hvar_selfcomm(u_managebc)
-
-
-#ifdef MPI
 
     call commwait_vel_component(u)
 
-#endif
+  
   endif
   
   if(lexch_v)then
-#ifdef MPI
+  
 
     call commexch_vel_component(v)
 
-#endif
-
-
     call manage_bc_hvar_selfcomm(v_managebc)
 
-
-#ifdef MPI
-
     call commwait_vel_component(v)
-
-#endif
+  
   endif
   
   if(lexch_w)then
-#ifdef MPI
+  
 
     call commexch_vel_component(w)
 
-#endif
-
-
     call manage_bc_hvar_selfcomm(w_managebc)
-
-
-#ifdef MPI
 
     call commwait_vel_component(w)
 
-#endif
+  
   endif
   
   isFirst = .false.
