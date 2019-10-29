@@ -42,10 +42,10 @@
   set_LBintegrator_type,lbc_halfway,set_lbc_halfway,set_lbc_fullway, &
   lbc_fullway,partR_SC,partB_SC,set_fluid_particle_sc,theta_SC, &
   devtheta_SC,set_theta_particle_sc,set_back_value_dens_fluids, &
-  backR,backB,set_cap_force,cap_force, &
+  backR,backB,set_cap_force,cap_force,lread_isfluid, &
   imass_rescale,set_mass_rescale,dmass_rescale,iselwetting, &
   densR_wetting,densB_wetting,set_fluid_wall_mode,set_objectliq, &
-  set_objectdata,nobjectliq,typeobjectliq,objectdata
+  set_objectdata,nobjectliq,typeobjectliq,objectdata,set_lread_isfluid
 
  use particles_mod,         only : set_natms_tot,natms_tot,lparticles, &
   set_ishape,set_densvar,densvar,ishape,set_rcut,rcut,delr, &
@@ -407,6 +407,7 @@
   logical :: temp_lselwetting=.false.
   logical :: temp_lrestore  = .false.
   logical :: temp_lidumpevery= .false.
+  logical :: temp_lread_isfluid=.false.
   logical :: temp_lobjectliq=.false.
   logical, dimension(nmaxobjectliq) :: temp_lobjectdata = .false.
   
@@ -785,6 +786,20 @@
               cycle
             elseif(redstring(1:1)==' ')then
               cycle
+            elseif(findstring('read',directive,inumchar,maxlen))then
+              if(findstring('isfluid',directive,inumchar,maxlen))then
+                if(findstring('yes',directive,inumchar,maxlen))then
+                  temp_lread_isfluid=.true.
+                elseif(findstring('no',directive,inumchar,maxlen))then
+                  temp_lread_isfluid=.false.
+                else
+                  call warning(1,dble(iline),redstring)
+                  lerror6=.true.
+                endif
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
+              endif
             elseif(findstring('compon',directive,inumchar,maxlen))then
               temp_nfluid=intstr(directive,maxlen,inumchar)
               temp_lnfluid=.true.
@@ -1692,6 +1707,20 @@
   
   if(idrank==0)then
     write(6,'(/,3a,/)')repeat('*',29),"parameters of LB room",repeat('*',29)
+  endif
+  
+  call bcast_world_l(temp_lread_isfluid)
+  if(temp_lread_isfluid)then
+    call set_lread_isfluid(temp_lread_isfluid)
+    if(lread_isfluid)then
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='read isfluid'
+        mystring12='yes'
+        mystring12=adjustr(mystring12)
+        write(6,'(3a)')mystring,": ",mystring12
+      endif
+    endif
   endif
   
   call bcast_world_l(temp_lnfluid)

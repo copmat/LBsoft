@@ -129,6 +129,9 @@
  !are there specified object in fuild initialization
  logical, save, protected, public :: lobjectliq=.false.
  
+ !is there a isfluid.dat file to read? 
+ logical, save, protected, public :: lread_isfluid=.false.
+ 
  real(kind=PRC), save, protected, public :: t_LB = ONE
  
  real(kind=PRC), save, protected, public :: beta         = ZERO
@@ -383,6 +386,7 @@
  public :: compute_densities_wall
  public :: compute_psi_sc
  public :: set_lsingle_fluid
+ public :: set_lread_isfluid
  public :: driver_apply_bounceback_pop
  public :: probe_red_moments_in_node
  public :: probe_blue_moments_in_node
@@ -421,8 +425,9 @@
  public :: print_all_pops_area_shpere
  public :: pimage
  public :: omega_to_viscosity
- public :: compute_sc_particle_interact_phase1, compute_sc_particle_interact_phase2
- public :: setTest, checkTest, print_all_pops2
+ public :: compute_sc_particle_interact_phase1
+ public :: compute_sc_particle_interact_phase2
+ public :: print_all_pops2
  public :: driver_bc_pops
  public :: dumpHvar, restorePops, restoreHvar
  public :: driver_bc_psi
@@ -437,10 +442,7 @@
  public :: set_objectliq
  public :: set_objectdata
  
-
  contains
- 
-
  
  subroutine allocate_fluids(lparticles)
 
@@ -891,6 +893,7 @@
   logical, intent(in) :: lvtkfilesub, lparticles
   
   integer :: i,j,k,l,idir,ishift,jshift,kshift,ll
+  integer :: itemp,jtemp,ktemp
   
   logical :: ltest(1)
   integer, parameter :: nistatmax=10
@@ -905,6 +908,9 @@
 ! all fluid
   
   forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)isfluid(i,j,k)=1
+  
+! read isfluid.dat if necessary  
+  call read_isfluid_dat(0)
   
   do k=minz-nbuff,maxz+nbuff
     do j=miny-nbuff,maxy+nbuff
@@ -1220,6 +1226,33 @@
   enddo
   call or_world_larr(ltest,1)
   if(ltest(1))call error(16)
+  
+  if(lread_isfluid)then
+    do l=1,links
+      ishift=ex(l)
+      jshift=ey(l)
+      kshift=ez(l)
+      do k=minz,maxz
+        do j=miny,maxy
+          do i=minx,maxx
+            itemp=i+ishift
+            jtemp=j+jshift
+            ktemp=k+kshift
+            if(itemp>=1 .and. itemp<=nx .and. jtemp>=1 .and. jtemp<=ny & 
+             .and. ktemp>=1 .and. ktemp<=nz)then
+              if(isfluid(i,j,k)==3 .and. isfluid(itemp,jtemp,ktemp)==1)then
+                isfluid(i,j,k)=0 
+              endif
+            endif
+          enddo
+        enddo
+      enddo
+    enddo
+    !communicate isfluid over the processes applying the bc if necessary
+    call comm_init_isfluid(isfluid)
+    !apply the bc if necessary within the same process
+    call manage_bc_isfluid_selfcomm(isfluid)
+  endif
   
   l=0
   do k=minz-1,maxz+1
@@ -2525,6 +2558,29 @@
   return
   
  end subroutine set_lsingle_fluid
+ 
+ subroutine set_lread_isfluid(ltemp1)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the value of lread_isfluid for reading 
+!     the isfluid.dat input file
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(in) :: ltemp1
+  
+  lread_isfluid=ltemp1
+  
+  return
+  
+ end subroutine set_lread_isfluid
  
  subroutine set_fluid_force_sc(ltemp1,dtemp1)
  
@@ -15279,7 +15335,7 @@ end subroutine fix_onebelt_density_twofluids
   
   
   if(any(nmiapop>1))then
-    write(6,*)'so cazzi'
+    write(6,*)'problem!'
     do l=1,nspheres
       do m=1,links
         write(6,*)m,l,nmiapop(m,l)
@@ -15296,32 +15352,7 @@ end subroutine fix_onebelt_density_twofluids
   enddo
   
   close(iosub*idrank+23)
-!  ir=ceiling(rdimx)
-!  do k=-ir,ir
-!    do j=-ir,ir
-!      do i=-ir,ir
-!        ii=i+xc
-!        jj=j+yc
-!        kk=k+zc
-!        ii=pimage(ixpbc,ii,nx)
-!        jj=pimage(iypbc,jj,ny)
-!        kk=pimage(izpbc,kk,nz)
-!        if(ownern(i4back(i,j,k))==idrank)then
-!          !if(isfluid(ii,jj,kk)<=2)then
-!            open(unit=iosub*idrank+23,file=trim(mynamefile), &
-!             status='old',position='append')
-!            do l=1,links
-!              write(iosub*idrank+23,*)i,j,k,l,isfluid(ii,jj,kk), &
-!               aoptp(l)%p(ii,jj,kk)
-!            enddo
-!            !write(iosub*idrank+23,*)i,j,k,isfluid(ii,jj,kk)
-!            close(iosub*idrank+23)
-!            call get_sync_world
-!          !endif
-!        endif
-!      enddo
-!    enddo
-!  enddo
+
   
   return
   
@@ -15387,85 +15418,125 @@ end subroutine fix_onebelt_density_twofluids
   
  end subroutine print_all_hvar
  
+ subroutine setTest
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine to set fake pop values for diagnostic
+!     purposes
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  integer :: i,j,k,l
 
-    subroutine setTest
-     implicit none
-     integer :: i,j,k,l
+  do l=0, links
+    forall(i=minx-1:maxx+1, j=miny-1:maxy+1, k=minz-1:maxz+1)
+       aoptpR(l)%p(i,j,k) = i*1000000 + j*10000 + k*100 + l
+     end forall
 
-     do l=0, links
-        forall(i=minx-1:maxx+1, j=miny-1:maxy+1, k=minz-1:maxz+1)
-            aoptpR(l)%p(i,j,k) = i*1000000 + j*10000 + k*100 + l
-        end forall
+     where(isfluid(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)==0)
+       aoptpR(l)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = &
+        - aoptpR(l)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
+    end where
+  enddo
+  
+  return
+  
+ end subroutine setTest
+  
+ subroutine checkTest(it)
+    
+!***********************************************************************
+!     
+!     LBsoft subroutine to check fake pop values for diagnostic
+!     purposes
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
 
-            where(isfluid(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)==0)
-              aoptpR(l)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1) = - aoptpR(l)%p(minx-1:maxx+1,miny-1:maxy+1,minz-1:maxz+1)
-        end where
-    enddo
-    end subroutine setTest
+  implicit none
+  
+  integer, intent(in) :: it
+  integer :: i,j,k,l,ishift,jshift,kshift
+  integer :: itemp, jtemp, ktemp, ltemp, errtemp
+  real(kind=PRC)    :: destVal, val
+
+  if (it /= 1) return
+
+  do l=0, links
+    ishift=ex(l)
+    jshift=ey(l)
+    kshift=ez(l)
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+
+          destVal = aoptpR(l)%p(i,j,k)
+
+          ltemp = mod(destVal, 100.)
+          itemp =  destVal / 10000
+          jtemp = (destVal - itemp*10000) / 1000
+          ktemp = (destVal - itemp*10000 - jtemp*1000) / 100
 
 
-    subroutine checkTest(it)
-     implicit none
-     integer, intent(in) :: it
-     integer :: i,j,k,l,ishift,jshift,kshift
-     integer :: itemp, jtemp, ktemp, ltemp, errtemp
-     real(kind=PRC)    :: destVal, val
-
-     if (it /= 1) return
-
-     do l=0, links
-        ishift=ex(l)
-        jshift=ey(l)
-        kshift=ez(l)
-        do k=minz,maxz
-         do j=miny,maxy
-          do i=minx,maxx
-
-            destVal = aoptpR(l)%p(i,j,k)
-
-            ltemp = mod(destVal, 100.)
-            itemp =  destVal / 10000
-            jtemp = (destVal - itemp*10000) / 1000
-            ktemp = (destVal - itemp*10000 - jtemp*1000) / 100
-
-
-            errtemp = 0
-            if ( ltemp /= l) then
-                errtemp = errtemp + 1
-            endif
-            ktemp = ktemp+kshift
-            if ( ktemp == 0) ktemp=nz
-            if ( ktemp == nz+1) ktemp=1
-            if ( ktemp /= k) then
-                errtemp = errtemp + 100
-            endif
-            jtemp = jtemp+jshift
-            if ( jtemp == 0) jtemp=ny
-            if ( jtemp == ny+1) jtemp=1
-            if ( jtemp /= j) then
-                errtemp = errtemp + 1000
-            endif
-            itemp = itemp+ishift
-            if ( itemp == 0) itemp=nx
-            if ( itemp == nx+1) itemp=1
-            if ( itemp /= i) then
-                errtemp = errtemp + 10000
-            endif
-            if (errtemp /= 0) then
-                val = itemp*10000 + jtemp*1000 +ktemp*100 + l
-                write(6,'("Err in stream:", 3I3, " pop:",I3, F8.0, " vs:", F8.0, " errNr:", I6, " rank=", I3)') i,j,k,l, &
-                                    destVal,val,errtemp, idrank
-                write(6,*) i,j,k,l,destVal, "vs", itemp,jtemp,ktemp,ltemp, val
-            endif
-           enddo
-          enddo
-         enddo
-
+          errtemp = 0
+          if ( ltemp /= l) then
+            errtemp = errtemp + 1
+          endif
+          ktemp = ktemp+kshift
+          if ( ktemp == 0) ktemp=nz
+          if ( ktemp == nz+1) ktemp=1
+          if ( ktemp /= k) then
+            errtemp = errtemp + 100
+          endif
+          jtemp = jtemp+jshift
+          if ( jtemp == 0) jtemp=ny
+          if ( jtemp == ny+1) jtemp=1
+          if ( jtemp /= j) then
+              errtemp = errtemp + 1000
+          endif
+          itemp = itemp+ishift
+          if ( itemp == 0) itemp=nx
+          if ( itemp == nx+1) itemp=1
+          if ( itemp /= i) then
+            errtemp = errtemp + 10000
+          endif
+          if (errtemp /= 0) then
+            val = itemp*10000 + jtemp*1000 +ktemp*100 + l
+            write(6,'("Err in stream:", 3I3, " pop:",I3, F8.0, " vs:", F8.0, " errNr:", I6, " rank=", I3)') &
+             i,j,k,l,destVal,val,errtemp, idrank
+            write(6,*) i,j,k,l,destVal, "vs", itemp,jtemp,ktemp,ltemp, val
+          endif
         enddo
-    end subroutine checkTest
+      enddo
+    enddo
+  enddo
+        
+  return
+        
+ end subroutine checkTest
 
-
-  subroutine print_all_pops2(iosub,filenam,itersub)
+ subroutine print_all_pops2(iosub,filenam,itersub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the populations in ASCII format 
+!     for diagnostic purposes
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
   implicit none
   integer, intent(in) :: iosub,itersub
   character(len=*), intent(in) :: filenam
@@ -15510,7 +15581,19 @@ end subroutine fix_onebelt_density_twofluids
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! SUBS TO DO DUMP & RESTORE USING 1 FILE PER PROC
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine dumpHvar(nstep)
+ subroutine dumpHvar(nstep)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the Hvar in ASCII format 
+!     for diagnostic purposes
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
      implicit none
      integer, intent(in) :: nstep
      character(len=120) :: mynamefile
@@ -15524,55 +15607,98 @@ end subroutine fix_onebelt_density_twofluids
      write(133) v(minx:maxx,miny:maxy,minz:maxz)
      write(133) w(minx:maxx,miny:maxy,minz:maxz)
      close(133)
-  end subroutine dumpHvar
+     
+  return
+     
+ end subroutine dumpHvar
 
-  subroutine restoreHvar(nstep)
-     implicit none
-     integer, intent(in) :: nstep
-     character(len=120) :: mynamefile
+ subroutine restoreHvar(nstep)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for restoring the Hvar in ASCII format 
+!     for diagnostic purposes
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  integer, intent(in) :: nstep
+  character(len=120) :: mynamefile
 
-     mynamefile=repeat(' ',120)
-     mynamefile='dumpHVAR.' // write_fmtnumb(nstep) //'.'//write_fmtnumb(idrank)//'.dat'
-     open(unit=133,file=trim(mynamefile),form='unformatted',status='old')
-     read(133) rhoR(minx:maxx,miny:maxy,minz:maxz)
-     if(.not. lsingle_fluid) read(133) rhoB(minx:maxx,miny:maxy,minz:maxz)
-     read(133) u(minx:maxx,miny:maxy,minz:maxz)
-     read(133) v(minx:maxx,miny:maxy,minz:maxz)
-     read(133) w(minx:maxx,miny:maxy,minz:maxz)
-     close(133)
-  end subroutine restoreHvar
+  mynamefile=repeat(' ',120)
+  mynamefile='dumpHVAR.' // write_fmtnumb(nstep) //'.'//write_fmtnumb(idrank)//'.dat'
+  open(unit=133,file=trim(mynamefile),form='unformatted',status='old')
+  read(133) rhoR(minx:maxx,miny:maxy,minz:maxz)
+  if(.not. lsingle_fluid) read(133) rhoB(minx:maxx,miny:maxy,minz:maxz)
+  read(133) u(minx:maxx,miny:maxy,minz:maxz)
+  read(133) v(minx:maxx,miny:maxy,minz:maxz)
+  read(133) w(minx:maxx,miny:maxy,minz:maxz)
+  close(133)
+  
+  return
+  
+ end subroutine restoreHvar
 
-  subroutine restorePops(nstep)
-     implicit none
-     integer, intent(in) :: nstep
-     character(len=120) :: mynamefile
-     integer :: l
+ subroutine restorePops(nstep)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for restoring the pops in ASCII format 
+!     for diagnostic purposes
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  integer, intent(in) :: nstep
+  character(len=120) :: mynamefile
+  integer :: l
 
+  call print_all_pops2(1001, "red_bef",nstep)
 
-     call print_all_pops2(1001, "red_bef",nstep)
+  mynamefile=repeat(' ',120)
+  mynamefile='restart.' // write_fmtnumb(nstep) //'.'//write_fmtnumb(idrank)//'.dat'
+  open(unit=133,file=trim(mynamefile),form='unformatted',status='old')
+  do l=0, links
+    read(133) aoptpR(l)%p(minx:maxx,miny:maxy,minz:maxz)
+    read(133) aoptpB(l)%p(minx:maxx,miny:maxy,minz:maxz)
+  enddo
+  read(133) rhoR(minx:maxx,miny:maxy,minz:maxz)
+  read(133) rhoB(minx:maxx,miny:maxy,minz:maxz)
+  read(133) u(minx:maxx,miny:maxy,minz:maxz)
+  read(133) v(minx:maxx,miny:maxy,minz:maxz)
+  read(133) w(minx:maxx,miny:maxy,minz:maxz)
+  read(133) isfluid(minx:maxx,miny:maxy,minz:maxz)
+  close(133)
 
-     mynamefile=repeat(' ',120)
-     mynamefile='restart.' // write_fmtnumb(nstep) //'.'//write_fmtnumb(idrank)//'.dat'
-     open(unit=133,file=trim(mynamefile),form='unformatted',status='old')
-     do l=0, links
-            read(133) aoptpR(l)%p(minx:maxx,miny:maxy,minz:maxz)
-            read(133) aoptpB(l)%p(minx:maxx,miny:maxy,minz:maxz)
-     enddo
-     read(133) rhoR(minx:maxx,miny:maxy,minz:maxz)
-     read(133) rhoB(minx:maxx,miny:maxy,minz:maxz)
-     read(133) u(minx:maxx,miny:maxy,minz:maxz)
-     read(133) v(minx:maxx,miny:maxy,minz:maxz)
-     read(133) w(minx:maxx,miny:maxy,minz:maxz)
-     read(133) isfluid(minx:maxx,miny:maxy,minz:maxz)
-     close(133)
-
-     call print_all_pops2(1001, "red_aft",nstep)
-  end subroutine restorePops
+  call print_all_pops2(1001, "red_aft",nstep)
+     
+  return
+     
+ end subroutine restorePops
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! SUBS TO DO DUMP & RESTORE USING MPI-IO & SINGLE FILE
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine dump_oneFile(nstep)
+ subroutine dump_oneFile(nstep)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for print the restart files in binary
+!     format
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
      implicit none
      integer, intent(in) :: nstep
      character(len=120) :: mynamefile
@@ -15588,170 +15714,170 @@ end subroutine fix_onebelt_density_twofluids
 #endif
      
  if(mxrank==1)then
+ 
+   nn=nx*ny*nz
+ 
+ 
+   myo=myunit+1
+   mynamefile=repeat(' ',120)
+   mynamefile='dumpPopsR.' // mysave //'.dat'
+   call open_file_binary(myo,trim(mynamefile),ierror)
+   call print_binary_pop_array(myo,nn, &
+    reshape(f00R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f01R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f02R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f03R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f04R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f05R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f06R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f07R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f08R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f09R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f10R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f11R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f12R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f13R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f14R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f15R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f16R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f17R(1:nx,1:ny,1:nz),(/nn/)), &
+    reshape(f18R(1:nx,1:ny,1:nz),(/nn/)), &
+    ierror)
+   call close_file_binary(myo,ierror)
      
-     nn=nx*ny*nz
-     
-     
-     myo=myunit+1
+   if(.not. lsingle_fluid) then
+     myo=myunit+2
      mynamefile=repeat(' ',120)
-     mynamefile='dumpPopsR.' // mysave //'.dat'
+     mynamefile='dumpPopsB.' // mysave //'.dat'
      call open_file_binary(myo,trim(mynamefile),ierror)
      call print_binary_pop_array(myo,nn, &
-      reshape(f00R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f01R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f02R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f03R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f04R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f05R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f06R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f07R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f08R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f09R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f10R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f11R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f12R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f13R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f14R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f15R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f16R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f17R(1:nx,1:ny,1:nz),(/nn/)), &
-      reshape(f18R(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f00B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f01B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f02B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f03B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f04B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f05B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f06B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f07B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f08B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f09B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f10B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f11B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f12B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f13B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f14B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f15B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f16B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f17B(1:nx,1:ny,1:nz),(/nn/)), &
+      reshape(f18B(1:nx,1:ny,1:nz),(/nn/)), &
       ierror)
      call close_file_binary(myo,ierror)
-     
-     if(.not. lsingle_fluid) then
-       myo=myunit+2
-       mynamefile=repeat(' ',120)
-       mynamefile='dumpPopsB.' // mysave //'.dat'
-       call open_file_binary(myo,trim(mynamefile),ierror)
-       call print_binary_pop_array(myo,nn, &
-        reshape(f00B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f01B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f02B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f03B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f04B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f05B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f06B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f07B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f08B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f09B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f10B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f11B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f12B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f13B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f14B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f15B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f16B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f17B(1:nx,1:ny,1:nz),(/nn/)), &
-        reshape(f18B(1:nx,1:ny,1:nz),(/nn/)), &
-        ierror)
-       call close_file_binary(myo,ierror)
-     endif
-     
-     myo=myunit+3
-     mynamefile=repeat(' ',120)
-     mynamefile='dumpRhoR.' // mysave //'.dat'
-     call open_file_binary(myo,trim(mynamefile),ierror)
-     call print_binary_1d_array(myo,nn, &
-      reshape(rhoR(1:nx,1:ny,1:nz),(/nn/)),ierror)
-     call close_file_binary(myo,ierror)
-
-     if(.not. lsingle_fluid) then
-       myo=myunit+4
-       mynamefile=repeat(' ',120)
-       mynamefile='dumpRhoB.' // mysave //'.dat'
-       call open_file_binary(myo,trim(mynamefile),ierror)
-       call print_binary_1d_array(myo,nn, &
-        reshape(rhoB(1:nx,1:ny,1:nz),(/nn/)),ierror)
-       call close_file_binary(myo,ierror)
-     endif
-     
-     myo=myunit+5
-     mynamefile=repeat(' ',120)
-     mynamefile='dumpU.' // mysave //'.dat'
-     call open_file_binary(myo,trim(mynamefile),ierror)
-     call print_binary_1d_array(myo,nn, &
-      reshape(u(1:nx,1:ny,1:nz),(/nn/)),ierror)
-     call close_file_binary(myo,ierror)
-     
-     myo=myunit+6
-     mynamefile=repeat(' ',120)
-     mynamefile='dumpV.' // mysave //'.dat'
-     call open_file_binary(myo,trim(mynamefile),ierror)
-     call print_binary_1d_array(myo,nn, &
-      reshape(v(1:nx,1:ny,1:nz),(/nn/)),ierror)
-     call close_file_binary(myo,ierror)
-     
-     myo=myunit+7
-     mynamefile=repeat(' ',120)
-     mynamefile='dumpW.' // mysave //'.dat'
-     call open_file_binary(myo,trim(mynamefile),ierror)
-     call print_binary_1d_array(myo,nn, &
-      reshape(w(1:nx,1:ny,1:nz),(/nn/)),ierror)
-     call close_file_binary(myo,ierror)
-     
-     myo=myunit+8
-     mynamefile=repeat(' ',120)
-     mynamefile='dumpisFluid.' // mysave //'.dat'
-     call open_file_binary(myo,trim(mynamefile),ierror)
-     call print_binary_1d_array_int1(myo,nn, &
-      reshape(isfluid(1:nx,1:ny,1:nz),(/nn/)),ierror)
-     call close_file_binary(myo,ierror)
-     
-  else
-     
-
-     mynamefile=repeat(' ',120)
-     !mynamefile='dumpPopsR.' // write_fmtnumb(nstep) //'.dat'
-     mynamefile='dumpPopsR.' // mysave //'.dat'
-
-     call collective_writeFile_pops(nstep, mynamefile, &
-       f00R,f01R,f02R,f03R,f04R, &
-       f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
-       f14R,f15R,f16R,f17R,f18R, nbuff)
-
-     if(.not. lsingle_fluid) then
-      mynamefile=repeat(' ',120)
-      mynamefile='dumpPopsB.' // mysave //'.dat'
-      call collective_writeFile_pops(nstep, mynamefile, &
-       f00B,f01B,f02B,f03B,f04B, &
-       f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B, &
-       f14B,f15B,f16B,f17B,f18B, nbuff)
-     endif
-
-     ! Conservative: dump also hvars & isfluid
-     mynamefile=repeat(' ',120)
-     mynamefile='dumpRhoR.' // mysave //'.dat'
-     call collective_writeFile(nstep, mynamefile, rhoR, nbuff)
-
-     if(.not. lsingle_fluid) then
-      mynamefile=repeat(' ',120)
-      mynamefile='dumpRhoB.' // mysave //'.dat'
-      call collective_writeFile(nstep, mynamefile, rhoB, nbuff)
-     endif
-
-     mynamefile=repeat(' ',120)
-     mynamefile='dumpU.' // mysave //'.dat'
-     call collective_writeFile(nstep, mynamefile, u, nbuff)
-
-     mynamefile=repeat(' ',120)
-     mynamefile='dumpV.' // mysave //'.dat'
-     call collective_writeFile(nstep, mynamefile, v, nbuff)
-
-     mynamefile=repeat(' ',120)
-     mynamefile='dumpW.' // mysave //'.dat'
-     call collective_writeFile(nstep, mynamefile, w, nbuff)
-
-     mynamefile=repeat(' ',120)
-     mynamefile='dumpisFluid.' // mysave //'.dat'
-     call collective_writeFile_int(nstep, mynamefile, isfluid, nbuff)
-
-
    endif
-   
-   return
+     
+   myo=myunit+3
+   mynamefile=repeat(' ',120)
+   mynamefile='dumpRhoR.' // mysave //'.dat'
+   call open_file_binary(myo,trim(mynamefile),ierror)
+   call print_binary_1d_array(myo,nn, &
+    reshape(rhoR(1:nx,1:ny,1:nz),(/nn/)),ierror)
+   call close_file_binary(myo,ierror)
 
-  end subroutine dump_oneFile
+   if(.not. lsingle_fluid) then
+     myo=myunit+4
+     mynamefile=repeat(' ',120)
+     mynamefile='dumpRhoB.' // mysave //'.dat'
+     call open_file_binary(myo,trim(mynamefile),ierror)
+     call print_binary_1d_array(myo,nn, &
+      reshape(rhoB(1:nx,1:ny,1:nz),(/nn/)),ierror)
+     call close_file_binary(myo,ierror)
+   endif
+     
+   myo=myunit+5
+   mynamefile=repeat(' ',120)
+   mynamefile='dumpU.' // mysave //'.dat'
+   call open_file_binary(myo,trim(mynamefile),ierror)
+   call print_binary_1d_array(myo,nn, &
+    reshape(u(1:nx,1:ny,1:nz),(/nn/)),ierror)
+   call close_file_binary(myo,ierror)
+   
+   myo=myunit+6
+   mynamefile=repeat(' ',120)
+   mynamefile='dumpV.' // mysave //'.dat'
+   call open_file_binary(myo,trim(mynamefile),ierror)
+   call print_binary_1d_array(myo,nn, &
+    reshape(v(1:nx,1:ny,1:nz),(/nn/)),ierror)
+   call close_file_binary(myo,ierror)
+   
+   myo=myunit+7
+   mynamefile=repeat(' ',120)
+   mynamefile='dumpW.' // mysave //'.dat'
+   call open_file_binary(myo,trim(mynamefile),ierror)
+   call print_binary_1d_array(myo,nn, &
+    reshape(w(1:nx,1:ny,1:nz),(/nn/)),ierror)
+   call close_file_binary(myo,ierror)
+   
+   myo=myunit+8
+   mynamefile=repeat(' ',120)
+   mynamefile='dumpisFluid.' // mysave //'.dat'
+   call open_file_binary(myo,trim(mynamefile),ierror)
+   call print_binary_1d_array_int1(myo,nn, &
+    reshape(isfluid(1:nx,1:ny,1:nz),(/nn/)),ierror)
+   call close_file_binary(myo,ierror)
+     
+ else
+     
+
+   mynamefile=repeat(' ',120)
+   !mynamefile='dumpPopsR.' // write_fmtnumb(nstep) //'.dat'
+   mynamefile='dumpPopsR.' // mysave //'.dat'
+
+   call collective_writeFile_pops(nstep, mynamefile, &
+     f00R,f01R,f02R,f03R,f04R, &
+     f05R,f06R,f07R,f08R,f09R,f10R,f11R,f12R,f13R, &
+     f14R,f15R,f16R,f17R,f18R, nbuff)
+
+   if(.not. lsingle_fluid) then
+    mynamefile=repeat(' ',120)
+    mynamefile='dumpPopsB.' // mysave //'.dat'
+    call collective_writeFile_pops(nstep, mynamefile, &
+     f00B,f01B,f02B,f03B,f04B, &
+     f05B,f06B,f07B,f08B,f09B,f10B,f11B,f12B,f13B, &
+     f14B,f15B,f16B,f17B,f18B, nbuff)
+   endif
+
+   ! Conservative: dump also hvars & isfluid
+   mynamefile=repeat(' ',120)
+   mynamefile='dumpRhoR.' // mysave //'.dat'
+   call collective_writeFile(nstep, mynamefile, rhoR, nbuff)
+
+   if(.not. lsingle_fluid) then
+    mynamefile=repeat(' ',120)
+    mynamefile='dumpRhoB.' // mysave //'.dat'
+    call collective_writeFile(nstep, mynamefile, rhoB, nbuff)
+   endif
+
+   mynamefile=repeat(' ',120)
+   mynamefile='dumpU.' // mysave //'.dat'
+   call collective_writeFile(nstep, mynamefile, u, nbuff)
+
+   mynamefile=repeat(' ',120)
+   mynamefile='dumpV.' // mysave //'.dat'
+   call collective_writeFile(nstep, mynamefile, v, nbuff)
+
+   mynamefile=repeat(' ',120)
+   mynamefile='dumpW.' // mysave //'.dat'
+   call collective_writeFile(nstep, mynamefile, w, nbuff)
+
+   mynamefile=repeat(' ',120)
+   mynamefile='dumpisFluid.' // mysave //'.dat'
+   call collective_writeFile_int(nstep, mynamefile, isfluid, nbuff)
+
+
+ endif
+   
+ return
+
+ end subroutine dump_oneFile
 
  subroutine restore_oneFile(nstep)
   
@@ -15862,6 +15988,38 @@ end subroutine fix_onebelt_density_twofluids
      call driver_bc_velocities
      call driver_bc_isfluid
   end subroutine restore_oneFile
+  
+ subroutine read_isfluid_dat(nstep)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for reading the isfluid.dat file
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  integer, intent(in) :: nstep
+  character(len=120) :: mynamefile
+  logical :: lexist
+  
+  if(.not. lread_isfluid)return
+  
+  mynamefile=repeat(' ',120)
+  mynamefile='isfluid.dat'
+  inquire(file=trim(mynamefile),exist=lexist)
+  if(.not. lexist)then
+    call warning(63)
+    call error(7)
+  endif
+  call collective_readFile_int(nstep, mynamefile, isfluid, nbuff)
+     
+  return
+  
+ end subroutine read_isfluid_dat
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! SUBS TO CREATE FILE FOR STATS

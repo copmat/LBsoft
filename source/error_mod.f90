@@ -556,6 +556,8 @@
     case (62)
       write(outp,'(/,2a,/)')"WARNING - 'density special' can not ", &
       "be used without specifying objects in input file!"
+    case (63)
+      write(outp,'(/,a,/)')"WARNING - the isfluid.dat file was not found!"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select
