@@ -726,6 +726,20 @@
                 call warning(1,dble(iline),redstring)
                 lerror6=.true.
               endif
+            elseif(findstring('read',directive,inumchar,maxlen))then
+              if(findstring('isfluid',directive,inumchar,maxlen))then
+                if(findstring('yes',directive,inumchar,maxlen))then
+                  temp_lread_isfluid=.true.
+                elseif(findstring('no',directive,inumchar,maxlen))then
+                  temp_lread_isfluid=.false.
+                else
+                  call warning(1,dble(iline),redstring)
+                  lerror6=.true.
+                endif
+              else
+                call warning(1,dble(iline),redstring)
+                lerror6=.true.
+              endif
             elseif(findstring('bound',directive,inumchar,maxlen))then
               if(findstring('cond',directive,inumchar,maxlen))then
                 temp_ibc=.true.
@@ -786,20 +800,6 @@
               cycle
             elseif(redstring(1:1)==' ')then
               cycle
-            elseif(findstring('read',directive,inumchar,maxlen))then
-              if(findstring('isfluid',directive,inumchar,maxlen))then
-                if(findstring('yes',directive,inumchar,maxlen))then
-                  temp_lread_isfluid=.true.
-                elseif(findstring('no',directive,inumchar,maxlen))then
-                  temp_lread_isfluid=.false.
-                else
-                  call warning(1,dble(iline),redstring)
-                  lerror6=.true.
-                endif
-              else
-                call warning(1,dble(iline),redstring)
-                lerror6=.true.
-              endif
             elseif(findstring('compon',directive,inumchar,maxlen))then
               temp_nfluid=intstr(directive,maxlen,inumchar)
               temp_lnfluid=.true.
@@ -1448,6 +1448,20 @@
     call error(3)
   endif
   
+  call bcast_world_l(temp_lread_isfluid)
+  if(temp_lread_isfluid)then
+    call set_lread_isfluid(temp_lread_isfluid)
+    if(lread_isfluid)then
+      if(idrank==0)then
+        mystring=repeat(' ',dimprint)
+        mystring='read isfluid'
+        mystring12='yes'
+        mystring12=adjustr(mystring12)
+        write(6,'(3a)')mystring,": ",mystring12
+      endif
+    endif
+  endif
+  
   call bcast_world_l(temp_ldomdec)
   if(temp_ldomdec)then
     call bcast_world_i(temp_domdec)
@@ -1707,20 +1721,6 @@
   
   if(idrank==0)then
     write(6,'(/,3a,/)')repeat('*',29),"parameters of LB room",repeat('*',29)
-  endif
-  
-  call bcast_world_l(temp_lread_isfluid)
-  if(temp_lread_isfluid)then
-    call set_lread_isfluid(temp_lread_isfluid)
-    if(lread_isfluid)then
-      if(idrank==0)then
-        mystring=repeat(' ',dimprint)
-        mystring='read isfluid'
-        mystring12='yes'
-        mystring12=adjustr(mystring12)
-        write(6,'(3a)')mystring,": ",mystring12
-      endif
-    endif
   endif
   
   call bcast_world_l(temp_lnfluid)
