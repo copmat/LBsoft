@@ -1,10 +1,21 @@
 
  program prepare
  
+!***********************************************************************
+!     
+!     LBsoft tool for preparing the isfluid.dat file as a set
+!     of 1 byte integers in natural order
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+
   implicit none
   
   integer :: nx,ny,nz,nn,i,j,k,cx,cy,cz
-  
+  !isfluid should be 1 byte integer
   integer(kind=1), allocatable, dimension(:,:,:) :: isfluid
   
   integer, parameter :: iout=16
@@ -26,16 +37,20 @@
   
   open(unit=iout,file='isfluid.dat',action='write',status='replace', &
    access='stream',form='unformatted')
-   
+  
+  !i should be the fastest (natural order of the 3d matrix)
+  !remember that FORTRAN is column-major order
   do k=1,nz
     do j=1,ny
       do i=1,nx
+        !insert a geometrical rule here
         rdist=dsqrt(dble((i-cx)**2+(j-cy)**2+(k-cz)**2))
         if(rdist<=radius)then
-          isfluid(i,j,k)=3
+          isfluid(i,j,k)=3 !3 = solid
         else
-          isfluid(i,j,k)=1
+          isfluid(i,j,k)=1 !1 = liquid
         endif
+        !print on isfluid.dat
         write(iout)isfluid(i,j,k)
       enddo
     enddo
