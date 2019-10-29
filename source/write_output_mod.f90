@@ -632,7 +632,7 @@
        do k=minz,maxz
         do j=miny,maxy
           do i=minx,maxx
-            if(isfluid(i,j,k)==3)cycle
+            if(isfluid(i,j,k)==3 .or. isfluid(i,j,k)==0)cycle
             r4temp=real(myvar(i,j,k),kind=4)
             b4temp=real(myvary(i,j,k),kind=4)
             service1(i,j,k)=(r4temp-b4temp)/(r4temp+b4temp)
@@ -643,6 +643,7 @@
       do k=minz,maxz
         do j=miny,maxy
           do i=minx,maxx
+            if(isfluid(i,j,k)==3 .or. isfluid(i,j,k)==0)cycle
             service1(i,j,k)=real(myvar(i,j,k),kind=4)
           enddo
         enddo
@@ -657,6 +658,7 @@
     do k=minz,maxz
       do j=miny,maxy
         do i=minx,maxx
+          if(isfluid(i,j,k)==3 .or. isfluid(i,j,k)==0)cycle
           service1(i,j,k)=real(myvar(i,j,k),kind=4)
           service2(i,j,k)=real(myvary(i,j,k),kind=4)
           service3(i,j,k)=real(myvarz(i,j,k),kind=4)
@@ -761,7 +763,7 @@
        do k=minz,maxz
         do j=miny,maxy
           do i=minx,maxx
-            if(isfluid(i,j,k)==3)cycle
+            if(isfluid(i,j,k)==3 .or. isfluid(i,j,k)==0)cycle
             r4temp=real(myvar(i,j,k),kind=4)
             b4temp=real(myvary(i,j,k),kind=4)
             service1(i,j,k)=(r4temp-b4temp)/(r4temp+b4temp)
@@ -772,6 +774,7 @@
       do k=minz,maxz
         do j=miny,maxy
           do i=minx,maxx
+            if(isfluid(i,j,k)==3 .or. isfluid(i,j,k)==0)cycle
             service1(i,j,k)=real(myvar(i,j,k),kind=4)
           enddo
         enddo
@@ -788,6 +791,7 @@
     do k=minz,maxz
       do j=miny,maxy
         do i=minx,maxx
+          if(isfluid(i,j,k)==3 .or. isfluid(i,j,k)==0)cycle
           service1(i,j,k)=real(myvar(i,j,k),kind=4)
           service2(i,j,k)=real(myvary(i,j,k),kind=4)
           service3(i,j,k)=real(myvarz(i,j,k),kind=4)
