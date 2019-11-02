@@ -102,6 +102,8 @@
  logical, save, protected, public :: lsing_SC=.false.
  logical, save, protected, public :: lpair_SC=.false.
  
+ logical, save, protected, public :: lColourG=.false.
+ 
  logical, save, protected, public :: lunique_omega=.false.
  
  logical, save, protected, public :: lcap_force=.false.
@@ -205,6 +207,10 @@
  real(kind=PRC), save, protected, public :: partR_SC = ZERO
  real(kind=PRC), save, protected, public :: partB_SC = ZERO
  
+ !Colour gradient coupling constant 
+ real(kind=PRC), save, protected, public :: akl_CG = ZERO
+ real(kind=PRC), save, protected, public :: beta_CG = ZERO
+ 
  real(kind=PRC), save, protected, public :: dmass_rescale = ZERO
  
  !fixed density to set the wall wetting as in Benzi's style
@@ -289,6 +295,12 @@
  real(kind=PRC), parameter :: p2 = ( ONE / THIRTYSIX )
  real(kind=PRC), dimension(0:links), parameter, public :: &
   p = (/p0,p1,p1,p1,p1,p1,p1,p2,p2,p2,p2,p2,p2,p2,p2,p2,p2,p2,p2/)
+ 
+ real(kind=PRC), parameter :: b0 = ( - ONE / THREE )
+ real(kind=PRC), parameter :: b1 = ( ONE / EIGHTEEN )
+ real(kind=PRC), parameter :: b2 = ( ONE / THIRTYSIX )
+ real(kind=PRC), dimension(0:links), parameter, public :: &
+  b_l = (/b0,b1,b1,b1,b1,b1,b1,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2/) 
   
  real(kind=PRC), dimension(0:links), parameter, public :: &
   a = (/ZERO,p1/cssq,p1/cssq,p1/cssq,p1/cssq,p1/cssq,p1/cssq,p2/cssq, &
@@ -441,6 +453,7 @@
  public :: restore_oneFile
  public :: set_objectliq
  public :: set_objectdata
+ public :: collision_fluids_CG
  
  contains
  
@@ -2607,7 +2620,33 @@
   
   return
   
- end subroutine set_fluid_force_sc 
+ end subroutine set_fluid_force_sc
+ 
+ subroutine set_fluid_force_cg(ltemp1,dtemp1,dtemp2)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the value of the surface tension 
+!     force in the colour gradient model
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  logical, intent(in) :: ltemp1
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2
+  
+  lColourG = ltemp1
+  akl_CG = dtemp1
+  beta_CG = dtemp2
+  
+  return
+  
+ end subroutine set_fluid_force_cg
  
  subroutine set_fluid_wall_mode(itemp1,dtemp1,dtemp2)
  
@@ -3610,6 +3649,140 @@
   return
   
  end subroutine compute_omega
+ 
+ subroutine collision_fluids_CG(nstep)
+
+!***********************************************************************
+!     
+!     LBsoft subroutine for adding the surface tension and the
+!     recolouring step in the collisional step
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: nstep
+  
+  integer :: i,j,k,l
+  real(kind=PRC) :: phis
+  
+  real(kind=PRC), parameter :: phislim = real(0.9999d0,kind=PRC)
+  real(kind=PRC), dimension(1:links) :: rhodiff,rhosum,feq
+  real(kind=PRC) :: acoeff,psinorm,psinorm_sq,e_dot_psi,temp,rhoapp
+  real(kind=PRC) :: psix,psiy,psiz,cosphi,fsum
+  
+  if(lunique_omega)then
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          if(isfluid(i,j,k)/=1) cycle
+          phis=(rhoR(i,j,k)-rhoB(i,j,k))/(rhoR(i,j,k)+rhoB(i,j,k))
+          if(abs(phis)<phislim)then
+		    rhodiff(1:links) = ZERO
+            rhosum(1:links) = ZERO
+            acoeff = ( NINE / FOUR )*unique_omega*akl_CG
+            psix = ZERO
+            psiy = ZERO
+            psiz = ZERO
+            do l=1,links
+              rhodiff(l)=(rhoR(i+ex(l),j+ey(l),k+ez(l))-rhoB(i+ex(l),j+ey(l),k+ez(l)))
+              rhosum(l)= (rhoR(i+ex(l),j+ey(l),k+ez(l))+rhoB(i+ex(l),j+ey(l),k+ez(l)))
+            enddo
+            do l=1,links
+              psix=psix + a(l)*dex(l)*(rhodiff(l)/rhosum(l))
+              psiy=psiy + a(l)*dey(l)*(rhodiff(l)/rhosum(l))
+              psiz=psiz + a(l)*dez(l)*(rhodiff(l)/rhosum(l))
+            enddo
+            psinorm_sq = psix**TWO + psiy**TWO + psiz**TWO
+            psinorm=sqrt(psinorm_sq)
+            do l=0,links
+              e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
+              temp=psinorm*(p(l)*(e_dot_psi**TWO)/psinorm_sq - b_l(l))
+              if(isnan(temp)) temp=ZERO
+              aoptpR(l)%p(i,j,k)=aoptpR(l)%p(i,j,k) +(acoeff)*temp 
+              aoptpB(l)%p(i,j,k)=aoptpB(l)%p(i,j,k) +(acoeff)*temp 
+            enddo
+            
+            do l=0,links
+              feq(l)=rhoR(i,j,k)*p(l) + rhoB(i,j,k)*p(l)
+            enddo
+            rhoapp=rhoR(i,j,k)+rhoB(i,j,k)
+            do l=0,links
+              e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
+              temp=sqrt(dex(l)**TWO + dey(l)**TWO + dez(l)**TWO)*psinorm
+              cosphi=e_dot_psi/temp
+              if(isnan(cosphi)) cosphi=ZERO
+              temp=beta_CG*rhoR(i,j,k)*rhoB(i,j,k)*cosphi/(rhoapp**TWO)
+              fsum=aoptpR(l)%p(i,j,k) + aoptpB(l)%p(i,j,k)
+              aoptpR(l)%p(i,j,k)=fsum*rhoR(i,j,k)/rhoapp + temp*feq(l)
+              aoptpB(l)%p(i,j,k)=fsum*rhoB(i,j,k)/rhoapp - temp*feq(l)
+            enddo
+            
+          endif
+        enddo
+      enddo
+    enddo
+  else
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          if(isfluid(i,j,k)/=1) cycle
+          phis=(rhoR(i,j,k)-rhoB(i,j,k))/(rhoR(i,j,k)+rhoB(i,j,k))
+          if(abs(phis)<phislim)then
+		    rhodiff(1:links) = ZERO
+            rhosum(1:links) = ZERO
+            acoeff = ( NINE / FOUR )*omega(i,j,k)*akl_CG
+            psix = ZERO
+            psiy = ZERO
+            psiz = ZERO
+            do l=1,links
+              rhodiff(l)=(rhoR(i+ex(l),j+ey(l),k+ez(l))-rhoB(i+ex(l),j+ey(l),k+ez(l)))
+              rhosum(l)= (rhoR(i+ex(l),j+ey(l),k+ez(l))+rhoB(i+ex(l),j+ey(l),k+ez(l)))
+            enddo
+            do l=1,links
+              psix=psix + a(l)*dex(l)*(rhodiff(l)/rhosum(l))
+              psiy=psiy + a(l)*dey(l)*(rhodiff(l)/rhosum(l))
+              psiz=psiz + a(l)*dez(l)*(rhodiff(l)/rhosum(l))
+            enddo
+            psinorm_sq = psix**TWO + psiy**TWO + psiz**TWO
+            psinorm=sqrt(psinorm_sq)
+            do l=0,links
+              e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
+              temp=psinorm*(p(l)*(e_dot_psi**TWO)/psinorm_sq - b_l(l))
+              if(isnan(temp)) temp=ZERO
+              aoptpR(l)%p(i,j,k)=aoptpR(l)%p(i,j,k) +(acoeff)*temp 
+              aoptpB(l)%p(i,j,k)=aoptpB(l)%p(i,j,k) +(acoeff)*temp 
+            enddo
+            
+            do l=0,links
+              feq(l)=rhoR(i,j,k)*p(l) + rhoB(i,j,k)*p(l)
+            enddo
+            rhoapp=rhoR(i,j,k)+rhoB(i,j,k)
+            do l=0,links
+              e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
+              temp=sqrt(dex(l)**TWO + dey(l)**TWO + dez(l)**TWO)*psinorm
+              cosphi=e_dot_psi/temp
+              if(isnan(cosphi)) cosphi=ZERO
+              temp=beta_CG*rhoR(i,j,k)*rhoB(i,j,k)*cosphi/(rhoapp**TWO)
+              fsum=aoptpR(l)%p(i,j,k) + aoptpB(l)%p(i,j,k)
+              aoptpR(l)%p(i,j,k)=fsum*rhoR(i,j,k)/rhoapp + temp*feq(l)
+              aoptpB(l)%p(i,j,k)=fsum*rhoB(i,j,k)/rhoapp - temp*feq(l)
+            enddo
+            
+          endif
+        enddo
+      enddo
+    enddo
+  endif
+  
+  
+  return
+  
+ end subroutine
  
  subroutine driver_bc_pop_selfcomm(lparticles)
  
@@ -9330,7 +9503,7 @@
      endif
    end select
    
-   ! call or_world_larr(ltest,1)
+   !call or_world_larr(ltest,1)
    if(ltest(1)) write(216,fmt=1003) nstep, idrank, errorCount
 1003 format ("step:", I6, " id:", I4,I10," fix in compute_densities_wall", X)
   
