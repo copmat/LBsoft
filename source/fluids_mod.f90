@@ -1778,7 +1778,7 @@
               dists(3)=real(k,kind=PRC)-objectdata(3,l)
               call minimage_onevec(ibctype,dbox,dists)
               rdist=sqrt(dists(1)**TWO+dists(2)**TWO+dists(3)**TWO)
-              dtemp=fcut(rdist,objectdata(4,l),objectdata(3,l)+objectdata(4,l))
+              dtemp=fcut(rdist,objectdata(4,l),objectdata(4,l)+objectdata(5,l))
               rhoR(i,j,k)=backR+(objectdata(6,l)-backR)*dtemp
             case(2)
               if(nint(objectdata(1,l))<=i .and. nint(objectdata(2,l))>=i .and. &
@@ -1811,7 +1811,7 @@
               dists(3)=real(k,kind=PRC)-objectdata(3,l)
               call minimage_onevec(ibctype,dbox,dists)
               rdist=sqrt(dists(1)**TWO+dists(2)**TWO+dists(3)**TWO)
-              dtemp=fcut(rdist,objectdata(4,l),objectdata(3,l)+objectdata(4,l))
+              dtemp=fcut(rdist,objectdata(4,l),objectdata(4,l)+objectdata(5,l))
               rhoR(i,j,k)=backR+(objectdata(6,l)-backR)*dtemp
               rhoB(i,j,k)=backB+(objectdata(7,l)-backB)*dtemp
             case(2)

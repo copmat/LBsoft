@@ -1,0 +1,27 @@
+[ROOM SYSTEM]
+box 64 64 64
+steps 500
+diagnostic yes
+boundary condition 0 0 0
+decomposition type  7
+decomposition dimension    1   1   1
+print list maxd1 mind1 dens1 maxvx maxvy maxvz
+print every 10
+print vtk yes
+print vtk every 10
+print vtk list rho1 rho2 
+job time 4 d
+close time 10 s
+[END ROOM]
+[ROOM LB]
+components 2
+density special
+density object 1
+density sphere 1  32.5  32.5  32.5  10.0  4.0  2.342603952  0.3700077342d-1
+density mean 2.342603952 0.3700077342d-1
+density back 0.3700077342d-1 2.342603952
+velocity mean 0.d0 0.d0 0.d0
+force shanchen pair 0.8d0
+fluid tau 1.d0 1.d0
+[END ROOM]
+[END]
