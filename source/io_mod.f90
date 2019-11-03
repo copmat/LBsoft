@@ -45,7 +45,8 @@
   backR,backB,set_cap_force,cap_force,lread_isfluid, &
   imass_rescale,set_mass_rescale,dmass_rescale,iselwetting, &
   densR_wetting,densB_wetting,set_fluid_wall_mode,set_objectliq, &
-  set_objectdata,nobjectliq,typeobjectliq,objectdata,set_lread_isfluid
+  set_objectdata,nobjectliq,typeobjectliq,objectdata,set_lread_isfluid,&
+  set_fluid_force_cg,lColourG,sigma_CG,alphaR_CG,alphaB_CG,beta_CG
 
  use particles_mod,         only : set_natms_tot,natms_tot,lparticles, &
   set_ishape,set_densvar,densvar,ishape,set_rcut,rcut,delr, &
@@ -410,6 +411,11 @@
   logical :: temp_lread_isfluid=.false.
   logical :: temp_lobjectliq=.false.
   logical, dimension(nmaxobjectliq) :: temp_lobjectdata = .false.
+  logical :: temp_lColourG=.false.
+  logical :: temp_lsigma_CG=.false.
+  logical :: temp_lalphaR_CG=.false.
+  logical :: temp_lalphaB_CG=.false.
+  logical :: temp_lbeta_CG=.false.
   
   real(kind=PRC) :: dtemp_meanR = ZERO
   real(kind=PRC) :: dtemp_meanB = ZERO
@@ -497,6 +503,11 @@
   real(kind=PRC) :: dtemp_ext_tqx = ZERO
   real(kind=PRC) :: dtemp_ext_tqy = ZERO
   real(kind=PRC) :: dtemp_ext_tqz = ZERO
+  
+  real(kind=PRC) :: dtemp_sigma_CG
+  real(kind=PRC) :: dtemp_alphaR_CG
+  real(kind=PRC) :: dtemp_alphaB_CG
+  real(kind=PRC) :: dtemp_beta_CG
   
   real(kind=PRC) :: temp_dmass_rescale = ZERO
   
@@ -1015,6 +1026,32 @@
                   call warning(1,dble(iline),redstring)
                   lerror6=.true.
                 endif
+              elseif(findstring('colo',directive,inumchar,maxlen))then
+                if(findstring('grad',directive,inumchar,maxlen))then
+                  if(findstring('yes',directive,inumchar,maxlen))then
+                    temp_lColourG=.true.
+                  elseif(findstring('no',directive,inumchar,maxlen))then
+                    temp_lColourG=.false.
+                  elseif(findstring('sigma',directive,inumchar,maxlen))then
+                    dtemp_sigma_CG=dblstr(directive,maxlen,inumchar)
+                    temp_lsigma_CG=.true.
+                  elseif(findstring('alphar',directive,inumchar,maxlen))then
+                    dtemp_alphaR_CG=dblstr(directive,maxlen,inumchar)
+                    temp_lalphaR_CG=.true.
+                  elseif(findstring('alphab',directive,inumchar,maxlen))then
+                    dtemp_alphaB_CG=dblstr(directive,maxlen,inumchar)
+                    temp_lalphaB_CG=.true.
+                  elseif(findstring('beta',directive,inumchar,maxlen))then
+                    dtemp_beta_CG=dblstr(directive,maxlen,inumchar)
+                    temp_lbeta_CG=.true.
+                  else
+                    call warning(1,dble(iline),redstring)
+                    lerror6=.true.
+                  endif
+                else
+                  call warning(1,dble(iline),redstring)
+                  lerror6=.true.
+                endif
               elseif(findstring('cap',directive,inumchar,maxlen))then
                 dtemp_cap_force=dblstr(directive,maxlen,inumchar)
                 temp_lcap_force=.true.
@@ -1455,6 +1492,7 @@
       if(idrank==0)then
         mystring=repeat(' ',dimprint)
         mystring='read isfluid'
+        mystring=repeat(' ',dimprint2)
         mystring12='yes'
         mystring12=adjustr(mystring12)
         write(6,'(3a)')mystring,": ",mystring12
@@ -2164,6 +2202,73 @@
       write(6,'(2a,2f12.6)')mystring,": ",wallR_SC,wallB_SC
     endif
   endif
+  
+  call bcast_world_l(temp_lColourG)
+  if(temp_lColourG)then
+    call bcast_world_l(temp_lsigma_CG)
+    call bcast_world_l(temp_lalphaR_CG)
+    call bcast_world_l(temp_lalphaB_CG)
+    call bcast_world_l(temp_lbeta_CG)
+    call bcast_world_f(dtemp_sigma_CG)
+    call bcast_world_f(dtemp_alphaR_CG)
+    call bcast_world_f(dtemp_alphaB_CG)
+    call bcast_world_f(dtemp_beta_CG)
+    if(temp_lColourG .and. lsingle_fluid)then
+      call warning(64)
+      call error(5)
+    endif
+    if(.not. temp_lsigma_CG)then
+      call warning(67)
+      call error(7)
+    endif
+    if(.not. temp_lalphaR_CG)then
+      call warning(68)
+      call error(7)
+    endif
+    if(.not. temp_lalphaB_CG)then
+      call warning(69)
+      call error(7)
+    endif
+    if(.not. temp_lbeta_CG)then
+      call warning(70)
+      call error(7)
+    endif
+    if(dtemp_alphaR_CG<=ZERO .or. dtemp_alphaR_CG>=ONE)then
+      call warning(65,dtemp_alphaR_CG)
+      call error(5)
+    endif 
+    if(dtemp_alphaB_CG<=ZERO .or. dtemp_alphaB_CG>=ONE)then
+      call warning(66,dtemp_alphaB_CG)
+      call error(5)
+    endif
+    if(dtemp_beta_CG<=ZERO .or. dtemp_beta_CG>=ONE)then
+      call warning(71,dtemp_beta_CG)
+      call error(5)
+    endif 
+    call set_fluid_force_cg(temp_lColourG,dtemp_sigma_CG, &
+     dtemp_alphaR_CG,dtemp_alphaB_CG,dtemp_beta_CG)
+    if(idrank==0)then
+      mystring=repeat(' ',dimprint)
+      mystring='force colour gradient'
+      mystring=repeat(' ',dimprint2)
+      mystring12='yes'
+      mystring12=adjustr(mystring12)
+      write(6,'(3a)')mystring,": ",mystring12
+      mystring=repeat(' ',dimprint)
+      mystring='colour gradient sigma'
+      write(6,'(2a,f12.6)')mystring,": ",sigma_CG
+      mystring=repeat(' ',dimprint)
+      mystring='colour gradient alphaR'
+      write(6,'(2a,f12.6)')mystring,": ",alphaR_CG
+      mystring=repeat(' ',dimprint)
+      mystring='colour gradient alphaB'
+      write(6,'(2a,f12.6)')mystring,": ",alphaB_CG
+      mystring=repeat(' ',dimprint)
+      mystring='colour gradient beta'
+      write(6,'(2a,f12.6)')mystring,": ",beta_CG
+    endif
+  endif
+  
   
   if(lforce_add)then
     call set_LBintegrator_type(1)

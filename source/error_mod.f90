@@ -558,6 +558,36 @@
       "be used without specifying objects in input file!"
     case (63)
       write(outp,'(/,a,/)')"WARNING - the isfluid.dat file was not found!"
+    case (64)
+      write(outp,'(/,2a,/)')"WARNING - the colour gradient force cannot be", &
+       " applyied with a single fluid component!"
+    case(65)     
+      write (r_char,'(f10.5)')ddata
+      write(outp,'(/,a)')"WARNING - alphaR is not between zero and one."
+       write(outp,'(2a,/)')"WARNING - the actual value of alphaR is : ", &
+       trim(adjustl(r_char))
+    case(66)
+      write (r_char,'(f10.5)')ddata
+      write(outp,'(/,a)')"WARNING - alphaB is not between zero and one."
+       write(outp,'(2a,/)')"WARNING - the actual value of alphaB is : ", &
+       trim(adjustl(r_char))
+    case (67)
+      write(outp,'(/,2a,/)')"WARNING - 'force colour gradient sigma' is ", &
+      "not defined in input file"
+    case (68)
+      write(outp,'(/,2a,/)')"WARNING - 'force colour gradient alphaR' is ", &
+      "not defined in input file"
+    case (69)
+      write(outp,'(/,2a,/)')"WARNING - 'force colour gradient alphaB' is ", &
+      "not defined in input file"
+    case (70)
+      write(outp,'(/,2a,/)')"WARNING - 'force colour gradient beta' is ", &
+      "not defined in input file"
+    case(71)
+      write (r_char,'(f10.5)')ddata
+      write(outp,'(/,a)')"WARNING - beta is not between zero and one."
+       write(outp,'(2a,/)')"WARNING - the actual value of beta is : ", &
+       trim(adjustl(r_char))
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

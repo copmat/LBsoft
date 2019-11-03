@@ -208,7 +208,9 @@
  real(kind=PRC), save, protected, public :: partB_SC = ZERO
  
  !Colour gradient coupling constant 
- real(kind=PRC), save, protected, public :: akl_CG = ZERO
+ real(kind=PRC), save, protected, public :: sigma_CG = ZERO
+ real(kind=PRC), save, protected, public :: alphaR_CG = ZERO
+ real(kind=PRC), save, protected, public :: alphaB_CG = ZERO
  real(kind=PRC), save, protected, public :: beta_CG = ZERO
  
  real(kind=PRC), save, protected, public :: dmass_rescale = ZERO
@@ -290,8 +292,8 @@
  
  real(kind=PRC), parameter, public :: cssq = ( ONE / THREE )
  
- real(kind=PRC), parameter :: p0 = ( TWELVE / THIRTYSIX )
- real(kind=PRC), parameter :: p1 = ( TWO/ THIRTYSIX )
+ real(kind=PRC), parameter :: p0 = ( ONE / THREE )
+ real(kind=PRC), parameter :: p1 = ( ONE / EIGHTEEN )
  real(kind=PRC), parameter :: p2 = ( ONE / THIRTYSIX )
  real(kind=PRC), dimension(0:links), parameter, public :: &
   p = (/p0,p1,p1,p1,p1,p1,p1,p2,p2,p2,p2,p2,p2,p2,p2,p2,p2,p2,p2/)
@@ -326,6 +328,10 @@
   dez = real(ez,kind=PRC)
  
 #endif 
+
+! coeff for Colour Gradient
+ real(kind=PRC), dimension(0:links), protected, public :: phiR_CG
+ real(kind=PRC), dimension(0:links), protected, public :: phiB_CG
 
  integer, parameter, public :: linksd3q27=26
  
@@ -453,7 +459,7 @@
  public :: restore_oneFile
  public :: set_objectliq
  public :: set_objectdata
- public :: collision_fluids_CG
+ public :: set_fluid_force_cg
  
  contains
  
@@ -2622,7 +2628,7 @@
   
  end subroutine set_fluid_force_sc
  
- subroutine set_fluid_force_cg(ltemp1,dtemp1,dtemp2)
+ subroutine set_fluid_force_cg(ltemp1,dtemp1,dtemp2,dtemp3,dtemp4)
  
 !***********************************************************************
 !     
@@ -2638,15 +2644,56 @@
   implicit none
   
   logical, intent(in) :: ltemp1
-  real(kind=PRC), intent(in) :: dtemp1,dtemp2
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3,dtemp4
   
   lColourG = ltemp1
-  akl_CG = dtemp1
-  beta_CG = dtemp2
+  sigma_CG = dtemp1
+  alphaR_CG = dtemp2
+  alphaB_CG = dtemp3
+  beta_CG = dtemp4
+  
+  call initialize_phi_coeff_cg(alphaR_CG,alphaB_CG)
   
   return
   
  end subroutine set_fluid_force_cg
+ 
+ subroutine initialize_phi_coeff_cg(dtemp1,dtemp2)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the value of the phi coefficients
+!     of the lattice in the colour gradient model
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2019
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2
+  
+#if LATTICE==319
+
+  phiR_CG(0)=dtemp1
+  phiR_CG(1:6)=(ONE-dtemp1) / TWELVE
+  phiR_CG(7:18)=(ONE-dtemp1) / TWENTYFOUR
+  
+  phiB_CG(0)=dtemp2 
+  phiB_CG(1:6)=(ONE-dtemp2) / TWELVE
+  phiB_CG(7:18)=(ONE-dtemp2) / TWENTYFOUR
+  
+#else
+  
+  return
+  
+#endif
+  
+  return
+  
+ end subroutine initialize_phi_coeff_cg
  
  subroutine set_fluid_wall_mode(itemp1,dtemp1,dtemp2)
  
@@ -3217,29 +3264,39 @@
    rhoR,u,v,w)
 #endif
   
-  select case(LBintegrator)
-  case (0)
-    call collision_fluids_BGK(rhoR,u,v,w,omega,f00R,f01R,&
-     f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
-     f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
-    if(lsingle_fluid)return
-    call collision_fluids_BGK(rhoB,u,v,w,omega,f00B,f01B,&
-     f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
-     f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+  if(.not. lColourG)then
+  
+    select case(LBintegrator)
+    case (0)
+      call collision_fluids_BGK(rhoR,u,v,w,omega,f00R,f01R,&
+       f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
+       f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+      if(lsingle_fluid)return
+      call collision_fluids_BGK(rhoB,u,v,w,omega,f00B,f01B,&
+       f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
+       f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
 
-  case (1)
-    ! done in collision_EDM) call convert_fluid_force_to_velshifted
-    call collision_fluids_EDM(rhoR,u,v,w,fuR,fvR,fwR,omega,f00R,f01R,&
-     f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
-     f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R,nstep)
-    if(lsingle_fluid)return
-    call collision_fluids_EDM(rhoB,u,v,w,fuB,fvB,fwB,omega,f00B,f01B,&
-     f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
-     f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B,nstep)
+    case (1)
+      ! done in collision_EDM) call convert_fluid_force_to_velshifted
+      call collision_fluids_EDM(rhoR,u,v,w,fuR,fvR,fwR,omega,f00R,f01R,&
+       f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
+       f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R,nstep)
+      if(lsingle_fluid)return
+      call collision_fluids_EDM(rhoB,u,v,w,fuB,fvB,fwB,omega,f00B,f01B,&
+       f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
+       f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B,nstep)
 
-  case default
-    call error(14)
-  end select
+    case default
+      call error(14)
+    end select
+  
+  else
+    
+    call collision_fluids_CG(nstep)
+    
+  endif
+  
+  
  end subroutine driver_collision_fluids
 
  
@@ -3674,17 +3731,38 @@
   real(kind=PRC), dimension(1:links) :: rhodiff,rhosum,feq
   real(kind=PRC) :: acoeff,psinorm,psinorm_sq,e_dot_psi,temp,rhoapp
   real(kind=PRC) :: psix,psiy,psiz,cosphi,fsum
+  real(kind=PRC) :: locrhoR,locrhoB,locu,locv,locw,temp_omega,oneminusomega
   
   if(lunique_omega)then
+    temp_omega=unique_omega !omegas(i,j,k)
+    oneminusomega = ONE-temp_omega
     do k=minz,maxz
       do j=miny,maxy
         do i=minx,maxx
           if(isfluid(i,j,k)/=1) cycle
-          phis=(rhoR(i,j,k)-rhoB(i,j,k))/(rhoR(i,j,k)+rhoB(i,j,k))
+          
+          locrhoR = rhoR(i,j,k)
+          locrhoB = rhoB(i,j,k)
+          locu = u(i,j,k)
+          locv = v(i,j,k)
+          locw = w(i,j,k)
+          
+          !bgk step
+          do l=0,links
+            aoptpR(l)%p(i,j,k)=aoptpR(l)%p(i,j,k)*oneminusomega + &
+             equil_popCG(l,links,phiR_CG,p,dex,dey,dez,locrhoR,locu,locv,locw) &
+             * temp_omega
+            aoptpB(l)%p(i,j,k)=aoptpB(l)%p(i,j,k)*oneminusomega + &
+             equil_popCG(l,links,phiB_CG,p,dex,dey,dez,locrhoB,locu,locv,locw) &
+             * temp_omega
+          enddo
+          
+          !perturbation step
+          phis=(locrhoR-locrhoB)/(locrhoR+locrhoB)
           if(abs(phis)<phislim)then
 		    rhodiff(1:links) = ZERO
             rhosum(1:links) = ZERO
-            acoeff = ( NINE / FOUR )*unique_omega*akl_CG
+            acoeff = ( NINE / FOUR )*temp_omega*sigma_CG
             psix = ZERO
             psiy = ZERO
             psiz = ZERO
@@ -3703,23 +3781,25 @@
               e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
               temp=psinorm*(p(l)*(e_dot_psi**TWO)/psinorm_sq - b_l(l))
               if(isnan(temp)) temp=ZERO
-              aoptpR(l)%p(i,j,k)=aoptpR(l)%p(i,j,k) +(acoeff)*temp 
-              aoptpB(l)%p(i,j,k)=aoptpB(l)%p(i,j,k) +(acoeff)*temp 
+              aoptpR(l)%p(i,j,k)=aoptpR(l)%p(i,j,k) +(HALF*acoeff)*temp 
+              aoptpB(l)%p(i,j,k)=aoptpB(l)%p(i,j,k) +(HALF*acoeff)*temp 
             enddo
             
+            !recolouring step
             do l=0,links
-              feq(l)=rhoR(i,j,k)*p(l) + rhoB(i,j,k)*p(l)
+              !compute the sum of the two equilibriums at zero velocity 
+              feq(l)=locrhoR*phiR_CG(l) + locrhoB*phib_CG(l)
             enddo
-            rhoapp=rhoR(i,j,k)+rhoB(i,j,k)
+            rhoapp=locrhoR+locrhoB
             do l=0,links
               e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
               temp=sqrt(dex(l)**TWO + dey(l)**TWO + dez(l)**TWO)*psinorm
               cosphi=e_dot_psi/temp
               if(isnan(cosphi)) cosphi=ZERO
-              temp=beta_CG*rhoR(i,j,k)*rhoB(i,j,k)*cosphi/(rhoapp**TWO)
+              temp=beta_CG*locrhoR*locrhoB*cosphi/(rhoapp**TWO)
               fsum=aoptpR(l)%p(i,j,k) + aoptpB(l)%p(i,j,k)
-              aoptpR(l)%p(i,j,k)=fsum*rhoR(i,j,k)/rhoapp + temp*feq(l)
-              aoptpB(l)%p(i,j,k)=fsum*rhoB(i,j,k)/rhoapp - temp*feq(l)
+              aoptpR(l)%p(i,j,k)=fsum*locrhoR/rhoapp + temp*feq(l)
+              aoptpB(l)%p(i,j,k)=fsum*locrhoB/rhoapp - temp*feq(l)
             enddo
             
           endif
@@ -3731,11 +3811,31 @@
       do j=miny,maxy
         do i=minx,maxx
           if(isfluid(i,j,k)/=1) cycle
-          phis=(rhoR(i,j,k)-rhoB(i,j,k))/(rhoR(i,j,k)+rhoB(i,j,k))
+          temp_omega=omega(i,j,k)
+          oneminusomega = ONE-temp_omega
+          
+          locrhoR = rhoR(i,j,k)
+          locrhoB = rhoB(i,j,k)
+          locu = u(i,j,k)
+          locv = v(i,j,k)
+          locw = w(i,j,k)
+          
+          !bgk step
+          do l=0,links
+            aoptpR(l)%p(i,j,k)=aoptpR(l)%p(i,j,k)*oneminusomega + &
+             equil_popCG(l,links,phiR_CG,p,dex,dey,dez,locrhoR,locu,locv,locw) &
+             * temp_omega
+            aoptpB(l)%p(i,j,k)=aoptpB(l)%p(i,j,k)*oneminusomega + &
+             equil_popCG(l,links,phiB_CG,p,dex,dey,dez,locrhoB,locu,locv,locw) &
+             * temp_omega
+          enddo
+          
+          !perturbation step
+          phis=(locrhoR-locrhoB)/(locrhoR+locrhoB)
           if(abs(phis)<phislim)then
 		    rhodiff(1:links) = ZERO
             rhosum(1:links) = ZERO
-            acoeff = ( NINE / FOUR )*omega(i,j,k)*akl_CG
+            acoeff = ( NINE / FOUR )*temp_omega*sigma_CG
             psix = ZERO
             psiy = ZERO
             psiz = ZERO
@@ -3754,23 +3854,25 @@
               e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
               temp=psinorm*(p(l)*(e_dot_psi**TWO)/psinorm_sq - b_l(l))
               if(isnan(temp)) temp=ZERO
-              aoptpR(l)%p(i,j,k)=aoptpR(l)%p(i,j,k) +(acoeff)*temp 
-              aoptpB(l)%p(i,j,k)=aoptpB(l)%p(i,j,k) +(acoeff)*temp 
+              aoptpR(l)%p(i,j,k)=aoptpR(l)%p(i,j,k) +(HALF*acoeff)*temp 
+              aoptpB(l)%p(i,j,k)=aoptpB(l)%p(i,j,k) +(HALF*acoeff)*temp 
             enddo
             
+            !recolouring step
             do l=0,links
-              feq(l)=rhoR(i,j,k)*p(l) + rhoB(i,j,k)*p(l)
+              !compute the sum of the two equilibriums at zero velocity 
+              feq(l)=locrhoR*phiR_CG(l) + locrhoB*phib_CG(l)
             enddo
-            rhoapp=rhoR(i,j,k)+rhoB(i,j,k)
+            rhoapp=locrhoR+locrhoB
             do l=0,links
               e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
               temp=sqrt(dex(l)**TWO + dey(l)**TWO + dez(l)**TWO)*psinorm
               cosphi=e_dot_psi/temp
               if(isnan(cosphi)) cosphi=ZERO
-              temp=beta_CG*rhoR(i,j,k)*rhoB(i,j,k)*cosphi/(rhoapp**TWO)
+              temp=beta_CG*locrhoR*locrhoB*cosphi/(rhoapp**TWO)
               fsum=aoptpR(l)%p(i,j,k) + aoptpB(l)%p(i,j,k)
-              aoptpR(l)%p(i,j,k)=fsum*rhoR(i,j,k)/rhoapp + temp*feq(l)
-              aoptpB(l)%p(i,j,k)=fsum*rhoB(i,j,k)/rhoapp - temp*feq(l)
+              aoptpR(l)%p(i,j,k)=fsum*locrhoR/rhoapp + temp*feq(l)
+              aoptpB(l)%p(i,j,k)=fsum*locrhoB/rhoapp - temp*feq(l)
             enddo
             
           endif
@@ -3782,7 +3884,43 @@
   
   return
   
- end subroutine
+ end subroutine collision_fluids_CG
+ 
+ pure function equil_popCG(myl,mylinks,myphy,myp,mydex, &
+   mydey,mydez,myrho,myu,myv,myw)
+ 
+!***********************************************************************
+!     
+!     LBsoft function for Boltzmann equilibrium distribution 
+!     for the populations in the Colour Gradient model
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification November 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: myl,mylinks
+  real(kind=PRC), intent(in), dimension(0:mylinks) :: myphy,myp,mydex, &
+   mydey,mydez
+  real(kind=PRC), intent(in) :: myrho,myu,myv,myw
+  
+  real(kind=PRC) :: equil_popCG
+  
+  real(kind=PRC) :: uv
+  
+  real(kind=PRC), parameter :: mycssq = cssq
+  
+
+  uv=(ONE/mycssq)*(myu*mydex(myl) + myv*mydey(myl) + myw*mydez(myl))
+  equil_popCG=myrho*(myphy(myl)+myp(myl)*(uv+HALF*(uv*uv)-(HALF/mycssq)* &
+   (myu**TWO+myv**TWO+myw**TWO)))
+  
+  return
+  
+ end function equil_popCG
  
  subroutine driver_bc_pop_selfcomm(lparticles)
  

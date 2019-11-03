@@ -31,8 +31,7 @@
                         print_all_pops_area_shpere,ex,ey,ez,pimage, &
                         ixpbc,iypbc,izpbc,nx,ny,nz,opp, &
                         driver_bc_pops, print_all_pops2, &
-                        rescale_fluid_mass,lmass_rescale,lColourG, &
-                        collision_fluids_CG
+                        rescale_fluid_mass,lmass_rescale,lColourG
 
  use particles_mod,    only : parlst,lparticles, &
                         vertest,initialize_particle_force, &
@@ -313,12 +312,6 @@
   call driver_collision_fluids(nstep)
   if(ldiagnostic)call end_timing2("LB","collision_fluids")
   ! if (debug1) call print_all_pops2(131, "aft_collision_fluids", nstep)
-  
-  if(lColourG)then
-    if(ldiagnostic)call start_timing2("LB","collision_cg")
-    call collision_fluids_CG(nstep)
-    if(ldiagnostic)call end_timing2("LB","collision_cg")
-  endif
   
   if(lbc_halfway)then
     if(ldiagnostic)call start_timing2("LB","apply_bback_pop_hf")
