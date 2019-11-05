@@ -3728,7 +3728,7 @@
   real(kind=PRC) :: phis
   
   real(kind=PRC), parameter :: phislim = real(0.9999d0,kind=PRC)
-  real(kind=PRC), dimension(1:links) :: rhodiff,rhosum,feq
+  real(kind=PRC), dimension(0:links) :: rhodiff,rhosum,feq
   real(kind=PRC) :: acoeff,psinorm,psinorm_sq,e_dot_psi,temp,rhoapp
   real(kind=PRC) :: psix,psiy,psiz,cosphi,fsum
   real(kind=PRC) :: locrhoR,locrhoB,locu,locv,locw,temp_omega,oneminusomega
@@ -3794,8 +3794,11 @@
             do l=0,links
               e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
               temp=sqrt(dex(l)**TWO + dey(l)**TWO + dez(l)**TWO)*psinorm
-              cosphi=e_dot_psi/temp
-              if(isnan(cosphi)) cosphi=ZERO
+              if (temp>ZERO) then
+                 cosphi=e_dot_psi/temp
+              else
+                 cosphi=ZERO
+              endif
               temp=beta_CG*locrhoR*locrhoB*cosphi/(rhoapp**TWO)
               fsum=aoptpR(l)%p(i,j,k) + aoptpB(l)%p(i,j,k)
               aoptpR(l)%p(i,j,k)=fsum*locrhoR/rhoapp + temp*feq(l)
