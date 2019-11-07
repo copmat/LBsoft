@@ -5,6 +5,7 @@
 #define noDEBUG_FORCEINT
 #define noQUAD_FORCEINT
 #define noLOGFORCES
+#define noGRADIENTD3Q27
 
 #define STREAM_NOCOPY
 

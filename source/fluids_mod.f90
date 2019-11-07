@@ -344,6 +344,13 @@
  integer, dimension(0:linksd3q27), parameter, public :: &
   ezd3q27 = (/ 0, 0, 0, 0, 0, 1,-1, 0, 0, 0, 0, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1,-1, 1/)
  
+ real(kind=PRC), dimension(0:linksd3q27), parameter, public :: &
+  dexd3q27 = real(exd3q27,kind=PRC)
+ real(kind=PRC), dimension(0:linksd3q27), parameter, public :: &
+  deyd3q27 = real(eyd3q27,kind=PRC)
+ real(kind=PRC), dimension(0:linksd3q27), parameter, public :: &
+  dezd3q27 = real(ezd3q27,kind=PRC)
+ 
  real(kind=PRC), parameter :: p0d3q27 = ( TWO / THREE )**THREE
  real(kind=PRC), parameter :: p1d3q27 = (( TWO / THREE )**TWO ) * ( ONE/ SIX )
  real(kind=PRC), parameter :: p2d3q27 = (( ONE / SIX )**TWO) * ( TWO/ THREE)
@@ -3727,8 +3734,13 @@
   integer :: i,j,k,l
   real(kind=PRC) :: phis
   
-  real(kind=PRC), parameter :: phislim = real(0.9999d0,kind=PRC)
-  real(kind=PRC), dimension(0:links) :: rhodiff,rhosum,feq
+  real(kind=PRC), parameter :: phislim = real(0.99999999d0,kind=PRC)
+#ifdef GRADIENTD3Q27
+  real(kind=PRC), dimension(0:linksd3q27) :: rhodiff,rhosum
+#else
+  real(kind=PRC), dimension(0:links) :: rhodiff,rhosum
+#endif
+  real(kind=PRC), dimension(0:links) :: feq
   real(kind=PRC) :: acoeff,psinorm,psinorm_sq,e_dot_psi,temp,rhoapp
   real(kind=PRC) :: psix,psiy,psiz,cosphi,fsum
   real(kind=PRC) :: locrhoR,locrhoB,locu,locv,locw,temp_omega,oneminusomega
@@ -3760,12 +3772,25 @@
           !perturbation step
           phis=(locrhoR-locrhoB)/(locrhoR+locrhoB)
           if(abs(phis)<phislim)then
-		    rhodiff(1:links) = ZERO
+            rhodiff(1:links) = ZERO
             rhosum(1:links) = ZERO
             acoeff = ( NINE / FOUR )*temp_omega*sigma_CG
             psix = ZERO
             psiy = ZERO
             psiz = ZERO
+#ifdef GRADIENTD3Q27
+            do l=1,linksd3q27
+              rhodiff(l)=(rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)) - &
+               rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
+              rhosum(l)= (rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)) + &
+               rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
+            enddo
+            do l=1,linksd3q27
+              psix=psix + ad3q27(l)*dexd3q27(l)*(rhodiff(l)/rhosum(l))
+              psiy=psiy + ad3q27(l)*deyd3q27(l)*(rhodiff(l)/rhosum(l))
+              psiz=psiz + ad3q27(l)*dezd3q27(l)*(rhodiff(l)/rhosum(l))
+            enddo
+#else             
             do l=1,links
               rhodiff(l)=(rhoR(i+ex(l),j+ey(l),k+ez(l))-rhoB(i+ex(l),j+ey(l),k+ez(l)))
               rhosum(l)= (rhoR(i+ex(l),j+ey(l),k+ez(l))+rhoB(i+ex(l),j+ey(l),k+ez(l)))
@@ -3775,6 +3800,7 @@
               psiy=psiy + a(l)*dey(l)*(rhodiff(l)/rhosum(l))
               psiz=psiz + a(l)*dez(l)*(rhodiff(l)/rhosum(l))
             enddo
+#endif
             psinorm_sq = psix**TWO + psiy**TWO + psiz**TWO
             psinorm=sqrt(psinorm_sq)
             do l=0,links
@@ -3842,6 +3868,19 @@
             psix = ZERO
             psiy = ZERO
             psiz = ZERO
+#ifdef GRADIENTD3Q27
+            do l=1,linksd3q27
+              rhodiff(l)=(rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)) - &
+               rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
+              rhosum(l)= (rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)) + &
+               rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
+            enddo
+            do l=1,linksd3q27
+              psix=psix + ad3q27(l)*dexd3q27(l)*(rhodiff(l)/rhosum(l))
+              psiy=psiy + ad3q27(l)*deyd3q27(l)*(rhodiff(l)/rhosum(l))
+              psiz=psiz + ad3q27(l)*dezd3q27(l)*(rhodiff(l)/rhosum(l))
+            enddo
+#else             
             do l=1,links
               rhodiff(l)=(rhoR(i+ex(l),j+ey(l),k+ez(l))-rhoB(i+ex(l),j+ey(l),k+ez(l)))
               rhosum(l)= (rhoR(i+ex(l),j+ey(l),k+ez(l))+rhoB(i+ex(l),j+ey(l),k+ez(l)))
@@ -3851,6 +3890,7 @@
               psiy=psiy + a(l)*dey(l)*(rhodiff(l)/rhosum(l))
               psiz=psiz + a(l)*dez(l)*(rhodiff(l)/rhosum(l))
             enddo
+#endif
             psinorm_sq = psix**TWO + psiy**TWO + psiz**TWO
             psinorm=sqrt(psinorm_sq)
             do l=0,links
