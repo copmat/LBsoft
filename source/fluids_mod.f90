@@ -4249,10 +4249,10 @@
             psiz = ZERO
 #ifdef GRADIENTD3Q27
             do l=1,linksd3q27
-              rhodiff(l)=(rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)) - &
-               rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
-              rhosum(l)= (rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)) + &
-               rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
+              rhodiff(l)=(rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))/meanR - &
+               rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))/meanB)
+              rhosum(l)= (rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))/meanR + &
+               rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))/meanB)
             enddo
             do l=1,linksd3q27
               psix=psix + ad3q27(l)*dexd3q27(l)*(rhodiff(l)/rhosum(l))
@@ -4261,8 +4261,10 @@
             enddo
 #else             
             do l=1,links
-              rhodiff(l)=(rhoR(i+ex(l),j+ey(l),k+ez(l))-rhoB(i+ex(l),j+ey(l),k+ez(l)))
-              rhosum(l)= (rhoR(i+ex(l),j+ey(l),k+ez(l))+rhoB(i+ex(l),j+ey(l),k+ez(l)))
+              rhodiff(l)=(rhoR(i+ex(l),j+ey(l),k+ez(l))/meanR- &
+               rhoB(i+ex(l),j+ey(l),k+ez(l))/meanB)
+              rhosum(l)= (rhoR(i+ex(l),j+ey(l),k+ez(l))/meanR+ &
+               rhoB(i+ex(l),j+ey(l),k+ez(l))/meanB)
             enddo
             do l=1,links
               psix=psix + a(l)*dex(l)*(rhodiff(l)/rhosum(l))
@@ -4397,10 +4399,10 @@
             psiz = ZERO
 #ifdef GRADIENTD3Q27
             do l=1,linksd3q27
-              rhodiff(l)=(rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)) - &
-               rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
-              rhosum(l)= (rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)) + &
-               rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
+              rhodiff(l)=(rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))/meanR - &
+               rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))/meanB)
+              rhosum(l)= (rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))/meanR + &
+               rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))/meanB)
             enddo
             do l=1,linksd3q27
               psix=psix + ad3q27(l)*dexd3q27(l)*(rhodiff(l)/rhosum(l))
@@ -4409,8 +4411,10 @@
             enddo
 #else             
             do l=1,links
-              rhodiff(l)=(rhoR(i+ex(l),j+ey(l),k+ez(l))-rhoB(i+ex(l),j+ey(l),k+ez(l)))
-              rhosum(l)= (rhoR(i+ex(l),j+ey(l),k+ez(l))+rhoB(i+ex(l),j+ey(l),k+ez(l)))
+              rhodiff(l)=(rhoR(i+ex(l),j+ey(l),k+ez(l))/meanR- &
+               rhoB(i+ex(l),j+ey(l),k+ez(l))/meanB)
+              rhosum(l)= (rhoR(i+ex(l),j+ey(l),k+ez(l))/meanR+ &
+               rhoB(i+ex(l),j+ey(l),k+ez(l))/meanB)
             enddo
             do l=1,links
               psix=psix + a(l)*dex(l)*(rhodiff(l)/rhosum(l))
