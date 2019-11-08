@@ -3628,19 +3628,251 @@
   real(kind=PRC) :: locrho,locu,locv,locw, oneminusomega, &
         locfu,locfv,locfw,temp_omega,omegaminusone
   
-  integer :: i,j,k
+  integer :: i,j,k,l
+  
+#ifdef REGULARIZED
+  real(kind=PRC) :: pxx,pyy,pzz,pxy,pxz,pyz
+  real(kind=PRC), dimension(0:links) :: feq
+  real(kind=PRC) :: fneq
+#endif
     
   if (lunique_omega) then
-      temp_omega=unique_omega
-      oneminusomega = ONE-temp_omega
-      omegaminusone = temp_omega-ONE
+    temp_omega=unique_omega
+    oneminusomega = ONE-temp_omega
+    omegaminusone = temp_omega-ONE
 
-      do k=minz,maxz
-       do j=miny,maxy
+    do k=minz,maxz
+      do j=miny,maxy
         do i=minx,maxx
 
-        if (isfluid(i,j,k)/=1) cycle
+          if (isfluid(i,j,k)/=1) cycle
 
+          locrho = rhosub(i,j,k)
+          locu = usub(i,j,k)
+          locv = vsub(i,j,k)
+          locw = wsub(i,j,k)
+        
+#ifdef SCANDREA
+          locfu = fusub(i,j,k)*t_LB + locu
+          locfv = fvsub(i,j,k)*t_LB + locv
+          locfw = fwsub(i,j,k)*t_LB + locw
+#else
+          locfu = fusub(i,j,k)*t_LB / locrho + locu
+          locfv = fvsub(i,j,k)*t_LB / locrho + locv
+          locfw = fwsub(i,j,k)*t_LB / locrho + locw
+#endif
+          fusub(i,j,k) = locfu
+          fvsub(i,j,k) = locfv
+          fwsub(i,j,k) = locfw
+          
+#ifdef REGULARIZED
+          pxx = ZERO
+          pyy = ZERO
+          pzz = ZERO
+ 	      pxy = ZERO
+          pxz = ZERO
+          pyz = ZERO
+           
+          !compute the equilibrium
+          feq(0) = equil_pop00(locrho,locu,locv,locw)
+          feq(1) = equil_pop01(locrho,locu,locv,locw)
+          feq(2) = equil_pop02(locrho,locu,locv,locw)
+          feq(3) = equil_pop03(locrho,locu,locv,locw)
+          feq(4) = equil_pop04(locrho,locu,locv,locw)
+          feq(5) = equil_pop05(locrho,locu,locv,locw)
+          feq(6) = equil_pop06(locrho,locu,locv,locw)
+          feq(7) = equil_pop07(locrho,locu,locv,locw)
+          feq(8) = equil_pop08(locrho,locu,locv,locw)
+          feq(9) = equil_pop09(locrho,locu,locv,locw)
+          feq(10) = equil_pop10(locrho,locu,locv,locw)
+          feq(11) = equil_pop11(locrho,locu,locv,locw)
+          feq(12) = equil_pop12(locrho,locu,locv,locw)
+          feq(13) = equil_pop13(locrho,locu,locv,locw)
+          feq(14) = equil_pop14(locrho,locu,locv,locw)
+          feq(15) = equil_pop15(locrho,locu,locv,locw)
+          feq(16) = equil_pop16(locrho,locu,locv,locw)
+          feq(17) = equil_pop17(locrho,locu,locv,locw)
+          feq(18) = equil_pop18(locrho,locu,locv,locw)
+          
+          do l=0,links
+            !compute the equilibrium for the two components
+            fneq = aoptp(l)%p(i,j,k) - feq(l)
+		    
+	        !non equilibrium part of the momentum flux tensor
+            pxx=pxx + (dex(l)*dex(l) - cssq)*fneq
+            pyy=pyy + (dey(l)*dey(l) - cssq)*fneq
+            pzz=pzz + (dez(l)*dez(l) - cssq)*fneq
+            pxy=pxy +  dex(l)*dey(l)*fneq
+            pxz=pxz +  dex(l)*dez(l)*fneq
+            pyz=pyz +  dey(l)*dez(l)*fneq
+          enddo
+        
+          do l=0,links
+            aoptp(l)%p(i,j,k)= feq(l) + &
+             ((HALF*p(l))/(cssq**TWO))*((dex(l)*dex(l) - cssq)*pxx + &
+             (dey(l)*dey(l) - cssq)*pyy + &
+             (dez(l)*dez(l) - cssq)*pzz + &
+             TWO*dex(l)*dey(l)*pxy + &
+             TWO*dex(l)*dez(l)*pxz + &
+             TWO*dey(l)*dez(l)*pyz)           
+          enddo
+           
+          f00sub(i,j,k)=oneminusomega*f00sub(i,j,k)+omegaminusone* &
+           feq(0)+ equil_pop00(locrho,locfu,locfv,locfw)
+       
+          f01sub(i,j,k)=oneminusomega*f01sub(i,j,k)+omegaminusone* &
+           feq(1)+ equil_pop01(locrho,locfu,locfv,locfw)
+    
+          f02sub(i,j,k)=oneminusomega*f02sub(i,j,k)+omegaminusone* &
+           feq(2)+ equil_pop02(locrho,locfu,locfv,locfw)
+    
+          f03sub(i,j,k)=oneminusomega*f03sub(i,j,k)+omegaminusone* &
+           feq(3)+ equil_pop03(locrho,locfu,locfv,locfw)
+       
+          f04sub(i,j,k)=oneminusomega*f04sub(i,j,k)+omegaminusone* &
+           feq(4)+ equil_pop04(locrho,locfu,locfv,locfw)
+        
+          f05sub(i,j,k)=oneminusomega*f05sub(i,j,k)+omegaminusone* &
+           feq(5)+ equil_pop05(locrho,locfu,locfv,locfw)
+        
+          f06sub(i,j,k)=oneminusomega*f06sub(i,j,k)+omegaminusone* &
+           feq(6)+ equil_pop06(locrho,locfu,locfv,locfw)
+         
+          f07sub(i,j,k)=oneminusomega*f07sub(i,j,k)+omegaminusone* &
+           feq(7)+ equil_pop07(locrho,locfu,locfv,locfw)
+        
+          f08sub(i,j,k)=oneminusomega*f08sub(i,j,k)+omegaminusone* &
+           feq(8)+ equil_pop08(locrho,locfu,locfv,locfw)
+       
+          f09sub(i,j,k)=oneminusomega*f09sub(i,j,k)+omegaminusone* &
+           feq(9)+ equil_pop09(locrho,locfu,locfv,locfw)
+        
+          f10sub(i,j,k)=oneminusomega*f10sub(i,j,k)+omegaminusone* &
+           feq(10)+ equil_pop10(locrho,locfu,locfv,locfw)
+        
+          f11sub(i,j,k)=oneminusomega*f11sub(i,j,k)+omegaminusone* &
+           feq(11)+ equil_pop11(locrho,locfu,locfv,locfw)
+        
+          f12sub(i,j,k)=oneminusomega*f12sub(i,j,k)+omegaminusone* &
+           feq(12)+ equil_pop12(locrho,locfu,locfv,locfw)
+        
+          f13sub(i,j,k)=oneminusomega*f13sub(i,j,k)+omegaminusone* &
+           feq(13)+ equil_pop13(locrho,locfu,locfv,locfw)
+        
+          f14sub(i,j,k)=oneminusomega*f14sub(i,j,k)+omegaminusone* &
+           feq(14)+ equil_pop14(locrho,locfu,locfv,locfw)
+        
+          f15sub(i,j,k)=oneminusomega*f15sub(i,j,k)+omegaminusone* &
+           feq(15)+ equil_pop15(locrho,locfu,locfv,locfw)
+          
+          f16sub(i,j,k)=oneminusomega*f16sub(i,j,k)+omegaminusone* &
+           feq(16)+ equil_pop16(locrho,locfu,locfv,locfw)
+          
+          f17sub(i,j,k)=oneminusomega*f17sub(i,j,k)+omegaminusone* &
+           feq(17)+ equil_pop17(locrho,locfu,locfv,locfw)
+          
+          f18sub(i,j,k)=oneminusomega*f18sub(i,j,k)+omegaminusone* &
+           feq(18)+ equil_pop18(locrho,locfu,locfv,locfw)
+#else
+
+          f00sub(i,j,k)=oneminusomega*f00sub(i,j,k)+omegaminusone* &
+           equil_pop00(locrho,locu,locv,locw)+ &
+           equil_pop00(locrho,locfu,locfv,locfw)
+       
+          f01sub(i,j,k)=oneminusomega*f01sub(i,j,k)+omegaminusone* &
+           equil_pop01(locrho,locu,locv,locw)+ &
+           equil_pop01(locrho,locfu,locfv,locfw)
+    
+          f02sub(i,j,k)=oneminusomega*f02sub(i,j,k)+omegaminusone* &
+           equil_pop02(locrho,locu,locv,locw)+ &
+           equil_pop02(locrho,locfu,locfv,locfw)
+    
+          f03sub(i,j,k)=oneminusomega*f03sub(i,j,k)+omegaminusone* &
+           equil_pop03(locrho,locu,locv,locw)+ &
+           equil_pop03(locrho,locfu,locfv,locfw)
+       
+          f04sub(i,j,k)=oneminusomega*f04sub(i,j,k)+omegaminusone* &
+           equil_pop04(locrho,locu,locv,locw)+ &
+           equil_pop04(locrho,locfu,locfv,locfw)
+        
+          f05sub(i,j,k)=oneminusomega*f05sub(i,j,k)+omegaminusone* &
+           equil_pop05(locrho,locu,locv,locw)+ &
+           equil_pop05(locrho,locfu,locfv,locfw)
+        
+          f06sub(i,j,k)=oneminusomega*f06sub(i,j,k)+omegaminusone* &
+           equil_pop06(locrho,locu,locv,locw)+ &
+           equil_pop06(locrho,locfu,locfv,locfw)
+         
+          f07sub(i,j,k)=oneminusomega*f07sub(i,j,k)+omegaminusone* &
+           equil_pop07(locrho,locu,locv,locw)+ &
+           equil_pop07(locrho,locfu,locfv,locfw)
+        
+          f08sub(i,j,k)=oneminusomega*f08sub(i,j,k)+omegaminusone* &
+           equil_pop08(locrho,locu,locv,locw)+ &
+           equil_pop08(locrho,locfu,locfv,locfw)
+       
+          f09sub(i,j,k)=oneminusomega*f09sub(i,j,k)+omegaminusone* &
+           equil_pop09(locrho,locu,locv,locw)+ &
+           equil_pop09(locrho,locfu,locfv,locfw)
+        
+          f10sub(i,j,k)=oneminusomega*f10sub(i,j,k)+omegaminusone* &
+           equil_pop10(locrho,locu,locv,locw)+ &
+           equil_pop10(locrho,locfu,locfv,locfw)
+        
+          f11sub(i,j,k)=oneminusomega*f11sub(i,j,k)+omegaminusone* &
+           equil_pop11(locrho,locu,locv,locw)+ &
+           equil_pop11(locrho,locfu,locfv,locfw)
+        
+          f12sub(i,j,k)=oneminusomega*f12sub(i,j,k)+omegaminusone* &
+           equil_pop12(locrho,locu,locv,locw)+ &
+           equil_pop12(locrho,locfu,locfv,locfw)
+        
+          f13sub(i,j,k)=oneminusomega*f13sub(i,j,k)+omegaminusone* &
+           equil_pop13(locrho,locu,locv,locw)+ &
+           equil_pop13(locrho,locfu,locfv,locfw)
+        
+          f14sub(i,j,k)=oneminusomega*f14sub(i,j,k)+omegaminusone* &
+           equil_pop14(locrho,locu,locv,locw)+ &
+           equil_pop14(locrho,locfu,locfv,locfw)
+        
+          f15sub(i,j,k)=oneminusomega*f15sub(i,j,k)+omegaminusone* &
+           equil_pop15(locrho,locu,locv,locw)+ &
+           equil_pop15(locrho,locfu,locfv,locfw)
+          
+          f16sub(i,j,k)=oneminusomega*f16sub(i,j,k)+omegaminusone* &
+           equil_pop16(locrho,locu,locv,locw)+ &
+           equil_pop16(locrho,locfu,locfv,locfw)
+          
+          f17sub(i,j,k)=oneminusomega*f17sub(i,j,k)+omegaminusone* &
+           equil_pop17(locrho,locu,locv,locw)+ &
+           equil_pop17(locrho,locfu,locfv,locfw)
+          
+          f18sub(i,j,k)=oneminusomega*f18sub(i,j,k)+omegaminusone* &
+           equil_pop18(locrho,locu,locv,locw)+ &
+           equil_pop18(locrho,locfu,locfv,locfw)
+           
+#endif
+           
+        enddo
+      enddo
+    enddo
+    
+    return
+  endif
+
+  ! Variable omega
+
+  ! forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
+  do k=minz,maxz
+    do j=miny,maxy
+      do i=minx,maxx
+
+        if (isfluid(i,j,k)/=1) cycle
+        
+        temp_omega=omegas(i,j,k)
+        oneminusomega = ONE-temp_omega
+        omegaminusone = temp_omega-ONE
+        
         locrho = rhosub(i,j,k)
         locu = usub(i,j,k)
         locv = vsub(i,j,k)
@@ -3658,166 +3890,197 @@
         fusub(i,j,k) = locfu
         fvsub(i,j,k) = locfv
         fwsub(i,j,k) = locfw
-
-    f00sub(i,j,k)=oneminusomega*(f00sub(i,j,k)- equil_pop00(locrho,locu,locv,locw))+ &
-     equil_pop00(locrho,locfu,locfv,locfw)
-    
-    f01sub(i,j,k)=oneminusomega*(f01sub(i,j,k)- equil_pop01(locrho,locu,locv,locw))+ &
-     equil_pop01(locrho,locfu,locfv,locfw)
-    
-    f02sub(i,j,k)=oneminusomega*(f02sub(i,j,k)- equil_pop02(locrho,locu,locv,locw))+ &
-     equil_pop02(locrho,locfu,locfv,locfw)
-    
-    f03sub(i,j,k)=oneminusomega*(f03sub(i,j,k)-equil_pop03(locrho,locu,locv,locw))+ &
-     equil_pop03(locrho,locfu,locfv,locfw)
-    
-    f04sub(i,j,k)=oneminusomega*(f04sub(i,j,k)-equil_pop04(locrho,locu,locv,locw))+ &
-     equil_pop04(locrho,locfu,locfv,locfw)
-    
-    f05sub(i,j,k)=oneminusomega*(f05sub(i,j,k)-equil_pop05(locrho,locu,locv,locw))+ &
-     equil_pop05(locrho,locfu,locfv,locfw)
-    
-    f06sub(i,j,k)=oneminusomega*(f06sub(i,j,k)-equil_pop06(locrho,locu,locv,locw))+ &
-     equil_pop06(locrho,locfu,locfv,locfw)
-    
-    f07sub(i,j,k)=oneminusomega*(f07sub(i,j,k)-equil_pop07(locrho,locu,locv,locw))+ &
-     equil_pop07(locrho,locfu,locfv,locfw)
-    
-    f08sub(i,j,k)=oneminusomega*(f08sub(i,j,k)-equil_pop08(locrho,locu,locv,locw))+ &
-     equil_pop08(locrho,locfu,locfv,locfw)
-    
-    f09sub(i,j,k)=oneminusomega*(f09sub(i,j,k)-equil_pop09(locrho,locu,locv,locw))+ &
-     equil_pop09(locrho,locfu,locfv,locfw)
-    
-    f10sub(i,j,k)=oneminusomega*(f10sub(i,j,k)-equil_pop10(locrho,locu,locv,locw))+ &
-     equil_pop10(locrho,locfu,locfv,locfw)
-    
-    f11sub(i,j,k)=oneminusomega*(f11sub(i,j,k)-equil_pop11(locrho,locu,locv,locw))+ &
-     equil_pop11(locrho,locfu,locfv,locfw)
-    
-    f12sub(i,j,k)=oneminusomega*(f12sub(i,j,k)-equil_pop12(locrho,locu,locv,locw))+ &
-     equil_pop12(locrho,locfu,locfv,locfw)
-    
-    f13sub(i,j,k)=oneminusomega*(f13sub(i,j,k)-equil_pop13(locrho,locu,locv,locw))+ &
-     equil_pop13(locrho,locfu,locfv,locfw)
-    
-    f14sub(i,j,k)=oneminusomega*(f14sub(i,j,k)-equil_pop14(locrho,locu,locv,locw))+ &
-     equil_pop14(locrho,locfu,locfv,locfw)
-    
-    f15sub(i,j,k)=oneminusomega*(f15sub(i,j,k)-equil_pop15(locrho,locu,locv,locw))+ &
-     equil_pop15(locrho,locfu,locfv,locfw)
-    
-    f16sub(i,j,k)=oneminusomega*(f16sub(i,j,k)-equil_pop16(locrho,locu,locv,locw))+ &
-     equil_pop16(locrho,locfu,locfv,locfw)
-    
-    f17sub(i,j,k)=oneminusomega*(f17sub(i,j,k)-equil_pop17(locrho,locu,locv,locw))+ &
-     equil_pop17(locrho,locfu,locfv,locfw)
-    
-    f18sub(i,j,k)=oneminusomega*(f18sub(i,j,k)-equil_pop18(locrho,locu,locv,locw))+ &
-     equil_pop18(locrho,locfu,locfv,locfw)
+        
+#ifdef REGULARIZED
+        pxx = ZERO
+        pyy = ZERO
+        pzz = ZERO
+ 	    pxy = ZERO
+        pxz = ZERO
+        pyz = ZERO
+         
+        !compute the equilibrium
+        feq(0) = equil_pop00(locrho,locu,locv,locw)
+        feq(1) = equil_pop01(locrho,locu,locv,locw)
+        feq(2) = equil_pop02(locrho,locu,locv,locw)
+        feq(3) = equil_pop03(locrho,locu,locv,locw)
+        feq(4) = equil_pop04(locrho,locu,locv,locw)
+        feq(5) = equil_pop05(locrho,locu,locv,locw)
+        feq(6) = equil_pop06(locrho,locu,locv,locw)
+        feq(7) = equil_pop07(locrho,locu,locv,locw)
+        feq(8) = equil_pop08(locrho,locu,locv,locw)
+        feq(9) = equil_pop09(locrho,locu,locv,locw)
+        feq(10) = equil_pop10(locrho,locu,locv,locw)
+        feq(11) = equil_pop11(locrho,locu,locv,locw)
+        feq(12) = equil_pop12(locrho,locu,locv,locw)
+        feq(13) = equil_pop13(locrho,locu,locv,locw)
+        feq(14) = equil_pop14(locrho,locu,locv,locw)
+        feq(15) = equil_pop15(locrho,locu,locv,locw)
+        feq(16) = equil_pop16(locrho,locu,locv,locw)
+        feq(17) = equil_pop17(locrho,locu,locv,locw)
+        feq(18) = equil_pop18(locrho,locu,locv,locw)
+        
+        do l=0,links
+          !compute the equilibrium for the two components
+          fneq = aoptp(l)%p(i,j,k) - feq(l)
+          
+	      !non equilibrium part of the momentum flux tensor
+          pxx=pxx + (dex(l)*dex(l) - cssq)*fneq
+          pyy=pyy + (dey(l)*dey(l) - cssq)*fneq
+          pzz=pzz + (dez(l)*dez(l) - cssq)*fneq
+          pxy=pxy +  dex(l)*dey(l)*fneq
+          pxz=pxz +  dex(l)*dez(l)*fneq
+          pyz=pyz +  dey(l)*dez(l)*fneq
         enddo
-       enddo
-      enddo
-
-    return
-  endif
-
-  ! Variable omega
-
-  ! forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-  do k=minz,maxz
-   do j=miny,maxy
-    do i=minx,maxx
-
-    if (isfluid(i,j,k)/=1) cycle
-
-#ifdef SCANDREA
-    fusub(i,j,k) = fusub(i,j,k)*t_LB + usub(i,j,k)
-    fvsub(i,j,k) = fvsub(i,j,k)*t_LB + vsub(i,j,k)
-    fwsub(i,j,k) = fwsub(i,j,k)*t_LB + wsub(i,j,k)
+        
+        do l=0,links
+          aoptp(l)%p(i,j,k)= feq(l) + &
+           ((HALF*p(l))/(cssq**TWO))*((dex(l)*dex(l) - cssq)*pxx + &
+           (dey(l)*dey(l) - cssq)*pyy + &
+           (dez(l)*dez(l) - cssq)*pzz + &
+           TWO*dex(l)*dey(l)*pxy + &
+           TWO*dex(l)*dez(l)*pxz + &
+           TWO*dey(l)*dez(l)*pyz)           
+        enddo
+           
+        f00sub(i,j,k)=oneminusomega*f00sub(i,j,k)+omegaminusone* &
+         feq(0)+ equil_pop00(locrho,locfu,locfv,locfw)
+        
+        f01sub(i,j,k)=oneminusomega*f01sub(i,j,k)+omegaminusone* &
+         feq(1)+ equil_pop01(locrho,locfu,locfv,locfw)
+  
+        f02sub(i,j,k)=oneminusomega*f02sub(i,j,k)+omegaminusone* &
+         feq(2)+ equil_pop02(locrho,locfu,locfv,locfw)
+    
+        f03sub(i,j,k)=oneminusomega*f03sub(i,j,k)+omegaminusone* &
+         feq(3)+ equil_pop03(locrho,locfu,locfv,locfw)
+       
+        f04sub(i,j,k)=oneminusomega*f04sub(i,j,k)+omegaminusone* &
+         feq(4)+ equil_pop04(locrho,locfu,locfv,locfw)
+       
+        f05sub(i,j,k)=oneminusomega*f05sub(i,j,k)+omegaminusone* &
+         feq(5)+ equil_pop05(locrho,locfu,locfv,locfw)
+        
+        f06sub(i,j,k)=oneminusomega*f06sub(i,j,k)+omegaminusone* &
+         feq(6)+ equil_pop06(locrho,locfu,locfv,locfw)
+         
+        f07sub(i,j,k)=oneminusomega*f07sub(i,j,k)+omegaminusone* &
+         feq(7)+ equil_pop07(locrho,locfu,locfv,locfw)
+      
+        f08sub(i,j,k)=oneminusomega*f08sub(i,j,k)+omegaminusone* &
+         feq(8)+ equil_pop08(locrho,locfu,locfv,locfw)
+       
+        f09sub(i,j,k)=oneminusomega*f09sub(i,j,k)+omegaminusone* &
+         feq(9)+ equil_pop09(locrho,locfu,locfv,locfw)
+        
+        f10sub(i,j,k)=oneminusomega*f10sub(i,j,k)+omegaminusone* &
+         feq(10)+ equil_pop10(locrho,locfu,locfv,locfw)
+        
+        f11sub(i,j,k)=oneminusomega*f11sub(i,j,k)+omegaminusone* &
+         feq(11)+ equil_pop11(locrho,locfu,locfv,locfw)
+        
+        f12sub(i,j,k)=oneminusomega*f12sub(i,j,k)+omegaminusone* &
+         feq(12)+ equil_pop12(locrho,locfu,locfv,locfw)
+        
+        f13sub(i,j,k)=oneminusomega*f13sub(i,j,k)+omegaminusone* &
+         feq(13)+ equil_pop13(locrho,locfu,locfv,locfw)
+        
+        f14sub(i,j,k)=oneminusomega*f14sub(i,j,k)+omegaminusone* &
+         feq(14)+ equil_pop14(locrho,locfu,locfv,locfw)
+        
+        f15sub(i,j,k)=oneminusomega*f15sub(i,j,k)+omegaminusone* &
+         feq(15)+ equil_pop15(locrho,locfu,locfv,locfw)
+          
+        f16sub(i,j,k)=oneminusomega*f16sub(i,j,k)+omegaminusone* &
+         feq(16)+ equil_pop16(locrho,locfu,locfv,locfw)
+          
+        f17sub(i,j,k)=oneminusomega*f17sub(i,j,k)+omegaminusone* &
+         feq(17)+ equil_pop17(locrho,locfu,locfv,locfw)
+          
+        f18sub(i,j,k)=oneminusomega*f18sub(i,j,k)+omegaminusone* &
+         feq(18)+ equil_pop18(locrho,locfu,locfv,locfw)
 #else
-    fusub(i,j,k) = fusub(i,j,k)*t_LB / rhosub(i,j,k) + usub(i,j,k)
-    fvsub(i,j,k) = fvsub(i,j,k)*t_LB / rhosub(i,j,k) + vsub(i,j,k)
-    fwsub(i,j,k) = fwsub(i,j,k)*t_LB / rhosub(i,j,k) + wsub(i,j,k)
+
+        f00sub(i,j,k)=oneminusomega*f00sub(i,j,k)+omegaminusone* &
+         equil_pop00(locrho,locu,locv,locw)+ &
+         equil_pop00(locrho,locfu,locfv,locfw)
+       
+        f01sub(i,j,k)=oneminusomega*f01sub(i,j,k)+omegaminusone* &
+         equil_pop01(locrho,locu,locv,locw)+ &
+         equil_pop01(locrho,locfu,locfv,locfw)
+    
+        f02sub(i,j,k)=oneminusomega*f02sub(i,j,k)+omegaminusone* &
+         equil_pop02(locrho,locu,locv,locw)+ &
+         equil_pop02(locrho,locfu,locfv,locfw)
+     
+        f03sub(i,j,k)=oneminusomega*f03sub(i,j,k)+omegaminusone* &
+         equil_pop03(locrho,locu,locv,locw)+ &
+         equil_pop03(locrho,locfu,locfv,locfw)
+        
+        f04sub(i,j,k)=oneminusomega*f04sub(i,j,k)+omegaminusone* &
+         equil_pop04(locrho,locu,locv,locw)+ &
+         equil_pop04(locrho,locfu,locfv,locfw)
+        
+        f05sub(i,j,k)=oneminusomega*f05sub(i,j,k)+omegaminusone* &
+         equil_pop05(locrho,locu,locv,locw)+ &
+         equil_pop05(locrho,locfu,locfv,locfw)
+        
+        f06sub(i,j,k)=oneminusomega*f06sub(i,j,k)+omegaminusone* &
+         equil_pop06(locrho,locu,locv,locw)+ &
+         equil_pop06(locrho,locfu,locfv,locfw)
+        
+        f07sub(i,j,k)=oneminusomega*f07sub(i,j,k)+omegaminusone* &
+         equil_pop07(locrho,locu,locv,locw)+ &
+         equil_pop07(locrho,locfu,locfv,locfw)
+        
+        f08sub(i,j,k)=oneminusomega*f08sub(i,j,k)+omegaminusone* &
+         equil_pop08(locrho,locu,locv,locw)+ &
+         equil_pop08(locrho,locfu,locfv,locfw)
+        
+        f09sub(i,j,k)=oneminusomega*f09sub(i,j,k)+omegaminusone* &
+         equil_pop09(locrho,locu,locv,locw)+ &
+         equil_pop09(locrho,locfu,locfv,locfw)
+        
+        f10sub(i,j,k)=oneminusomega*f10sub(i,j,k)+omegaminusone* &
+         equil_pop10(locrho,locu,locv,locw)+ &
+         equil_pop10(locrho,locfu,locfv,locfw)
+        
+        f11sub(i,j,k)=oneminusomega*f11sub(i,j,k)+omegaminusone* &
+         equil_pop11(locrho,locu,locv,locw)+ &
+         equil_pop11(locrho,locfu,locfv,locfw)
+        
+        f12sub(i,j,k)=oneminusomega*f12sub(i,j,k)+omegaminusone* &
+         equil_pop12(locrho,locu,locv,locw)+ &
+         equil_pop12(locrho,locfu,locfv,locfw)
+        
+        f13sub(i,j,k)=oneminusomega*f13sub(i,j,k)+omegaminusone* &
+         equil_pop13(locrho,locu,locv,locw)+ &
+         equil_pop13(locrho,locfu,locfv,locfw)
+        
+        f14sub(i,j,k)=oneminusomega*f14sub(i,j,k)+omegaminusone* &
+         equil_pop14(locrho,locu,locv,locw)+ &
+         equil_pop14(locrho,locfu,locfv,locfw)
+        
+        f15sub(i,j,k)=oneminusomega*f15sub(i,j,k)+omegaminusone* &
+         equil_pop15(locrho,locu,locv,locw)+ &
+         equil_pop15(locrho,locfu,locfv,locfw)
+        
+        f16sub(i,j,k)=oneminusomega*f16sub(i,j,k)+omegaminusone* &
+         equil_pop16(locrho,locu,locv,locw)+ &
+         equil_pop16(locrho,locfu,locfv,locfw)
+        
+        f17sub(i,j,k)=oneminusomega*f17sub(i,j,k)+omegaminusone* &
+         equil_pop17(locrho,locu,locv,locw)+ &
+         equil_pop17(locrho,locfu,locfv,locfw)
+        
+        f18sub(i,j,k)=oneminusomega*f18sub(i,j,k)+omegaminusone* &
+         equil_pop18(locrho,locu,locv,locw)+ &
+         equil_pop18(locrho,locfu,locfv,locfw)
+         
 #endif
 
-    f00sub(i,j,k)=(ONE-omegas(i,j,k))*f00sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop00(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop00(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f01sub(i,j,k)=(ONE-omegas(i,j,k))*f01sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop01(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop01(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f02sub(i,j,k)=(ONE-omegas(i,j,k))*f02sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop02(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop02(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f03sub(i,j,k)=(ONE-omegas(i,j,k))*f03sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop03(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop03(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f04sub(i,j,k)=(ONE-omegas(i,j,k))*f04sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop04(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop04(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f05sub(i,j,k)=(ONE-omegas(i,j,k))*f05sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop05(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop05(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f06sub(i,j,k)=(ONE-omegas(i,j,k))*f06sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop06(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop06(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f07sub(i,j,k)=(ONE-omegas(i,j,k))*f07sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop07(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop07(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f08sub(i,j,k)=(ONE-omegas(i,j,k))*f08sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop08(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop08(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f09sub(i,j,k)=(ONE-omegas(i,j,k))*f09sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop09(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop09(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f10sub(i,j,k)=(ONE-omegas(i,j,k))*f10sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop10(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop10(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f11sub(i,j,k)=(ONE-omegas(i,j,k))*f11sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop11(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop11(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f12sub(i,j,k)=(ONE-omegas(i,j,k))*f12sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop12(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop12(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f13sub(i,j,k)=(ONE-omegas(i,j,k))*f13sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop13(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop13(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f14sub(i,j,k)=(ONE-omegas(i,j,k))*f14sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop14(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop14(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f15sub(i,j,k)=(ONE-omegas(i,j,k))*f15sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop15(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop15(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f16sub(i,j,k)=(ONE-omegas(i,j,k))*f16sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop16(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop16(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f17sub(i,j,k)=(ONE-omegas(i,j,k))*f17sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop17(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop17(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
-    
-    f18sub(i,j,k)=(ONE-omegas(i,j,k))*f18sub(i,j,k)+(omegas(i,j,k)-ONE)* &
-     equil_pop18(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k),wsub(i,j,k))+ &
-     equil_pop18(rhosub(i,j,k),fusub(i,j,k),fvsub(i,j,k),fwsub(i,j,k))
        enddo
-   enddo
+     enddo
   enddo
   ! end forall
   
