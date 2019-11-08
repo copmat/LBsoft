@@ -705,9 +705,9 @@
   
   implicit none
   
-  integer, intent(out) :: argument
+  integer, intent(in) :: argument
   integer, intent(in) :: idsource,tag
-  integer, intent(out) :: irequest
+  integer, intent(in) :: irequest
   integer :: ierr
   
   return
@@ -729,9 +729,9 @@
   
   implicit none
   
-  real(kind=PRC), intent(out) :: argument
+  real(kind=PRC), intent(in) :: argument
   integer, intent(in) :: idsource,tag
-  integer, intent(out) :: irequest
+  integer, intent(in) :: irequest
   integer :: ierr
   
   return
@@ -753,9 +753,9 @@
   
   implicit none
   
-  logical, intent(out) :: argument
+  logical, intent(in) :: argument
   integer, intent(in) :: idsource,tag
-  integer, intent(out) :: irequest
+  integer, intent(in) :: irequest
   integer :: ierr
   
   return
@@ -779,7 +779,7 @@
   
   integer, intent(in) :: argument
   integer, intent(in) :: iddest,tag
-  integer, intent(out) :: irequest
+  integer, intent(in) :: irequest
   integer :: ierr
   
   return
@@ -803,7 +803,7 @@
   
   real(kind=PRC), intent(in) :: argument
   integer, intent(in) :: iddest,tag
-  integer, intent(out) :: irequest
+  integer, intent(in) :: irequest
   integer :: ierr
   
   return
@@ -827,7 +827,7 @@
   
   logical, intent(in) :: argument
   integer, intent(in) :: iddest,tag
-  integer, intent(out) :: irequest
+  integer, intent(in) :: irequest
   integer :: ierr
   
   return
@@ -850,9 +850,9 @@
   implicit none
   
   integer, intent(in) :: narr
-  integer, dimension(narr), intent(out) :: argument
+  integer, dimension(narr), intent(in) :: argument
   integer, intent(in) :: idsource,tag
-  integer, intent(out) :: irequest
+  integer, intent(in) :: irequest
   integer :: ierr
   
   return
@@ -875,9 +875,9 @@
   implicit none
   
   integer, intent(in) :: narr
-  real(kind=PRC), dimension(narr), intent(out) :: argument
+  real(kind=PRC), dimension(narr), intent(in) :: argument
   integer, intent(in) :: idsource,tag
-  integer, intent(out) :: irequest
+  integer, intent(in) :: irequest
   integer :: ierr
   
   return
@@ -900,9 +900,9 @@
   implicit none
   
   integer, intent(in) :: narr
-  logical, dimension(narr), intent(out) :: argument
+  logical, dimension(narr), intent(in) :: argument
   integer, intent(in) :: idsource,tag
-  integer, intent(out) :: irequest
+  integer, intent(in) :: irequest
   integer :: ierr
   
   return
@@ -927,7 +927,7 @@
   integer, intent(in) :: narr
   integer, dimension(narr), intent(in) :: argument
   integer, intent(in) :: iddest,tag
-  integer, intent(out) :: irequest
+  integer, intent(in) :: irequest
   integer :: ierr
   
   return
@@ -952,7 +952,7 @@
   integer, intent(in) :: narr
   real(kind=PRC), dimension(narr), intent(in) :: argument
   integer, intent(in) :: iddest,tag
-  integer, intent(out) :: irequest
+  integer, intent(in) :: irequest
   integer :: ierr
   
   return
@@ -977,7 +977,7 @@
   integer, intent(in) :: narr
   logical, dimension(narr), intent(in) :: argument
   integer, intent(in) :: iddest,tag
-  integer, intent(out) :: irequest
+  integer, intent(in) :: irequest
   integer :: ierr
   
   return
@@ -1073,7 +1073,7 @@
   
   integer, intent(in) :: iotest,nn
   character(len=nn) :: myname
-  integer, intent(out) :: e_io
+  integer, intent(in) :: e_io
   
   return
   
@@ -1095,7 +1095,7 @@
   implicit none
   
   integer, intent(in) :: iotest
-  integer, intent(out) :: e_io
+  integer, intent(in) :: e_io
   
   return
   
@@ -1118,7 +1118,7 @@
   
   integer, intent(in) :: iotest,offsetsub,nn
   character(len=500) :: header
-  integer, intent(out) :: E_IO
+  integer, intent(in) :: E_IO
   
   return
   
@@ -1141,7 +1141,7 @@
   
   integer, intent(in) :: iotest,offsetsub
   character(len=30) :: footer
-  integer, intent(out) :: E_IO
+  integer, intent(in) :: E_IO
   
   return
   
