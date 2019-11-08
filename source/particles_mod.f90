@@ -1122,10 +1122,11 @@
   integer :: i
   integer, parameter :: nistatmax=100
   integer, dimension(nistatmax) :: istat
-  real(kind=PRC) :: cellx,celly,cellz,volm,dens,ratio
+  real(kind=PRC) :: cellx,celly,cellz,volm,dens,ratio,rlimit
+  real(kind=PRC) :: rcell(9),celprp(10),det
   logical :: ltest(1)
   integer :: ilx,ily,ilz
-  
+  integer, parameter :: irat=1
   
   tstepatm=tstep
   
@@ -1133,7 +1134,7 @@
   
   mxatms=ceiling(real(natms_tot,kind=PRC)*densvar)
 
-  volm=real(nx+1,kind=PRC)*real(nx+1,kind=PRC)*real(nx+1,kind=PRC)
+  volm=real(nx+1,kind=PRC)*real(ny+1,kind=PRC)*real(nz+1,kind=PRC)
   dens=dble(mxatms)/volm
   ratio=(ONE+HALF)*dens*(FOUR*pi/THREE)*(rcut+delr)**THREE
   mxlist=min(nint(ratio),(mxatms+1)/2)
@@ -1142,6 +1143,16 @@
   !mxlist=max(mxlist,32)
   
   msatms=ceiling(real(natms_tot/mxrank,kind=PRC)*densvar)
+  
+  cell(1)=real(nx,kind=PRC)
+  cell(2)=ZERO
+  cell(3)=ZERO
+  cell(4)=ZERO
+  cell(5)=real(ny,kind=PRC)
+  cell(6)=ZERO
+  cell(7)=ZERO
+  cell(8)=ZERO
+  cell(9)=real(nz,kind=PRC)
   
   cellx=huge(ONE)
   celly=huge(ONE)
@@ -1152,9 +1163,15 @@
     cellz=min(real(gmaxz(i)-gminz(i),kind=PRC)+ONE,cellz)
   enddo
   
-  ilx=int(cellx/(rcut+delr))
-  ily=int(celly/(rcut+delr))
-  ilz=int(cellz/(rcut+delr))
+  rlimit = rcut+delr
+  
+  call dcell(cell,celprp)
+  call invert(cell,rcell,det)
+  
+  ilx=int(celprp(7)*dble(irat)/(rlimit))
+  ily=int(celprp(8)*dble(irat)/(rlimit))
+  ilz=int(celprp(9)*dble(irat)/(rlimit))
+  
   !check there are enough link cells
   lnolink=.false.
   if(ilx.lt.3)lnolink=.true.
@@ -1169,34 +1186,11 @@
     call warning(21)
   endif
   
-  cellx=ZERO
-  celly=ZERO
-  cellz=ZERO
-  do i=0,mxrank-1
-    cellx=max(real(gmaxx(i)-gminx(i),kind=PRC)+ONE,cellx)
-    celly=max(real(gmaxy(i)-gminy(i),kind=PRC)+ONE,celly)
-    cellz=max(real(gmaxz(i)-gminz(i),kind=PRC)+ONE,cellz)
-  enddo
-  
-  ilx=int(cellx/(rcut+delr))
-  ily=int(celly/(rcut+delr))
-  ilz=int(cellz/(rcut+delr))
-  
   nbig_cells=mxrank
   
   cx=real(nx+1,kind=PRC)*HALF
   cy=real(ny+1,kind=PRC)*HALF
   cz=real(nz+1,kind=PRC)*HALF
-  
-  cell(1)=real(nx,kind=PRC)
-  cell(2)=ZERO
-  cell(3)=ZERO
-  cell(4)=ZERO
-  cell(5)=real(ny,kind=PRC)
-  cell(6)=ZERO
-  cell(7)=ZERO
-  cell(8)=ZERO
-  cell(9)=real(nz,kind=PRC)
   
   istat(1:nistatmax)=0
   
