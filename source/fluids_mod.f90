@@ -2265,7 +2265,11 @@
   bc_rhoB_north = dtemp2
   bc_u_north = dtemp3
   bc_v_north = dtemp4
-  bc_w_north = dtemp5
+  if(bc_type_north==2)then
+    bc_w_north = -dtemp5
+  else
+    bc_w_north = dtemp5
+  endif
   
   return
   
@@ -2294,7 +2298,11 @@
   bc_rhoB_south = dtemp2
   bc_u_south = dtemp3
   bc_v_south = dtemp4
-  bc_w_south = dtemp5
+  if(bc_type_south==2)then
+    bc_w_south = -dtemp5
+  else
+    bc_w_south = dtemp5
+  endif
   
   return
   

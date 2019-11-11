@@ -1909,13 +1909,13 @@
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='open boundary north'
-      write(6,'(2a,i12)')mystring,": ",bc_type_north
+      write(6,'(2a,i12)')mystring,": ",temp_bc_type_north
       mystring=repeat(' ',dimprint)
       mystring='open boundary north density'
-      write(6,'(2a,2f12.6)')mystring,": ",bc_rhoR_north,bc_rhoB_north
+      write(6,'(2a,2f12.6)')mystring,": ",dtemp_bc_rhoR_north,dtemp_bc_rhoB_north
       mystring=repeat(' ',dimprint)
       mystring='open boundary north vel'
-      write(6,'(2a,3f12.6)')mystring,": ",bc_u_north,bc_v_north,bc_w_north
+      write(6,'(2a,3f12.6)')mystring,": ",dtemp_bc_u_north,dtemp_bc_v_north,dtemp_bc_w_north
     endif
   endif
   
@@ -1930,13 +1930,13 @@
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='open boundary south'
-      write(6,'(2a,i12)')mystring,": ",bc_type_south
+      write(6,'(2a,i12)')mystring,": ",temp_bc_type_south
       mystring=repeat(' ',dimprint)
       mystring='open boundary south density'
-      write(6,'(2a,2f12.6)')mystring,": ",bc_rhoR_south,bc_rhoB_south
+      write(6,'(2a,2f12.6)')mystring,": ",dtemp_bc_rhoR_south,dtemp_bc_rhoB_south
       mystring=repeat(' ',dimprint)
       mystring='open boundary south vel'
-      write(6,'(2a,3f12.6)')mystring,": ",bc_u_south,bc_v_south,bc_w_south
+      write(6,'(2a,3f12.6)')mystring,": ",dtemp_bc_u_south,dtemp_bc_v_south,dtemp_bc_w_south
     endif
   endif
   
