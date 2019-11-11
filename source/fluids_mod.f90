@@ -1587,6 +1587,8 @@
   
   if(lShanChen)lexch_dens=.true.
   
+  if(lColourG)lexch_dens=.true.
+  
 #ifdef DIAGNINIT
   call print_all_pops(100,'initpop',0,aoptpR)
 #endif
@@ -4138,7 +4140,8 @@
   integer :: i,j,k,l
   real(kind=PRC) :: phis
   
-  real(kind=PRC), parameter :: phislim = real(0.99999999d0,kind=PRC)
+  real(kind=PRC), parameter :: gradlim = real(1.d-8,kind=PRC)
+  real(kind=PRC), parameter :: phislim = ONE - gradlim
 #ifdef GRADIENTD3Q27
   real(kind=PRC), dimension(0:linksd3q27) :: rhodiff,rhosum
 #else
@@ -4273,6 +4276,7 @@
             enddo
 #endif
             psinorm_sq = psix**TWO + psiy**TWO + psiz**TWO
+            if(psinorm_sq<gradlim**TWO)cycle
             psinorm=sqrt(psinorm_sq)
             do l=0,links
               e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
@@ -4423,6 +4427,7 @@
             enddo
 #endif
             psinorm_sq = psix**TWO + psiy**TWO + psiz**TWO
+            if(psinorm_sq<gradlim**TWO)cycle
             psinorm=sqrt(psinorm_sq)
             do l=0,links
               e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
@@ -8070,16 +8075,22 @@
   
   call set_bc_variable_hvar
   
-  call apply_bounceback_pop_halfway(bc_rhoR,bc_u,bc_v,bc_w,aoptpR)
-  
+  if(lColourG)then
+    call apply_bounceback_pop_halfway(bc_rhoR,bc_u,bc_v,bc_w,aoptpR,phiR_CG)
+  else
+    call apply_bounceback_pop_halfway(bc_rhoR,bc_u,bc_v,bc_w,aoptpR)
+  endif
 #ifdef DIAGNSTREAM
   if(iter==NDIAGNSTREAM)call print_all_pops(100,'miodopobounce',iter,aoptpR)
 #endif
   
   if(lsingle_fluid)return
   
-  call apply_bounceback_pop_halfway(bc_rhoB,bc_u,bc_v,bc_w,aoptpB)
-
+  if(lColourG)then
+    call apply_bounceback_pop_halfway(bc_rhoB,bc_u,bc_v,bc_w,aoptpB,phiB_CG)
+  else
+    call apply_bounceback_pop_halfway(bc_rhoB,bc_u,bc_v,bc_w,aoptpB)
+  endif
   return
   
  end subroutine driver_apply_bounceback_halfway_pop
@@ -8834,11 +8845,11 @@
     kshift2=ez(idir)*2
     if(inits>ends)cycle
     if(idir==1 .or. idir==2)then
-      forall(i=inits:ends)
+      do i=inits,ends
         bc_u(i)=interpolation_order_2_hf(u(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          u(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          u(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
-      end forall
+      enddo
       where(bc_u(inits:ends)>cssq*HALF)
         bc_u(inits:ends)=cssq*HALF
       elsewhere(bc_u(inits:ends)<-cssq*HALF)
@@ -8846,11 +8857,11 @@
       end where
     endif
     if(idir==3 .or. idir==4)then
-      forall(i=inits:ends)
+      do i=inits,ends
         bc_v(i)=interpolation_order_2_hf(v(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          v(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          v(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
-      end forall
+      enddo
       where(bc_v(inits:ends)>cssq*HALF)
         bc_v(inits:ends)=cssq*HALF
       elsewhere(bc_v(inits:ends)<-cssq*HALF)
@@ -8858,11 +8869,11 @@
       end where
     endif
     if(idir==5 .or.idir==6)then
-      forall(i=inits:ends)
+      do i=inits,ends
         bc_w(i)=interpolation_order_2_hf(w(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          w(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          w(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
-      end forall
+      enddo
       where(bc_w(inits:ends)>cssq*HALF)
         bc_w(inits:ends)=cssq*HALF
       elsewhere(bc_w(inits:ends)<-cssq*HALF)
@@ -8884,20 +8895,20 @@
     kshift2=ez(idir)*2
     if(inits>ends)cycle
     if(lsingle_fluid)then
-      forall(i=inits:ends)
+      do i=inits,ends
         bc_rhoR(i)=interpolation_order_2_hf(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
-      end forall
+      enddo
     else
-      forall(i=inits:ends)
+      do i=inits,ends
         bc_rhoR(i)=interpolation_order_2_hf(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
         bc_rhoB(i)=interpolation_order_2_hf(rhoB(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
          rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
-      end forall
+      enddo
     endif
   enddo
   
@@ -9403,7 +9414,7 @@
   
  end subroutine apply_bounceback_pop
  
- subroutine apply_bounceback_pop_halfway(rho_s,u_s,v_s,w_s,aoptp)
+ subroutine apply_bounceback_pop_halfway(rho_s,u_s,v_s,w_s,aoptp,phi_CG)
  
 !***********************************************************************
 !     
@@ -9422,6 +9433,8 @@
   real(kind=PRC), allocatable, dimension(:)  :: rho_s,u_s,v_s,w_s
   
   type(REALPTR), dimension(0:links):: aoptp
+  
+  real(kind=PRC), dimension(0:links), optional  :: phi_CG
   
   integer :: i,j,k,l,sx,sz
   
@@ -9833,6 +9846,15 @@
   endif
   if(nbounce8>=nbounce7+1)then
   
+  if(lColourG)then
+    do i=nbounce7+1,nbounce8
+      do l=0,links
+            aoptp(l)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+             equil_popCG(l,links,phi_CG,p,dex,dey,dez,rho_s(i),u_s(i),v_s(i),w_s(i))
+      enddo
+    enddo
+  else
+  
   forall(i=nbounce7+1:nbounce8)
     !robin conditions
     !equilibrium scheme
@@ -9895,6 +9917,8 @@
      equil_pop18(rho_s(i),u_s(i),v_s(i),w_s(i))
      
   end forall
+  
+  endif
   
   endif
   
@@ -10090,7 +10114,7 @@
        do k=minz-1,maxz+1
          do j=miny-1,maxy+1
            do i=minx-1,maxx+1
-             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
+             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2 .or. isfluid(i,j,k)>=5)then
                rhoR(i,j,k)=densR_wetting
              endif
            enddo
@@ -10100,7 +10124,7 @@
        do k=minz-1,maxz+1
          do j=miny-1,maxy+1
            do i=minx-1,maxx+1
-             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
+             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2 .or. isfluid(i,j,k)>=5)then
                rhoR(i,j,k)=densR_wetting
                rhoB(i,j,k)=densB_wetting
              endif
@@ -10113,7 +10137,7 @@
        do k=minz-1,maxz+1
          do j=miny-1,maxy+1
            do i=minx-1,maxx+1
-             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
+             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2 .or. isfluid(i,j,k)>=5)then
                dsum1=ZERO
                isum=ZERO
                do l=1,linksd3q27
@@ -10161,7 +10185,7 @@
        do k=minz-1,maxz+1
          do j=miny-1,maxy+1
            do i=minx-1,maxx+1
-             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
+             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2 .or. isfluid(i,j,k)>=5)then
                dsum1=ZERO
                dsum2=ZERO
                isum=ZERO
@@ -10214,6 +10238,8 @@
        enddo
      endif
    end select
+   
+   
    
    !call or_world_larr(ltest,1)
    if(ltest(1)) write(216,fmt=1003) nstep, idrank, errorCount
