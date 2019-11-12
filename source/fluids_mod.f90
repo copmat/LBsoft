@@ -8120,16 +8120,17 @@
   
   integer :: i,j,k,idir,inits,ends,ishift,jshift,kshift
   integer :: ishift2,jshift2,kshift2
+  integer :: ishift3,jshift3,kshift3
   
   !INITIALIZE isfluid=6:8 ; bcfluid from 1 to 6
   inits=nbounce0+1
   ends=nbounce8
-  forall(i=inits:ends)
+  do i=inits,ends
     bc_rhoR(i)=ZERO
     bc_u(i)=ZERO
     bc_v(i)=ZERO
     bc_w(i)=ZERO
-  end forall
+  enddo
   if(.not.lsingle_fluid)then
     forall(i=inits:ends)
       bc_rhoB(i)=ZERO
@@ -8141,19 +8142,23 @@
   do idir=1,nbcdir
     inits=nbounce6dir(idir-1)+1
     ends=nbounce6dir(idir)
+    if(inits>ends)cycle
     ishift=ex(idir)
     jshift=ey(idir)
     kshift=ez(idir)
     ishift2=ex(idir)*2
     jshift2=ey(idir)*2
     kshift2=ez(idir)*2
-    if(inits>ends)cycle
+    ishift3=ex(idir)*3
+    jshift3=ey(idir)*3
+    kshift3=ez(idir)*3
     if(idir==1 .or. idir==2)then
-      forall(i=inits:ends)
-        bc_u(i)=interpolation_order_2_hf(u(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+      do i=inits,ends
+        bc_u(i)=interpolation_order_2_hf( &
          u(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
-         u(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
-      end forall
+         u(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         u(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
       where(bc_u(inits:ends)>cssq*HALF)
         bc_u(inits:ends)=cssq*HALF
       elsewhere(bc_u(inits:ends)<-cssq*HALF)
@@ -8161,11 +8166,12 @@
       end where
     endif
     if(idir==3 .or. idir==4)then
-      forall(i=inits:ends)
-        bc_v(i)=interpolation_order_2_hf(v(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+      do i=inits,ends
+        bc_v(i)=interpolation_order_2_hf( &
          v(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
-         v(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
-      end forall
+         v(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         v(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      end do
       where(bc_v(inits:ends)>cssq*HALF)
         bc_v(inits:ends)=cssq*HALF
       elsewhere(bc_v(inits:ends)<-cssq*HALF)
@@ -8173,11 +8179,12 @@
       end where
     endif
     if(idir==5 .or.idir==6)then
-      forall(i=inits:ends)
-        bc_w(i)=interpolation_order_2_hf(w(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+      do i=inits,ends
+        bc_w(i)=interpolation_order_2_hf( &
          w(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
-         w(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
-      end forall
+         w(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         w(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
       where(bc_w(inits:ends)>cssq*HALF)
         bc_w(inits:ends)=cssq*HALF
       elsewhere(bc_w(inits:ends)<-cssq*HALF)
@@ -8197,24 +8204,30 @@
     ishift2=ex(idir)*2
     jshift2=ey(idir)*2
     kshift2=ez(idir)*2
-    if(inits>ends)cycle
+    ishift3=ex(idir)*3
+    jshift3=ey(idir)*3
+    kshift3=ez(idir)*3
     if(lsingle_fluid)then
-      forall(i=inits:ends)
-        bc_rhoR(i)=interpolation_order_2_hf(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+      do i=inits,ends
+        bc_rhoR(i)=interpolation_order_2_hf( &
          rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
-         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
-      end forall
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
     else
-      forall(i=inits:ends)
-        bc_rhoR(i)=interpolation_order_2_hf(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+      do i=inits,ends
+        bc_rhoR(i)=interpolation_order_2_hf( &
          rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
-         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
-        bc_rhoB(i)=interpolation_order_2_hf(rhoB(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+        bc_rhoB(i)=interpolation_order_2_hf( &
          rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
-         rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
-      end forall
+         rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoB(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
     endif
   enddo
+           
   
   !fixed bc value
   
@@ -8838,25 +8851,29 @@
   
   integer :: i,j,k,idir,inits,ends,ishift,jshift,kshift
   integer :: ishift2,jshift2,kshift2
-  
+  integer :: ishift3,jshift3,kshift3
   
   !not fixed bc value
   
   do idir=1,nbcdir
     inits=nbounce6dir(idir-1)+1
     ends=nbounce6dir(idir)
+    if(inits>ends)cycle
     ishift=ex(idir)
     jshift=ey(idir)
     kshift=ez(idir)
     ishift2=ex(idir)*2
     jshift2=ey(idir)*2
     kshift2=ez(idir)*2
-    if(inits>ends)cycle
+    ishift3=ex(idir)*3
+    jshift3=ey(idir)*3
+    kshift3=ez(idir)*3
     if(idir==1 .or. idir==2)then
       do i=inits,ends
-        bc_u(i)=interpolation_order_2_hf(u(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_u(i)=interpolation_order_2_hf( &
          u(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
-         u(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
+         u(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         u(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
       enddo
       where(bc_u(inits:ends)>cssq*HALF)
         bc_u(inits:ends)=cssq*HALF
@@ -8866,9 +8883,10 @@
     endif
     if(idir==3 .or. idir==4)then
       do i=inits,ends
-        bc_v(i)=interpolation_order_2_hf(v(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_v(i)=interpolation_order_2_hf( &
          v(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
-         v(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
+         v(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         v(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
       enddo
       where(bc_v(inits:ends)>cssq*HALF)
         bc_v(inits:ends)=cssq*HALF
@@ -8878,9 +8896,10 @@
     endif
     if(idir==5 .or.idir==6)then
       do i=inits,ends
-        bc_w(i)=interpolation_order_2_hf(w(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_w(i)=interpolation_order_2_hf( &
          w(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
-         w(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
+         w(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         w(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
       enddo
       where(bc_w(inits:ends)>cssq*HALF)
         bc_w(inits:ends)=cssq*HALF
@@ -8901,21 +8920,26 @@
     ishift2=ex(idir)*2
     jshift2=ey(idir)*2
     kshift2=ez(idir)*2
-    if(inits>ends)cycle
+    ishift3=ex(idir)*3
+    jshift3=ey(idir)*3
+    kshift3=ez(idir)*3
     if(lsingle_fluid)then
       do i=inits,ends
-        bc_rhoR(i)=interpolation_order_2_hf(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_rhoR(i)=interpolation_order_2_hf( &
          rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
-         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
       enddo
     else
       do i=inits,ends
-        bc_rhoR(i)=interpolation_order_2_hf(rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+        bc_rhoR(i)=interpolation_order_2_hf( &
          rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
-         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
-        bc_rhoB(i)=interpolation_order_2_hf(rhoB(ibounce(1,i),ibounce(2,i),ibounce(3,i)), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+        bc_rhoB(i)=interpolation_order_2_hf( &
          rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
-         rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2))
+         rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoB(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
       enddo
     endif
   enddo
@@ -10109,6 +10133,9 @@
   implicit none
   integer, intent(in) :: nstep
   integer :: i,j,k,l,ishift,jshift,kshift, errorCount
+  integer :: ishift2,jshift2,kshift2
+  integer :: ishift3,jshift3,kshift3
+  integer :: idir,inits,ends
   REAL(kind=PRC) :: dsum1,dsum2
   REAL(kind=PRC) :: isum
   logical :: ltest(1)=.false.
@@ -10122,7 +10149,7 @@
        do k=minz-1,maxz+1
          do j=miny-1,maxy+1
            do i=minx-1,maxx+1
-             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2 .or. isfluid(i,j,k)>=5)then
+             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
                rhoR(i,j,k)=densR_wetting
              endif
            enddo
@@ -10132,7 +10159,7 @@
        do k=minz-1,maxz+1
          do j=miny-1,maxy+1
            do i=minx-1,maxx+1
-             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2 .or. isfluid(i,j,k)>=5)then
+             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
                rhoR(i,j,k)=densR_wetting
                rhoB(i,j,k)=densB_wetting
              endif
@@ -10145,7 +10172,7 @@
        do k=minz-1,maxz+1
          do j=miny-1,maxy+1
            do i=minx-1,maxx+1
-             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2 .or. isfluid(i,j,k)>=5)then
+             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
                dsum1=ZERO
                isum=ZERO
                do l=1,linksd3q27
@@ -10193,7 +10220,7 @@
        do k=minz-1,maxz+1
          do j=miny-1,maxy+1
            do i=minx-1,maxx+1
-             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2 .or. isfluid(i,j,k)>=5)then
+             if(isfluid(i,j,k)==0 .or. isfluid(i,j,k)==2)then
                dsum1=ZERO
                dsum2=ZERO
                isum=ZERO
@@ -10247,6 +10274,108 @@
      endif
    end select
    
+   do idir=1,nbcdir
+    inits=nbounce6dir(idir-1)+1
+    ends=nbounce6dir(idir)
+    if(inits>ends)cycle
+    ishift=ex(idir)
+    jshift=ey(idir)
+    kshift=ez(idir)
+    ishift2=ex(idir)*2
+    jshift2=ey(idir)*2
+    kshift2=ez(idir)*2
+    ishift3=ex(idir)*3
+    jshift3=ey(idir)*3
+    kshift3=ez(idir)*3
+    if(lsingle_fluid)then
+      do i=inits,ends
+        rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i))=interpolation_order_2_hf( &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
+    else
+      do i=inits,ends
+        rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i))=interpolation_order_2_hf( &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+        rhoB(ibounce(1,i),ibounce(2,i),ibounce(3,i))=interpolation_order_2_hf( &
+         rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoB(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
+    endif
+  enddo
+  
+  
+  do idir=1,nbcdir
+    inits=nbounce7dir(idir-1)+1
+    ends=nbounce7dir(idir)
+    if(inits>ends)cycle
+    ishift=ex(idir)
+    jshift=ey(idir)
+    kshift=ez(idir)
+    ishift2=ex(idir)*2
+    jshift2=ey(idir)*2
+    kshift2=ez(idir)*2
+    ishift3=ex(idir)*3
+    jshift3=ey(idir)*3
+    kshift3=ez(idir)*3
+    if(lsingle_fluid)then
+      do i=inits,ends
+        rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i))=interpolation_order_2_hf( &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
+    else
+      do i=inits,ends
+        rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i))=interpolation_order_2_hf( &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+        rhoB(ibounce(1,i),ibounce(2,i),ibounce(3,i))=interpolation_order_2_hf( &
+         rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoB(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
+    endif
+  enddo
+  
+  do idir=1,nbcdir
+    inits=nbounce8dir(idir-1)+1
+    ends=nbounce8dir(idir)
+    if(inits>ends)cycle
+    ishift=ex(idir)
+    jshift=ey(idir)
+    kshift=ez(idir)
+    ishift2=ex(idir)*2
+    jshift2=ey(idir)*2
+    kshift2=ez(idir)*2
+    ishift3=ex(idir)*3
+    jshift3=ey(idir)*3
+    kshift3=ez(idir)*3
+    if(lsingle_fluid)then
+      do i=inits,ends
+        rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i))=interpolation_order_2_hf( &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
+    else
+      do i=inits,ends
+        rhoR(ibounce(1,i),ibounce(2,i),ibounce(3,i))=interpolation_order_2_hf( &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+        rhoB(ibounce(1,i),ibounce(2,i),ibounce(3,i))=interpolation_order_2_hf( &
+         rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoB(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
+    endif
+  enddo
    
    
    !call or_world_larr(ltest,1)
