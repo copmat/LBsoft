@@ -199,7 +199,7 @@
 ! restore
   call get_restore(wantRestore)
   if (wantRestore) then
-    call read_restart_file(135,'restart.dat',nstep_rest)
+    call read_restart_file(135,'dumpGlobal.restart.dat',nstep_rest)
     call set_nstep(nstep_rest)
     mytime=real(nstep,kind=PRC)*tstep
     call restore_oneFile(nstep)

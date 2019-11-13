@@ -64,8 +64,8 @@
  
  integer, save, protected, public :: bc_type_east=0
  integer, save, protected, public :: bc_type_west=0
- integer, save, protected, public :: bc_type_front=0
  integer, save, protected, public :: bc_type_rear=0
+ integer, save, protected, public :: bc_type_front=0
  integer, save, protected, public :: bc_type_north=0
  integer, save, protected, public :: bc_type_south=0
  
@@ -160,36 +160,43 @@
  
  real(kind=PRC), save, protected, public :: bc_rhoR_east = ZERO
  real(kind=PRC), save, protected, public :: bc_rhoR_west = ZERO
- real(kind=PRC), save, protected, public :: bc_rhoR_front= ZERO
- real(kind=PRC), save, protected, public :: bc_rhoR_rear = ZERO
+ real(kind=PRC), save, protected, public :: bc_rhoR_rear= ZERO
+ real(kind=PRC), save, protected, public :: bc_rhoR_front = ZERO
  real(kind=PRC), save, protected, public :: bc_rhoR_north= ZERO
  real(kind=PRC), save, protected, public :: bc_rhoR_south= ZERO
  
  real(kind=PRC), save, protected, public :: bc_rhoB_east = ZERO
  real(kind=PRC), save, protected, public :: bc_rhoB_west = ZERO
- real(kind=PRC), save, protected, public :: bc_rhoB_front= ZERO
- real(kind=PRC), save, protected, public :: bc_rhoB_rear = ZERO
+ real(kind=PRC), save, protected, public :: bc_rhoB_rear= ZERO
+ real(kind=PRC), save, protected, public :: bc_rhoB_front = ZERO
  real(kind=PRC), save, protected, public :: bc_rhoB_north= ZERO
  real(kind=PRC), save, protected, public :: bc_rhoB_south= ZERO
  
+ real(kind=PRC), save, protected, public :: bc_flow_east = ZERO
+ real(kind=PRC), save, protected, public :: bc_flow_west = ZERO
+ real(kind=PRC), save, protected, public :: bc_flow_rear= ZERO
+ real(kind=PRC), save, protected, public :: bc_flow_front = ZERO
+ real(kind=PRC), save, protected, public :: bc_flow_north= ZERO
+ real(kind=PRC), save, protected, public :: bc_flow_south= ZERO
+ 
  real(kind=PRC), save, protected, public :: bc_u_east = ZERO
  real(kind=PRC), save, protected, public :: bc_u_west = ZERO
- real(kind=PRC), save, protected, public :: bc_u_front= ZERO
- real(kind=PRC), save, protected, public :: bc_u_rear = ZERO
+ real(kind=PRC), save, protected, public :: bc_u_rear= ZERO
+ real(kind=PRC), save, protected, public :: bc_u_front = ZERO
  real(kind=PRC), save, protected, public :: bc_u_north= ZERO
  real(kind=PRC), save, protected, public :: bc_u_south= ZERO
  
  real(kind=PRC), save, protected, public :: bc_v_east = ZERO
  real(kind=PRC), save, protected, public :: bc_v_west = ZERO
- real(kind=PRC), save, protected, public :: bc_v_front= ZERO
- real(kind=PRC), save, protected, public :: bc_v_rear = ZERO
+ real(kind=PRC), save, protected, public :: bc_v_rear= ZERO
+ real(kind=PRC), save, protected, public :: bc_v_front = ZERO
  real(kind=PRC), save, protected, public :: bc_v_north= ZERO
  real(kind=PRC), save, protected, public :: bc_v_south= ZERO
  
  real(kind=PRC), save, protected, public :: bc_w_east = ZERO
  real(kind=PRC), save, protected, public :: bc_w_west = ZERO
- real(kind=PRC), save, protected, public :: bc_w_front= ZERO
- real(kind=PRC), save, protected, public :: bc_w_rear = ZERO
+ real(kind=PRC), save, protected, public :: bc_w_rear= ZERO
+ real(kind=PRC), save, protected, public :: bc_w_front = ZERO
  real(kind=PRC), save, protected, public :: bc_w_north= ZERO
  real(kind=PRC), save, protected, public :: bc_w_south= ZERO
  
@@ -249,6 +256,7 @@
  real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_u
  real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_v
  real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_w
+ real(kind=PRC), save, protected, public, allocatable, dimension(:) :: bc_flow
  
  real(kind=PRC), save, protected, public, allocatable, dimension(:,:) :: &
   objectdata
@@ -268,8 +276,9 @@
  integer, save, allocatable, dimension(:) :: ezdouble
  
  integer, allocatable, save :: ibounce(:,:)
- integer, save :: nbounce0,nbounce6,nbounce7,nbounce8
- integer, dimension(0:nbcdir), save :: nbounce6dir,nbounce7dir,nbounce8dir
+ integer, save :: nbounce0,nbounce6,nbounce7,nbounce8,nbounce9
+ integer, dimension(0:nbcdir), save :: nbounce6dir,nbounce7dir, &
+  nbounce8dir,nbounce9dir
  
  integer, allocatable, save :: isguards(:,:)
  integer, save :: nguards=0
@@ -417,8 +426,8 @@
  public :: probe_blue_moments_in_node
  public :: set_value_bc_east
  public :: set_value_bc_west
- public :: set_value_bc_front
  public :: set_value_bc_rear
+ public :: set_value_bc_front
  public :: set_value_bc_north
  public :: set_value_bc_south
  public :: set_fluid_wall_sc
@@ -943,43 +952,43 @@
       do i=minx-nbuff,maxx+nbuff
         if(i==0 .or. j==0 .or. k==0 .or. i==(nx+1) .or. j==(ny+1) .or. k==(nz+1))then
           if(ibctype==0)then ! 0 F F F
-            if(i==(nx+1) .and. j==0 .and. k==(nz+1))then !north east front corner 
+            if(i==(nx+1) .and. j==0 .and. k==(nz+1))then !north east rear corner 
               isfluid(i,j,k)=0
-            elseif(i==(nx+1) .and. j==(ny+1) .and. k==(nz+1))then !north east rear corner
+            elseif(i==(nx+1) .and. j==(ny+1) .and. k==(nz+1))then !north east front corner
               isfluid(i,j,k)=0
-            elseif(i==0 .and. j==(ny+1) .and. k==(nz+1))then !north west rear corner
+            elseif(i==0 .and. j==(ny+1) .and. k==(nz+1))then !north west front corner
               isfluid(i,j,k)=0
-            elseif(i==0 .and. j==0 .and. k==(nz+1))then !north west front corner
+            elseif(i==0 .and. j==0 .and. k==(nz+1))then !north west rear corner
               isfluid(i,j,k)=0
-            elseif(i==(nx+1) .and. j==0 .and. k==0)then !south east front corner
+            elseif(i==(nx+1) .and. j==0 .and. k==0)then !south east rear corner
               isfluid(i,j,k)=0
-            elseif(i==0 .and. j==0 .and. k==0)then !south west front corner
+            elseif(i==0 .and. j==0 .and. k==0)then !south west rear corner
               isfluid(i,j,k)=0
-            elseif(i==0 .and. j==(ny+1) .and. k==0)then !south west rear corner
+            elseif(i==0 .and. j==(ny+1) .and. k==0)then !south west front corner
               isfluid(i,j,k)=0
-            elseif(i==(nx+1) .and. j==(ny+1) .and. k==0)then !south east rear corner
+            elseif(i==(nx+1) .and. j==(ny+1) .and. k==0)then !south east front corner
               isfluid(i,j,k)=0
-            elseif(i==(nx+1) .and. j==0)then !front east edge
+            elseif(i==(nx+1) .and. j==0)then !rear east edge
               isfluid(i,j,k)=0
-            elseif(i==0 .and. j==0)then !front west edge
+            elseif(i==0 .and. j==0)then !rear west edge
               isfluid(i,j,k)=0
             elseif(i==(nx+1) .and. k==(nz+1))then !north east edge
               isfluid(i,j,k)=0
-            elseif(j==0 .and. k==(nz+1))then !north front edge
+            elseif(j==0 .and. k==(nz+1))then !north rear edge
               isfluid(i,j,k)=0
-            elseif(j==(ny+1) .and. k==(nz+1))then !north rear edge
+            elseif(j==(ny+1) .and. k==(nz+1))then !north front edge
               isfluid(i,j,k)=0
             elseif(i==0 .and. k==(nz+1))then !north west edge
               isfluid(i,j,k)=0
-            elseif(i==(nx+1) .and. j==(ny+1))then !rear east edge
+            elseif(i==(nx+1) .and. j==(ny+1))then !front east edge
               isfluid(i,j,k)=0
-            elseif(i==0 .and. j==(ny+1))then !rear west edge
+            elseif(i==0 .and. j==(ny+1))then !front west edge
               isfluid(i,j,k)=0
             elseif(i==(nx+1) .and. k==0)then !south east edge
               isfluid(i,j,k)=0
             elseif(j==0 .and. k==0)then !south east edge
               isfluid(i,j,k)=0
-            elseif(j==(ny+1) .and. k==0)then !south rear edge
+            elseif(j==(ny+1) .and. k==0)then !south front edge
               isfluid(i,j,k)=0
             elseif(i==0 .and. k==0)then !south west edge
               isfluid(i,j,k)=0
@@ -1011,16 +1020,16 @@
               else
                 isfluid(i,j,k)=0
               endif
-            elseif(j==0)then !front side
-              if(bc_type_front/=0)then
-                isfluid(i,j,k)= bc_type_front+5
+            elseif(j==0)then !rear side
+              if(bc_type_rear/=0)then
+                isfluid(i,j,k)= bc_type_rear+5
                 bcfluid(i,j,k)=3
               else
                 isfluid(i,j,k)=0
               endif
-            elseif(j==(ny+1))then !rear side
-              if(bc_type_rear/=0)then
-                isfluid(i,j,k)= bc_type_rear+5
+            elseif(j==(ny+1))then !front side
+              if(bc_type_front/=0)then
+                isfluid(i,j,k)= bc_type_front+5
                 bcfluid(i,j,k)=4
               else
                 isfluid(i,j,k)=0
@@ -1030,13 +1039,13 @@
             endif
           elseif(ibctype==1)then ! 1 T F F
             if(j==0 .or. j==(ny+1) .or. k==0 .or. k==(nz+1))then
-              if(k==(nz+1) .and. j==0)then !north front edge
+              if(k==(nz+1) .and. j==0)then !north rear edge
                 isfluid(i,j,k)=0
-              elseif(k==(nz+1) .and. j==(ny+1))then !north rear edge
+              elseif(k==(nz+1) .and. j==(ny+1))then !north front edge
                 isfluid(i,j,k)=0
-              elseif(k==0 .and. j==0)then !south front edge
+              elseif(k==0 .and. j==0)then !south rear edge
                 isfluid(i,j,k)=0
-              elseif(k==0 .and. j==(ny+1))then !south rear edge
+              elseif(k==0 .and. j==(ny+1))then !south front edge
                 isfluid(i,j,k)=0
               elseif(k==(nz+1))then !north side
                 if(bc_type_north/=0)then
@@ -1052,16 +1061,16 @@
                 else
                   isfluid(i,j,k)=0
                 endif
-              elseif(j==0)then !front side
-                if(bc_type_front/=0)then
-                  isfluid(i,j,k)= bc_type_front+5
+              elseif(j==0)then !rear side
+                if(bc_type_rear/=0)then
+                  isfluid(i,j,k)= bc_type_rear+5
                   bcfluid(i,j,k)=3
                 else
                   isfluid(i,j,k)=0
                 endif
-              elseif(j==(ny+1))then !rear side
-                if(bc_type_rear/=0)then
-                  isfluid(i,j,k)= bc_type_rear+5
+              elseif(j==(ny+1))then !front side
+                if(bc_type_front/=0)then
+                  isfluid(i,j,k)= bc_type_front+5
                   bcfluid(i,j,k)=4
                 else
                   isfluid(i,j,k)=0
@@ -1134,13 +1143,13 @@
             endif
           elseif(ibctype==4)then ! 4 F F T
             if(i==0 .or. i==(nx+1) .or. j==0 .or. j==(ny+1))then
-              if(i==(nx+1) .and. j==0)then !east front edge
+              if(i==(nx+1) .and. j==0)then !east rear edge
                 isfluid(i,j,k)=0
-              elseif(i==(nx+1) .and. j==(ny+1))then !east rear edge
+              elseif(i==(nx+1) .and. j==(ny+1))then !east front edge
                 isfluid(i,j,k)=0
-              elseif(i==0 .and. j==0)then !west front edge
+              elseif(i==0 .and. j==0)then !west rear edge
                 isfluid(i,j,k)=0
-              elseif(i==0 .and. j==(ny+1))then !west rear edge
+              elseif(i==0 .and. j==(ny+1))then !west front edge
                 isfluid(i,j,k)=0
               elseif(i==(nx+1))then !east side
                 if(bc_type_east/=0)then
@@ -1156,16 +1165,16 @@
                 else
                   isfluid(i,j,k)=0
                 endif
-              elseif(j==0)then !front side
-                if(bc_type_front/=0)then
-                  isfluid(i,j,k)= bc_type_front+5
+              elseif(j==0)then !rear side
+                if(bc_type_rear/=0)then
+                  isfluid(i,j,k)= bc_type_rear+5
                   bcfluid(i,j,k)=3
                 else
                   isfluid(i,j,k)=0
                 endif
-              elseif(j==(ny+1))then !rear side
-                if(bc_type_rear/=0)then
-                  isfluid(i,j,k)= bc_type_rear+5
+              elseif(j==(ny+1))then !front side
+                if(bc_type_front/=0)then
+                  isfluid(i,j,k)= bc_type_front+5
                   bcfluid(i,j,k)=4
                 else
                   isfluid(i,j,k)=0
@@ -1176,16 +1185,16 @@
             endif
           elseif(ibctype==5)then ! 5 T F T
             if(j==0 .or. j==(ny+1))then
-              if(j==0)then !front side
-                if(bc_type_front/=0)then
-                  isfluid(i,j,k)= bc_type_front+5
+              if(j==0)then !rear side
+                if(bc_type_rear/=0)then
+                  isfluid(i,j,k)= bc_type_rear+5
                   bcfluid(i,j,k)=3
                 else
                   isfluid(i,j,k)=0
                 endif
-              elseif(j==(ny+1))then !rear side
-                if(bc_type_rear/=0)then
-                  isfluid(i,j,k)= bc_type_rear+5
+              elseif(j==(ny+1))then !front side
+                if(bc_type_front/=0)then
+                  isfluid(i,j,k)= bc_type_front+5
                   bcfluid(i,j,k)=4
                 else
                   isfluid(i,j,k)=0
@@ -1336,9 +1345,24 @@
   enddo
   nbounce8=l
   
+  nbounce9dir(0)=l
+  do idir=1,nbcdir
+    do k=minz-1,maxz+1
+      do j=miny-1,maxy+1
+        do i=minx-1,maxx+1
+          if(isfluid(i,j,k)==9 .and. bcfluid(i,j,k)==idir)then
+            l=l+1
+          endif
+        enddo
+      enddo
+    enddo
+    nbounce9dir(idir)=l
+  enddo
+  nbounce9=l
+  
   !allocate ibounce for inderect addressing 
   !NOTE that it is computationally less expensive than do a loop over all
-  allocate(ibounce(3,nbounce8))
+  allocate(ibounce(3,nbounce9))
   
   l=0
   do k=minz-1,maxz+1
@@ -1400,15 +1424,31 @@
     enddo
   enddo
   
+  do idir=1,nbcdir
+    do k=minz-1,maxz+1
+      do j=miny-1,maxy+1
+        do i=minx-1,maxx+1
+          if(isfluid(i,j,k)==9 .and. bcfluid(i,j,k)==idir)then
+            l=l+1
+            ibounce(1,l)=i
+            ibounce(2,l)=j
+            ibounce(3,l)=k
+          endif
+        enddo
+      enddo
+    enddo
+  enddo
+  
   
   istat(1:nistatmax)=0
-  allocate(bc_rhoR(nbounce0+1:nbounce8),stat=istat(1))
-  allocate(bc_u(nbounce0+1:nbounce8),stat=istat(2))
-  allocate(bc_v(nbounce0+1:nbounce8),stat=istat(3))
-  allocate(bc_w(nbounce0+1:nbounce8),stat=istat(4))
+  allocate(bc_rhoR(nbounce0+1:nbounce9),stat=istat(1))
+  allocate(bc_u(nbounce0+1:nbounce9),stat=istat(2))
+  allocate(bc_v(nbounce0+1:nbounce9),stat=istat(3))
+  allocate(bc_w(nbounce0+1:nbounce9),stat=istat(4))
   if(.not. lsingle_fluid)then
-    allocate(bc_rhoB(nbounce0+1:nbounce8),stat=istat(5))
+    allocate(bc_rhoB(nbounce0+1:nbounce9),stat=istat(5))
   endif
+  allocate(bc_flow(nbounce0+1:nbounce9),stat=istat(6))
 
   !set the bc if necessary with their fixed values given in input
   call set_bc_hvar
@@ -1430,14 +1470,14 @@
    if(bc_type_east==1 .or. bc_type_west==1)then
      lexch_u=.true.
    endif
-   if(bc_type_front==1 .or. bc_type_rear==1)then
+   if(bc_type_rear==1 .or. bc_type_front==1)then
      lexch_v=.true.
    endif
    if(bc_type_north==1 .or. bc_type_south==1)then
      lexch_w=.true.
    endif
    if(bc_type_east==2 .or. bc_type_west==2 .or. &
-    bc_type_front==2 .or. bc_type_rear==2 .or. &
+    bc_type_rear==2 .or. bc_type_front==2 .or. &
     bc_type_north==2 .or. bc_type_south==2)then
      lexch_dens=.true.
    endif
@@ -2126,7 +2166,8 @@
   
  end subroutine set_initial_pop_fluids
  
- subroutine set_value_bc_east(itemp1,dtemp1,dtemp2,dtemp3,dtemp4,dtemp5)
+ subroutine set_value_bc_east(itemp1,dtemp1,dtemp2,dtemp3,dtemp4,dtemp5, &
+  dtemp6)
  
 !***********************************************************************
 !     
@@ -2142,7 +2183,7 @@
   implicit none
   
   integer, intent(in) :: itemp1
-  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3,dtemp4,dtemp5
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3,dtemp4,dtemp5,dtemp6
   
   bc_type_east = itemp1
   bc_rhoR_east = dtemp1
@@ -2150,12 +2191,14 @@
   bc_u_east = dtemp3
   bc_v_east = dtemp4
   bc_w_east = dtemp5
+  bc_flow_east = dtemp6
   
   return
   
  end subroutine set_value_bc_east
  
- subroutine set_value_bc_west(itemp1,dtemp1,dtemp2,dtemp3,dtemp4,dtemp5)
+ subroutine set_value_bc_west(itemp1,dtemp1,dtemp2,dtemp3,dtemp4,dtemp5, &
+  dtemp6)
  
 !***********************************************************************
 !     
@@ -2171,7 +2214,7 @@
   implicit none
   
   integer, intent(in) :: itemp1
-  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3,dtemp4,dtemp5
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3,dtemp4,dtemp5,dtemp6
   
   bc_type_west = itemp1
   bc_rhoR_west = dtemp1
@@ -2179,41 +2222,14 @@
   bc_u_west = dtemp3
   bc_v_west = dtemp4
   bc_w_west = dtemp5
+  bc_flow_west = dtemp6
   
   return
   
  end subroutine set_value_bc_west
  
- subroutine set_value_bc_front(itemp1,dtemp1,dtemp2,dtemp3,dtemp4,dtemp5)
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine for set the conditions of fluids 
-!     at the front open boundary
-!     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer, intent(in) :: itemp1
-  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3,dtemp4,dtemp5
-  
-  bc_type_front = itemp1
-  bc_rhoR_front = dtemp1
-  bc_rhoB_front = dtemp2
-  bc_u_front = dtemp3
-  bc_v_front = dtemp4
-  bc_w_front = dtemp5
-  
-  return
-  
- end subroutine set_value_bc_front
- 
- subroutine set_value_bc_rear(itemp1,dtemp1,dtemp2,dtemp3,dtemp4,dtemp5)
+ subroutine set_value_bc_rear(itemp1,dtemp1,dtemp2,dtemp3,dtemp4,dtemp5, &
+  dtemp6)
  
 !***********************************************************************
 !     
@@ -2229,7 +2245,7 @@
   implicit none
   
   integer, intent(in) :: itemp1
-  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3,dtemp4,dtemp5
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3,dtemp4,dtemp5,dtemp6
   
   bc_type_rear = itemp1
   bc_rhoR_rear = dtemp1
@@ -2237,12 +2253,45 @@
   bc_u_rear = dtemp3
   bc_v_rear = dtemp4
   bc_w_rear = dtemp5
+  bc_flow_rear = dtemp6
   
   return
   
  end subroutine set_value_bc_rear
  
- subroutine set_value_bc_north(itemp1,dtemp1,dtemp2,dtemp3,dtemp4,dtemp5)
+ subroutine set_value_bc_front(itemp1,dtemp1,dtemp2,dtemp3,dtemp4,dtemp5, &
+  dtemp6)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for set the conditions of fluids 
+!     at the front open boundary
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: itemp1
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3,dtemp4,dtemp5,dtemp6
+  
+  bc_type_front = itemp1
+  bc_rhoR_front = dtemp1
+  bc_rhoB_front = dtemp2
+  bc_u_front = dtemp3
+  bc_v_front = dtemp4
+  bc_w_front = dtemp5
+  bc_flow_front = dtemp6
+  
+  return
+  
+ end subroutine set_value_bc_front
+ 
+ subroutine set_value_bc_north(itemp1,dtemp1,dtemp2,dtemp3,dtemp4,dtemp5, &
+  dtemp6)
  
 !***********************************************************************
 !     
@@ -2258,7 +2307,7 @@
   implicit none
   
   integer, intent(in) :: itemp1
-  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3,dtemp4,dtemp5
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3,dtemp4,dtemp5,dtemp6
   
   bc_type_north = itemp1
   bc_rhoR_north = dtemp1
@@ -2270,12 +2319,14 @@
   else
     bc_w_north = dtemp5
   endif
+  bc_flow_north = dtemp6
   
   return
   
  end subroutine set_value_bc_north
  
- subroutine set_value_bc_south(itemp1,dtemp1,dtemp2,dtemp3,dtemp4,dtemp5)
+ subroutine set_value_bc_south(itemp1,dtemp1,dtemp2,dtemp3,dtemp4,dtemp5, &
+  dtemp6)
  
 !***********************************************************************
 !     
@@ -2291,7 +2342,7 @@
   implicit none
   
   integer, intent(in) :: itemp1
-  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3,dtemp4,dtemp5
+  real(kind=PRC), intent(in) :: dtemp1,dtemp2,dtemp3,dtemp4,dtemp5,dtemp6
   
   bc_type_south = itemp1
   bc_rhoR_south = dtemp1
@@ -2303,6 +2354,7 @@
   else
     bc_w_south = dtemp5
   endif
+  bc_flow_south = dtemp6
   
   return
   
@@ -4250,7 +4302,7 @@
           enddo
           
           !perturbation step
-          phis=(locrhoR-locrhoB)/(locrhoR+locrhoB)
+          phis=(locrhoR/meanR-locrhoB/meanB)/(locrhoR/meanR+locrhoB/meanB)
           if(abs(phis)<phislim)then
             rhodiff(1:links) = ZERO
             rhosum(1:links) = ZERO
@@ -4401,7 +4453,7 @@
           enddo
           
           !perturbation step
-          phis=(locrhoR-locrhoB)/(locrhoR+locrhoB)
+          phis=(locrhoR/meanR-locrhoB/meanB)/(locrhoR/meanR+locrhoB/meanB)
           if(abs(phis)<phislim)then
 		    rhodiff(1:links) = ZERO
             rhosum(1:links) = ZERO
@@ -8038,6 +8090,7 @@
   integer ::i,j,k,l
   integer, save :: iter=0
   
+  call error(41)
   
   iter=iter+1
   
@@ -8060,7 +8113,7 @@
   
  end subroutine driver_apply_bounceback_pop
  
- subroutine driver_apply_bounceback_halfway_pop
+ subroutine driver_apply_bounceback_halfway_pop(nstep)
  
 !***********************************************************************
 !     
@@ -8075,9 +8128,12 @@
 !***********************************************************************
  
   implicit none
+  
+  integer, intent(in) :: nstep
+  
   integer ::i,j,k,l
   integer, save :: iter=0
-  
+  integer :: idir,inits,ends
   
   iter=iter+1
   
@@ -8091,7 +8147,27 @@
 #ifdef DIAGNSTREAM
   if(iter==NDIAGNSTREAM)call print_all_pops(100,'miodopobounce',iter,aoptpR)
 #endif
-  
+#if 0
+if(mod(nstep,1)==0)then
+     do idir=1,nbcdir
+      inits=nbounce7dir(idir-1)+1
+      ends=nbounce7dir(idir)
+      if(inits>ends)cycle
+      do i=inits,ends
+        if(ibounce(1,i)==30 .and. ibounce(2,i)==0 .and. &
+         ibounce(3,i)==1)then
+           write(6,'(a,2i8,6f12.6)')'red ',nstep,idir,bc_flow(i),bc_rhoR(i), &
+            bc_u(i),f03R(30,0,1),f04R(30,1,1)
+        endif
+!        if(ibounce(1,i)==16 .and. ibounce(2,i)==16 .and. &
+!         ibounce(3,i)==0)then
+!           write(6,'(a,2i8,6f12.6)')'blu ',nstep,idir,bc_flow(i),bc_rhoR(i), &
+!            bc_rhoB(i),bc_w(i),f05B(16,16,0),f06B(16,16,0)
+!        endif
+      enddo
+    enddo
+    endif
+#endif
   if(lsingle_fluid)return
   
   if(lColourG)then
@@ -8099,6 +8175,29 @@
   else
     call apply_bounceback_pop_halfway(bc_rhoB,bc_u,bc_v,bc_w,aoptpB)
   endif
+  
+#if 0
+  if(mod(nstep,50)==0)then
+     do idir=1,nbcdir
+      inits=nbounce9dir(idir-1)+1
+      ends=nbounce9dir(idir)
+      if(inits>ends)cycle
+      do i=inits,ends
+        if(ibounce(1,i)==16 .and. ibounce(2,i)==16 .and. &
+         ibounce(3,i)==33)then
+           write(6,'(a,2i8,6f12.6)')'red ',nstep,idir,bc_flow(i),bc_rhoR(i), &
+            bc_rhoB(i),bc_w(i),f06R(16,16,33),f05R(16,16,32)
+        endif
+        if(ibounce(1,i)==16 .and. ibounce(2,i)==16 .and. &
+         ibounce(3,i)==0)then
+           write(6,'(a,2i8,6f12.6)')'blu ',nstep,idir,bc_flow(i),bc_rhoR(i), &
+            bc_rhoB(i),bc_w(i),f05B(16,16,0),f06B(16,16,0)
+        endif
+      enddo
+    enddo
+    endif
+#endif
+  
   return
   
  end subroutine driver_apply_bounceback_halfway_pop
@@ -8122,7 +8221,7 @@
   integer :: ishift2,jshift2,kshift2
   integer :: ishift3,jshift3,kshift3
   
-  !INITIALIZE isfluid=6:8 ; bcfluid from 1 to 6
+  !INITIALIZE isfluid=6:9 ; bcfluid from 1 to 6
   inits=nbounce0+1
   ends=nbounce8
   do i=inits,ends
@@ -8134,6 +8233,346 @@
   if(.not.lsingle_fluid)then
     forall(i=inits:ends)
       bc_rhoB(i)=ZERO
+    end forall
+  endif
+  
+  !fixed bc value
+  
+  !isfluid=6 ; bcfluid from 1 to 6
+  ! dirichlet condition
+
+  inits=nbounce6dir(0)+1
+  ends=nbounce6dir(1)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_west
+    end forall
+  endif
+  
+  inits=nbounce6dir(1)+1
+  ends=nbounce6dir(2)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_east
+    end forall
+  endif
+  
+  inits=nbounce6dir(2)+1
+  ends=nbounce6dir(3)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_rear
+    end forall
+  endif
+  
+  inits=nbounce6dir(3)+1
+  ends=nbounce6dir(4)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_front
+    end forall
+  endif
+  
+  inits=nbounce6dir(4)+1
+  ends=nbounce6dir(5)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_south
+    end forall
+  endif
+  
+  inits=nbounce6dir(5)+1
+  ends=nbounce6dir(6)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_north
+    end forall
+  endif
+    
+  if(.not. lsingle_fluid)then
+    
+    !isfluid=6 ; bcfluid from 1 to 6
+    ! dirichlet condition
+    inits=nbounce6dir(0)+1
+    ends=nbounce6dir(1)
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_west !bc_rhoB_east
+      end forall
+    endif
+    
+    inits=nbounce6dir(1)+1
+    ends=nbounce6dir(2)
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_east !bc_rhoB_west
+      end forall
+    endif
+    
+    inits=nbounce6dir(2)+1
+    ends=nbounce6dir(3)
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_rear !bc_rhoB_front
+      end forall
+    endif
+    
+    inits=nbounce6dir(3)+1
+    ends=nbounce6dir(4)
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_front !bc_rhoB_rear
+      end forall
+    endif
+     
+    inits=nbounce6dir(4)+1
+    ends=nbounce6dir(5)
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_south !bc_rhoB_north
+      end forall
+    endif
+    
+    inits=nbounce6dir(5)+1
+    ends=nbounce6dir(6)
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_north !bc_rhoB_south
+      end forall
+    endif
+  
+  endif
+  
+  ! neumann condition
+  
+  inits=nbounce7dir(0)+1
+  ends=nbounce7dir(1)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_west
+      bc_v(i)=bc_v_west
+      bc_w(i)=bc_w_west
+    end forall
+  endif
+  
+  inits=nbounce7dir(1)+1
+  ends=nbounce7dir(2)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_east
+      bc_v(i)=bc_v_east
+      bc_w(i)=bc_w_east
+    end forall
+  endif
+  
+  inits=nbounce7dir(2)+1
+  ends=nbounce7dir(3)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_rear
+      bc_v(i)=bc_v_rear
+      bc_w(i)=bc_w_rear
+    end forall
+  endif
+  
+  inits=nbounce7dir(3)+1
+  ends=nbounce7dir(4)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_front
+      bc_v(i)=bc_v_front
+      bc_w(i)=bc_w_front
+    end forall
+  endif
+  
+  inits=nbounce7dir(4)+1
+  ends=nbounce7dir(5)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_south
+      bc_v(i)=bc_v_south
+      bc_w(i)=bc_w_south
+    end forall
+  endif
+  
+  inits=nbounce7dir(5)+1
+  ends=nbounce7dir(6)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_u(i)=bc_u_north
+      bc_v(i)=bc_v_north
+      bc_w(i)=bc_w_north
+    end forall
+  endif
+  
+  inits=nbounce8dir(0)+1
+  ends=nbounce8dir(1)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_west
+      bc_u(i)=bc_u_west
+      bc_v(i)=bc_v_west
+      bc_w(i)=bc_w_west
+    end forall
+  endif
+  
+  inits=nbounce8dir(1)+1
+  ends=nbounce8dir(2)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_east
+      bc_u(i)=bc_u_east
+      bc_v(i)=bc_v_east
+      bc_w(i)=bc_w_east
+    end forall
+  endif
+  
+  inits=nbounce8dir(2)+1
+  ends=nbounce8dir(3)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoB(i)=bc_rhoR_rear
+      bc_u(i)=bc_u_rear
+      bc_v(i)=bc_v_rear
+      bc_w(i)=bc_w_rear
+    end forall
+  endif
+  
+  inits=nbounce8dir(3)+1
+  ends=nbounce8dir(4)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_front
+      bc_u(i)=bc_u_front
+      bc_v(i)=bc_v_front
+      bc_w(i)=bc_w_front
+    end forall
+  endif
+  
+  inits=nbounce8dir(4)+1
+  ends=nbounce8dir(5)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_south
+      bc_u(i)=bc_u_south
+      bc_v(i)=bc_v_south
+      bc_w(i)=bc_w_south
+    end forall
+  endif
+  
+  inits=nbounce8dir(5)+1
+  ends=nbounce8dir(6)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_rhoR(i)=bc_rhoR_north
+      bc_u(i)=bc_u_north
+      bc_v(i)=bc_v_north
+      bc_w(i)=bc_w_north
+    end forall
+  endif
+  
+  if(.not. lsingle_fluid)then
+    
+    !isfluid=8 ; bcfluid from 1 to 6
+    ! dirichlet condition
+    inits=nbounce8dir(0)+1
+    ends=nbounce8dir(1)
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        
+        bc_rhoB(i)=bc_rhoB_west
+      end forall
+    endif
+    
+    inits=nbounce8dir(1)+1
+    ends=nbounce8dir(2)
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_east
+      end forall
+    endif
+    
+    inits=nbounce8dir(2)+1
+    ends=nbounce8dir(3)
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_rear
+      end forall
+    endif
+    
+    inits=nbounce8dir(3)+1
+    ends=nbounce8dir(4)
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_front
+      end forall
+    endif
+     
+    inits=nbounce8dir(4)+1
+    ends=nbounce8dir(5)
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_south
+      end forall
+    endif
+    
+    inits=nbounce8dir(5)+1
+    ends=nbounce8dir(6)
+    if(inits<=ends)then
+      forall(i=inits:ends)
+        bc_rhoB(i)=bc_rhoB_north
+      end forall
+    endif
+    
+  endif
+  
+  !isfluid=9 ; bcfluid from 1 to 6
+  ! flow condition
+  inits=nbounce9dir(0)+1
+  ends=nbounce9dir(1)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_flow(i)=bc_flow_west
+    end forall
+  endif
+    
+  inits=nbounce9dir(1)+1
+  ends=nbounce9dir(2)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_flow(i)=bc_flow_east
+    end forall
+  endif
+    
+  inits=nbounce9dir(2)+1
+  ends=nbounce9dir(3)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_flow(i)=bc_flow_rear
+    end forall
+  endif
+    
+  inits=nbounce9dir(3)+1
+  ends=nbounce9dir(4)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_flow(i)=bc_flow_front
+    end forall
+  endif
+     
+  inits=nbounce9dir(4)+1
+  ends=nbounce9dir(5)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_flow(i)=bc_flow_south
+    end forall
+  endif
+    
+  inits=nbounce9dir(5)+1
+  ends=nbounce9dir(6)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_flow(i)=bc_flow_north
     end forall
   endif
   
@@ -8227,297 +8666,100 @@
       enddo
     endif
   enddo
-           
   
-  !fixed bc value
-  
-  !isfluid=6 ; bcfluid from 1 to 6
-  ! dirichlet condition
-
-  inits=nbounce6dir(0)+1
-  ends=nbounce6dir(1)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_rhoR(i)=bc_rhoR_west
-    end forall
-  endif
-  
-  inits=nbounce6dir(1)+1
-  ends=nbounce6dir(2)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_rhoR(i)=bc_rhoR_east
-    end forall
-  endif
-  
-  inits=nbounce6dir(2)+1
-  ends=nbounce6dir(3)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_rhoR(i)=bc_rhoR_front
-    end forall
-  endif
-  
-  inits=nbounce6dir(3)+1
-  ends=nbounce6dir(4)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_rhoR(i)=bc_rhoR_rear
-    end forall
-  endif
-  
-  inits=nbounce6dir(4)+1
-  ends=nbounce6dir(5)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_rhoR(i)=bc_rhoR_south
-    end forall
-  endif
-  
-  inits=nbounce6dir(5)+1
-  ends=nbounce6dir(6)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_rhoR(i)=bc_rhoR_north
-    end forall
-  endif
-    
-  if(.not. lsingle_fluid)then
-    
-    !isfluid=6 ; bcfluid from 1 to 6
-    ! dirichlet condition
-    inits=nbounce6dir(0)+1
-    ends=nbounce6dir(1)
-    if(inits<=ends)then
-      forall(i=inits:ends)
-        bc_rhoB(i)=bc_rhoB_west !bc_rhoB_east
-      end forall
+  do idir=1,nbcdir
+    inits=nbounce9dir(idir-1)+1
+    ends=nbounce9dir(idir)
+    if(inits>ends)cycle
+    ishift=ex(idir)
+    jshift=ey(idir)
+    kshift=ez(idir)
+    ishift2=ex(idir)*2
+    jshift2=ey(idir)*2
+    kshift2=ez(idir)*2
+    ishift3=ex(idir)*3
+    jshift3=ey(idir)*3
+    kshift3=ez(idir)*3
+    if(lsingle_fluid)then
+      do i=inits,ends
+        bc_rhoR(i)=interpolation_order_2_hf( &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
+      if(idir==1 .or. idir==2)then
+        do i=inits,ends
+          bc_u(i)=bc_flow(i)/bc_rhoR(i)
+        enddo
+        where(bc_u(inits:ends)>cssq*HALF)
+          bc_u(inits:ends)=cssq*HALF
+        elsewhere(bc_u(inits:ends)<-cssq*HALF)
+          bc_u(inits:ends)=-cssq*HALF
+        end where
+      endif
+      if(idir==3 .or. idir==4)then
+        do i=inits,ends
+          bc_v(i)=bc_flow(i)/bc_rhoR(i)
+        end do
+        where(bc_v(inits:ends)>cssq*HALF)
+          bc_v(inits:ends)=cssq*HALF
+        elsewhere(bc_v(inits:ends)<-cssq*HALF)
+          bc_v(inits:ends)=-cssq*HALF
+        end where
+      endif
+      if(idir==5 .or.idir==6)then
+        do i=inits,ends
+          bc_w(i)=-bc_flow(i)/bc_rhoR(i)
+        enddo
+        where(bc_w(inits:ends)>cssq*HALF)
+          bc_w(inits:ends)=cssq*HALF
+        elsewhere(bc_w(inits:ends)<-cssq*HALF)
+          bc_w(inits:ends)=-cssq*HALF
+        end where
+      endif
+    else
+      do i=inits,ends
+        bc_rhoR(i)=interpolation_order_2_hf( &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+        bc_rhoB(i)=interpolation_order_2_hf( &
+         rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoB(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
+      if(idir==1 .or. idir==2)then
+        do i=inits,ends
+          bc_u(i)=bc_flow(i)/(bc_rhoR(i)+bc_rhoB(i))
+        enddo
+        where(bc_u(inits:ends)>cssq*HALF)
+          bc_u(inits:ends)=cssq*HALF
+        elsewhere(bc_u(inits:ends)<-cssq*HALF)
+          bc_u(inits:ends)=-cssq*HALF
+        end where
+      endif
+      if(idir==3 .or. idir==4)then
+        do i=inits,ends
+          bc_v(i)=bc_flow(i)/(bc_rhoR(i)+bc_rhoB(i))
+        end do
+        where(bc_v(inits:ends)>cssq*HALF)
+          bc_v(inits:ends)=cssq*HALF
+        elsewhere(bc_v(inits:ends)<-cssq*HALF)
+          bc_v(inits:ends)=-cssq*HALF
+        end where
+      endif
+      if(idir==5 .or.idir==6)then
+        do i=inits,ends
+          bc_w(i)=-bc_flow(i)/(bc_rhoR(i)+bc_rhoB(i))
+        enddo
+        where(bc_w(inits:ends)>cssq*HALF)
+          bc_w(inits:ends)=cssq*HALF
+        elsewhere(bc_w(inits:ends)<-cssq*HALF)
+          bc_w(inits:ends)=-cssq*HALF
+        end where
+      endif
     endif
-    
-    inits=nbounce6dir(1)+1
-    ends=nbounce6dir(2)
-    if(inits<=ends)then
-      forall(i=inits:ends)
-        bc_rhoB(i)=bc_rhoB_east !bc_rhoB_west
-      end forall
-    endif
-    
-    inits=nbounce6dir(2)+1
-    ends=nbounce6dir(3)
-    if(inits<=ends)then
-      forall(i=inits:ends)
-        bc_rhoB(i)=bc_rhoB_front !bc_rhoB_rear
-      end forall
-    endif
-    
-    inits=nbounce6dir(3)+1
-    ends=nbounce6dir(4)
-    if(inits<=ends)then
-      forall(i=inits:ends)
-        bc_rhoB(i)=bc_rhoB_rear !bc_rhoB_front
-      end forall
-    endif
-     
-    inits=nbounce6dir(4)+1
-    ends=nbounce6dir(5)
-    if(inits<=ends)then
-      forall(i=inits:ends)
-        bc_rhoB(i)=bc_rhoB_south !bc_rhoB_north
-      end forall
-    endif
-    
-    inits=nbounce6dir(5)+1
-    ends=nbounce6dir(6)
-    if(inits<=ends)then
-      forall(i=inits:ends)
-        bc_rhoB(i)=bc_rhoB_north !bc_rhoB_south
-      end forall
-    endif
-  
-  endif
-  
-  ! neumann condition
-  
-  inits=nbounce7dir(0)+1
-  ends=nbounce7dir(1)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_u(i)=bc_u_west
-      bc_v(i)=bc_v_west
-      bc_w(i)=bc_w_west
-    end forall
-  endif
-  
-  inits=nbounce7dir(1)+1
-  ends=nbounce7dir(2)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_u(i)=bc_u_east
-      bc_v(i)=bc_v_east
-      bc_w(i)=bc_w_east
-    end forall
-  endif
-  
-  inits=nbounce7dir(2)+1
-  ends=nbounce7dir(3)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_u(i)=bc_u_front
-      bc_v(i)=bc_v_front
-      bc_w(i)=bc_w_front
-    end forall
-  endif
-  
-  inits=nbounce7dir(3)+1
-  ends=nbounce7dir(4)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_u(i)=bc_u_rear
-      bc_v(i)=bc_v_rear
-      bc_w(i)=bc_w_rear
-    end forall
-  endif
-  
-  inits=nbounce7dir(4)+1
-  ends=nbounce7dir(5)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_u(i)=bc_u_south
-      bc_v(i)=bc_v_south
-      bc_w(i)=bc_w_south
-    end forall
-  endif
-  
-  inits=nbounce7dir(5)+1
-  ends=nbounce7dir(6)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_u(i)=bc_u_north
-      bc_v(i)=bc_v_north
-      bc_w(i)=bc_w_north
-    end forall
-  endif
-  
-  inits=nbounce8dir(0)+1
-  ends=nbounce8dir(1)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_rhoR(i)=bc_rhoR_west
-      bc_u(i)=bc_u_west
-      bc_v(i)=bc_v_west
-      bc_w(i)=bc_w_west
-    end forall
-  endif
-  
-  inits=nbounce8dir(1)+1
-  ends=nbounce8dir(2)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_rhoR(i)=bc_rhoR_east
-      bc_u(i)=bc_u_east
-      bc_v(i)=bc_v_east
-      bc_w(i)=bc_w_east
-    end forall
-  endif
-  
-  inits=nbounce8dir(2)+1
-  ends=nbounce8dir(3)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoR_front
-      bc_u(i)=bc_u_front
-      bc_v(i)=bc_v_front
-      bc_w(i)=bc_w_front
-    end forall
-  endif
-  
-  inits=nbounce8dir(3)+1
-  ends=nbounce8dir(4)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_rhoR(i)=bc_rhoR_rear
-      bc_u(i)=bc_u_rear
-      bc_v(i)=bc_v_rear
-      bc_w(i)=bc_w_rear
-    end forall
-  endif
-  
-  inits=nbounce8dir(4)+1
-  ends=nbounce8dir(5)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_rhoR(i)=bc_rhoR_south
-      bc_u(i)=bc_u_south
-      bc_v(i)=bc_v_south
-      bc_w(i)=bc_w_south
-    end forall
-  endif
-  
-  inits=nbounce8dir(5)+1
-  ends=nbounce8dir(6)
-  if(inits<=ends)then
-    forall(i=inits:ends)
-      bc_rhoR(i)=bc_rhoR_north
-      bc_u(i)=bc_u_north
-      bc_v(i)=bc_v_north
-      bc_w(i)=bc_w_north
-    end forall
-  endif
-  
-  if(.not. lsingle_fluid)then
-    
-    !isfluid=8 ; bcfluid from 1 to 6
-    ! dirichlet condition
-    inits=nbounce8dir(0)+1
-    ends=nbounce8dir(1)
-    if(inits<=ends)then
-      forall(i=inits:ends)
-        
-        bc_rhoB(i)=bc_rhoB_west
-      end forall
-    endif
-    
-    inits=nbounce8dir(1)+1
-    ends=nbounce8dir(2)
-    if(inits<=ends)then
-      forall(i=inits:ends)
-        bc_rhoB(i)=bc_rhoB_east
-      end forall
-    endif
-    
-    inits=nbounce8dir(2)+1
-    ends=nbounce8dir(3)
-    if(inits<=ends)then
-      forall(i=inits:ends)
-        bc_rhoB(i)=bc_rhoB_front
-      end forall
-    endif
-    
-    inits=nbounce8dir(3)+1
-    ends=nbounce8dir(4)
-    if(inits<=ends)then
-      forall(i=inits:ends)
-        bc_rhoB(i)=bc_rhoB_rear
-      end forall
-    endif
-     
-    inits=nbounce8dir(4)+1
-    ends=nbounce8dir(5)
-    if(inits<=ends)then
-      forall(i=inits:ends)
-        bc_rhoB(i)=bc_rhoB_south
-      end forall
-    endif
-    
-    inits=nbounce8dir(5)+1
-    ends=nbounce8dir(6)
-    if(inits<=ends)then
-      forall(i=inits:ends)
-        bc_rhoB(i)=bc_rhoB_north
-      end forall
-    endif
-    
-  endif
+  enddo
   
   return
   
@@ -8564,7 +8806,7 @@
   ends=nbounce6dir(3)
   if(inits<=ends)then
     forall(i=inits:ends)
-      bc_rhoR(i)=bc_rhoR_front
+      bc_rhoR(i)=bc_rhoR_rear
     end forall
   endif
   
@@ -8572,7 +8814,7 @@
   ends=nbounce6dir(4)
   if(inits<=ends)then
     forall(i=inits:ends)
-      bc_rhoR(i)=bc_rhoR_rear
+      bc_rhoR(i)=bc_rhoR_front
     end forall
   endif
   
@@ -8616,7 +8858,7 @@
     ends=nbounce6dir(3)
     if(inits<=ends)then
       forall(i=inits:ends)
-        bc_rhoB(i)=bc_rhoB_front !bc_rhoB_rear
+        bc_rhoB(i)=bc_rhoB_rear !bc_rhoB_front
       end forall
     endif
     
@@ -8624,7 +8866,7 @@
     ends=nbounce6dir(4)
     if(inits<=ends)then
       forall(i=inits:ends)
-        bc_rhoB(i)=bc_rhoB_rear !bc_rhoB_front
+        bc_rhoB(i)=bc_rhoB_front !bc_rhoB_rear
       end forall
     endif
      
@@ -8672,9 +8914,9 @@
   ends=nbounce7dir(3)
   if(inits<=ends)then
     forall(i=inits:ends)
-      bc_u(i)=bc_u_front
-      bc_v(i)=bc_v_front
-      bc_w(i)=bc_w_front
+      bc_u(i)=bc_u_rear
+      bc_v(i)=bc_v_rear
+      bc_w(i)=bc_w_rear
     end forall
   endif
   
@@ -8682,9 +8924,9 @@
   ends=nbounce7dir(4)
   if(inits<=ends)then
     forall(i=inits:ends)
-      bc_u(i)=bc_u_rear
-      bc_v(i)=bc_v_rear
-      bc_w(i)=bc_w_rear
+      bc_u(i)=bc_u_front
+      bc_v(i)=bc_v_front
+      bc_w(i)=bc_w_front
     end forall
   endif
   
@@ -8734,10 +8976,10 @@
   ends=nbounce8dir(3)
   if(inits<=ends)then
     forall(i=inits:ends)
-      bc_rhoB(i)=bc_rhoR_front
-      bc_u(i)=bc_u_front
-      bc_v(i)=bc_v_front
-      bc_w(i)=bc_w_front
+      bc_rhoB(i)=bc_rhoR_rear
+      bc_u(i)=bc_u_rear
+      bc_v(i)=bc_v_rear
+      bc_w(i)=bc_w_rear
     end forall
   endif
   
@@ -8745,10 +8987,10 @@
   ends=nbounce8dir(4)
   if(inits<=ends)then
     forall(i=inits:ends)
-      bc_rhoR(i)=bc_rhoR_rear
-      bc_u(i)=bc_u_rear
-      bc_v(i)=bc_v_rear
-      bc_w(i)=bc_w_rear
+      bc_rhoR(i)=bc_rhoR_front
+      bc_u(i)=bc_u_front
+      bc_v(i)=bc_v_front
+      bc_w(i)=bc_w_front
     end forall
   endif
   
@@ -8799,7 +9041,7 @@
     ends=nbounce8dir(3)
     if(inits<=ends)then
       forall(i=inits:ends)
-        bc_rhoB(i)=bc_rhoB_front
+        bc_rhoB(i)=bc_rhoB_rear
       end forall
     endif
     
@@ -8807,7 +9049,7 @@
     ends=nbounce8dir(4)
     if(inits<=ends)then
       forall(i=inits:ends)
-        bc_rhoB(i)=bc_rhoB_rear
+        bc_rhoB(i)=bc_rhoB_front
       end forall
     endif
      
@@ -8827,6 +9069,56 @@
       end forall
     endif
     
+  endif
+  
+  !isfluid=9 ; bcfluid from 1 to 6
+  ! flow condition
+  inits=nbounce9dir(0)+1
+  ends=nbounce9dir(1)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_flow(i)=bc_flow_west
+    end forall
+  endif
+    
+  inits=nbounce9dir(1)+1
+  ends=nbounce9dir(2)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_flow(i)=bc_flow_east
+    end forall
+  endif
+    
+  inits=nbounce9dir(2)+1
+  ends=nbounce9dir(3)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_flow(i)=bc_flow_rear
+    end forall
+  endif
+    
+  inits=nbounce9dir(3)+1
+  ends=nbounce9dir(4)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_flow(i)=bc_flow_front
+    end forall
+  endif
+     
+  inits=nbounce9dir(4)+1
+  ends=nbounce9dir(5)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_flow(i)=bc_flow_south
+    end forall
+  endif
+    
+  inits=nbounce9dir(5)+1
+  ends=nbounce9dir(6)
+  if(inits<=ends)then
+    forall(i=inits:ends)
+      bc_flow(i)=bc_flow_north
+    end forall
   endif
   
   return
@@ -8941,6 +9233,110 @@
          rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
          rhoB(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
       enddo
+    endif
+  enddo
+  
+  do idir=1,nbcdir
+    inits=nbounce9dir(idir-1)+1
+    ends=nbounce9dir(idir)
+    if(inits>ends)cycle
+    ishift=ex(idir)
+    jshift=ey(idir)
+    kshift=ez(idir)
+    ishift2=ex(idir)*2
+    jshift2=ey(idir)*2
+    kshift2=ez(idir)*2
+    ishift3=ex(idir)*3
+    jshift3=ey(idir)*3
+    kshift3=ez(idir)*3
+    if(lsingle_fluid)then
+      do i=inits,ends
+        bc_rhoR(i)=interpolation_order_2_hf( &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
+      if(idir==1 .or. idir==2)then
+        do i=inits,ends
+          bc_u(i)=bc_flow(i)/bc_rhoR(i)
+        enddo
+        where(bc_u(inits:ends)>cssq*HALF)
+          bc_u(inits:ends)=cssq*HALF
+        elsewhere(bc_u(inits:ends)<-cssq*HALF)
+          bc_u(inits:ends)=-cssq*HALF
+        end where
+      endif
+      if(idir==3 .or. idir==4)then
+        do i=inits,ends
+          bc_v(i)=bc_flow(i)/bc_rhoR(i)
+        end do
+        where(bc_v(inits:ends)>cssq*HALF)
+          bc_v(inits:ends)=cssq*HALF
+        elsewhere(bc_v(inits:ends)<-cssq*HALF)
+          bc_v(inits:ends)=-cssq*HALF
+        end where
+      endif
+      if(idir==5)then
+        do i=inits,ends
+          bc_w(i)=-bc_flow(i)/bc_rhoR(i)
+        enddo
+        where(bc_w(inits:ends)>cssq*HALF)
+          bc_w(inits:ends)=cssq*HALF
+        elsewhere(bc_w(inits:ends)<-cssq*HALF)
+          bc_w(inits:ends)=-cssq*HALF
+        end where
+      endif
+      if(idir==5 .or.idir==6)then
+        do i=inits,ends
+          bc_w(i)=bc_flow(i)/bc_rhoR(i)
+        enddo
+        where(bc_w(inits:ends)>cssq*HALF)
+          bc_w(inits:ends)=cssq*HALF
+        elsewhere(bc_w(inits:ends)<-cssq*HALF)
+          bc_w(inits:ends)=-cssq*HALF
+        end where
+      endif
+    else
+      do i=inits,ends
+        bc_rhoR(i)=interpolation_order_2_hf( &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+        bc_rhoB(i)=interpolation_order_2_hf( &
+         rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoB(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
+      if(idir==1 .or. idir==2)then
+        do i=inits,ends
+          bc_u(i)=bc_flow(i)/(bc_rhoR(i)+bc_rhoB(i))
+        enddo
+        where(bc_u(inits:ends)>cssq*HALF)
+          bc_u(inits:ends)=cssq*HALF
+        elsewhere(bc_u(inits:ends)<-cssq*HALF)
+          bc_u(inits:ends)=-cssq*HALF
+        end where
+      endif
+      if(idir==3 .or. idir==4)then
+        do i=inits,ends
+          bc_v(i)=bc_flow(i)/(bc_rhoR(i)+bc_rhoB(i))
+        end do
+        where(bc_v(inits:ends)>cssq*HALF)
+          bc_v(inits:ends)=cssq*HALF
+        elsewhere(bc_v(inits:ends)<-cssq*HALF)
+          bc_v(inits:ends)=-cssq*HALF
+        end where
+      endif
+      if(idir==5 .or.idir==6)then
+        do i=inits,ends
+          bc_w(i)=bc_flow(i)/(bc_rhoR(i)+bc_rhoB(i))
+        enddo
+        where(bc_w(inits:ends)>cssq*HALF)
+          bc_w(inits:ends)=cssq*HALF
+        elsewhere(bc_w(inits:ends)<-cssq*HALF)
+          bc_w(inits:ends)=-cssq*HALF
+        end where
+      endif
     endif
   enddo
   
@@ -9545,7 +9941,197 @@
   
   endif
   if(nbounce6>=nbounce0+1)then
-  
+  if(lColourG)then
+  forall(i=nbounce0+1:nbounce6)
+    !dirichlet condition
+    !anti-bounce-back approach
+    !from page 200 Kruger's book "the lattice boltzmann method"
+    !NOTE de[x,y,z]=zero eliminated
+    
+    aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(2)%p(ibounce(1,i)+ex(1),ibounce(2,i),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(1)*TWO*rho_s(i)* &
+     (phi_CG(1)+(dex(1)*u_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(2)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(1)%p(ibounce(1,i)+ex(2),ibounce(2,i),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(2)*TWO*rho_s(i)* &
+     (phi_CG(2)+(dex(2)*u_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+    
+    
+    aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(4)%p(ibounce(1,i),ibounce(2,i)+ey(3),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(3)*TWO*rho_s(i)* &
+     (phi_CG(3)+(dey(3)*v_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(4)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(3)%p(ibounce(1,i),ibounce(2,i)+ey(4),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(4)*TWO*rho_s(i)* &
+     (phi_CG(4)+(dey(4)*v_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+    
+    
+    aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)+ez(5)), &
+     kind=PRC)+ &
+     p(5)*TWO*rho_s(i)* &
+     (phi_CG(5)+(dez(5)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)+ez(6)), &
+     kind=PRC)+ &
+     p(6)*TWO*rho_s(i)* &
+     (phi_CG(6)+(dez(6)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+    
+    
+    aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(8)%p(ibounce(1,i)+ex(7),ibounce(2,i)+ey(7),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(7)*TWO*rho_s(i)* &
+     (phi_CG(7)+(dex(7)*u_s(i)+ &
+     dey(7)*v_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(8)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(7)%p(ibounce(1,i)+ex(8),ibounce(2,i)+ey(8),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(8)*TWO*rho_s(i)* &
+     (phi_CG(8)+(dex(8)*u_s(i)+ &
+     dey(8)*v_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+    
+    
+    aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(10)%p(ibounce(1,i)+ex(9),ibounce(2,i)+ey(9),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(9)*TWO*rho_s(i)* &
+     (phi_CG(9)+(dex(9)*u_s(i)+ &
+     dey(9)*v_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(10)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(9)%p(ibounce(1,i)+ex(10),ibounce(2,i)+ey(10),ibounce(3,i)), &
+     kind=PRC)+ &
+     p(10)*TWO*rho_s(i)* &
+     (phi_CG(10)+(dex(10)*u_s(i)+ &
+     dey(10)*v_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+     
+    aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(12)%p(ibounce(1,i)+ex(11),ibounce(2,i),ibounce(3,i)+ez(11)), &
+     kind=PRC)+ &
+     p(11)*TWO*rho_s(i)* &
+     (phi_CG(11)+(dex(11)*u_s(i)+ &
+     dez(11)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(12)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(11)%p(ibounce(1,i)+ex(12),ibounce(2,i),ibounce(3,i)+ez(12)), &
+     kind=PRC)+ &
+     p(12)*TWO*rho_s(i)* &
+     (phi_CG(12)+(dex(12)*u_s(i)+ &
+     dez(12)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    
+    aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(14)%p(ibounce(1,i)+ex(13),ibounce(2,i),ibounce(3,i)+ez(13)), &
+     kind=PRC)+ &
+     p(13)*TWO*rho_s(i)* &
+     (phi_CG(13)+(dex(13)*u_s(i)+ &
+     dez(13)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(14)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(13)%p(ibounce(1,i)+ex(14),ibounce(2,i),ibounce(3,i)+ez(14)), &
+     kind=PRC)+ &
+     p(14)*TWO*rho_s(i)* &
+     (phi_CG(14)+(dex(14)*u_s(i)+ &
+     dez(14)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+    
+    
+    aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(16)%p(ibounce(1,i),ibounce(2,i)+ey(15),ibounce(3,i)+ez(15)), &
+     kind=PRC)+ &
+     p(15)*TWO*rho_s(i)* &
+     (phi_CG(15)+(dey(15)*v_s(i)+ &
+     dez(15)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(16)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(15)%p(ibounce(1,i),ibounce(2,i)+ey(16),ibounce(3,i)+ez(16)), &
+     kind=PRC)+ &
+     p(16)*TWO*rho_s(i)* &
+     (phi_CG(16)+(dey(16)*v_s(i)+ &
+     dez(16)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+     
+    aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(18)%p(ibounce(1,i),ibounce(2,i)+ey(17),ibounce(3,i)+ez(17)), &
+     kind=PRC)+ &
+     p(17)*TWO*rho_s(i)* &
+     (phi_CG(17)+(dey(17)*v_s(i)+ &
+     dez(17)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+     
+    aoptp(18)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     -real(aoptp(17)%p(ibounce(1,i),ibounce(2,i)+ey(18),ibounce(3,i)+ez(18)), &
+     kind=PRC)+ &
+     p(18)*TWO*rho_s(i)* &
+     (phi_CG(18)+(dey(18)*v_s(i)+ &
+     dez(18)*w_s(i))**TWO/cssq4 - &
+     (u_s(i)**TWO+ &
+     v_s(i)**TWO+ &
+     w_s(i)**TWO)/cssq2)
+    
+  end forall
+  else
   forall(i=nbounce0+1:nbounce6)
     !dirichlet condition
     !anti-bounce-back approach
@@ -9735,6 +10321,7 @@
      w_s(i)**TWO)/cssq2)
     
   end forall
+  endif
   
   endif
   if(nbounce7>=nbounce6+1)then
@@ -9748,130 +10335,130 @@
     aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(2)%p(ibounce(1,i)+ex(1),ibounce(2,i),ibounce(3,i)), &
      kind=PRC)- &
-     p(1)*pref_bouzidi*rho_s(i)* &
-     (dex(1)*u_s(i))
+     p(2)*pref_bouzidi*rho_s(i)* &
+     (dex(2)*u_s(i))
     
     aoptp(2)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(1)%p(ibounce(1,i)+ex(2),ibounce(2,i),ibounce(3,i)), &
      kind=PRC)- &
-     p(2)*pref_bouzidi*rho_s(i)* &
-     (dex(2)*u_s(i))
+     p(1)*pref_bouzidi*rho_s(i)* &
+     (dex(1)*u_s(i))
     
     
     aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(4)%p(ibounce(1,i),ibounce(2,i)+ey(3),ibounce(3,i)), &
      kind=PRC)- &
-     p(3)*pref_bouzidi*rho_s(i)* &
-     (dey(3)*v_s(i))
+     p(4)*pref_bouzidi*rho_s(i)* &
+     (dey(4)*v_s(i))
     
     aoptp(4)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(3)%p(ibounce(1,i),ibounce(2,i)+ey(4),ibounce(3,i)), &
      kind=PRC)- &
-     p(4)*pref_bouzidi*rho_s(i)* &
-     (dey(4)*v_s(i))
+     p(3)*pref_bouzidi*rho_s(i)* &
+     (dey(3)*v_s(i))
     
     
     aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)+ez(5)), &
      kind=PRC)- &
-     p(5)*pref_bouzidi*rho_s(i)* &
-     (dez(5)*w_s(i))
+     p(6)*pref_bouzidi*rho_s(i)* &
+     (dez(6)*w_s(i))
     
     aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)+ez(6)), &
      kind=PRC)- &
-     p(6)*pref_bouzidi*rho_s(i)* &
-     (dez(6)*w_s(i))
+     p(5)*pref_bouzidi*rho_s(i)* &
+     (dez(5)*w_s(i))
     
     
     aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(8)%p(ibounce(1,i)+ex(7),ibounce(2,i)+ey(7),ibounce(3,i)), &
      kind=PRC)- &
-     p(7)*pref_bouzidi*rho_s(i)* &
-     (dex(7)*u_s(i)+ &
-     dey(7)*v_s(i))
+     p(8)*pref_bouzidi*rho_s(i)* &
+     (dex(8)*u_s(i)+ &
+     dey(8)*v_s(i))
     
     aoptp(8)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(7)%p(ibounce(1,i)+ex(8),ibounce(2,i)+ey(8),ibounce(3,i)), &
      kind=PRC)- &
-     p(8)*pref_bouzidi*rho_s(i)* &
-     (dex(8)*u_s(i)+ &
-     dey(8)*v_s(i))
+     p(7)*pref_bouzidi*rho_s(i)* &
+     (dex(7)*u_s(i)+ &
+     dey(7)*v_s(i))
     
     
     aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(10)%p(ibounce(1,i)+ex(9),ibounce(2,i)+ey(9),ibounce(3,i)), &
      kind=PRC)- &
-     p(9)*pref_bouzidi*rho_s(i)* &
-     (dex(9)*u_s(i)+ &
-     dey(9)*v_s(i))
+     p(10)*pref_bouzidi*rho_s(i)* &
+     (dex(10)*u_s(i)+ &
+     dey(10)*v_s(i))
     
     aoptp(10)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(9)%p(ibounce(1,i)+ex(10),ibounce(2,i)+ey(10),ibounce(3,i)), &
      kind=PRC)- &
-     p(10)*pref_bouzidi*rho_s(i)* &
-     (dex(10)*u_s(i)+ &
-     dey(10)*v_s(i))
+     p(9)*pref_bouzidi*rho_s(i)* &
+     (dex(9)*u_s(i)+ &
+     dey(9)*v_s(i))
     
     
     aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(12)%p(ibounce(1,i)+ex(11),ibounce(2,i),ibounce(3,i)+ez(11)), &
      kind=PRC)- &
-     p(11)*pref_bouzidi*rho_s(i)* &
-     (dex(11)*u_s(i)+ &
-     dez(11)*w_s(i))
+     p(12)*pref_bouzidi*rho_s(i)* &
+     (dex(12)*u_s(i)+ &
+     dez(12)*w_s(i))
     
     aoptp(12)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(11)%p(ibounce(1,i)+ex(12),ibounce(2,i),ibounce(3,i)+ez(12)), &
      kind=PRC)- &
-     p(12)*pref_bouzidi*rho_s(i)* &
-     (dex(12)*u_s(i)+ &
-     dez(12)*w_s(i))
+     p(11)*pref_bouzidi*rho_s(i)* &
+     (dex(11)*u_s(i)+ &
+     dez(11)*w_s(i))
     
     
     aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(14)%p(ibounce(1,i)+ex(13),ibounce(2,i),ibounce(3,i)+ez(13)), &
      kind=PRC)- &
-     p(13)*pref_bouzidi*rho_s(i)* &
-     (dex(13)*u_s(i)+ &
-     dez(13)*w_s(i))
+     p(14)*pref_bouzidi*rho_s(i)* &
+     (dex(14)*u_s(i)+ &
+     dez(14)*w_s(i))
     
     aoptp(14)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(13)%p(ibounce(1,i)+ex(14),ibounce(2,i),ibounce(3,i)+ez(14)), &
      kind=PRC)- &
-     p(14)*pref_bouzidi*rho_s(i)* &
-     (dex(14)*u_s(i)+ &
-     dez(14)*w_s(i))
+     p(13)*pref_bouzidi*rho_s(i)* &
+     (dex(13)*u_s(i)+ &
+     dez(13)*w_s(i))
     
     
     aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(16)%p(ibounce(1,i),ibounce(2,i)+ey(15),ibounce(3,i)+ez(15)), &
      kind=PRC)- &
-     p(15)*pref_bouzidi*rho_s(i)* &
-     (dey(15)*v_s(i)+ &
-     dez(15)*w_s(i))
+     p(16)*pref_bouzidi*rho_s(i)* &
+     (dey(16)*v_s(i)+ &
+     dez(16)*w_s(i))
     
     aoptp(16)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(15)%p(ibounce(1,i),ibounce(2,i)+ey(16),ibounce(3,i)+ez(16)), &
      kind=PRC)- &
-     p(16)*pref_bouzidi*rho_s(i)* &
-     (dey(16)*v_s(i)+ &
-     dez(16)*w_s(i))
+     p(15)*pref_bouzidi*rho_s(i)* &
+     (dey(15)*v_s(i)+ &
+     dez(15)*w_s(i))
     
     
     aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(18)%p(ibounce(1,i),ibounce(2,i)+ey(17),ibounce(3,i)+ez(17)), &
      kind=PRC)- &
-     p(17)*pref_bouzidi*rho_s(i)* &
-     (dey(17)*v_s(i)+ &
-     dez(17)*w_s(i))
+     p(18)*pref_bouzidi*rho_s(i)* &
+     (dey(18)*v_s(i)+ &
+     dez(18)*w_s(i))
     
     aoptp(18)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(17)%p(ibounce(1,i),ibounce(2,i)+ey(18),ibounce(3,i)+ez(18)), &
      kind=PRC)- &
-     p(18)*pref_bouzidi*rho_s(i)* &
-     (dey(18)*v_s(i)+ &
-     dez(18)*w_s(i))
+     p(17)*pref_bouzidi*rho_s(i)* &
+     (dey(17)*v_s(i)+ &
+     dez(17)*w_s(i))
     
   end forall
   
@@ -9952,6 +10539,153 @@
   
   endif
   
+  endif
+  
+  if(nbounce9>=nbounce8+1)then
+   if(lColourG)then
+    do i=nbounce8+1,nbounce9
+      do l=0,links
+            aoptp(l)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
+             equil_popCG(l,links,phi_CG,p,dex,dey,dez,rho_s(i),u_s(i),v_s(i),w_s(i))
+      enddo
+    enddo
+  else
+  forall(i=nbounce8+1:nbounce9)
+    !neumann condition
+    !moving walls bounce-back approach
+    !from page 180 Kruger's book "the lattice boltzmann method"
+    !NOTE de[x,y,z]=zero eliminated
+    
+    aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(2)%p(ibounce(1,i)+ex(1),ibounce(2,i),ibounce(3,i)), &
+     kind=PRC)- &
+     p(2)*pref_bouzidi*rho_s(i)* &
+     (dex(2)*u_s(i))
+    
+    aoptp(2)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(1)%p(ibounce(1,i)+ex(2),ibounce(2,i),ibounce(3,i)), &
+     kind=PRC)- &
+     p(1)*pref_bouzidi*rho_s(i)* &
+     (dex(1)*u_s(i))
+    
+    
+    aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(4)%p(ibounce(1,i),ibounce(2,i)+ey(3),ibounce(3,i)), &
+     kind=PRC)- &
+     p(4)*pref_bouzidi*rho_s(i)* &
+     (dey(4)*v_s(i))
+    
+    aoptp(4)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(3)%p(ibounce(1,i),ibounce(2,i)+ey(4),ibounce(3,i)), &
+     kind=PRC)- &
+     p(3)*pref_bouzidi*rho_s(i)* &
+     (dey(3)*v_s(i))
+    
+    
+    aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)+ez(5)), &
+     kind=PRC)- &
+     p(6)*pref_bouzidi*rho_s(i)* &
+     (dez(6)*w_s(i))
+    
+    aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)+ez(6)), &
+     kind=PRC)- &
+     p(5)*pref_bouzidi*rho_s(i)* &
+     (dez(5)*w_s(i))
+    
+    
+    aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(8)%p(ibounce(1,i)+ex(7),ibounce(2,i)+ey(7),ibounce(3,i)), &
+     kind=PRC)- &
+     p(8)*pref_bouzidi*rho_s(i)* &
+     (dex(8)*u_s(i)+ &
+     dey(8)*v_s(i))
+    
+    aoptp(8)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(7)%p(ibounce(1,i)+ex(8),ibounce(2,i)+ey(8),ibounce(3,i)), &
+     kind=PRC)- &
+     p(7)*pref_bouzidi*rho_s(i)* &
+     (dex(7)*u_s(i)+ &
+     dey(7)*v_s(i))
+    
+    
+    aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(10)%p(ibounce(1,i)+ex(9),ibounce(2,i)+ey(9),ibounce(3,i)), &
+     kind=PRC)- &
+     p(10)*pref_bouzidi*rho_s(i)* &
+     (dex(10)*u_s(i)+ &
+     dey(10)*v_s(i))
+    
+    aoptp(10)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(9)%p(ibounce(1,i)+ex(10),ibounce(2,i)+ey(10),ibounce(3,i)), &
+     kind=PRC)- &
+     p(9)*pref_bouzidi*rho_s(i)* &
+     (dex(9)*u_s(i)+ &
+     dey(9)*v_s(i))
+    
+    
+    aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(12)%p(ibounce(1,i)+ex(11),ibounce(2,i),ibounce(3,i)+ez(11)), &
+     kind=PRC)- &
+     p(12)*pref_bouzidi*rho_s(i)* &
+     (dex(12)*u_s(i)+ &
+     dez(12)*w_s(i))
+    
+    aoptp(12)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(11)%p(ibounce(1,i)+ex(12),ibounce(2,i),ibounce(3,i)+ez(12)), &
+     kind=PRC)- &
+     p(11)*pref_bouzidi*rho_s(i)* &
+     (dex(11)*u_s(i)+ &
+     dez(11)*w_s(i))
+    
+    
+    aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(14)%p(ibounce(1,i)+ex(13),ibounce(2,i),ibounce(3,i)+ez(13)), &
+     kind=PRC)- &
+     p(14)*pref_bouzidi*rho_s(i)* &
+     (dex(14)*u_s(i)+ &
+     dez(14)*w_s(i))
+    
+    aoptp(14)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(13)%p(ibounce(1,i)+ex(14),ibounce(2,i),ibounce(3,i)+ez(14)), &
+     kind=PRC)- &
+     p(13)*pref_bouzidi*rho_s(i)* &
+     (dex(13)*u_s(i)+ &
+     dez(13)*w_s(i))
+    
+    
+    aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(16)%p(ibounce(1,i),ibounce(2,i)+ey(15),ibounce(3,i)+ez(15)), &
+     kind=PRC)- &
+     p(16)*pref_bouzidi*rho_s(i)* &
+     (dey(16)*v_s(i)+ &
+     dez(16)*w_s(i))
+    
+    aoptp(16)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(15)%p(ibounce(1,i),ibounce(2,i)+ey(16),ibounce(3,i)+ez(16)), &
+     kind=PRC)- &
+     p(15)*pref_bouzidi*rho_s(i)* &
+     (dey(15)*v_s(i)+ &
+     dez(15)*w_s(i))
+    
+    
+    aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(18)%p(ibounce(1,i),ibounce(2,i)+ey(17),ibounce(3,i)+ez(17)), &
+     kind=PRC)- &
+     p(18)*pref_bouzidi*rho_s(i)* &
+     (dey(18)*v_s(i)+ &
+     dez(18)*w_s(i))
+    
+    aoptp(18)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
+     real(aoptp(17)%p(ibounce(1,i),ibounce(2,i)+ey(18),ibounce(3,i)+ez(18)), &
+     kind=PRC)- &
+     p(17)*pref_bouzidi*rho_s(i)* &
+     (dey(17)*v_s(i)+ &
+     dez(17)*w_s(i))
+    
+  end forall
+  endif
   endif
   
   return
@@ -10370,6 +11104,40 @@
          rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
          rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
         rhoB(ibounce(1,i),ibounce(2,i),ibounce(3,i))=interpolation_order_2_hf( &
+         rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoB(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
+    endif
+  enddo
+  
+  do idir=1,nbcdir
+    inits=nbounce9dir(idir-1)+1
+    ends=nbounce9dir(idir)
+    if(inits>ends)cycle
+    ishift=ex(idir)
+    jshift=ey(idir)
+    kshift=ez(idir)
+    ishift2=ex(idir)*2
+    jshift2=ey(idir)*2
+    kshift2=ez(idir)*2
+    ishift3=ex(idir)*3
+    jshift3=ey(idir)*3
+    kshift3=ez(idir)*3
+    if(lsingle_fluid)then
+      do i=inits,ends
+        bc_rhoR(i)=interpolation_order_2_hf( &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+      enddo
+    else
+      do i=inits,ends
+        bc_rhoR(i)=interpolation_order_2_hf( &
+         rhoR(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
+         rhoR(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
+         rhoR(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))
+        bc_rhoB(i)=interpolation_order_2_hf( &
          rhoB(ibounce(1,i)+ishift,ibounce(2,i)+jshift,ibounce(3,i)+kshift), &
          rhoB(ibounce(1,i)+ishift2,ibounce(2,i)+jshift2,ibounce(3,i)+kshift2), &
          rhoB(ibounce(1,i)+ishift3,ibounce(2,i)+jshift3,ibounce(3,i)+kshift3))

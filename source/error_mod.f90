@@ -138,6 +138,8 @@
         write(outp,outf)'ERROR - error occurs in subroutine footer_vtk.'
       case (40)
         write(outp,outf)'ERROR - error occurs in subroutine write_vtk_frame.'
+      case (41)
+        write(outp,outf)'ERROR - full-way bouce back rules are no longer supported.'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select

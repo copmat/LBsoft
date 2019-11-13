@@ -46,7 +46,9 @@
   imass_rescale,set_mass_rescale,dmass_rescale,iselwetting, &
   densR_wetting,densB_wetting,set_fluid_wall_mode,set_objectliq, &
   set_objectdata,nobjectliq,typeobjectliq,objectdata,set_lread_isfluid,&
-  set_fluid_force_cg,lColourG,sigma_CG,alphaR_CG,alphaB_CG,beta_CG
+  set_fluid_force_cg,lColourG,sigma_CG,alphaR_CG,alphaB_CG,beta_CG, &
+  bc_flow_east,bc_flow_west,bc_flow_front,bc_flow_rear,bc_flow_north, &
+  bc_flow_south
 
  use particles_mod,         only : set_natms_tot,natms_tot,lparticles, &
   set_ishape,set_densvar,densvar,ishape,set_rcut,rcut,delr, &
@@ -452,6 +454,13 @@
   real(kind=PRC) :: dtemp_bc_rhoB_rear = ZERO
   real(kind=PRC) :: dtemp_bc_rhoB_north= ZERO
   real(kind=PRC) :: dtemp_bc_rhoB_south= ZERO
+  
+  real(kind=PRC) :: dtemp_bc_flow_east = ZERO
+  real(kind=PRC) :: dtemp_bc_flow_west = ZERO
+  real(kind=PRC) :: dtemp_bc_flow_front= ZERO
+  real(kind=PRC) :: dtemp_bc_flow_rear = ZERO
+  real(kind=PRC) :: dtemp_bc_flow_north= ZERO
+  real(kind=PRC) :: dtemp_bc_flow_south= ZERO
  
   real(kind=PRC) :: dtemp_bc_u_east = ZERO
   real(kind=PRC) :: dtemp_bc_u_west = ZERO
@@ -849,6 +858,8 @@
                     dtemp_bc_u_east=dblstr(directive,maxlen,inumchar)
                     dtemp_bc_v_east=dblstr(directive,maxlen,inumchar)
                     dtemp_bc_w_east=dblstr(directive,maxlen,inumchar)
+                  elseif(findstring('flow',directive,inumchar,maxlen))then
+                    dtemp_bc_flow_east=dblstr(directive,maxlen,inumchar)
                   else
                     call warning(1,dble(iline),redstring)
                     lerror6=.true.
@@ -863,6 +874,8 @@
                     dtemp_bc_u_west=dblstr(directive,maxlen,inumchar)
                     dtemp_bc_v_west=dblstr(directive,maxlen,inumchar)
                     dtemp_bc_w_west=dblstr(directive,maxlen,inumchar)
+                  elseif(findstring('flow',directive,inumchar,maxlen))then
+                    dtemp_bc_flow_west=dblstr(directive,maxlen,inumchar)
                   else
                     call warning(1,dble(iline),redstring)
                     lerror6=.true.
@@ -877,6 +890,8 @@
                     dtemp_bc_u_front=dblstr(directive,maxlen,inumchar)
                     dtemp_bc_v_front=dblstr(directive,maxlen,inumchar)
                     dtemp_bc_w_front=dblstr(directive,maxlen,inumchar)
+                  elseif(findstring('flow',directive,inumchar,maxlen))then
+                    dtemp_bc_flow_front=dblstr(directive,maxlen,inumchar)
                   else
                     call warning(1,dble(iline),redstring)
                     lerror6=.true.
@@ -891,6 +906,8 @@
                     dtemp_bc_u_rear=dblstr(directive,maxlen,inumchar)
                     dtemp_bc_v_rear=dblstr(directive,maxlen,inumchar)
                     dtemp_bc_w_rear=dblstr(directive,maxlen,inumchar)
+                  elseif(findstring('flow',directive,inumchar,maxlen))then
+                    dtemp_bc_flow_rear=dblstr(directive,maxlen,inumchar)
                   else
                     call warning(1,dble(iline),redstring)
                     lerror6=.true.
@@ -905,6 +922,8 @@
                     dtemp_bc_u_north=dblstr(directive,maxlen,inumchar)
                     dtemp_bc_v_north=dblstr(directive,maxlen,inumchar)
                     dtemp_bc_w_north=dblstr(directive,maxlen,inumchar)
+                  elseif(findstring('flow',directive,inumchar,maxlen))then
+                    dtemp_bc_flow_north=dblstr(directive,maxlen,inumchar)
                   else
                     call warning(1,dble(iline),redstring)
                     lerror6=.true.
@@ -919,6 +938,8 @@
                     dtemp_bc_u_south=dblstr(directive,maxlen,inumchar)
                     dtemp_bc_v_south=dblstr(directive,maxlen,inumchar)
                     dtemp_bc_w_south=dblstr(directive,maxlen,inumchar)
+                  elseif(findstring('flow',directive,inumchar,maxlen))then
+                    dtemp_bc_flow_south=dblstr(directive,maxlen,inumchar)
                   else
                     call warning(1,dble(iline),redstring)
                     lerror6=.true.
@@ -1820,8 +1841,10 @@
     call bcast_world_f(dtemp_bc_u_east)
     call bcast_world_f(dtemp_bc_v_east)
     call bcast_world_f(dtemp_bc_w_east)
+    call bcast_world_f(dtemp_bc_flow_east)
     call set_value_bc_east(temp_bc_type_east,dtemp_bc_rhoR_east, &
-     dtemp_bc_rhoB_east,dtemp_bc_u_east,dtemp_bc_v_east,dtemp_bc_w_east)
+     dtemp_bc_rhoB_east,dtemp_bc_u_east,dtemp_bc_v_east,dtemp_bc_w_east, &
+     dtemp_bc_flow_east)
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='open boundary east'
@@ -1832,6 +1855,11 @@
       mystring=repeat(' ',dimprint)
       mystring='open boundary east vel'
       write(6,'(2a,3f12.6)')mystring,": ",bc_u_east,bc_v_east,bc_w_east
+      if(bc_flow_east/=ZERO)then
+        mystring=repeat(' ',dimprint)
+        mystring='open boundary east mass flow'
+        write(6,'(2a,2f12.6)')mystring,": ",bc_flow_east
+      endif
     endif
   endif
   
@@ -1841,8 +1869,10 @@
     call bcast_world_f(dtemp_bc_u_west)
     call bcast_world_f(dtemp_bc_v_west)
     call bcast_world_f(dtemp_bc_w_west)
+    call bcast_world_f(dtemp_bc_flow_west)
     call set_value_bc_west(temp_bc_type_west,dtemp_bc_rhoR_west, &
-     dtemp_bc_rhoB_west,dtemp_bc_u_west,dtemp_bc_v_west,dtemp_bc_w_west)
+     dtemp_bc_rhoB_west,dtemp_bc_u_west,dtemp_bc_v_west,dtemp_bc_w_west, &
+     dtemp_bc_flow_west)
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='open boundary west'
@@ -1853,6 +1883,11 @@
       mystring=repeat(' ',dimprint)
       mystring='open boundary west vel'
       write(6,'(2a,3f12.6)')mystring,": ",bc_u_west,bc_v_west,bc_w_west
+      if(bc_flow_west/=ZERO)then
+        mystring=repeat(' ',dimprint)
+        mystring='open boundary west mass flow'
+        write(6,'(2a,2f12.6)')mystring,": ",bc_flow_west
+      endif
     endif
   endif
   
@@ -1862,8 +1897,10 @@
     call bcast_world_f(dtemp_bc_u_front)
     call bcast_world_f(dtemp_bc_v_front)
     call bcast_world_f(dtemp_bc_w_front)
+    call bcast_world_f(dtemp_bc_flow_front)
     call set_value_bc_front(temp_bc_type_front,dtemp_bc_rhoR_front, &
-     dtemp_bc_rhoB_front,dtemp_bc_u_front,dtemp_bc_v_front,dtemp_bc_w_front)
+     dtemp_bc_rhoB_front,dtemp_bc_u_front,dtemp_bc_v_front,dtemp_bc_w_front, &
+     dtemp_bc_flow_front)
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='open boundary front'
@@ -1874,6 +1911,11 @@
       mystring=repeat(' ',dimprint)
       mystring='open boundary front vel'
       write(6,'(2a,3f12.6)')mystring,": ",bc_u_front,bc_v_front,bc_w_front
+      if(bc_flow_front/=ZERO)then
+        mystring=repeat(' ',dimprint)
+        mystring='open boundary front mass flow'
+        write(6,'(2a,2f12.6)')mystring,": ",bc_flow_front
+      endif
     endif
   endif
   
@@ -1883,8 +1925,10 @@
     call bcast_world_f(dtemp_bc_u_rear)
     call bcast_world_f(dtemp_bc_v_rear)
     call bcast_world_f(dtemp_bc_w_rear)
+    call bcast_world_f(dtemp_bc_flow_rear)
     call set_value_bc_rear(temp_bc_type_rear,dtemp_bc_rhoR_rear, &
-     dtemp_bc_rhoB_rear,dtemp_bc_u_rear,dtemp_bc_v_rear,dtemp_bc_w_rear)
+     dtemp_bc_rhoB_rear,dtemp_bc_u_rear,dtemp_bc_v_rear,dtemp_bc_w_rear, &
+     dtemp_bc_flow_rear)
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='open boundary rear'
@@ -1895,6 +1939,11 @@
       mystring=repeat(' ',dimprint)
       mystring='open boundary rear vel'
       write(6,'(2a,3f12.6)')mystring,": ",bc_u_rear,bc_v_rear,bc_w_rear
+      if(bc_flow_rear/=ZERO)then
+        mystring=repeat(' ',dimprint)
+        mystring='open boundary rear mass flow'
+        write(6,'(2a,2f12.6)')mystring,": ",bc_flow_rear
+      endif
     endif
   endif
   
@@ -1904,8 +1953,10 @@
     call bcast_world_f(dtemp_bc_u_north)
     call bcast_world_f(dtemp_bc_v_north)
     call bcast_world_f(dtemp_bc_w_north)
+    call bcast_world_f(dtemp_bc_flow_north)
     call set_value_bc_north(temp_bc_type_north,dtemp_bc_rhoR_north, &
-     dtemp_bc_rhoB_north,dtemp_bc_u_north,dtemp_bc_v_north,dtemp_bc_w_north)
+     dtemp_bc_rhoB_north,dtemp_bc_u_north,dtemp_bc_v_north,dtemp_bc_w_north, &
+     dtemp_bc_flow_north)
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='open boundary north'
@@ -1916,6 +1967,11 @@
       mystring=repeat(' ',dimprint)
       mystring='open boundary north vel'
       write(6,'(2a,3f12.6)')mystring,": ",dtemp_bc_u_north,dtemp_bc_v_north,dtemp_bc_w_north
+      if(bc_flow_north/=ZERO)then
+        mystring=repeat(' ',dimprint)
+        mystring='open boundary north mass flow'
+        write(6,'(2a,2f12.6)')mystring,": ",bc_flow_north
+      endif
     endif
   endif
   
@@ -1925,8 +1981,10 @@
     call bcast_world_f(dtemp_bc_u_south)
     call bcast_world_f(dtemp_bc_v_south)
     call bcast_world_f(dtemp_bc_w_south)
+    call bcast_world_f(dtemp_bc_flow_south)
     call set_value_bc_south(temp_bc_type_south,dtemp_bc_rhoR_south, &
-     dtemp_bc_rhoB_south,dtemp_bc_u_south,dtemp_bc_v_south,dtemp_bc_w_south)
+     dtemp_bc_rhoB_south,dtemp_bc_u_south,dtemp_bc_v_south,dtemp_bc_w_south, &
+     dtemp_bc_flow_south)
     if(idrank==0)then
       mystring=repeat(' ',dimprint)
       mystring='open boundary south'
@@ -1937,6 +1995,11 @@
       mystring=repeat(' ',dimprint)
       mystring='open boundary south vel'
       write(6,'(2a,3f12.6)')mystring,": ",dtemp_bc_u_south,dtemp_bc_v_south,dtemp_bc_w_south
+      if(bc_flow_south/=ZERO)then
+        mystring=repeat(' ',dimprint)
+        mystring='open boundary south mass flow'
+        write(6,'(2a,2f12.6)')mystring,": ",bc_flow_south
+      endif
     endif
   endif
   

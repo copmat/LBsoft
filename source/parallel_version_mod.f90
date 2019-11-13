@@ -4800,12 +4800,44 @@
   real(4), intent(in), dimension(:,:,:), allocatable  :: myvar
   integer, intent(inout) :: e_io
   
-  call print_binary_1d_vtk_col(iotest,headoff,nbyte,nn, &
-    myvar,e_io)
+  if(mxrank==1)then
+    call print_binary_1d_vtk_serial(iotest,headoff,nbyte,nn, &
+      reshape(myvar,(/nn/)),e_io)
+  else
+    call print_binary_1d_vtk_col(iotest,headoff,nbyte,nn, &
+      myvar,e_io)
+  endif
   
   return
   
  end subroutine driving_print_binary_1d_vtk
+ 
+ subroutine print_binary_1d_vtk_serial(iotest,headoff,nbyte,nn,myvar1d,E_IO)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a scalar field with single
+!     precision in VTK legacy binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,headoff,nbyte,nn
+  real(4), intent(in), dimension(nn) :: myvar1d
+  integer, intent(out) :: E_IO
+  
+  integer :: ii
+  
+  write(iotest,iostat=E_IO)int(nbyte,kind=4),(myvar1d(ii),ii=1,nn)
+  
+  return
+  
+ end subroutine print_binary_1d_vtk_serial
  
  subroutine collective_writeFile(it, mynamefile, myvar, nbuff)
   
@@ -5289,6 +5321,14 @@
   integer :: nx1,nx2,ny1,ny2,nz1,nz2
   real(kind=4), allocatable, dimension(:,:,:,:) :: service4
   
+  if(mxrank==1)then
+    call print_binary_3d_vtk_serial(iotest,headoff,nbyte,nn, &
+     reshape(myvar1,(/nn/)),reshape(myvar2,(/nn/)), &
+     reshape(myvar3,(/nn/)),e_io)
+  
+    return
+  endif
+  
   nx1=mymin(1)
   nx2=mymax(1)
   ny1=mymin(2)
@@ -5315,6 +5355,35 @@
   return
   
  end subroutine driving_print_binary_3d_vtk
+ 
+ subroutine print_binary_3d_vtk_serial(iotest,headoff,nbyte,nn,myvarx, &
+  myvary,myvarz,E_IO)
+  
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing a vector field with single
+!     precision in VTK legacy binary format in serial IO
+!     
+!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     author: M. Lauricella
+!     last modification October 2019
+!     
+!***********************************************************************
+ 
+  implicit none
+  
+  integer, intent(in) :: iotest,headoff,nbyte,nn
+  real(4), intent(in), dimension(nn) :: myvarx,myvary,myvarz
+  integer, intent(out) :: E_IO
+  
+  integer :: ii
+  
+  write(iotest,iostat=E_IO)int(nbyte,kind=4),(myvarx(ii),myvary(ii), &
+   myvarz(ii),ii=1,nn)
+  
+  return
+  
+ end subroutine print_binary_3d_vtk_serial
  
  subroutine print_binary_3d_vtk_col(iotest,headoff,nbyte,nn,myvar,e_io)
   
