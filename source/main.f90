@@ -10,12 +10,9 @@
 ! This is an experimental code. The authors accept no responsibility
 ! for the performance of the code or for the correctness of the results.
 !
-! The code is licensed under Open Software License v. 3.0 (OSL-3.0). 
+! The code is licensed under the 3-Clause BSD License (BSD-3-Clause).
 ! The full text of the licence can be found on the website:
-! http://opensource.org/licenses/OSL-3.0 
-!
-! A brief explanation of this license is available on the website:  
-! http://rosenlaw.com/OSL3.0-explained.htm  
+! https://opensource.org/licenses/BSD-3-Clause
 !
 ! The software development process has received funding from the 
 ! European Research Council under the Horizon 2020 Programme              
@@ -25,21 +22,21 @@
 ! appropriate citation would be:
 ! 
 !The code was originally written by                
-!                                                                        
-!Fabio Bonaccorso         IIT-CLNS, Rome                    Italy        
-!Marco Lauricella         IAC-CNR, Rome                     Italy        
-!Andrea Montessori        IAC-CNR, Rome                     Italy      
+!                                                                       
+!Fabio Bonaccorso        IIT-CLNS, Rome                     Italy       
+!Marco Lauricella         IAC-CNR, Rome                     Italy       
+!Andrea Montessori        IAC-CNR, Rome                     Italy       
 !                                                                        
 !                                                                                                                                                
 !with contributions from:                                                
-!                                                                               
+!                                                                       
+!Giorgio Amati         CINECA-CED, Rome                     Italy       
 !Massimo Bernaschi        IAC-CNR, Rome                     Italy        
-!Sauro Succi              IAC-CNR, Rome                     Italy        
+!Sauro Succi              IAC-CNR, Rome                     Italy       
 !                                                                        
 !
-!                        LBsoft VERSION 0.01
 !
-! (July 2018)
+! (November 2019)
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
@@ -71,7 +68,7 @@
                         write_vtk_frame,write_xyz_close, &
                         write_particle_xyz, dumpForOutput, &
                         set_value_ivtkevery,idumpevery, &
-                        read_restart_file
+                        read_restart_file,write_vtk_isfluid
   use integrator_mod,  only : initime,endtime,tstep,set_nstep, &
                         update_nstep,nstep,driver_integrator,nstepmax, &
                         get_restore
@@ -235,6 +232,7 @@
   endif
  
   call write_vtk_frame(0,wantRestore)
+  if(.not. wantRestore)call write_vtk_isfluid(0)
   
 ! interpolate the particle velocity at half timestep back to apply lf
   if(lparticles)then

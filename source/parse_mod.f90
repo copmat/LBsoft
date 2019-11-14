@@ -6,7 +6,7 @@
 !     
 !     LBsoft module containing subroutines which parse the input file
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -27,7 +27,7 @@
 !     character string
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -63,7 +63,7 @@
 !     string
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -145,7 +145,7 @@
 !     character string
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -259,7 +259,7 @@
 !     LBsoft subroutine to strip a character string
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -308,7 +308,7 @@
 !     LBsoft subroutine to lowercase a character string
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -405,7 +405,7 @@
 !     LBsoft subroutine to copy one character string into another
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -434,7 +434,7 @@
 !     LBsoft subroutine to find an explicit string in an input record
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -496,7 +496,7 @@
 !     LBsoft subroutine to strip leading text from a data record
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -561,7 +561,7 @@
 !     while ignoring leading blanks
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -633,7 +633,7 @@
 !     character string and return them as elements of a character array
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -718,7 +718,7 @@
 !     LBsoft function for checking if a character string is empty
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     

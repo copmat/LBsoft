@@ -7,7 +7,7 @@
 !     LBsoft module containing subroutines which replace all the 
 !     communication tasks providing a serial version of the code
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -133,7 +133,7 @@
 !     currently in use
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -156,7 +156,7 @@
 !     LBsoft subroutine to determine identity of processing node 
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -177,7 +177,7 @@
 !     LBsoft subroutine to determine the number of processing nodes
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -198,7 +198,7 @@
 !     LBsoft subroutine to synchronize the processing nodes
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -217,7 +217,7 @@
 !     LBsoft subroutine to initialize the MPI work
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -236,7 +236,7 @@
 !     LBsoft subroutine to finalize the MPI work
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -255,7 +255,7 @@
 !     LBsoft subroutine to abort the MPI work
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -276,7 +276,7 @@
 !     LBsoft subroutine to use the CPU clock
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -300,7 +300,7 @@
 !     nodes
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -322,7 +322,7 @@
 !     nodes
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -344,7 +344,7 @@
 !     other nodes
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -366,7 +366,7 @@
 !     nodes
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -389,7 +389,7 @@
 !     nodes
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -412,7 +412,7 @@
 !     other nodes
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -434,7 +434,7 @@
 !     LBsoft subroutine to broadcast a character array to all 
 !     other nodes
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -457,7 +457,7 @@
 !     LBsoft global summation subroutine for a integer array
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -484,7 +484,7 @@
 !     LBsoft global summation subroutine for a float array
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -511,7 +511,7 @@
 !     LBsoft global minimum subroutine for an integer array
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -538,7 +538,7 @@
 !     LBsoft global minimum subroutine for a float array
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -565,7 +565,7 @@
 !     LBsoft global maximum subroutine for an integer array
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -592,7 +592,7 @@
 !     LBsoft global maximum subroutine for a float array
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -619,7 +619,7 @@
 !     LBsoft global 'logical and' subroutine for a logical array
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -646,7 +646,7 @@
 !     LBsoft global 'logical or' subroutine for a logical array
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -673,7 +673,7 @@
 !     LBsoft global 'logical or' subroutine for a logical array
 !     of kind 1
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -697,7 +697,7 @@
 !     LBsoft global subroutine for receiving an integer value
 !     by a nonblocking receive operation
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -721,7 +721,7 @@
 !     LBsoft global subroutine for receiving a float value
 !     by a nonblocking receive operation
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -745,7 +745,7 @@
 !     LBsoft global subroutine for receiving a logical value
 !     by a nonblocking receive operation
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -769,7 +769,7 @@
 !     LBsoft global subroutine for sending an integer value
 !     by a nonblocking send operation
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -793,7 +793,7 @@
 !     LBsoft global subroutine for sending a float value
 !     by a nonblocking send operation
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -817,7 +817,7 @@
 !     LBsoft global subroutine for sending a logical value
 !     by a nonblocking send operation
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -841,7 +841,7 @@
 !     LBsoft global subroutine for receiving an integer array
 !     by a nonblocking receive operation
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -866,7 +866,7 @@
 !     LBsoft global subroutine for receiving a float array
 !     by a nonblocking receive operation
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -891,7 +891,7 @@
 !     LBsoft global subroutine for receiving a logical array
 !     by a nonblocking receive operation
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -916,7 +916,7 @@
 !     LBsoft global subroutine for sending an integer array
 !     by a nonblocking send operation
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -941,7 +941,7 @@
 !     LBsoft global subroutine for sending a float array
 !     by a nonblocking send operation
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -966,7 +966,7 @@
 !     LBsoft global subroutine for sending a logical array
 !     by a nonblocking send operation
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -991,7 +991,7 @@
 !     LBsoft global subroutine for waiting a nonblocking operation 
 !     to complete.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -1013,7 +1013,7 @@
 !     LBsoft global subroutine for waiting a collection of nonblocking  
 !     operations to complete
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -1036,7 +1036,7 @@
 !     LBsoft global summation subroutine for a float array
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -1063,7 +1063,7 @@
 !     LBsoft subroutine for opening the vtk legacy file
 !     in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1086,7 +1086,7 @@
 !     LBsoft subroutine for closing the vtk legacy file
 !     in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1108,7 +1108,7 @@
 !     LBsoft subroutine for writing the header part of
 !     in VTK legacy file in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1131,7 +1131,7 @@
 !     LBsoft subroutine for writing the footer part of
 !     in VTK legacy file in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1154,7 +1154,7 @@
 !     
 !     LBsoft subroutine for the initial setup of the domain 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Bernaschi
 !     last modification October 2019
 !     
@@ -1302,7 +1302,7 @@
 !     
 !     LBsoft subroutine for setting the protected value of domdec
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1324,7 +1324,7 @@
 !     
 !     LBsoft subroutine for setting the domain decomposition in input
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1350,7 +1350,7 @@
 !     LBsoft subroutine for driving the creation of the list of 
 !     the HVAR exchange by MPI sending and receiving
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1374,7 +1374,7 @@
 !     LBsoft subroutine for driving the creation of the list of 
 !     the HVAR exchange by MPI sending and receiving
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1398,7 +1398,7 @@
 !     LBsoft subroutine for driving the creation of the list of 
 !     the populations exchange by MPI sending and receiving
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1422,7 +1422,7 @@
 !     LBsoft subroutine to exchange ISFLUID
 !     amond the MPI ranks
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1443,7 +1443,7 @@
 !     LBsoft subroutine for exchanging ISFLUID variables
 !     among MPI ranks
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1464,7 +1464,7 @@
 !     LBsoft subroutine for waiting the exchange ISFLUID 
 !     variables among MPI ranks
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1485,7 +1485,7 @@
 !     LBsoft subroutine for exchanging hydro-dynamics variables
 !     among MPI ranks
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1506,7 +1506,7 @@
 !     LBsoft subroutine for waiting the exchange hydro-dynamics 
 !     variables among MPI ranks
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1527,7 +1527,7 @@
 !     LBsoft subroutine for exchanging velocities variables
 !     among MPI ranks
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1548,7 +1548,7 @@
 !     LBsoft subroutine for waiting the exchange velocities 
 !     variables among MPI ranks
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1569,7 +1569,7 @@
 !     LBsoft subroutine for exchanging velocities variables
 !     among MPI ranks
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1590,7 +1590,7 @@
 !     LBsoft subroutine for waiting the exchange velocities 
 !     variables among MPI ranks
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1611,7 +1611,7 @@
 !     LBsoft subroutine for finding the owner of a node provided 
 !     in i,j,k triplet-form taken from ownerns array
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1639,7 +1639,7 @@
 !     LBsoft subroutine for finding the owner of a node provided 
 !     in i,j,k triplet-form computed on-fly
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1676,7 +1676,7 @@
 !     LBsoft subroutine for sending the population over the MPI
 !     network
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1699,7 +1699,7 @@
 !     LBsoft subroutine for receiving the population over the MPI
 !     network
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1725,7 +1725,7 @@
 !     LBsoft subroutine for finding a unique integer number i4-form
 !     for each i,j,k triplet
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1752,7 +1752,7 @@
 !     LBsoft subroutine for returning the i,j,k triplet-form of 
 !     a i4-form
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1776,7 +1776,7 @@
 !     
 !     LBsoft subroutine to deallocate ownern array
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification September 2018
 !     
@@ -1797,7 +1797,7 @@
 !     LBsoft subroutine for writing a scalar field with PRC
 !     precision in binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1829,7 +1829,7 @@
 !     LBsoft subroutine for writing a scalar field with INTEGER
 !     of 1 byte in binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1861,7 +1861,7 @@
 !     LBsoft subroutine for reading a scalar field with PRC
 !     precision in binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1893,7 +1893,7 @@
 !     LBsoft subroutine for reading a scalar field with INTEGER
 !     of 1 byte in binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1926,7 +1926,7 @@
 !     LBsoft subroutine for reading the pops with PRC
 !     precision in binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1979,7 +1979,7 @@
 !     LBsoft subroutine for reading a scalar field with PRC
 !     precision in binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -2012,7 +2012,7 @@
 !     LBsoft subroutine for reading a scalar field of INTEGER
 !     with 1 byte in binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -2047,7 +2047,7 @@
 !     LBsoft subroutine for writing the pops with PRC
 !     precision in binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -2100,7 +2100,7 @@
 !     LBsoft subroutine for writing a scalar field with PRC
 !     precision in binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -2133,7 +2133,7 @@
 !     LBsoft subroutine for writing a scalar field of INTEGER
 !     with 1 byte in binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -2166,7 +2166,7 @@
 !     LBsoft subroutine for writing a scalar field with single
 !     precision in VTK legacy binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -2192,7 +2192,7 @@
 !     LBsoft subroutine for writing a scalar field with single
 !     precision in VTK legacy binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -2220,7 +2220,7 @@
 !     LBsoft subroutine for writing a vector field with single
 !     precision in VTK legacy binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -2248,7 +2248,7 @@
 !     LBsoft subroutine for writing a vector field with single
 !     precision in VTK legacy binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     

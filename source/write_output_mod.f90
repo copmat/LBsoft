@@ -6,7 +6,7 @@
 !     
 !     LBsoft module for output VTK routines
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -33,6 +33,7 @@
  
   private
   
+  logical, save :: lframe_isfluid=.true.
   integer, parameter :: iotest=180
   integer, parameter :: ioxyz=190
   integer, parameter :: mxln=120
@@ -50,6 +51,7 @@
   character(len=mxln), save :: dir_out_rank
   character(len=mxln), allocatable, save :: dir_out_grank(:)
   character(len=mxln), save :: extentvtk
+  character(len=mxln), save :: extentvtk_isfluid
   character(len=8), save, allocatable, dimension(:) :: namevarvtk
   character(len=500), save, allocatable, dimension(:) :: headervtk
   character(len=30), save, allocatable, dimension(:) :: footervtk
@@ -74,6 +76,7 @@
   public :: dumpForOutput
   public :: set_value_dumpevery
   public :: read_restart_file
+  public :: write_vtk_isfluid
   
  contains
  
@@ -84,7 +87,7 @@
 !     LBsoft subroutine for creating the folders containing the files
 !     in image VTK legacy binary format in parallel IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -97,7 +100,7 @@
   character(len=255) :: path,makedirectory
   logical :: lexist
   
-  integer :: i,nn,indent,myoffset,new_myoffset,iend
+  integer :: i,nn,indent,myoffset,new_myoffset,iend,nn_isfluid
   integer, parameter :: byter4=4
   integer, parameter :: byteint=4
   
@@ -156,6 +159,13 @@
   
   if(.not. lvtkfile)return
   
+  if(lframe_isfluid)then
+    if(mxrank>1)then
+      call warning(72)
+      lframe_isfluid=.false.
+    endif
+  endif
+  
   makedirectory=repeat(' ',255)
   makedirectory=trim(path)//delimiter//'output'//delimiter
   
@@ -163,19 +173,32 @@
         // space_fmtnumb(1) // ' ' // space_fmtnumb(ny) // ' ' &
         // space_fmtnumb(1) // ' ' // space_fmtnumb(nz)
   
+  if(lframe_isfluid)then
+    extentvtk_isfluid =  space_fmtnumb(0) // ' ' // space_fmtnumb(nx+1) // ' ' &
+        // space_fmtnumb(0) // ' ' // space_fmtnumb(ny+1) // ' ' &
+        // space_fmtnumb(0) // ' ' // space_fmtnumb(nz+1)
+  else
+    extentvtk_isfluid =  space_fmtnumb(1) // ' ' // space_fmtnumb(nx) // ' ' &
+        // space_fmtnumb(1) // ' ' // space_fmtnumb(ny) // ' ' &
+        // space_fmtnumb(1) // ' ' // space_fmtnumb(nz)
+  endif
   nfilevtk=nprintlistvtk
   
-  allocate(varlistvtk(nfilevtk))
-  allocate(namevarvtk(nfilevtk))
-  allocate(ndimvtk(nfilevtk))
-  allocate(headervtk(nfilevtk))
-  allocate(footervtk(nfilevtk))
-  allocate(nheadervtk(nfilevtk))
-  allocate(vtkoffset(nfilevtk))
-  allocate(ndatavtk(nfilevtk))
+  allocate(varlistvtk(0:nfilevtk))
+  allocate(namevarvtk(0:nfilevtk))
+  allocate(ndimvtk(0:nfilevtk))
+  allocate(headervtk(0:nfilevtk))
+  allocate(footervtk(0:nfilevtk))
+  allocate(nheadervtk(0:nfilevtk))
+  allocate(vtkoffset(0:nfilevtk))
+  allocate(ndatavtk(0:nfilevtk))
+  varlistvtk(0)=-1
   varlistvtk(1:nfilevtk)=printlistvtk(1:nfilevtk)
-  do i=1,nfilevtk
-    select case(printlistvtk(i))
+  do i=0,nfilevtk
+    select case(varlistvtk(i))
+    case(-1)
+      namevarvtk(i)='isfluid '
+      ndimvtk(i)=1
     case(1)
       namevarvtk(i)='rho1    '
       ndimvtk(i)=1
@@ -197,18 +220,34 @@
   enddo
   
   nn=nx*ny*nz
+  if(lframe_isfluid)then
+    nn_isfluid=(nx+2)*(ny+2)*(nz+2)
+  else
+    nn_isfluid=nn
+  endif
   
-  do i=1,nfilevtk
+  do i=0,nfilevtk
     myoffset=0
     indent=0
-    call header_vtk(headervtk(i),namevarvtk(i),extentvtk,ndimvtk(i),0,iend,myoffset, &
-    new_myoffset,indent)
-    vtkoffset(i)=new_myoffset
-    myoffset=new_myoffset+byteint+ndimvtk(i)*nn*byter4
-    ndatavtk(i)=ndimvtk(i)*nn*byter4
-    nheadervtk(i)=iend
-    call footer_vtk(footervtk(i),0,iend,myoffset, &
-     new_myoffset,indent)
+    if(i==0)then
+      call header_vtk(headervtk(i),namevarvtk(i),extentvtk_isfluid, &
+       ndimvtk(i),0,iend,myoffset, new_myoffset,indent)
+      vtkoffset(i)=new_myoffset
+      myoffset=new_myoffset+byteint+ndimvtk(i)*nn_isfluid*byter4
+      ndatavtk(i)=ndimvtk(i)*nn_isfluid*byter4
+      nheadervtk(i)=iend
+      call footer_vtk(footervtk(i),0,iend,myoffset, &
+       new_myoffset,indent)
+    else
+      call header_vtk(headervtk(i),namevarvtk(i),extentvtk,ndimvtk(i),0, &
+       iend,myoffset,new_myoffset,indent)
+      vtkoffset(i)=new_myoffset
+      myoffset=new_myoffset+byteint+ndimvtk(i)*nn*byter4
+      ndatavtk(i)=ndimvtk(i)*nn*byter4
+     nheadervtk(i)=iend
+      call footer_vtk(footervtk(i),0,iend,myoffset, &
+       new_myoffset,indent)
+    endif
   enddo
 
 #if 0
@@ -254,7 +293,7 @@
 !     LBsoft subroutine for writing the POLYDATA VTK file
 !     for the particles
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -345,7 +384,7 @@
 !     
 !     LBsoft subroutine for opening the file in xyz format
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -370,7 +409,7 @@
 !     
 !     LBsoft subroutine for writing a frame in the xyz file
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -405,7 +444,7 @@
 !     
 !     LBsoft subroutine for closing the file in xyz format
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -428,7 +467,7 @@
 !     LBsoft subroutine for settimg time interval value
 !     used to print the vtk file
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification july 2018
 !     
@@ -453,7 +492,7 @@
 !     LBsoft subroutine for settimg time interval value
 !     used to print the xyz file
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -478,7 +517,7 @@
 !     LBsoft subroutine for driving the serial/parallel writing
 !     in structured VTK legacy binary format
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -560,6 +599,251 @@
   return
   
  end subroutine write_vtk_frame
+ 
+ subroutine write_vtk_isfluid(nstepsub)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for driving the serial/parallel writing
+!     in structured VTK legacy binary format
+!     
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
+!     author: M. Lauricella
+!     last modification October 2018
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  integer, intent(in) :: nstepsub
+  
+  integer, parameter :: vtkoutput=55
+  integer :: i
+  
+  if(.not. lvtkfile)return
+  
+  
+  if(mxrank==1)then
+    i=0
+    call write_vtk_isfluid_serial(vtkoutput+i,nstepsub,ndatavtk(i), &
+     nheadervtk(i),headervtk(i),vtkoffset(i),footervtk(i), &
+     namevarvtk(i),ndimvtk(i),varlistvtk(i))
+  else
+    i=0
+    call write_vtk_isfluid_parallel(vtkoutput+i,nstepsub,ndatavtk(i), &
+     nheadervtk(i),headervtk(i),vtkoffset(i),footervtk(i), &
+     namevarvtk(i),ndimvtk(i),varlistvtk(i))
+  endif
+  
+  return
+  
+ end subroutine write_vtk_isfluid
+ 
+ subroutine write_vtk_isfluid_serial(ioprint,nstepsub,ndata,nheader,header, &
+  headoff,footer,filenamevar,ndim,ntype)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the isfluid variable
+!     in structured VTK legacy binary format in serial IO
+!     
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
+!     author: M. Lauricella
+!     last modification November 2019
+!     
+!***********************************************************************
+ 
+ 
+  implicit none
+  
+  integer, intent(in) :: ioprint,nstepsub,ndata,nheader,headoff,ndim, &
+   ntype
+  character(len=8), intent(in) :: filenamevar
+  character(len=500), intent(in) :: header
+  character(len=30), intent(in) :: footer
+  integer :: e_io,nnt
+  real(kind=4), allocatable, dimension(:,:,:) :: service1
+  
+  character(len=120) :: sevt
+  integer :: l,ii,jj,kk,i,j,k,myindex,iost,endoff
+  
+  integer :: nx1,nx2,ny1,ny2,nz1,nz2,nn,nxmin,nymin,nnn
+  
+  character(len=120) :: s_buffer
+  
+  character(len=500) :: mystring500
+  integer, parameter :: byter4=4
+  integer, parameter :: byteint=4
+  real(kind=PRC) :: miomax,vmod
+  real(kind=4) :: r4temp,b4temp
+  
+  if(.not. lvtkfile)return
+  
+  if(mxrank/=1)call error(11)
+  
+  if(idrank/=0)return
+  
+  if(lframe_isfluid)then
+    nx1=0
+    nx2=nx+1
+    ny1=0
+    ny2=ny+1
+    nz1=0
+    nz2=nz+1
+  else
+    nx1=1
+    nx2=nx
+    ny1=1
+    ny2=ny
+    nz1=1
+    nz2=nz
+  endif
+  
+  nn=(nx2-nx1+1)*(ny2-ny1+1)*(nz2-nz1+1)
+  nnn=nn
+  
+  allocate(service1(nx1:nx2,ny1:ny2,nz1:nz2))
+  service1(nx1:nx2,ny1:ny2,nz1:nz2)=ZERO
+  
+  if(ndim==1)then
+  !requested scalar field in output
+    if(ntype==-1)then
+       !requested phase field in output
+       !compute phase field on fly
+       do k=nz1,nz2
+        do j=ny1,ny2
+          do i=nx1,nx2
+            service1(i,j,k)=real(isfluid(i,j,k),kind=4)
+          enddo
+        enddo
+      enddo
+    else
+      call error(42)
+    endif
+  elseif(ndim==3)then
+    !requested vector field in output
+    call error(42)
+  endif
+  
+  sevt=repeat(' ',120)
+  
+  sevt = trim(dir_out) // trim(filenamevtk)//'_'//trim(filenamevar)// &
+   '_'//trim(write_fmtnumb(nstepsub)) // '.vti'
+  
+  call open_file_vtk(ioprint,120,sevt,e_io)
+  
+  call print_header_vtk(ioprint,0,nheader,header,E_IO)
+  
+  call driving_print_binary_1d_vtk(ioprint,headoff,ndata,nn,service1, &
+   iost)
+  
+  endoff=headoff+ndata+byteint
+  call print_footer_vtk(ioprint,endoff,footer,E_IO)
+  
+  call close_file_vtk(ioprint,e_io)
+  
+  if(allocated(service1))deallocate(service1)
+ 
+  return
+     
+ end subroutine write_vtk_isfluid_serial
+ 
+ subroutine write_vtk_isfluid_parallel(ioprint,nstepsub,ndata,nheader,header, &
+  headoff,footer,filenamevar,ndim,ntype)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for writing the isfluid variable
+!     in structured VTK legacy binary format in parallel IO
+!     
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
+!     author: M. Lauricella
+!     last modification November 2019
+!     
+!***********************************************************************
+ 
+ 
+  implicit none
+  
+  integer, intent(in) :: ioprint,nstepsub,ndata,nheader,headoff,ndim, &
+   ntype
+  character(len=8), intent(in) :: filenamevar
+  character(len=500), intent(in) :: header
+  character(len=30), intent(in) :: footer
+  integer :: e_io,nnt
+  real(kind=4), allocatable, dimension(:,:,:) :: service1
+  
+  character(len=120) :: sevt
+  integer :: l,ii,jj,kk,i,j,k,myindex,iost,endoff
+  
+  integer :: nx1,nx2,ny1,ny2,nz1,nz2,nn,nxmin,nymin,nnn
+  
+  character(len=120) :: s_buffer
+  
+  character(len=500) :: mystring500
+  integer, parameter :: byter4=4
+  integer, parameter :: byteint=4
+  real(kind=PRC) :: miomax,vmod
+  real(kind=4) :: r4temp,b4temp
+  
+  if(.not. lvtkfile)return
+  if(lframe_isfluid)call error(44)
+  
+  nx1=minx
+  nx2=maxx
+  ny1=miny
+  ny2=maxy
+  nz1=minz
+  nz2=maxz
+  
+  nnn=nx*ny*nz
+  nn=(nx2-nx1+1)*(ny2-ny1+1)*(nz2-nz1+1)
+  
+  if(ndim==1)then
+    allocate(service1(nx1:nx2,ny1:ny2,nz1:nz2))
+    service1(nx1:nx2,ny1:ny2,nz1:nz2)=ZERO
+  !requested scalar field in output
+    if(ntype==-1)then
+       !requested phase field in output
+       !compute phase field on fly
+       do k=minz,maxz
+        do j=miny,maxy
+          do i=minx,maxx
+            service1(i,j,k)=real(isfluid(i,j,k),kind=4)
+          enddo
+        enddo
+      enddo
+    else
+      call error(43)
+    endif
+  elseif(ndim==3)then
+    !requested vector field in output
+    call error(43)
+  endif
+  
+  sevt=repeat(' ',120)
+  
+  sevt = trim(dir_out) // trim(filenamevtk)//'_'//trim(filenamevar)// &
+   '_'//trim(write_fmtnumb(nstepsub)) // '.vti'
+  
+  call open_file_vtk_par(ioprint,120,sevt,e_io)
+  
+  if(idrank==0)call print_header_vtk_par(ioprint,0,nheader,header,E_IO)
+  
+  endoff=headoff+ndata+byteint
+  
+  if(idrank==0)call print_footer_vtk_par(ioprint,endoff,footer,E_IO)
+  
+  call driving_print_binary_1d_vtk(ioprint,headoff,ndata,nn,service1, &
+   iost)
+  
+  call close_file_vtk_par(ioprint,e_io)
+  
+  if(allocated(service1))deallocate(service1)
+  
+  return
+     
+ end subroutine write_vtk_isfluid_parallel
   
  subroutine write_vtk_frame_serial(ioprint,nstepsub,ndata,nheader,header, &
   headoff,footer,filenamevar,ndim,ntype,myvar,myvary,myvarz)
@@ -569,7 +853,7 @@
 !     LBsoft subroutine for writing the hydrodynamic variables
 !     in structured VTK legacy binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -705,7 +989,7 @@
 !     LBsoft subroutine for writing the hydrodynamic variables
 !     in structured VTK legacy binary format in parallel IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -838,7 +1122,7 @@
 !     LBsoft subroutine for opening the vtk legacy file
 !     in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -865,7 +1149,7 @@
 !     LBsoft subroutine for closing the vtk legacy file
 !     in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -889,7 +1173,7 @@
 !     LBsoft subroutine for writing the header part of
 !     in VTK legacy file in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -914,7 +1198,7 @@
 !     LBsoft subroutine for writing the footer part of
 !     in VTK legacy file in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -939,7 +1223,7 @@
 !     LBsoft subroutine for creating the folders containing the files
 !     in structured VTK legacy binary format in parallel IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification july 2018
 !     
@@ -986,7 +1270,7 @@
 !     LBsoft subroutine for writing the hydrodynamic variables
 !     in ASCII format for diagnostic purposes
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification july 2018
 !     
@@ -1047,7 +1331,7 @@
 !     LBsoft subroutine for writing the particle variables
 !     in xyz format for diagnostic purposes
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -1109,7 +1393,7 @@
 !     LBsoft subroutine for settimg time interval value
 !     used to print the raw data in binary files
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1133,7 +1417,7 @@
 !     LBsoft subroutine for settimg time interval value
 !     used to print the restart files
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1155,7 +1439,7 @@
 !     LBsoft subroutine for writing raw output data for the restarting
 !     procedure and binary files
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1213,7 +1497,7 @@
 !     LBsoft subroutine for writing data for the restarting
 !     procedure
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -1249,7 +1533,7 @@
 !     LBsoft subroutine for writing data for the restarting
 !     procedure
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     

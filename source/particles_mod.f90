@@ -12,7 +12,7 @@
 !     the daresbury laboratory (in primis we like to acknowledge 
 !     prof. w. smith)
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -422,7 +422,7 @@
 !     
 !     LBsoft subroutine for setting the global number of particles 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -444,7 +444,7 @@
 !     
 !     LBsoft subroutine for setting the ntype of particles 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -466,7 +466,7 @@
 !     
 !     LBsoft subroutine for setting the lparticles protected variable
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -488,7 +488,7 @@
 !     
 !     LBsoft subroutine for setting the densvar protected variable
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -510,7 +510,7 @@
 !     
 !     LBsoft subroutine for setting the rcut protected variable
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -532,7 +532,7 @@
 !     
 !     LBsoft subroutine for setting the delr protected variable
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -554,7 +554,7 @@
 !     
 !     LBsoft subroutine for setting the ishape protected variable
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -582,7 +582,7 @@
 !     
 !     LBsoft subroutine for setting the lrotate protected variable
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -604,7 +604,7 @@
 !     
 !     LBsoft subroutine for setting the lvv protected variable
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -626,7 +626,7 @@
 !     
 !     LBsoft subroutine for setting the umass protected variable
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -651,7 +651,7 @@
 !     
 !     LBsoft subroutine for setting the urdim protected variable
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -678,7 +678,7 @@
 !     LBsoft subroutine for setting the ntpvdw protected variable
 !     init_temp denotes the initiali particle temperature in KbT unit
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -703,7 +703,7 @@
 !     ntpvdw denotes the total number of pair force fields 
 !     defined in input
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -725,7 +725,7 @@
 !     
 !     LBsoft subroutine for allocate the atmnamtype protected variable
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -753,7 +753,7 @@
 !     
 !     LBsoft subroutine for setting the lsidewall_md protected variable
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -775,7 +775,7 @@
 !     
 !     LBsoft subroutine for setting the sidewall_md_k protected variable
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -798,7 +798,7 @@
 !     LBsoft subroutine for setting the sidewall_md_rdist 
 !     protected variable
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -820,7 +820,7 @@
 !     
 !     LBsoft subroutine for setting the lubrication protected variables
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2019
 !     
@@ -847,7 +847,7 @@
 !     LBsoft subroutine for set the external force values acting
 !     on the particles 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -872,7 +872,7 @@
 !     LBsoft subroutine for set the external torque values acting
 !     on the particles 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -897,7 +897,7 @@
 !     LBsoft subroutine for set the capping force value acting
 !     on the particles 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2019
 !     
@@ -922,7 +922,7 @@
 !     LBsoft subroutine for set the momentum fix rescaling acting
 !     on the particles 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2019
 !     
@@ -946,7 +946,7 @@
 !     
 !     LBsoft subroutine for computing the mean particle force
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -982,7 +982,7 @@
 !     
 !     LBsoft subroutine for allocate the atmnamtype protected variable
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -1042,7 +1042,7 @@
 !     prmvdw stores all the parameters of the pair force fields 
 !     defined in input
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -1075,7 +1075,7 @@
 !     prmvdw stores all the parameters of the pair force fields 
 !     defined in input
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -1109,7 +1109,7 @@
 !     
 !     LBsoft subroutine for allocate the particle variables
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -1361,7 +1361,7 @@
 !     
 !     LBsoft subroutine for finding the atom type from its label
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -1399,7 +1399,7 @@
 !     their values to the appropiate process following the LB
 !     domain decomposition
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -1766,7 +1766,7 @@
 !     LBsoft subroutine to initialize particle templates
 !     and particle fluid interactions
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -1933,7 +1933,7 @@
 !     LBsoft subroutine to apply the particle bounce back on
 !     fluids
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -2089,7 +2089,7 @@ else
 !     LBsoft subroutine to apply the global summation of force
 !     arrays in debugging mode
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: F. Bonaccorso
 !     last modification July 2019
 !     
@@ -2125,7 +2125,7 @@ else
 !     LBsoft subroutine to apply the global summation of force
 !     arrays
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: F. Bonaccorso
 !     last modification July 2019
 !     
@@ -2161,7 +2161,7 @@ else
 !     LBsoft subroutine to compute the force of bounceback acting
 !     on the particles at time t (bounce force is computed at t+1/2)
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -2224,7 +2224,7 @@ else
 !     
 !     LBsoft subroutine to merge all the particle forces
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -2292,7 +2292,7 @@ else
 !     LBsoft subroutine to initialize particle templates
 !     and particle fluid interactions
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -2364,7 +2364,7 @@ else
 !     
 !     LBsoft subroutine to build the new_isfluid array if necessary
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -2434,7 +2434,7 @@ else
 !     LBsoft subroutine to manage moving particle effects
 !     to fluid nodes and create-delete fluid nodes if necessary
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -2489,7 +2489,7 @@ else
 !     
 !     LBsoft subroutine to remove fluid inside the particles
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -2512,7 +2512,7 @@ else
 !     LBsoft subroutine to compute the Shan Chen pseudo potential
 !     in presence of particles
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification January 2019
 !     
@@ -2648,7 +2648,7 @@ else
 !     
 !     LBsoft subroutine to test for updating of Verlet list
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -2735,7 +2735,7 @@ else
 !     
 !     LBsoft subroutine to compute Verlet Nlist
 !
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -3025,7 +3025,7 @@ else
 !     LBsoft subroutine to apply the bubble sort algorithm to the
 !     neighbour list
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification September 2019
 !     
@@ -3066,7 +3066,7 @@ else
 !     
 !     LBsoft subroutine to initialize the force arrays
 !
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -3101,7 +3101,7 @@ else
 !     
 !     LBsoft subroutine to initialize the particle energy
 !
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -3122,7 +3122,7 @@ else
 !     
 !     LBsoft subroutine to drive the inter-particle force computation
 !
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -3201,7 +3201,7 @@ else
 !     
 !     LBsoft subroutine to compute the inter-particle force
 !
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -3648,7 +3648,7 @@ else
 !     LBsoft subroutine to compute the interaction force with
 !     the side wall if necessary
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -3820,7 +3820,7 @@ else
 !     LBsoft subroutine for storing the old position and 
 !     velocity arrays of particles
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -3849,7 +3849,7 @@ else
 !     LBsoft subroutine for scaling the velocity arrays to the
 !     desired temperature
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -3890,7 +3890,7 @@ else
 !     LBsoft subroutine to initialize the velocity at half timestep
 !     back in order to apply the verlet leapfrog integrator
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -3928,7 +3928,7 @@ else
 !     LBsoft subroutine for integrating newtonian EOM by 
 !     Verlet leapfrog
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -4401,7 +4401,7 @@ else
 !     LBsoft subroutine for determining the versor along the idir
 !     direction from the quaternion using x convention for euler angles
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -4497,7 +4497,7 @@ else
 !     LBsoft subroutine for determining the versor along x from
 !     the quaternion using x convention for euler angles
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -4551,7 +4551,7 @@ else
 !     LBsoft subroutine for determining the versor along y from
 !     the quaternion using x convention for euler angles
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -4605,7 +4605,7 @@ else
 !     LBsoft subroutine for determining the versor along z from
 !     the quaternion using x convention for euler angles
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -4658,7 +4658,7 @@ else
 !     
 !     LBsoft subroutine to compute the sum of two quaternions
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -4682,7 +4682,7 @@ else
 !     
 !     LBsoft subroutine to compute the difference of two quaternions
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -4707,7 +4707,7 @@ else
 !     LBsoft subroutine to compute the product of two quaternions.
 !     NOTE: it is not commutative!
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -4734,7 +4734,7 @@ else
 !     quaternions.
 !     NOTE: it is not commutative!
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -4760,7 +4760,7 @@ else
 !     LBsoft subroutine to set to zero the real part of a
 !     quaternions.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -4786,7 +4786,7 @@ else
 !     LBsoft subroutine to set to zero the imaginary part of a
 !     quaternions.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -4811,7 +4811,7 @@ else
 !     
 !     LBsoft subroutine to compute the dot product of two quaternions
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -4835,7 +4835,7 @@ else
 !     
 !     LBsoft subroutine to compute the module of a quaternion
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -4860,7 +4860,7 @@ else
 !     LBsoft subroutine to compute the quaternion associated to
 !     a rotation of angle [ang] around the unit vector [vect]
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -4895,7 +4895,7 @@ else
 !     
 !     LBsoft subroutine to normalize a quaternion
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -4921,7 +4921,7 @@ else
 !     
 !     LBsoft subroutine to compute the conjugate of a quaternion
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -4946,7 +4946,7 @@ else
 !     
 !     LBsoft subroutine to compute the inverse of a quaternion
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -4976,7 +4976,7 @@ else
 !     LBsoft subroutine to compute the quaternion associated to
 !     the Euler angles
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -5012,7 +5012,7 @@ else
 !     LBsoft subroutine to compute the three Euler angles associated to
 !     a quaternion
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -5053,7 +5053,7 @@ else
 !     LBsoft subroutine to compute the rotation matrix associated to
 !     a quaternion
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -5085,7 +5085,7 @@ else
 !     LBsoft subroutine for driving the particle integration by
 !     velocity Verlet
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -5113,7 +5113,7 @@ else
 !     LBsoft subroutine for integrating newtonian EOM by 
 !     velocity Verlet 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -5162,7 +5162,7 @@ else
 !
 !     LBsoft subroutine to calculate system kinetic energy
 !
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -5191,7 +5191,7 @@ else
 !     LBsoft subroutine for determining the quaternion associated
 !     to a rotational matrix within a given tollerance value
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -5255,7 +5255,7 @@ else
 !     LBsoft subroutine for determining the rotational matrix from
 !     quaternion using x convention for euler angles
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -5287,7 +5287,7 @@ else
 !     LBsoft subroutine for applying a rotation of an array
 !     depending on a rotation matrix
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -5324,7 +5324,7 @@ else
 !     LBsoft subroutine for applying a rotation of a single vector
 !     depending on a rotation matrix
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -5355,7 +5355,7 @@ else
 !     LBsoft subroutine for building the rotation matrix
 !     of a given angle and axis
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -5755,7 +5755,7 @@ else
 !     LBsoft subroutine for writing all the particles in ASCII format 
 !     for diagnostic purposes always ordered also in parallel
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -5791,7 +5791,7 @@ else
 !     
 !     LBsoft subroutine for creating the spherical template (grid approx of a sphere)
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification Jan 2019
 !     
@@ -5946,7 +5946,7 @@ else
 !     
 !     LBsoft subroutine for restore particles in atmbook
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: F. Bonaccorso
 !     last modification April 2019
 !     

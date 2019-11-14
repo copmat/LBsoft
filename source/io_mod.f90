@@ -6,7 +6,7 @@
 !     
 !     LBsoft module for input/output routines
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -126,7 +126,7 @@
 !     
 !     LBsoft subroutine for printing the logo
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification January 2017
 !     
@@ -164,19 +164,20 @@
   write(iu,of)"*         =========================================================           *"
   write(iu,of)"*                                                                             *"
   write(iu,of)"*                                                                             *"
-  write(iu,of)"*    Version 0.02 (January 2019)                                              *"
+  write(iu,of)"*    Version 1.00 (November 2019)                                             *"
 !  if(ldevelopers) &
 !  write(iu,of)"*    Compiled in developer mode                                               *"
   write(iu,of)"*                                                                             *"
   write(iu,of)"*                                                                             *"
   write(iu,of)"*    The code was written by:                                                 *"
   write(iu,of)"*                                                                             *"
-  write(iu,of)"*    Fabio Bonaccorso         IIT-CLNS, Rome                    Italy         *"
+  write(iu,of)"*    Fabio Bonaccorso        IIT-CLNS, Rome                     Italy         *"
   write(iu,of)"*    Marco Lauricella         IAC-CNR, Rome                     Italy         *"
   write(iu,of)"*    Andrea Montessori        IAC-CNR, Rome                     Italy         *"
   write(iu,of)"*                                                                             *"
   write(iu,of)"*    with contributions from:                                                 *"
   write(iu,of)"*                                                                             *"
+  write(iu,of)"*    Giorgio Amati         CINECA-CED, Rome                     Italy         *"
   write(iu,of)"*    Massimo Bernaschi        IAC-CNR, Rome                     Italy         *"
   write(iu,of)"*    Sauro Succi              IAC-CNR, Rome                     Italy         *"
   write(iu,of)"*                                                                             *"
@@ -184,12 +185,9 @@
   write(iu,of)"*    This is an experimental code. The authors accept no responsibility       *"
   write(iu,of)"*    for the performance of the code or for the correctness of the results.   *"
   write(iu,of)"*                                                                             *"
-  write(iu,of)"*    The code is licensed under Open Software License v. 3.0 (OSL-3.0).       *"
+  write(iu,of)"*    The code is licensed under the 3-Clause BSD License (BSD-3-Clause).      *"
   write(iu,of)"*    The full text of the licence can be found on the website:                *"
-  write(iu,of)"*    http://opensource.org/licenses/OSL-3.0                                   *"
-  write(iu,of)"*                                                                             *"
-  write(iu,of)"*    A brief explanation of this license is available on the website:         *"
-  write(iu,of)"*    http://rosenlaw.com/OSL3.0-explained.htm                                 *"
+  write(iu,of)"*    https://opensource.org/licenses/BSD-3-Clause                             *"
   write(iu,of)"*                                                                             *"
   write(iu,of)"*    The software development process has received funding from the           *"
   write(iu,of)"*    European Research Council under the Horizon 2020 Programme               *"
@@ -218,7 +216,7 @@
 !     
 !     LBsoft subroutine for printing the memory registration
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -264,7 +262,7 @@
 !     LBsoft subroutine for printing the legend of the observables
 !     requested in input file
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -301,7 +299,7 @@
 !     
 !     LBsoft subroutine for reading the input file
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -527,7 +525,7 @@
   real(kind=PRC) :: temp_densR_wetting = ZERO
   real(kind=PRC) :: temp_densB_wetting = ZERO
   
-  real(kind=PRC), dimension(8,nmaxobjectliq) :: temp_objectdata = ZERO
+  real(kind=PRC), dimension(9,nmaxobjectliq) :: temp_objectdata = ZERO
   
   integer, dimension(mxvdw) :: temp_ltpvdw
   real(kind=PRC), dimension(mxpvdw,mxvdw) :: dtemp_prmvdw
@@ -2891,7 +2889,7 @@
 !     LBsoft function for returning the legend which is associated to
 !     the integer contained in the printcod array
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2991,7 +2989,7 @@
 !     LBsoft subroutine for identifying the symbolic string of the 
 !     output observables
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -3138,7 +3136,7 @@
 !     LBsoft subroutine for associating a description string 
 !     for each output observables requested in input file
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -3244,7 +3242,7 @@
 !     LBsoft function for returning the legend_vtk which is associated
 !      tothe integer contained in the printcod array for vtk files
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -3282,7 +3280,7 @@
 !     LBsoft subroutine for identifying the symbolic string of the 
 !     output observables for the vtk files
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -3336,7 +3334,7 @@
 !     LBsoft subroutine for identifying the symbolic string of the 
 !     input xyz variables that have to be read
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -3421,7 +3419,7 @@
 !     LBsoft function for returning the legend which is associated to
 !     the integer contained in the xyzcod array
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -3479,7 +3477,7 @@
 !     
 !     LBsoft subroutine for managing the output subroutines
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -3518,7 +3516,7 @@
 !     
 !     LBsoft subroutine for printing records on the terminal
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -3579,7 +3577,7 @@
 !
 !     note: the input file is written in a modified xyz format
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -3882,7 +3880,7 @@
 !     LBsoft subroutine for printing the legend of the observables
 !     written in input xyz file
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     

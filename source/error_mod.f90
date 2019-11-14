@@ -7,7 +7,7 @@
 !     LBsoft module containing subroutines which print warning and
 !     close the software if an error is occurred
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification September 2017
 !     
@@ -31,7 +31,7 @@
 !     LBsoft subroutine for printing error banners and close the
 !     program
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification September 2017
 !     
@@ -140,6 +140,12 @@
         write(outp,outf)'ERROR - error occurs in subroutine write_vtk_frame.'
       case (41)
         write(outp,outf)'ERROR - full-way bouce back rules are no longer supported.'
+      case (42)
+        write(outp,outf)'ERROR - error occurs in subroutine write_vtk_isfluid_serial.'
+      case (43)
+        write(outp,outf)'ERROR - error occurs in subroutine write_vtk_isfluid_parallel.'
+      case (44)
+        write(outp,outf)'ERROR - the frame of isfluid can not be written in parallel.'
       case default
         write(outp,'(a,i18)')'unknown ERROR! code = ',kode
     end select
@@ -156,7 +162,7 @@
 !     
 !     LBsoft subroutine for printing warning banners
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification January 2017
 !     
@@ -588,8 +594,11 @@
     case(71)
       write (r_char,'(f10.5)')ddata
       write(outp,'(/,a)')"WARNING - beta is not between zero and one."
-       write(outp,'(2a,/)')"WARNING - the actual value of beta is : ", &
+      write(outp,'(2a,/)')"WARNING - the actual value of beta is : ", &
        trim(adjustl(r_char))
+    case(72)
+      write(outp,'(/,2a,/)')"WARNING - the frame of isfluid can not be ", &
+       "written in parallel run"
     case default
       write(outp,'(/,a,i8,/)')"unknown WARNING! code = ",kode
   end select

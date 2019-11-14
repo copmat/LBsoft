@@ -7,7 +7,7 @@
 !     LBsoft module containing subroutines for profiling code 
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification July 2018
 !     
@@ -100,7 +100,7 @@ END INTERFACE
 !     LBsoft subroutine for setting the nstep interval for the 
 !     diagnostic profiling
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -123,7 +123,7 @@ END INTERFACE
 !     LBsoft subroutine for setting the nstep interval for the 
 !     diagnostic profiling
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -145,7 +145,7 @@ END INTERFACE
 !     
 !     LBsoft subroutine for register the memory usage
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification July 2018
 !     
@@ -191,7 +191,7 @@ END INTERFACE
 !     
 !     LBsoft subroutine for register the memory usage
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification July 2018
 !     
@@ -216,7 +216,7 @@ END INTERFACE
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification July 2018
 !     
@@ -238,7 +238,7 @@ END INTERFACE
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     
@@ -254,7 +254,7 @@ END INTERFACE
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     
@@ -269,7 +269,7 @@ END INTERFACE
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     
@@ -306,7 +306,7 @@ END INTERFACE
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     
@@ -326,7 +326,7 @@ END INTERFACE
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     
@@ -364,7 +364,7 @@ END INTERFACE
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     
@@ -442,7 +442,7 @@ END SUBROUTINE print_timing_partial
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     
@@ -519,7 +519,7 @@ SUBROUTINE print_standalone(ifreq,ioout_l,nroutine,total_time)
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     
@@ -629,7 +629,7 @@ SUBROUTINE print_routine_timing(section,ifreq,ioout_l)
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     
@@ -729,7 +729,7 @@ END SUBROUTINE print_routine_timing
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     
@@ -813,7 +813,7 @@ SUBROUTINE start_timing2(secname,subname)
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     
@@ -840,7 +840,7 @@ SUBROUTINE start_timing2(secname,subname)
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     
@@ -865,7 +865,7 @@ SUBROUTINE start_timing2(secname,subname)
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     
@@ -949,7 +949,7 @@ SUBROUTINE start_timing2(secname,subname)
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     
@@ -1035,7 +1035,7 @@ SUBROUTINE start_timing2(secname,subname)
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     
@@ -1085,7 +1085,7 @@ SUBROUTINE start_timing2(secname,subname)
 !     LBsoft subroutine for driving the timing services
 !     originally written in MUPHY by S. Melchionna et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     modified by: M. Lauricella
 !     last modification June 2018
 !     

@@ -8,7 +8,7 @@
 !     by different modules 
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -79,7 +79,7 @@
 !     which is used within this module
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification july 2018
 !     
@@ -112,7 +112,7 @@
 !     which is used within this module
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -145,7 +145,7 @@
 !     which is used within this module
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -177,7 +177,7 @@
 !     LBsoft subroutine for reallocating the service array buff 
 !     which is used outside this module for particles
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -211,7 +211,7 @@
 !     which is used within this module
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -271,7 +271,7 @@
 !     by the seed given in input file or by a random seed
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -317,7 +317,7 @@
 !     it is delivered in a form which is depending on a seed squence 
 !     provided at each call in order to ensure the MPI independence
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -398,7 +398,7 @@
 !     distributed by the Box-Muller transformation
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -432,7 +432,7 @@
 !     LBsoft subroutine for generating random number normally
 !     distributed by the Box-Muller transformation without a seed
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -467,7 +467,7 @@
 !     LBsoft function for computing the module of a vector
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -491,7 +491,7 @@
 !     LBsoft function for computing the cross product of two vectors
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -517,7 +517,7 @@
 !     LBsoft function for computing the cross product of two vectors
 !     along x
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -541,7 +541,7 @@
 !     LBsoft function for computing the cross product of two vectors
 !     along y
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -565,7 +565,7 @@
 !     LBsoft function for computing the cross product of two vectors
 !     along z
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -589,7 +589,7 @@
 !     LBsoft function for computing the volume intersection
 !     between a cube and a sphere
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -639,7 +639,7 @@
 !     LBsoft function for computing the dot product of two vectors
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -663,7 +663,7 @@
 !     LBsoft function for returning the sign of a floating number
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -695,7 +695,7 @@
 !     of an integer number
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -730,7 +730,7 @@
 !     with integer digits and leading zeros to the left
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -766,7 +766,7 @@
 !     minutes and seconds for printing (input timelp in seconds)
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -926,7 +926,7 @@
 !     LBsoft function for fading an observable (r) within a given
 !     interval
 !
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification January 2018
 !
@@ -957,7 +957,7 @@
 !     with integer digits and leading spaces to the left
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -993,7 +993,7 @@
 !     with integer digits and leading TWELVE spaces to the left
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1028,7 +1028,7 @@
 !     LBsoft subroutine for checking if the computing architecture
 !     is working in little-endian or big-endian
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     

@@ -6,7 +6,7 @@
 !     
 !     LBsoft module containing statistical data routines
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -45,7 +45,7 @@
 !     LBsoft subroutine for controlling calls to
 !     subroutines which store statistical data 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -70,7 +70,7 @@
 !     LBsoft subroutine for controlling subroutine calls to
 !     subroutines which compute statistical data 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2019
 !     
@@ -266,7 +266,7 @@
 !     
 !     LBsoft subroutine for registering the actual CPU time
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -291,7 +291,7 @@
 !     
 !     LBsoft subroutine for computing the elapsed CPU time
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     

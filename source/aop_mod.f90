@@ -7,7 +7,7 @@ MODULE aop_mod
 !     LBsoft module containing definitions of pointer types in order
 !     to create structures of arrays
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Bernaschi
 !     last modification October 2019
 !     

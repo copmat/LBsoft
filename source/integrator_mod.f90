@@ -6,7 +6,7 @@
 !     
 !     LBsoft module containing integrators data routines
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification july 2018
 !     
@@ -81,7 +81,7 @@
 !     LBsoft subroutine for setting the nstepmax for the 
 !     integration loop
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification july 2018
 !     
@@ -103,7 +103,7 @@
 !     
 !     LBsoft subroutine for setting the nstep counter
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification july 2018
 !     
@@ -125,7 +125,7 @@
 !     
 !     LBsoft subroutine for updating the nstep counter
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification july 2018
 !     
@@ -146,7 +146,7 @@
 !     LBsoft subroutine for setting the l_restore flag for the
 !     restarting procedure
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification october 2019
 !     
@@ -168,7 +168,7 @@
 !     LBsoft subroutine for inquiring the l_restore flag for the
 !     restarting procedure
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification october 2019
 !     
@@ -189,7 +189,7 @@
 !     
 !     LBsoft subroutine for driving the time integration of system
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification july 2018
 !     

@@ -9,7 +9,8 @@ Andrea Montessori        IAC-CNR, Rome                     Italy
                                                                         
                                                                                                                                                 
 with contributions from:                                                
-                                                                               
+                                                                        
+Giorgio Amati         CINECA-CED, Rome                     Italy        
 Massimo Bernaschi        IAC-CNR, Rome                     Italy        
 Sauro Succi              IAC-CNR, Rome                     Italy        
                                                                         
@@ -20,5 +21,5 @@ Grant Agreement n. 739964 (COPMAT).
 This is an experimental code. The authors accept no responsibility      
 for the performance of the code or for the correctness of the results.  
                                                                         
-The code is licensed under Open Software License v. 3.0 (OSL-3.0).      
+The code is licensed under the 3-Clause BSD License (BSD-3-Clause).     
                                                                         

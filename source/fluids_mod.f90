@@ -8,7 +8,7 @@
 !     LBsoft module containing variable and subroutines of the
 !     fluid components
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -486,7 +486,7 @@
 !     LBsoft subroutine for allocating arrays which 
 !     describe the fluids
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -741,7 +741,7 @@
    
    isfluid(ix:mynx,iy:myny,iz:mynz)=3
    bcfluid(ix:mynx,iy:myny,iz:mynz)=0
-   rhoR(ix:mynx,iy:myny,iz:mynz)=ZERO
+   rhoR(ix:mynx,iy:myny,iz:mynz)=MINDENS
 
    u(ix:mynx,iy:myny,iz:mynz)=ZERO
    v(ix:mynx,iy:myny,iz:mynz)=ZERO
@@ -783,7 +783,7 @@
    
    if(.not. lsingle_fluid)then
         
-     rhoB(ix:mynx,iy:myny,iz:mynz)=ZERO
+     rhoB(ix:mynx,iy:myny,iz:mynz)=MINDENS
 
       fuB(ix:mynx,iy:myny,iz:mynz)=ZERO
       fvB(ix:mynx,iy:myny,iz:mynz)=ZERO
@@ -893,7 +893,7 @@
 !     the communication within the same process bewteen nodes linked
 !     because of the periodic bc
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -917,7 +917,7 @@
 !     
 !     LBsoft subroutine for initialize the isfluid and bcfluid
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -994,43 +994,67 @@
               isfluid(i,j,k)=0
             elseif(i==(nx+1))then !east side
               if(bc_type_east/=0)then
-                isfluid(i,j,k)=bc_type_east+5
-                bcfluid(i,j,k)=2
+                if(isfluid(i+ex(2),j,k)==1)then
+                  isfluid(i,j,k)=bc_type_east+5
+                  bcfluid(i,j,k)=2
+                else
+                  isfluid(i,j,k)=0
+                endif
               else
                 isfluid(i,j,k)=0
               endif
             elseif(i==0)then !west side
               if(bc_type_west/=0)then
-                isfluid(i,j,k)=bc_type_west+5
-                bcfluid(i,j,k)=1
+                if(isfluid(i+ex(1),j,k)==1)then
+                  isfluid(i,j,k)=bc_type_west+5
+                  bcfluid(i,j,k)=1
+                else
+                  isfluid(i,j,k)=0
+                endif
               else
                 isfluid(i,j,k)=0
               endif
             elseif(k==(nz+1))then !north side
               if(bc_type_north/=0)then
-                isfluid(i,j,k)=bc_type_north+5
-                bcfluid(i,j,k)=6
+                if(isfluid(i,j,k+ez(6))==1)then
+                  isfluid(i,j,k)=bc_type_north+5
+                  bcfluid(i,j,k)=6
+                else
+                  isfluid(i,j,k)=0
+                endif
               else
                 isfluid(i,j,k)=0
               endif
             elseif(k==0)then !south side
               if(bc_type_south/=0)then
-                isfluid(i,j,k)= bc_type_south+5
-                bcfluid(i,j,k)=5
+                if(isfluid(i,j,k+ez(5))==1)then
+                  isfluid(i,j,k)= bc_type_south+5
+                  bcfluid(i,j,k)=5
+                else
+                  isfluid(i,j,k)=0
+                endif
               else
                 isfluid(i,j,k)=0
               endif
             elseif(j==0)then !rear side
               if(bc_type_rear/=0)then
-                isfluid(i,j,k)= bc_type_rear+5
-                bcfluid(i,j,k)=3
+                if(isfluid(i,j+ez(3),k)==1)then
+                  isfluid(i,j,k)= bc_type_rear+5
+                  bcfluid(i,j,k)=3
+                else
+                  isfluid(i,j,k)=0
+                endif
               else
                 isfluid(i,j,k)=0
               endif
             elseif(j==(ny+1))then !front side
               if(bc_type_front/=0)then
-                isfluid(i,j,k)= bc_type_front+5
-                bcfluid(i,j,k)=4
+                if(isfluid(i,j+ez(4),k)==1)then
+                  isfluid(i,j,k)= bc_type_front+5
+                  bcfluid(i,j,k)=4
+                else
+                  isfluid(i,j,k)=0
+                endif
               else
                 isfluid(i,j,k)=0
               endif
@@ -1049,29 +1073,45 @@
                 isfluid(i,j,k)=0
               elseif(k==(nz+1))then !north side
                 if(bc_type_north/=0)then
-                  isfluid(i,j,k)= bc_type_north+5
-                  bcfluid(i,j,k)=6
+                  if(isfluid(i,j,k+ez(6))==1)then
+                    isfluid(i,j,k)=bc_type_north+5
+                    bcfluid(i,j,k)=6
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
               elseif(k==0)then !south side
                 if(bc_type_south/=0)then
-                  isfluid(i,j,k)= bc_type_south+5
-                  bcfluid(i,j,k)=5
+                  if(isfluid(i,j,k+ez(5))==1)then
+                    isfluid(i,j,k)= bc_type_south+5
+                    bcfluid(i,j,k)=5
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
               elseif(j==0)then !rear side
                 if(bc_type_rear/=0)then
-                  isfluid(i,j,k)= bc_type_rear+5
-                  bcfluid(i,j,k)=3
+                  if(isfluid(i,j+ez(3),k)==1)then
+                    isfluid(i,j,k)= bc_type_rear+5
+                    bcfluid(i,j,k)=3
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
               elseif(j==(ny+1))then !front side
                 if(bc_type_front/=0)then
-                  isfluid(i,j,k)= bc_type_front+5
-                  bcfluid(i,j,k)=4
+                  if(isfluid(i,j+ez(4),k)==1)then
+                    isfluid(i,j,k)= bc_type_front+5
+                    bcfluid(i,j,k)=4
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
@@ -1091,29 +1131,45 @@
                 isfluid(i,j,k)=0
               elseif(i==(nx+1))then !east side
                 if(bc_type_east/=0)then
-                  isfluid(i,j,k)= bc_type_east+5
-                  bcfluid(i,j,k)=2
+                  if(isfluid(i+ex(2),j,k)==1)then
+                    isfluid(i,j,k)=bc_type_east+5
+                    bcfluid(i,j,k)=2
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
               elseif(i==0)then !west side
                 if(bc_type_west/=0)then
-                  isfluid(i,j,k)= bc_type_west+5
-                  bcfluid(i,j,k)=1
+                  if(isfluid(i+ex(1),j,k)==1)then
+                    isfluid(i,j,k)=bc_type_west+5
+                    bcfluid(i,j,k)=1
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
               elseif(k==(nz+1))then !north side
                 if(bc_type_north/=0)then
-                  isfluid(i,j,k)= bc_type_north+5
-                  bcfluid(i,j,k)=6
+                  if(isfluid(i,j,k+ez(6))==1)then
+                    isfluid(i,j,k)=bc_type_north+5
+                    bcfluid(i,j,k)=6
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
               elseif(k==0)then !south side
                 if(bc_type_south/=0)then
-                  isfluid(i,j,k)= bc_type_south+5
-                  bcfluid(i,j,k)=5
+                  if(isfluid(i,j,k+ez(5))==1)then
+                    isfluid(i,j,k)= bc_type_south+5
+                    bcfluid(i,j,k)=5
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
@@ -1125,15 +1181,23 @@
             if(k==0 .or. k==(nz+1))then
               if(k==(nz+1))then !north side
                 if(bc_type_north/=0)then
-                  isfluid(i,j,k)= bc_type_north+5
-                  bcfluid(i,j,k)=6
+                  if(isfluid(i,j,k+ez(6))==1)then
+                    isfluid(i,j,k)=bc_type_north+5
+                    bcfluid(i,j,k)=6
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
               elseif(k==0)then !south side
                 if(bc_type_south/=0)then
-                  isfluid(i,j,k)= bc_type_south+5
-                  bcfluid(i,j,k)=5
+                  if(isfluid(i,j,k+ez(5))==1)then
+                    isfluid(i,j,k)= bc_type_south+5
+                    bcfluid(i,j,k)=5
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
@@ -1153,29 +1217,45 @@
                 isfluid(i,j,k)=0
               elseif(i==(nx+1))then !east side
                 if(bc_type_east/=0)then
-                  isfluid(i,j,k)= bc_type_east+5
-                  bcfluid(i,j,k)=2
+                  if(isfluid(i+ex(2),j,k)==1)then
+                    isfluid(i,j,k)=bc_type_east+5
+                    bcfluid(i,j,k)=2
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
               elseif(i==0)then !west side
                 if(bc_type_west/=0)then
-                  isfluid(i,j,k)= bc_type_west+5
-                  bcfluid(i,j,k)=1
+                  if(isfluid(i+ex(1),j,k)==1)then
+                    isfluid(i,j,k)=bc_type_west+5
+                    bcfluid(i,j,k)=1
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
               elseif(j==0)then !rear side
                 if(bc_type_rear/=0)then
-                  isfluid(i,j,k)= bc_type_rear+5
-                  bcfluid(i,j,k)=3
+                  if(isfluid(i,j+ez(3),k)==1)then
+                    isfluid(i,j,k)= bc_type_rear+5
+                    bcfluid(i,j,k)=3
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
               elseif(j==(ny+1))then !front side
                 if(bc_type_front/=0)then
-                  isfluid(i,j,k)= bc_type_front+5
-                  bcfluid(i,j,k)=4
+                  if(isfluid(i,j+ez(4),k)==1)then
+                    isfluid(i,j,k)= bc_type_front+5
+                    bcfluid(i,j,k)=4
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
@@ -1187,15 +1267,23 @@
             if(j==0 .or. j==(ny+1))then
               if(j==0)then !rear side
                 if(bc_type_rear/=0)then
-                  isfluid(i,j,k)= bc_type_rear+5
-                  bcfluid(i,j,k)=3
+                  if(isfluid(i,j+ez(3),k)==1)then
+                    isfluid(i,j,k)= bc_type_rear+5
+                    bcfluid(i,j,k)=3
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
               elseif(j==(ny+1))then !front side
                 if(bc_type_front/=0)then
-                  isfluid(i,j,k)= bc_type_front+5
-                  bcfluid(i,j,k)=4
+                  if(isfluid(i,j+ez(4),k)==1)then
+                    isfluid(i,j,k)= bc_type_front+5
+                    bcfluid(i,j,k)=4
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
@@ -1207,15 +1295,23 @@
             if(i==0 .or. i==(nx+1))then
               if(i==(nx+1))then !east side
                 if(bc_type_east/=0)then
-                  isfluid(i,j,k)= bc_type_east+5
-                  bcfluid(i,j,k)=2
+                  if(isfluid(i+ex(2),j,k)==1)then
+                    isfluid(i,j,k)=bc_type_east+5
+                    bcfluid(i,j,k)=2
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
               elseif(i==0)then !west side
                 if(bc_type_west/=0)then
-                  isfluid(i,j,k)= bc_type_west+5
-                  bcfluid(i,j,k)=1
+                  if(isfluid(i+ex(1),j,k)==1)then
+                    isfluid(i,j,k)=bc_type_west+5
+                    bcfluid(i,j,k)=1
+                  else
+                    isfluid(i,j,k)=0
+                  endif
                 else
                   isfluid(i,j,k)=0
                 endif
@@ -1499,7 +1595,7 @@
 !     LBsoft subroutine for initialize the fluids and read the
 !     restart file if requested
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -1645,7 +1741,7 @@
 !     
 !     LBsoft subroutine for pushing the isfluid communication
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -1666,7 +1762,7 @@
 !     
 !     LBsoft subroutine for initialize the force fluids
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -1699,7 +1795,7 @@
 !     LBsoft subroutine for setting the initial density of fluids 
 !     following a random gaussian distribution
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -1754,7 +1850,7 @@
 !     LBsoft subroutine for setting the initial density of fluids 
 !     following a random uniform distribution
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -1813,7 +1909,7 @@
 !     LBsoft subroutine for setting the initial density of fluids 
 !     following a set of given objects
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -1821,7 +1917,7 @@
   
   implicit none
   
-  integer :: i,j,k,l
+  integer :: i,j,k,l,iframe
   real(kind=PRC), dimension(3) :: dists,dbox
   real(kind=PRC) :: rdist,dtemp
   
@@ -1852,7 +1948,11 @@
               if(nint(objectdata(1,l))<=i .and. nint(objectdata(2,l))>=i .and. &
               nint(objectdata(3,l))<=j .and. nint(objectdata(4,l))>=j .and. &
               nint(objectdata(5,l))<=k .and. nint(objectdata(6,l))>=k ) then
-              rhoR(i,j,k)=objectdata(7,l)
+!                iframe=nint(objectdata(9,l))
+!                if(nint(objectdata(1,l))<=i .and. nint(objectdata(2,l))>=i .and. &
+!                  nint(objectdata(3,l))<=j .and. nint(objectdata(4,l))>=j .and. &
+!                 nint(objectdata(5,l))<=k .and. nint(objectdata(6,l))>=k ) then
+                 rhoR(i,j,k)=objectdata(7,l)
               endif
             end select
           enddo
@@ -1908,7 +2008,7 @@
 !     following a fake distribution equal to the id fluid node
 !     ONLY FOR DIAGNOSTIC PURPOSE
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification September 2018
 !     
@@ -1972,7 +2072,7 @@
 !     LBsoft subroutine for setting the initial density of fluids 
 !     equal to a given value
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -1997,7 +2097,7 @@
 !     LBsoft subroutine for setting the initial velocity of fluids 
 !     equal to given values
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2022,7 +2122,7 @@
 !     LBsoft subroutine for driving the setting of the initial 
 !     fluid populations
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2052,7 +2152,7 @@
 !     
 !     LBsoft subroutine for setting the initial populations of fluids 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2174,7 +2274,7 @@
 !     LBsoft subroutine for set the conditions of fluids 
 !     at the east open boundary
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2205,7 +2305,7 @@
 !     LBsoft subroutine for set the conditions of fluids 
 !     at the west open boundary
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2236,7 +2336,7 @@
 !     LBsoft subroutine for set the conditions of fluids 
 !     at the rear open boundary
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2267,7 +2367,7 @@
 !     LBsoft subroutine for set the conditions of fluids 
 !     at the front open boundary
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2298,7 +2398,7 @@
 !     LBsoft subroutine for set the conditions of fluids 
 !     at the north open boundary
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2333,7 +2433,7 @@
 !     LBsoft subroutine for set the conditions of fluids 
 !     at the south open boundary
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2367,7 +2467,7 @@
 !     LBsoft subroutine for change the mean density of fluids 
 !     inside this module
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2391,7 +2491,7 @@
 !     LBsoft subroutine for change the standard devviation 
 !     in the density of fluids inside this module
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2415,7 +2515,7 @@
 !     LBsoft subroutine for change the background density of fluids 
 !     inside this module
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification January 2019
 !     
@@ -2439,7 +2539,7 @@
 !     LBsoft subroutine for change the initial velocity values of fluids 
 !     inside this module
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2464,7 +2564,7 @@
 !     LBsoft subroutine for set the external force values acting
 !     on the fluids 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2490,7 +2590,7 @@
 !     LBsoft subroutine for setting the LB integrator type for
 !     the collisional step
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2510,7 +2610,7 @@
 !     LBsoft subroutine for setting the initial distribution type for
 !     the density fluid initialization
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2533,7 +2633,7 @@
 !     LBsoft subroutine for setting the initial dimensions of the
 !     simulation box
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2558,7 +2658,7 @@
 !     LBsoft subroutine for change the mean velocity of fluids 
 !     inside this module
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2583,7 +2683,7 @@
 !     LBsoft subroutine for set the value of lbc_halfway for select 
 !     the halfway bounce back mode
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2607,7 +2707,7 @@
 !     LBsoft subroutine for set the value of lbc_fullway for select 
 !     the fullway bounce back mode
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -2631,7 +2731,7 @@
 !     LBsoft subroutine for set the value of lsingle_fluid for select 
 !     the single fluid mode
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2654,7 +2754,7 @@
 !     LBsoft subroutine for set the value of lread_isfluid for reading 
 !     the isfluid.dat input file
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -2677,7 +2777,7 @@
 !     LBsoft subroutine for set the value of the pair ShanChen 
 !     force constant
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2704,7 +2804,7 @@
 !     LBsoft subroutine for set the value of the surface tension 
 !     force in the colour gradient model
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2019
 !     
@@ -2734,7 +2834,7 @@
 !     LBsoft subroutine for set the value of the phi coefficients
 !     of the lattice in the colour gradient model
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2019
 !     
@@ -2771,7 +2871,7 @@
 !     LBsoft subroutine for setting the wetting of the fluid density 
 !     at the wall by the Benzi's approach
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2019
 !     
@@ -2797,7 +2897,7 @@
 !     LBsoft subroutine for set the value of the pair ShanChen 
 !     wall coupling constant
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2822,7 +2922,7 @@
 !     LBsoft subroutine for set the value of the pair ShanChen 
 !     particle coupling constant
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification January 2019
 !     
@@ -2847,7 +2947,7 @@
 !     LBsoft subroutine for set the value of the contact angle 
 !     in the particle Shan Chen coupling
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification January 2019
 !     
@@ -2871,7 +2971,7 @@
 !     LBsoft subroutine for set the viscosity value and the relaxation 
 !     time tau
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2908,7 +3008,7 @@
 !     LBsoft subroutine for set the relaxation time tau value and 
 !     the viscosity
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2944,7 +3044,7 @@
 !     
 !     LBsoft subroutine for set a unique omega value
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -2969,7 +3069,7 @@
 !     LBsoft subroutine for set the capping force value acting
 !     on fluids 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2019
 !     
@@ -2993,7 +3093,7 @@
 !     
 !     LBsoft subroutine for set the rescaling of fluid mass
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2019
 !     
@@ -3020,7 +3120,7 @@
 !     LBsoft subroutine for set the number and type of objects in  
 !     the special fluid initialization
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -3037,7 +3137,7 @@
   if(allocated(typeobjectliq))deallocate(typeobjectliq)
   if(allocated(objectdata))deallocate(objectdata)
   allocate(typeobjectliq(nobjectliq))
-  allocate(objectdata(8,nobjectliq))
+  allocate(objectdata(9,nobjectliq))
   
   return
   
@@ -3050,7 +3150,7 @@
 !     LBsoft subroutine for set the value of objectdata for special 
 !     fluid initialization
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -3060,11 +3160,11 @@
   
   integer, intent(in) :: itemp1
   integer, intent(in), dimension(itemp1) :: itemp2
-  real(kind=PRC), intent(in), dimension(8,itemp1) :: dtemp1
+  real(kind=PRC), intent(in), dimension(9,itemp1) :: dtemp1
     
   typeobjectliq(1:itemp1)=itemp2(1:itemp1)
   
-  objectdata(1:8,1:itemp1)=dtemp1(1:8,1:itemp1)
+  objectdata(1:9,1:itemp1)=dtemp1(1:9,1:itemp1)
   
   return
   
@@ -3076,7 +3176,7 @@
 !     
 !     LBsoft function to convert the viscosity to omega
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -3102,7 +3202,7 @@
 !     
 !     LBsoft function to convert the omega to viscosity
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -3126,7 +3226,7 @@
 !     
 !     LBsoft subroutine for rescaling total fluid mass
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2019
 !     
@@ -3208,7 +3308,7 @@
 !     
 !     LBsoft subroutine for scaling all the populations of a factor
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2019
 !     
@@ -3261,7 +3361,7 @@
 !     LBsoft subroutine for converting the forces to the correspondent
 !     velocity shifted for the forces
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -3315,7 +3415,7 @@
 !     LBsoft subroutine for driving the collisional step
 !     on the Boltzmann populations 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -3378,7 +3478,7 @@
 !     LBsoft subroutine for applying the collisional step
 !     on the Boltzmann populations 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -3673,7 +3773,7 @@
 !     LBsoft subroutine for applying the collisional step
 !     on the Boltzmann populations 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -4157,7 +4257,7 @@
 !     LBsoft subroutine for computing the relative omega of the
 !     fluid system
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -4187,7 +4287,7 @@
 !     LBsoft subroutine for adding the surface tension and the
 !     recolouring step in the collisional step
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2019
 !     
@@ -4533,7 +4633,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the populations in the Colour Gradient model
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2019
 !     
@@ -4557,6 +4657,7 @@
   equil_popCG=myrho*(myphy(myl)+myp(myl)*(uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO)))
   
+  
   return
   
  end function equil_popCG
@@ -4568,7 +4669,7 @@
 !     LBsoft subroutine for driving the pbc within the same process
 !     on the Boltzmann populations
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -4597,7 +4698,7 @@
 !     LBsoft subroutine for streaming the populations without
 !     a buffer copy
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: F. Bonaccorso
 !     last modification April 2019
 !     
@@ -4715,7 +4816,7 @@
 !     LBsoft subroutine for streaming the populations without
 !     a buffer copy
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: F. Bonaccorso
 !     last modification April 2019
 !     
@@ -4966,7 +5067,7 @@
 !     LBsoft subroutine for driving the streaming step
 !     on the Boltzmann populations
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -5125,7 +5226,7 @@
 !     LBsoft subroutine for applying the streaming step
 !     on the Boltzmann populations
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -5435,7 +5536,7 @@
 !     LBsoft subroutine for computing the moments on the 
 !     Boltzmann populations and estimate the hydrodynamic variables
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -5492,7 +5593,7 @@
       nfluidnodes=nfluidnodes+1
       nfluidmassR=nfluidmassR+locrho
     else
-      rhoR(i,j,k) = ZERO
+      rhoR(i,j,k) = MINDENS
       u(i,j,k) = ZERO
       v(i,j,k) = ZERO
       w(i,j,k) = ZERO
@@ -5564,8 +5665,8 @@
       nfluidmassR=nfluidmassR+locrhor
       nfluidmassB=nfluidmassB+locrhob
     else
-      rhoR(i,j,k) = ZERO
-      rhoB(i,j,k) = ZERO
+      rhoR(i,j,k) = MINDENS
+      rhoB(i,j,k) = MINDENS
       u(i,j,k) = ZERO
       v(i,j,k) = ZERO
       w(i,j,k) = ZERO
@@ -5867,7 +5968,7 @@
 !     LBsoft subroutine for probing the Red hydrodynamic moments
 !     at the point i j k
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6010,7 +6111,7 @@
 !     LBsoft subroutine for probing the Blue hydrodynamic moments
 !     at the point i j k
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6153,7 +6254,7 @@
 !     LBsoft subroutine for probing the population values
 !     at the point i j k
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification September 2018
 !     
@@ -6188,7 +6289,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population zero
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6224,7 +6325,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population one
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6268,7 +6369,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population two
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6312,7 +6413,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population three
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6356,7 +6457,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population four
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6400,7 +6501,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population five
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6444,7 +6545,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population six
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6488,7 +6589,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population seven
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6532,7 +6633,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population eight
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6576,7 +6677,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population nine
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6620,7 +6721,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population ten
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6664,7 +6765,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population eleven
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6708,7 +6809,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population twelve
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6752,7 +6853,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population thirteen
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6796,7 +6897,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population fourteen
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6840,7 +6941,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population fiveteen
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6884,7 +6985,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population sixteen
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6928,7 +7029,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population seventeen
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -6972,7 +7073,7 @@
 !     LBsoft function for Boltzmann equilibrium distribution 
 !     for the population eighteen
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -7020,7 +7121,7 @@
 !     LBsoft subroutine for driving the boundary conditions
 !     to isfluid array
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -7049,7 +7150,7 @@
 !     LBsoft subroutine for driving the boundary conditions
 !     to new_isfluid array
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -7077,7 +7178,7 @@
 !     LBsoft subroutine for driving the boundary conditions
 !     to fluid densities
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -7110,7 +7211,7 @@
 !     LBsoft subroutine for driving the boundary conditions
 !     to fluid densities
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -7140,7 +7241,7 @@
 !     LBsoft subroutine to manage the buffer of isfluid nodes
 !     within the same process for applying the boundary conditions
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -7270,7 +7371,7 @@
 !     LBsoft subroutine to manage the buffer of isfluid nodes
 !     within the same process for applying the boundary conditions
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -7301,7 +7402,7 @@
 !     LBsoft subroutine to manage the buffer of isfluid nodes
 !     within the same process for applying the boundary conditions
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -7431,7 +7532,7 @@
 !     LBsoft subroutine to manage the buffer of isfluid nodes
 !     within the same process for applying the boundary conditions
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -7463,7 +7564,7 @@
 !     managed within the same process for applying the boundary 
 !     conditions
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -7627,7 +7728,7 @@
 !     using the node list created in subroutine
 !     initialiaze_manage_bc_dens_selfcomm
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -7654,7 +7755,7 @@
 !     LBsoft subroutine for driving the boundary conditions
 !     to fluid densities
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -7713,7 +7814,7 @@
 !     managed within the same process for applying the boundary 
 !     conditions
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -7827,7 +7928,7 @@
 !     using the node list created in subroutine
 !     initialiaze_manage_bc_pop_selfcomm
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -7878,7 +7979,7 @@
 !     
 !     LBsoft sfunction to impose the pbc 
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -8080,7 +8181,7 @@
 !     LBsoft subroutine for driving the bounce back of the fluid
 !     populations if requested from the boundary conditions
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -8121,7 +8222,7 @@
 !     populations if requested from the boundary conditions 
 !     in halfway mode.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -8209,7 +8310,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine for setting the bc value of the hydrodynamic 
 !     variable if requested at halfway grid point
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -8772,7 +8873,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine for setting the fixed bc value of the hydrodynamic 
 !     variable if requested (fixed = which were set at the beginning)
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification September 2018
 !     
@@ -9133,7 +9234,7 @@ if(mod(nstep,1)==0)then
 !     hydrodynamic variable if requested (variable = can be change      
 !     along the run) at halfway grid point
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -9351,7 +9452,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine for applying the bounceback 
 !     to fluid populations if necessary
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification September 2018
 !     
@@ -9850,7 +9951,7 @@ if(mod(nstep,1)==0)then
 !     to fluid populations if necessary in halfway mode,
 !     page 82 of book: "the lattice boltzmann equation", S.Succi, 2001.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification September 2018
 !     
@@ -10700,7 +10801,7 @@ if(mod(nstep,1)==0)then
 !     the forward finite difference coeff for the derivatives
 !     at fullway grid point
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -10739,7 +10840,7 @@ if(mod(nstep,1)==0)then
 !     the forward finite difference coeff for the derivatives
 !     at halfway grid point
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -10777,7 +10878,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine for applying the bounceback 
 !     to fluid populations if necessary
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Bernaschi
 !     last modification September 2018
 !     
@@ -10858,7 +10959,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine for driving the reflection of the density 
 !     variables if requested from the boundary conditions
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -11163,7 +11264,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine for computing the Shan Chen pseudo 
 !     potential values for the fluid part
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification January 2019
 !     
@@ -11475,7 +11576,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine for computing the Shan Chen force acting on 
 !     particles and the pseudo potential values for the fluid part
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification January 2019
 !     
@@ -11648,7 +11749,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine for computing the Shan Chen force acting on 
 !     particles and the pseudo potential values for the fluid part
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification January 2019
 !     
@@ -11793,7 +11894,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine to computing the Shan Chen force acting
 !     on a particle surface node including the pbc
 !
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification January 2019
 !
@@ -11959,7 +12060,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine to computing the Shan Chen force acting
 !     on a particle surface node including the pbc
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification January 2019
 !     
@@ -12137,7 +12238,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine to computing the Shan Chen force acting
 !     on a particle surface node including the pbc
 !
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification January 2019
 !
@@ -12579,7 +12680,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine for computing the Shan Chen pair interaction
 !     forces
 !
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !
@@ -12620,7 +12721,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine for computing the gradient of a scalar
 !     over the lattice
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -12757,7 +12858,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine for computing the Shan Chen pair interaction
 !     forces
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -12845,7 +12946,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine for computing the gradient of a scalar
 !     over the lattice
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -13056,7 +13157,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine to initialize isfluid and hydrodynamic
 !     variables according to the particle presence
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -13097,7 +13198,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine to initialize isfluid and hydrodynamic
 !     variables according to the particle presence
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -13286,7 +13387,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine to initialize isfluid and hydrodynamic
 !     variables according to the particle presence
 !
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !
@@ -13447,7 +13548,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine to apply the bounce back of the fluid 
 !     on a particle surface node including the pbc
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -13657,7 +13758,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine to apply the bounce back of the fluid 
 !     on a particle surface node including the pbc
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -14316,7 +14417,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine to apply the bounce back of the fluid due to 
 !     the particle surface
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -14408,7 +14509,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine to apply the bounce back of the fluid due to
 !     the particle surface
 !
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !
@@ -15336,7 +15437,7 @@ if(mod(nstep,1)==0)then
 !     LBsoft subroutine to delete fluid nodes according to the 
 !     particle presence
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -15709,7 +15810,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine to create fluid nodes according to the 
 !     particle presence
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -16110,7 +16211,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine to create fluid nodes according to the 
 !     particle presence
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -16340,7 +16441,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine to initialize isfluid and hydrodynamic
 !     variables according to the particle presence
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -16385,7 +16486,7 @@ end subroutine fix_onebelt_density_twofluids
 !     
 !     LBsoft subroutine for initialize the new_isfluid
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -16410,7 +16511,7 @@ end subroutine fix_onebelt_density_twofluids
 !     
 !     LBsoft subroutine for update isfluid from new_isfluid
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -16438,7 +16539,7 @@ end subroutine fix_onebelt_density_twofluids
 !     
 !     LBsoft subroutine for initialize the new fluid node
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification November 2018
 !     
@@ -16558,7 +16659,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for writing the population
 !     in ASCII format for diagnostic purposes
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification july 2018
 !     
@@ -16857,7 +16958,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for writing the populations in ASCII format 
 !     for diagnostic purposes always ordered also in parallel
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -16916,7 +17017,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for writing the populations in ASCII format 
 !     for diagnostic purposes always ordered also in parallel
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -17017,7 +17118,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for writing the populations in ASCII format 
 !     for diagnostic purposes always ordered also in parallel
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -17182,7 +17283,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for writing the hvars in ASCII format 
 !     for diagnostic purposes always ordered also in parallel
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -17241,7 +17342,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine to set fake pop values for diagnostic
 !     purposes
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -17272,7 +17373,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine to check fake pop values for diagnostic
 !     purposes
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -17347,7 +17448,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for writing the populations in ASCII format 
 !     for diagnostic purposes
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -17404,7 +17505,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for writing the Hvar in ASCII format 
 !     for diagnostic purposes
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -17435,7 +17536,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for restoring the Hvar in ASCII format 
 !     for diagnostic purposes
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -17466,7 +17567,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for restoring the pops in ASCII format 
 !     for diagnostic purposes
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -17510,7 +17611,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for print the restart files in binary
 !     format
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -17702,7 +17803,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for restoring all data from one dumped 
 !     file
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -17811,7 +17912,7 @@ end subroutine fix_onebelt_density_twofluids
 !     
 !     LBsoft subroutine for reading the isfluid.dat file
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -17847,7 +17948,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for writing output data with double
 !     precision in binary format
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -17950,7 +18051,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for opening a binary stream file
 !     in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -17977,7 +18078,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for writing a vector with double
 !     precision in binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -18007,7 +18108,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for writing a vector with double
 !     precision in binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -18056,7 +18157,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for writing a vector with double
 !     precision in binary format in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
@@ -18083,7 +18184,7 @@ end subroutine fix_onebelt_density_twofluids
 !     LBsoft subroutine for closing a binary stream file
 !     in serial IO
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2019
 !     
