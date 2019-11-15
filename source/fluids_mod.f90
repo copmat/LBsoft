@@ -10150,18 +10150,18 @@ if(mod(nstep,1)==0)then
     
     aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(2)%p(ibounce(1,i)+ex(1),ibounce(2,i),ibounce(3,i)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(1)*TWO*rho_s(i) + &
      p(1)*TWO*rho_s(i)* &
-     (phi_CG(1)+(dex(1)*u_s(i))**TWO/cssq4 - &
+     ((dex(1)*u_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
      
     aoptp(2)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(1)%p(ibounce(1,i)+ex(2),ibounce(2,i),ibounce(3,i)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(2)*TWO*rho_s(i) +  &
      p(2)*TWO*rho_s(i)* &
-     (phi_CG(2)+(dex(2)*u_s(i))**TWO/cssq4 - &
+     ((dex(2)*u_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
@@ -10169,18 +10169,18 @@ if(mod(nstep,1)==0)then
     
     aoptp(3)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(4)%p(ibounce(1,i),ibounce(2,i)+ey(3),ibounce(3,i)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(3)*TWO*rho_s(i) +  &
      p(3)*TWO*rho_s(i)* &
-     (phi_CG(3)+(dey(3)*v_s(i))**TWO/cssq4 - &
+     ((dey(3)*v_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
      
     aoptp(4)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(3)%p(ibounce(1,i),ibounce(2,i)+ey(4),ibounce(3,i)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(4)*TWO*rho_s(i) +  &
      p(4)*TWO*rho_s(i)* &
-     (phi_CG(4)+(dey(4)*v_s(i))**TWO/cssq4 - &
+     ((dey(4)*v_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
@@ -10188,18 +10188,18 @@ if(mod(nstep,1)==0)then
     
     aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)+ez(5)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(5)*TWO*rho_s(i) +  &
      p(5)*TWO*rho_s(i)* &
-     (phi_CG(5)+(dez(5)*w_s(i))**TWO/cssq4 - &
+     ((dez(5)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
      
     aoptp(6)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(5)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)+ez(6)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(6)*TWO*rho_s(i) +  &
      p(6)*TWO*rho_s(i)* &
-     (phi_CG(6)+(dez(6)*w_s(i))**TWO/cssq4 - &
+     ((dez(6)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
      w_s(i)**TWO)/cssq2)
@@ -10207,9 +10207,9 @@ if(mod(nstep,1)==0)then
     
     aoptp(7)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(8)%p(ibounce(1,i)+ex(7),ibounce(2,i)+ey(7),ibounce(3,i)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(7)*TWO*rho_s(i) +  &
      p(7)*TWO*rho_s(i)* &
-     (phi_CG(7)+(dex(7)*u_s(i)+ &
+     ((dex(7)*u_s(i)+ &
      dey(7)*v_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -10217,9 +10217,9 @@ if(mod(nstep,1)==0)then
      
     aoptp(8)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(7)%p(ibounce(1,i)+ex(8),ibounce(2,i)+ey(8),ibounce(3,i)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(8)*TWO*rho_s(i) +  &
      p(8)*TWO*rho_s(i)* &
-     (phi_CG(8)+(dex(8)*u_s(i)+ &
+     ((dex(8)*u_s(i)+ &
      dey(8)*v_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -10228,9 +10228,9 @@ if(mod(nstep,1)==0)then
     
     aoptp(9)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(10)%p(ibounce(1,i)+ex(9),ibounce(2,i)+ey(9),ibounce(3,i)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(9)*TWO*rho_s(i) +  &
      p(9)*TWO*rho_s(i)* &
-     (phi_CG(9)+(dex(9)*u_s(i)+ &
+     ((dex(9)*u_s(i)+ &
      dey(9)*v_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -10238,9 +10238,9 @@ if(mod(nstep,1)==0)then
      
     aoptp(10)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(9)%p(ibounce(1,i)+ex(10),ibounce(2,i)+ey(10),ibounce(3,i)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(10)*TWO*rho_s(i) +  &
      p(10)*TWO*rho_s(i)* &
-     (phi_CG(10)+(dex(10)*u_s(i)+ &
+     ((dex(10)*u_s(i)+ &
      dey(10)*v_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -10249,9 +10249,9 @@ if(mod(nstep,1)==0)then
      
     aoptp(11)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(12)%p(ibounce(1,i)+ex(11),ibounce(2,i),ibounce(3,i)+ez(11)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(11)*TWO*rho_s(i) +  &
      p(11)*TWO*rho_s(i)* &
-     (phi_CG(11)+(dex(11)*u_s(i)+ &
+     ((dex(11)*u_s(i)+ &
      dez(11)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -10259,9 +10259,9 @@ if(mod(nstep,1)==0)then
      
     aoptp(12)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(11)%p(ibounce(1,i)+ex(12),ibounce(2,i),ibounce(3,i)+ez(12)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(12)*TWO*rho_s(i) +  &
      p(12)*TWO*rho_s(i)* &
-     (phi_CG(12)+(dex(12)*u_s(i)+ &
+     ((dex(12)*u_s(i)+ &
      dez(12)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -10270,9 +10270,9 @@ if(mod(nstep,1)==0)then
     
     aoptp(13)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(14)%p(ibounce(1,i)+ex(13),ibounce(2,i),ibounce(3,i)+ez(13)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(13)*TWO*rho_s(i) +  &
      p(13)*TWO*rho_s(i)* &
-     (phi_CG(13)+(dex(13)*u_s(i)+ &
+     ((dex(13)*u_s(i)+ &
      dez(13)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -10280,9 +10280,9 @@ if(mod(nstep,1)==0)then
      
     aoptp(14)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(13)%p(ibounce(1,i)+ex(14),ibounce(2,i),ibounce(3,i)+ez(14)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(14)*TWO*rho_s(i) +  &
      p(14)*TWO*rho_s(i)* &
-     (phi_CG(14)+(dex(14)*u_s(i)+ &
+     ((dex(14)*u_s(i)+ &
      dez(14)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -10291,9 +10291,9 @@ if(mod(nstep,1)==0)then
     
     aoptp(15)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(16)%p(ibounce(1,i),ibounce(2,i)+ey(15),ibounce(3,i)+ez(15)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(15)*TWO*rho_s(i) +  &
      p(15)*TWO*rho_s(i)* &
-     (phi_CG(15)+(dey(15)*v_s(i)+ &
+     ((dey(15)*v_s(i)+ &
      dez(15)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -10301,9 +10301,9 @@ if(mod(nstep,1)==0)then
      
     aoptp(16)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(15)%p(ibounce(1,i),ibounce(2,i)+ey(16),ibounce(3,i)+ez(16)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(16)*TWO*rho_s(i) +  &
      p(16)*TWO*rho_s(i)* &
-     (phi_CG(16)+(dey(16)*v_s(i)+ &
+     ((dey(16)*v_s(i)+ &
      dez(16)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -10312,9 +10312,9 @@ if(mod(nstep,1)==0)then
      
     aoptp(17)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(18)%p(ibounce(1,i),ibounce(2,i)+ey(17),ibounce(3,i)+ez(17)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(17)*TWO*rho_s(i) +  &
      p(17)*TWO*rho_s(i)* &
-     (phi_CG(17)+(dey(17)*v_s(i)+ &
+     ((dey(17)*v_s(i)+ &
      dez(17)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
@@ -10322,9 +10322,9 @@ if(mod(nstep,1)==0)then
      
     aoptp(18)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      -real(aoptp(17)%p(ibounce(1,i),ibounce(2,i)+ey(18),ibounce(3,i)+ez(18)), &
-     kind=PRC)+ &
+     kind=PRC)+phi_CG(18)*TWO*rho_s(i) +  &
      p(18)*TWO*rho_s(i)* &
-     (phi_CG(18)+(dey(18)*v_s(i)+ &
+     ((dey(18)*v_s(i)+ &
      dez(18)*w_s(i))**TWO/cssq4 - &
      (u_s(i)**TWO+ &
      v_s(i)**TWO+ &
