@@ -2211,13 +2211,13 @@
   
   call set_initial_pop_fluids(rhoR,u,v,w,f00R,f01R,&
   f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
-  f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+  f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R,aoptpR,phiR_CG)
   
   if(lsingle_fluid)return
   
   call set_initial_pop_fluids(rhoB,u,v,w,f00B,f01B,&
   f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
-  f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+  f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B,aoptpB,phiB_CG)
   
   return
   
@@ -2225,7 +2225,7 @@
  
  subroutine set_initial_pop_fluids(rhosub,usub,vsub,wsub,f00sub,f01sub,&
   f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,f09sub,f10sub, &
-  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub)
+  f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub,aoptp,phi_CG)
  
 !***********************************************************************
 !     
@@ -2242,8 +2242,26 @@
   real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub,usub,vsub, &
    wsub,f00sub,f01sub,f02sub,f03sub,f04sub,f05sub,f06sub,f07sub,f08sub,&
    f09sub,f10sub,f11sub,f12sub,f13sub,f14sub,f15sub,f16sub,f17sub,f18sub
+  type(REALPTR), dimension(0:links):: aoptp
+  real(kind=PRC), dimension(0:links)  :: phi_CG
   
-  integer :: i,j,k
+  integer :: i,j,k,l
+  
+  if(lcolourG)then
+  
+    do l=0,links
+      do k=minz-1,maxz+1
+        do j=miny-1,maxy+1
+          do i=minx-1,maxx+1
+            aoptp(l)%p(i,j,k)= &
+             equil_popCG(l,links,phi_CG,p,dex,dey,dez,rhosub(i,j,k), &
+             usub(i,j,k),vsub(i,j,k),wsub(i,j,k))
+          enddo
+        enddo
+      enddo
+    enddo
+  
+  else
   
   
   forall(i=minx-1:maxx+1,j=miny-1:maxy+1,k=minz-1:maxz+1)
@@ -2340,6 +2358,8 @@
     f18sub(i,j,k)=equil_pop18(rhosub(i,j,k),usub(i,j,k),vsub(i,j,k), &
      wsub(i,j,k))
   end forall
+  
+  endif
   
   return
   
@@ -11098,7 +11118,7 @@ if(mod(nstep,1)==0)then
                    isum=isum+pd3q27(l)
                  endif
                enddo
-               if(isum==ZERO)then
+               if(isum==ZERO .and. isfluid(i,j,k)==2)then
                  dsum1=ZERO
                  isum=ZERO
                  do l=1,ndouble
@@ -11148,7 +11168,7 @@ if(mod(nstep,1)==0)then
                   isum=isum+pd3q27(l)
                  endif
                enddo
-               if(isum==ZERO)then
+               if(isum==ZERO .and. isfluid(i,j,k)==2)then
                  dsum1=ZERO
                  dsum2=ZERO
                  isum=ZERO
