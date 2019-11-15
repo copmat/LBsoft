@@ -626,7 +626,7 @@
 !     of an integer number
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -661,7 +661,7 @@
 !     with integer digits and leading zeros to the left
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -696,7 +696,7 @@
 !     LBsoft subroutine for extracting integers from a character 
 !     string
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -777,7 +777,7 @@
 !     LBsoft subroutine for extracting double precisions from a  
 !     character string
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -890,7 +890,7 @@
 !     
 !     LBsoft subroutine to copy one character string into another
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -918,7 +918,7 @@
 !     
 !     LBsoft subroutine to find an explicit string in an input record
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -980,7 +980,7 @@
 !     LBsoft subroutine to strip a character string
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -1029,7 +1029,7 @@
 !     LBsoft subroutine to lowercase a character string
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     

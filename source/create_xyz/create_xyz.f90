@@ -349,7 +349,7 @@
 !     by the seed given in input file or by a random seed
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -394,7 +394,7 @@
 !     distributed by the Box-Muller transformation
 !     originally written in JETSPIN by M. Lauricella et al.
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification July 2018
 !     
@@ -427,7 +427,7 @@
 !     
 !     JETSPIN subroutine to copy one character string into another
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -456,7 +456,7 @@
 !     JETSPIN subroutine for extracting integers from a character 
 !     string
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -537,7 +537,7 @@
 !     JETSPIN subroutine for extracting double precisions from a  
 !     character string
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification March 2015
 !     
@@ -954,7 +954,7 @@
 !     LBsoft subroutine for determining the quaternion associated
 !     to a rotational matrix within a given tollerance value
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -1018,7 +1018,7 @@
 !     LBsoft subroutine for determining the rotational matrix from
 !     quaternion using x convention for euler angles
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -1050,7 +1050,7 @@
 !     LBsoft subroutine for applying a rotation of an array
 !     depending on a rotation matrix
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -1087,7 +1087,7 @@
 !     LBsoft subroutine for applying a rotation of a single vector
 !     depending on a rotation matrix
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -1118,7 +1118,7 @@
 !     LBsoft subroutine for building the rotation matrix
 !     of a given angle and axis
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification October 2018
 !     
@@ -1171,7 +1171,7 @@
 !     LBsoft subroutine to compute the quaternion associated to
 !     the Euler angles
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
@@ -1207,7 +1207,7 @@
 !     LBsoft subroutine to compute the three Euler angles associated to
 !     a quaternion
 !     
-!     licensed under Open Software License v. 3.0 (OSL-3.0)
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
 !     last modification December 2018
 !     
