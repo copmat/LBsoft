@@ -37,7 +37,7 @@ The 'source' sub-directory stores a UNIX makefile that assembles the
 executable versions of the code both in serial and parallel version     
 with different compilers. Note the makefile could be copied eventually  
 modified for several common workstations and parallel computers into the  
-'source' sub-directory, where the code is compiled and linked. Finally, 
+'source' sub-directory, where the code is compiled and linked. Finally,  
 the binary executable file can be run in the 'execute' sub-directory,   
 which is intended to be the working directory from which jobs are       
 submitted for execution and the data files manipulated. A list of       
