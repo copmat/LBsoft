@@ -985,6 +985,7 @@
                   temp_objectdata(6,itemp)=dblstr(directive,maxlen,inumchar)
                   temp_objectdata(7,itemp)=dblstr(directive,maxlen,inumchar)
                   temp_objectdata(8,itemp)=dblstr(directive,maxlen,inumchar)
+                  temp_objectdata(9,itemp)=dblstr(directive,maxlen,inumchar)
                 endif
               elseif(findstring('spher',directive,inumchar,maxlen))then
                 itemp=intstr(directive,maxlen,inumchar)
@@ -2098,7 +2099,7 @@
     call bcast_world_i(temp_nobjectliq)
     call bcast_world_larr(temp_lobjectdata,nmaxobjectliq)
     call bcast_world_iarr(temp_typeobjectliq,nmaxobjectliq)
-    call bcast_world_farr(temp_objectdata,8*nmaxobjectliq)
+    call bcast_world_farr(temp_objectdata,9*nmaxobjectliq)
     if(any(temp_lobjectdata(1:temp_nobjectliq)))then
       call bcast_world_f(dtemp_backR)
       call bcast_world_f(dtemp_backB)
@@ -2181,6 +2182,9 @@
             mystring=repeat(' ',dimprint)
             mystring='internal density value'
             write(6,'(2a,2f12.6)')mystring,": ",objectdata(7,i),objectdata(8,i)
+            mystring=repeat(' ',dimprint)
+            mystring='width of orthogonal parallelepiped'
+            write(6,'(2a,f12.6)')mystring,": ",objectdata(9,i)
           end select
         enddo
       endif

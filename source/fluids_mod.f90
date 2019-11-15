@@ -1919,7 +1919,7 @@
   
   integer :: i,j,k,l,iframe
   real(kind=PRC), dimension(3) :: dists,dbox
-  real(kind=PRC) :: rdist,dtemp
+  real(kind=PRC) :: rdist,dtemp,xtemp,ytemp,ztemp
   
   dbox=[real(nx,kind=PRC),real(ny,kind=PRC),real(nz,kind=PRC)]
   
@@ -1945,14 +1945,51 @@
               dtemp=fcut(rdist,objectdata(4,l),objectdata(4,l)+objectdata(5,l))
               rhoR(i,j,k)=backR+(objectdata(6,l)-backR)*dtemp
             case(2)
-              if(nint(objectdata(1,l))<=i .and. nint(objectdata(2,l))>=i .and. &
-              nint(objectdata(3,l))<=j .and. nint(objectdata(4,l))>=j .and. &
-              nint(objectdata(5,l))<=k .and. nint(objectdata(6,l))>=k ) then
-!                iframe=nint(objectdata(9,l))
-!                if(nint(objectdata(1,l))<=i .and. nint(objectdata(2,l))>=i .and. &
-!                  nint(objectdata(3,l))<=j .and. nint(objectdata(4,l))>=j .and. &
-!                 nint(objectdata(5,l))<=k .and. nint(objectdata(6,l))>=k ) then
-                 rhoR(i,j,k)=objectdata(7,l)
+              iframe=nint(objectdata(9,l))
+              if((nint(objectdata(1,l))-iframe)<=i .and. (nint(objectdata(2,l))+iframe)>=i .and. &
+               (nint(objectdata(3,l))-iframe)<=j .and. (nint(objectdata(4,l))+iframe)>=j .and. &
+               (nint(objectdata(5,l))-iframe)<=k .and. (nint(objectdata(6,l))+iframe)>=k ) then
+                if(nint(objectdata(1,l))<=i .and. nint(objectdata(2,l))>=i .and. &
+                 nint(objectdata(3,l))<=j .and. nint(objectdata(4,l))>=j .and. &
+                 nint(objectdata(5,l))<=k .and. nint(objectdata(6,l))>=k) then
+                  rhoR(i,j,k)=objectdata(7,l)
+                else
+                  xtemp=ONE
+                  ytemp=ONE
+                  ztemp=ONE
+                  if((nint(objectdata(1,l))-iframe)<=i .and. &
+                   nint(objectdata(2,l))>i)then
+                    rdist=objectdata(1,l)-real(i,kind=PRC)
+                    xtemp=fcut(rdist,ZERO,objectdata(9,l))
+                  endif
+                  if((nint(objectdata(2,l))+iframe)>=i .and. &
+                   i>nint(objectdata(1,l)))then
+                    rdist=real(i,kind=PRC)-objectdata(2,l)
+                    xtemp=fcut(rdist,ZERO,objectdata(9,l))
+                  endif
+                  if((nint(objectdata(3,l))-iframe)<=j .and. &
+                   nint(objectdata(4,l))>j)then
+                    rdist=objectdata(3,l)-real(j,kind=PRC)
+                    ytemp=fcut(rdist,ZERO,objectdata(9,l))
+                  endif
+                  if((nint(objectdata(4,l))+iframe)>=j .and. &
+                   j>nint(objectdata(3,l)))then
+                    rdist=real(j,kind=PRC)-objectdata(4,l)
+                    ytemp=fcut(rdist,ZERO,objectdata(9,l))
+                  endif
+                  if((nint(objectdata(5,l))-iframe)<=k .and. &
+                   nint(objectdata(6,l))>k)then
+                    rdist=objectdata(5,l)-real(k,kind=PRC)
+                    ztemp=fcut(rdist,ZERO,objectdata(9,l))
+                  endif
+                  if((nint(objectdata(6,l))+iframe)>=k .and. &
+                   k>nint(objectdata(5,l)))then
+                    rdist=real(k,kind=PRC)-objectdata(6,l)
+                    ztemp=fcut(rdist,ZERO,objectdata(9,l))
+                  endif
+                  dtemp=xtemp*ytemp*ztemp
+                  rhoR(i,j,k)=backR+(objectdata(7,l)-backR)*dtemp
+                endif
               endif
             end select
           enddo
@@ -1983,11 +2020,53 @@
               rhoR(i,j,k)=backR+(objectdata(6,l)-backR)*dtemp
               rhoB(i,j,k)=backB+(objectdata(7,l)-backB)*dtemp
             case(2)
-              if(nint(objectdata(1,l))<=i .and. nint(objectdata(2,l))>=i .and. &
-              nint(objectdata(3,l))<=j .and. nint(objectdata(4,l))>=j .and. &
-              nint(objectdata(5,l))<=k .and. nint(objectdata(6,l))>=k ) then
-              rhoR(i,j,k)=objectdata(7,l)
-              rhoB(i,j,k)=objectdata(8,l)
+              iframe=nint(objectdata(9,l))
+              if((nint(objectdata(1,l))-iframe)<=i .and. (nint(objectdata(2,l))+iframe)>=i .and. &
+               (nint(objectdata(3,l))-iframe)<=j .and. (nint(objectdata(4,l))+iframe)>=j .and. &
+               (nint(objectdata(5,l))-iframe)<=k .and. (nint(objectdata(6,l))+iframe)>=k ) then
+                if(nint(objectdata(1,l))<=i .and. nint(objectdata(2,l))>=i .and. &
+                 nint(objectdata(3,l))<=j .and. nint(objectdata(4,l))>=j .and. &
+                 nint(objectdata(5,l))<=k .and. nint(objectdata(6,l))>=k) then
+                  rhoR(i,j,k)=objectdata(7,l)
+                  rhoB(i,j,k)=objectdata(8,l)
+                else
+                  xtemp=ONE
+                  ytemp=ONE
+                  ztemp=ONE
+                  if((nint(objectdata(1,l))-iframe)<=i .and. &
+                   nint(objectdata(2,l))>i)then
+                    rdist=objectdata(1,l)-real(i,kind=PRC)
+                    xtemp=fcut(rdist,ZERO,objectdata(9,l))
+                  endif
+                  if((nint(objectdata(2,l))+iframe)>=i .and. &
+                   i>nint(objectdata(1,l)))then
+                    rdist=real(i,kind=PRC)-objectdata(2,l)
+                    xtemp=fcut(rdist,ZERO,objectdata(9,l))
+                  endif
+                  if((nint(objectdata(3,l))-iframe)<=j .and. &
+                   nint(objectdata(4,l))>j)then
+                    rdist=objectdata(3,l)-real(j,kind=PRC)
+                    ytemp=fcut(rdist,ZERO,objectdata(9,l))
+                  endif
+                  if((nint(objectdata(4,l))+iframe)>=j .and. &
+                   j>nint(objectdata(3,l)))then
+                    rdist=real(j,kind=PRC)-objectdata(4,l)
+                    ytemp=fcut(rdist,ZERO,objectdata(9,l))
+                  endif
+                  if((nint(objectdata(5,l))-iframe)<=k .and. &
+                   nint(objectdata(6,l))>k)then
+                    rdist=objectdata(5,l)-real(k,kind=PRC)
+                    ztemp=fcut(rdist,ZERO,objectdata(9,l))
+                  endif
+                  if((nint(objectdata(6,l))+iframe)>=k .and. &
+                   k>nint(objectdata(5,l)))then
+                    rdist=real(k,kind=PRC)-objectdata(6,l)
+                    ztemp=fcut(rdist,ZERO,objectdata(9,l))
+                  endif
+                  dtemp=xtemp*ytemp*ztemp
+                  rhoR(i,j,k)=backR+(objectdata(7,l)-backR)*dtemp
+                  rhoB(i,j,k)=backB+(objectdata(8,l)-backB)*dtemp
+                endif
               endif
             end select
           enddo
