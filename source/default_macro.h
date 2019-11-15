@@ -91,7 +91,7 @@
 #define HALF      0.5d0
 #define FOURTH    0.25d0
 
-#define MINDENS   1.d-8
+#define MINDENS   1.d-16
 
 #else
 
