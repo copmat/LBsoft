@@ -11194,12 +11194,22 @@ if(mod(nstep,1)==0)then
                    rhoR(i,j,k)= MINDENS
                    rhoB(i,j,k)= MINDENS
                  else
-                   rhoR(i,j,k)=dsum1/isum
-                   rhoB(i,j,k)=dsum2/isum
+                   if(isum>MINDENS)then
+                     rhoR(i,j,k)=dsum1/isum
+                     rhoB(i,j,k)=dsum2/isum
+                   else
+                     rhoR(i,j,k)= MINDENS
+                     rhoB(i,j,k)= MINDENS
+                   endif
                  endif
                else
-                 rhoR(i,j,k)=dsum1/isum
-                 rhoB(i,j,k)=dsum2/isum
+                 if(isum>MINDENS)then
+                   rhoR(i,j,k)=dsum1/isum
+                   rhoB(i,j,k)=dsum2/isum
+                 else
+                   rhoR(i,j,k)= MINDENS
+                   rhoB(i,j,k)= MINDENS
+                 endif
                endif
              endif
            enddo
