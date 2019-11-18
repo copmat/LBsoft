@@ -1385,6 +1385,22 @@
     call manage_bc_isfluid_selfcomm(isfluid)
   endif
   
+
+#if 0
+  open(unit=87,file='mio.xyz',status='replace')
+  write(87,*)nx*ny*nz
+  write(87,*)
+  do k=minz,maxz
+        do j=miny,maxy
+          do i=minx,maxx
+          write(87,'(i1,3f16.6)')isfluid(i,j,k),dble(i),dble(j),dble(k)
+       enddo
+       enddo
+       enddo
+  close(87)
+  stop
+#endif
+  
   l=0
   do k=minz-1,maxz+1
     do j=miny-1,maxy+1
@@ -4399,8 +4415,8 @@
   integer :: i,j,k,l
   real(kind=PRC) :: phis
   
-  real(kind=PRC), parameter :: gradlim = real(1.d-8,kind=PRC)
-  real(kind=PRC), parameter :: phislim = ONE - gradlim
+  real(kind=PRC), parameter :: gradlim = real(1.d-16,kind=PRC)
+  real(kind=PRC), parameter :: phislim = 2.d0 !ONE - gradlim
 #ifdef GRADIENTD3Q27
   real(kind=PRC), dimension(0:linksd3q27) :: rhodiff,rhosum
 #else
@@ -5209,10 +5225,15 @@
   
   else
   
-  call stream_nocopy(f01R,&
-  f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
-  f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
-  
+    if(lread_isfluid)then
+      call stream_nocopy_isfluid(f01R,&
+       f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
+       f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+    else
+      call stream_nocopy(f01R,&
+       f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
+       f11R,f12R,f13R,f14R,f15R,f16R,f17R,f18R)
+    endif
   endif
 #else
   call stream_copy(f01R, 1)
@@ -5273,11 +5294,15 @@
   f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
   
   else
-  
-  call stream_nocopy(f01B,&
-  f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
-  f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
-  
+  if(lread_isfluid)then
+      call stream_nocopy_isfluid(f01B,&
+       f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
+       f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+    else
+      call stream_nocopy(f01B,&
+       f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
+       f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B)
+    endif
   endif
 #else
   call stream_copy(f01B, 1)
@@ -10064,15 +10089,71 @@ if(mod(nstep,1)==0)then
   
   real(kind=PRC), dimension(0:links), optional  :: phi_CG
   
-  integer :: i,j,k,l,sx,sz
+  integer :: i,j,k,l,sx,sz,iloop,indlow,indhig,ii,jj,kk,io,jo,ko,iii
   
   real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
   real(kind=PRC), parameter :: cssq2 = ( HALF / cssq )
   real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
-  integer, parameter :: kk = 1
   
   if(nbounce0>=1)then
-  forall(i=1:nbounce0)
+#if 0
+  do iii=1,nbounce0
+  
+
+
+  i=ibounce(1,iii)
+  j=ibounce(2,iii)
+  k=ibounce(3,iii)
+  
+  do iloop = 1, 9
+  
+  indlow = iloop*2 - 1
+  indhig = iloop*2
+
+
+  ii=i+ex(indlow)
+  jj=j+ey(indlow)
+  kk=k+ez(indlow)
+
+
+  io=i+ex(indhig)
+  jo=j+ey(indhig)
+  ko=k+ez(indhig)
+
+
+  if(ii>=minx-1 .and. ii<=maxx+1 .and. jj>=miny-1 .and. jj<=maxy+1 .and. &
+   kk>=minz-1 .and. kk<=maxz+1)then
+    if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
+     ko>=minz-1 .and. ko<=maxz+1)then
+       if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
+	      aoptp(indlow)%p(i,j,k) = aoptp(indhig)%p(ii,jj,kk)
+       endif
+    endif
+  endif
+
+  ii=i+ex(indhig)
+  jj=j+ey(indhig)
+  kk=k+ez(indhig)
+
+
+  io=i+ex(indlow)
+  jo=j+ey(indlow)
+  ko=k+ez(indlow)
+
+
+  if(ii>=minx-1 .and. ii<=maxx+1 .and. jj>=miny-1 .and. jj<=maxy+1 .and. &
+   kk>=minz-1 .and. kk<=maxz+1)then
+    if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
+     ko>=minz-1 .and. ko<=maxz+1)then
+       if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
+	      aoptp(indhig)%p(i,j,k) = aoptp(indlow)%p(ii,jj,kk)
+	   endif
+    endif
+  endif
+ enddo
+
+#else
+    do i=1,nbounce0
     
     aoptp(1)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i)) = &
      real(aoptp(2)%p(ibounce(1,i)+ex(1),ibounce(2,i),ibounce(3,i)), &
@@ -10137,9 +10218,12 @@ if(mod(nstep,1)==0)then
      real(aoptp(17)%p(ibounce(1,i),ibounce(2,i)+ey(18),ibounce(3,i)+ez(18)), &
      kind=PRC)
     
-  end forall
+#endif
+    
+  enddo
   
   endif
+  
   if(nbounce6>=nbounce0+1)then
   if(lColourG)then
   forall(i=nbounce0+1:nbounce6)
