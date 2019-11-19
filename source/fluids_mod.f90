@@ -909,7 +909,7 @@
   
   return
   
- end subroutine
+ end subroutine driver_initialiaze_manage_bc_selfcomm
  
  subroutine initialize_isfluid_bcfluid(lvtkfilesub, lparticles)
  
@@ -1388,17 +1388,16 @@
 
 #if 0
   open(unit=87,file='mio.xyz',status='replace')
-  write(87,*)nx*ny*nz
+  write(87,*)(nx+2)*(ny+2)*(nz+2)
   write(87,*)
-  do k=minz,maxz
-        do j=miny,maxy
-          do i=minx,maxx
+  do k=minz-1,maxz+1
+        do j=miny-1,maxy+1
+          do i=minx-1,maxx+1
           write(87,'(i1,3f16.6)')isfluid(i,j,k),dble(i),dble(j),dble(k)
        enddo
        enddo
        enddo
   close(87)
-  stop
 #endif
   
   l=0
@@ -7982,7 +7981,7 @@
               !if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank &
               ! .AND. isfluid(i,j,k)/=3) THEN
               if(ownern(i4).EQ.idrank &
-               .AND. isfluid(i,j,k)/=3) THEN
+               .AND. isfluid(i,j,k)/=3 .AND. isfluid(i,j,k)/=0) THEN
                 npoplistbc=npoplistbc+1
               endif
             endif
@@ -8022,7 +8021,7 @@
               i4orig=i4back(itemp2,jtemp2,ktemp2)
               !if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank &
               if(ownern(i4).EQ.idrank &
-               .AND. isfluid(i,j,k)/=3) THEN
+               .AND. isfluid(i,j,k)/=3 .AND. isfluid(i,j,k)/=0) THEN
                 npoplistbc=npoplistbc+1
                 ipoplistbc(npoplistbc)=l
                 poplistbc(1,npoplistbc)=itemp
@@ -8365,9 +8364,9 @@
   call set_bc_variable_hvar
   
   if(lColourG)then
-    call apply_bounceback_pop_halfway(bc_rhoR,bc_u,bc_v,bc_w,aoptpR,phiR_CG)
+    call apply_bounceback_pop_halfway(nstep,bc_rhoR,bc_u,bc_v,bc_w,aoptpR,phiR_CG)
   else
-    call apply_bounceback_pop_halfway(bc_rhoR,bc_u,bc_v,bc_w,aoptpR)
+    call apply_bounceback_pop_halfway(nstep,bc_rhoR,bc_u,bc_v,bc_w,aoptpR)
   endif
 #ifdef DIAGNSTREAM
   if(iter==NDIAGNSTREAM)call print_all_pops(100,'miodopobounce',iter,aoptpR)
@@ -8396,9 +8395,9 @@ if(mod(nstep,1)==0)then
   if(lsingle_fluid)return
   
   if(lColourG)then
-    call apply_bounceback_pop_halfway(bc_rhoB,bc_u,bc_v,bc_w,aoptpB,phiB_CG)
+    call apply_bounceback_pop_halfway(nstep,bc_rhoB,bc_u,bc_v,bc_w,aoptpB,phiB_CG)
   else
-    call apply_bounceback_pop_halfway(bc_rhoB,bc_u,bc_v,bc_w,aoptpB)
+    call apply_bounceback_pop_halfway(nstep,bc_rhoB,bc_u,bc_v,bc_w,aoptpB)
   endif
   
 #if 0
@@ -10067,7 +10066,7 @@ if(mod(nstep,1)==0)then
   
  end subroutine apply_bounceback_pop
  
- subroutine apply_bounceback_pop_halfway(rho_s,u_s,v_s,w_s,aoptp,phi_CG)
+ subroutine apply_bounceback_pop_halfway(nstep,rho_s,u_s,v_s,w_s,aoptp,phi_CG)
  
 !***********************************************************************
 !     
@@ -10083,6 +10082,7 @@ if(mod(nstep,1)==0)then
  
   implicit none 
   
+  integer, intent(in) :: nstep
   real(kind=PRC), allocatable, dimension(:)  :: rho_s,u_s,v_s,w_s
   
   type(REALPTR), dimension(0:links):: aoptp
@@ -10096,62 +10096,41 @@ if(mod(nstep,1)==0)then
   real(kind=PRC), parameter :: cssq4 = ( HALF / (cssq*cssq) )
   
   if(nbounce0>=1)then
-#if 0
+#if 1
   do iii=1,nbounce0
   
-
-
-  i=ibounce(1,iii)
-  j=ibounce(2,iii)
-  k=ibounce(3,iii)
+    i=ibounce(1,iii)
+    j=ibounce(2,iii)
+    k=ibounce(3,iii)
   
-  do iloop = 1, 9
+    do iloop = 1, 9
   
-  indlow = iloop*2 - 1
-  indhig = iloop*2
-
-
-  ii=i+ex(indlow)
-  jj=j+ey(indlow)
-  kk=k+ez(indlow)
-
-
-  io=i+ex(indhig)
-  jo=j+ey(indhig)
-  ko=k+ez(indhig)
-
-
-  if(ii>=minx-1 .and. ii<=maxx+1 .and. jj>=miny-1 .and. jj<=maxy+1 .and. &
-   kk>=minz-1 .and. kk<=maxz+1)then
-    if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
-     ko>=minz-1 .and. ko<=maxz+1)then
-       if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
+      indlow = iloop*2 - 1
+      indhig = iloop*2
+  
+      ii=i+ex(indlow)
+      jj=j+ey(indlow)
+      kk=k+ez(indlow)
+  
+      if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
+       kk>=minz .and. kk<=maxz)then
+        if(isfluid(ii,jj,kk)==1)then
 	      aoptp(indlow)%p(i,j,k) = aoptp(indhig)%p(ii,jj,kk)
        endif
-    endif
-  endif
-
-  ii=i+ex(indhig)
-  jj=j+ey(indhig)
-  kk=k+ez(indhig)
-
-
-  io=i+ex(indlow)
-  jo=j+ey(indlow)
-  ko=k+ez(indlow)
-
-
-  if(ii>=minx-1 .and. ii<=maxx+1 .and. jj>=miny-1 .and. jj<=maxy+1 .and. &
-   kk>=minz-1 .and. kk<=maxz+1)then
-    if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
-     ko>=minz-1 .and. ko<=maxz+1)then
-       if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
-	      aoptp(indhig)%p(i,j,k) = aoptp(indlow)%p(ii,jj,kk)
+     endif
+  
+     ii=i+ex(indhig)
+     jj=j+ey(indhig)
+     kk=k+ez(indhig)
+  
+     if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. &
+      kk>=minz .and. kk<=maxz)then
+       if(isfluid(ii,jj,kk)==1)then
+	     aoptp(indhig)%p(i,j,k) = aoptp(indlow)%p(ii,jj,kk)
 	   endif
-    endif
-  endif
+     endif
+   enddo
  enddo
-
 #else
     do i=1,nbounce0
     
@@ -10218,9 +10197,9 @@ if(mod(nstep,1)==0)then
      real(aoptp(17)%p(ibounce(1,i),ibounce(2,i)+ey(18),ibounce(3,i)+ez(18)), &
      kind=PRC)
     
-#endif
+    enddo
     
-  enddo
+#endif
   
   endif
   

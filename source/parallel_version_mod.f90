@@ -2711,7 +2711,7 @@
    
   return
   
- end subroutine
+ end subroutine create_findneigh_list_pops
  
  SUBROUTINE findneigh_single_halo(nx,ny,nz,ibctype,ixpbc,iypbc,izpbc, &
    minx,maxx,miny,maxy,minz,maxz)
@@ -3848,7 +3848,8 @@
                 !max                if(idrank.eq.1) then
                 !max                   write(51,*)'i',itemp,'j',jtemp,'k',ktemp,'owner',ownern(i4)
                 !max                endif   
-                IF(ownern(i4).NE.idrank.AND.isfluid(i,j,k)/=3) THEN
+                IF(ownern(i4).NE.idrank .AND. isfluid(i,j,k)/=3 .AND. &
+                 isfluid(i,j,k)/=0) THEN
                    sender(ownern(i4))=sender(ownern(i4))+1
                    !max                   write(0,*)'ownern ',ownern(i4),'for node ',i4,'ix=',i,'iy=',j,'iz=',k,'l=',l
                    !max                   write(0,*)'itemp=',itemp,'jtemp=',jtemp,'ktemp=',ktemp
@@ -3988,7 +3989,8 @@
                 endif
                 i4=i4back(itemp,jtemp,ktemp)
 
-                IF(ownern(i4).NE.idrank.AND.isfluid(i,jy,k)/=3) THEN   ! select nodes with ownership /= idrank
+                IF(ownern(i4).NE.idrank .AND. isfluid(i,jy,k)/=3 .AND. &
+                 isfluid(i,jy,k)/=0) THEN   ! select nodes with ownership /= idrank
                    j=sender(ownern(i4))  !find the unique ID of the cast operation
                    i_pop2send_fluid(0,n_pop2send_fluid(j),j)=l !direction of the population
                    i_pop2send_fluid(1,n_pop2send_fluid(j),j)=i4back(i,jy,k) !unique ID of the node
