@@ -10805,14 +10805,7 @@ if(mod(nstep,1)==0)then
   endif
   
   if(nbounce9>=nbounce8+1)then
-   if(lColourG)then
-    do i=nbounce8+1,nbounce9
-      do l=0,links
-            aoptp(l)%p(ibounce(1,i),ibounce(2,i),ibounce(3,i))= &
-             equil_popCG(l,links,phi_CG,p,dex,dey,dez,rho_s(i),u_s(i),v_s(i),w_s(i))
-      enddo
-    enddo
-  else
+  
   forall(i=nbounce8+1:nbounce9)
     !neumann condition
     !moving walls bounce-back approach
@@ -10948,7 +10941,7 @@ if(mod(nstep,1)==0)then
      dez(17)*w_s(i))
     
   end forall
-  endif
+  
   endif
   
   return
