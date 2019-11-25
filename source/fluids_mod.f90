@@ -75,6 +75,9 @@
  !selected wetting mode 0=average 1=fixed value (Benzi's style!)
  integer, save, protected, public :: iselwetting=0
  
+ !interpolation mode of omega (0=phase field interp;1=Grunau interp)
+ integer, parameter :: iselomegaint=0
+ 
  integer, save, protected, public, allocatable, dimension(:) :: &
   typeobjectliq
  
@@ -219,6 +222,15 @@
  real(kind=PRC), save, protected, public :: alphaR_CG = ZERO
  real(kind=PRC), save, protected, public :: alphaB_CG = ZERO
  real(kind=PRC), save, protected, public :: beta_CG = ZERO
+ 
+ !Grunau mode of omega interpolation
+ real(kind=PRC), parameter :: Delta_Grunau = real(0.98d0,kind=PRC)
+ real(kind=PRC), save :: s1_R = ZERO
+ real(kind=PRC), save :: s2_R = ZERO
+ real(kind=PRC), save :: s3_R = ZERO
+ real(kind=PRC), save :: t1_B = ZERO
+ real(kind=PRC), save :: t2_B = ZERO
+ real(kind=PRC), save :: t3_B = ZERO
  
  real(kind=PRC), save, protected, public :: dmass_rescale = ZERO
  
@@ -3109,6 +3121,7 @@
     viscB=dtemp2
     tauR=viscR/cssq+HALF
     tauB=viscB/cssq+HALF
+    
   endif
   
   return
@@ -3146,6 +3159,14 @@
     tauB=dtemp2
     viscR=cssq*(tauR-HALF)
     viscB=cssq*(tauB-HALF)
+    if(iselomegaint==1)then
+      s1_R=(tauR*tauB)/(tauR+tauB)
+      s2_R=TWO*(tauR-s1_R)/Delta_Grunau
+      s3_R=-s2_R/(TWO*Delta_Grunau)
+      t1_B=(tauR*tauB)/(tauR+tauB)
+      t2_B=TWO*(t1_B-tauB)/Delta_Grunau
+      t3_B=t2_B/(TWO*Delta_Grunau)
+    endif
   endif
   
   return
@@ -4385,20 +4406,41 @@
   
   if(lunique_omega)return
   
-  do k=minz,maxz
-    do j=miny,maxy
-      do i=minx,maxx
-#if 1
-        phis=(rhoR(i,j,k)/meanR-rhoB(i,j,k)/meanB)/(rhoR(i,j,k)/meanR+rhoB(i,j,k)/meanB)
-        omega(i,j,k)=ONE/(HALF*(ONE+phis)*tauR+HALF*(ONE-phis)*TauB)
-#else
-         omega(i,j,k)=viscosity_to_omega( &
-          ONE/((rhoR(i,j,k)/(rhoB(i,j,k)+rhoR(i,j,k)))*(ONE/viscR) + &
-          (rhoB(i,j,k)/(rhoB(i,j,k)+rhoR(i,j,k)))*(ONE/viscB)) )
-#endif
+  select case(iselomegaint)
+  case(1)
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          phis=(rhoR(i,j,k)/meanR-rhoB(i,j,k)/meanB)/ &
+           (rhoR(i,j,k)/meanR+rhoB(i,j,k)/meanB)
+          if(abs(phis)>Delta_Grunau)then
+            if(phis>ZERO)then
+              omega(i,j,k)=ONE/tauR
+            else
+              omega(i,j,k)=ONE/TauB
+            endif
+          else
+            if(phis>ZERO)then
+              omega(i,j,k)=ONE/(s1_R+s2_R*phis+s3_r*phis*phis)
+            else
+              omega(i,j,k)=ONE/(t1_B+t2_B*phis+t3_B*phis*phis)
+            endif
+          endif
+        enddo
       enddo
     enddo
-  enddo
+  case default
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          phis=(rhoR(i,j,k)/meanR-rhoB(i,j,k)/meanB)/ &
+           (rhoR(i,j,k)/meanR+rhoB(i,j,k)/meanB)
+          omega(i,j,k)=ONE/(HALF*(ONE+phis)*tauR+HALF*(ONE-phis)*TauB)
+        enddo
+      enddo
+    enddo
+  end select
+  
   return
   
  end subroutine compute_omega
@@ -4425,14 +4467,15 @@
   
   real(kind=PRC), parameter :: gradlim = real(1.d-16,kind=PRC)
   real(kind=PRC), parameter :: phislim = 2.d0 !ONE - gradlim
+  real(kind=PRC), parameter :: maxvel = real(0.2d0,kind=PRC)
 #ifdef GRADIENTD3Q27
   real(kind=PRC), dimension(0:linksd3q27) :: rhodiff,rhosum
 #else
   real(kind=PRC), dimension(0:links) :: rhodiff,rhosum
 #endif
   real(kind=PRC), dimension(0:links) :: feq
-  real(kind=PRC) :: acoeff,psinorm,psinorm_sq,e_dot_psi,temp,rhoapp
-  real(kind=PRC) :: psix,psiy,psiz,cosphi,fsum
+  real(kind=PRC) :: psinorm,psinorm_sq,e_dot_psi,temp,rhoapp
+  real(kind=PRC) :: psix,psiy,psiz,cosphi,fsum,acoeff
   real(kind=PRC) :: locrhoR,locrhoB,locu,locv,locw,temp_omega,oneminusomega
 #ifdef REGULARIZED
   real(kind=PRC) :: pxxR,pyyR,pzzR,pxyR,pxzR,pyzR
@@ -4526,10 +4569,9 @@
           
           !perturbation step
           phis=(locrhoR/meanR-locrhoB/meanB)/(locrhoR/meanR+locrhoB/meanB)
-          if(abs(phis)<phislim)then
+          !if(abs(phis)<phislim)then
             rhodiff(1:links) = ZERO
             rhosum(1:links) = ZERO
-            acoeff = ( NINE / FOUR )*temp_omega*sigma_CG
             psix = ZERO
             psiy = ZERO
             psiz = ZERO
@@ -4561,6 +4603,7 @@
             psinorm_sq = psix**TWO + psiy**TWO + psiz**TWO
             if(psinorm_sq<gradlim**TWO)cycle
             psinorm=sqrt(psinorm_sq)
+            acoeff=( NINE / FOUR )*temp_omega*sigma_CG
             do l=0,links
               e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
               temp=psinorm*(p(l)*(e_dot_psi**TWO)/psinorm_sq - b_l(l))
@@ -4589,7 +4632,7 @@
               aoptpB(l)%p(i,j,k)=fsum*locrhoB/rhoapp - temp*feq(l)
             enddo
             
-          endif
+          !endif
         enddo
       enddo
     enddo
@@ -4606,6 +4649,14 @@
           locu = u(i,j,k)
           locv = v(i,j,k)
           locw = w(i,j,k)
+          if(locrhoR<ZERO .or. locrhoB<ZERO)then
+              write(6,*)idrank,i,j,k,locrhoR,locrhoB
+              call finalize_world
+              stop
+            endif
+          if(abs(locu)>maxvel)locu=sign(ONE,locu)*maxvel
+          if(abs(locv)>maxvel)locv=sign(ONE,locu)*maxvel
+          if(abs(locw)>maxvel)locw=sign(ONE,locu)*maxvel
           
 #ifdef REGULARIZED
           pxxR = ZERO
@@ -4677,10 +4728,9 @@
           
           !perturbation step
           phis=(locrhoR/meanR-locrhoB/meanB)/(locrhoR/meanR+locrhoB/meanB)
-          if(abs(phis)<phislim)then
+          !if(abs(phis)<phislim)then
 		    rhodiff(1:links) = ZERO
             rhosum(1:links) = ZERO
-            acoeff = ( NINE / FOUR )*temp_omega*sigma_CG
             psix = ZERO
             psiy = ZERO
             psiz = ZERO
@@ -4712,6 +4762,7 @@
             psinorm_sq = psix**TWO + psiy**TWO + psiz**TWO
             if(psinorm_sq<gradlim**TWO)cycle
             psinorm=sqrt(psinorm_sq)
+            acoeff=( NINE / FOUR )*temp_omega*sigma_CG
             do l=0,links
               e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
               temp=psinorm*(p(l)*(e_dot_psi**TWO)/psinorm_sq - b_l(l))
@@ -4729,15 +4780,18 @@
             do l=0,links
               e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
               temp=sqrt(dex(l)**TWO + dey(l)**TWO + dez(l)**TWO)*psinorm
-              cosphi=e_dot_psi/temp
-              if(isnan(cosphi)) cosphi=ZERO
+              if (temp>ZERO) then
+                 cosphi=e_dot_psi/temp
+              else
+                 cosphi=ZERO
+              endif
               temp=beta_CG*locrhoR*locrhoB*cosphi/(rhoapp**TWO)
               fsum=aoptpR(l)%p(i,j,k) + aoptpB(l)%p(i,j,k)
               aoptpR(l)%p(i,j,k)=fsum*locrhoR/rhoapp + temp*feq(l)
               aoptpB(l)%p(i,j,k)=fsum*locrhoB/rhoapp - temp*feq(l)
             enddo
             
-          endif
+          !endif
         enddo
       enddo
     enddo
