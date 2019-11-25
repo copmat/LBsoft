@@ -4380,16 +4380,25 @@
   implicit none
   
   integer :: i,j,k
+  real(kind=PRC) :: phis
   
   
   if(lunique_omega)return
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    omega(i,j,k)=viscosity_to_omega( &
-     ONE/((rhoR(i,j,k)/(rhoB(i,j,k)+rhoR(i,j,k)))*(ONE/viscR) + &
-     (rhoB(i,j,k)/(rhoB(i,j,k)+rhoR(i,j,k)))*(ONE/viscB)) )
-  end forall
-  
+  do k=minz,maxz
+    do j=miny,maxy
+      do i=minx,maxx
+#if 1
+        phis=(rhoR(i,j,k)/meanR-rhoB(i,j,k)/meanB)/(rhoR(i,j,k)/meanR+rhoB(i,j,k)/meanB)
+        omega(i,j,k)=ONE/(HALF*(ONE+phis)*tauR+HALF*(ONE-phis)*TauB)
+#else
+         omega(i,j,k)=viscosity_to_omega( &
+          ONE/((rhoR(i,j,k)/(rhoB(i,j,k)+rhoR(i,j,k)))*(ONE/viscR) + &
+          (rhoB(i,j,k)/(rhoB(i,j,k)+rhoR(i,j,k)))*(ONE/viscB)) )
+#endif
+      enddo
+    enddo
+  enddo
   return
   
  end subroutine compute_omega
