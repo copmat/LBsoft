@@ -3160,10 +3160,10 @@
     viscR=cssq*(tauR-HALF)
     viscB=cssq*(tauB-HALF)
     if(iselomegaint==1)then
-      s1_R=(tauR*tauB)/(tauR+tauB)
+      s1_R=TWO*(tauR*tauB)/(tauR+tauB)
       s2_R=TWO*(tauR-s1_R)/Delta_Grunau
       s3_R=-s2_R/(TWO*Delta_Grunau)
-      t1_B=(tauR*tauB)/(tauR+tauB)
+      t1_B=TWO*(tauR*tauB)/(tauR+tauB)
       t2_B=TWO*(t1_B-tauB)/Delta_Grunau
       t3_B=t2_B/(TWO*Delta_Grunau)
     endif
