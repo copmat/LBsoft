@@ -319,9 +319,10 @@
  real(kind=PRC), dimension(0:links), parameter, public :: &
   p = (/p0,p1,p1,p1,p1,p1,p1,p2,p2,p2,p2,p2,p2,p2,p2,p2,p2,p2,p2/)
  
- real(kind=PRC), parameter :: b0 = ( - ONE / THREE )
- real(kind=PRC), parameter :: b1 = ( ONE / EIGHTEEN )
- real(kind=PRC), parameter :: b2 = ( ONE / THIRTYSIX )
+ real(kind=PRC), parameter :: b_xi = real(2.d0,kind=PRC)
+ real(kind=PRC), parameter :: b0 = -(TWO+TWO*b_xi)/(THREE*b_xi+TWELVE)
+ real(kind=PRC), parameter :: b1 = (b_xi)/(SIX*b_xi+TWENTYFOUR)
+ real(kind=PRC), parameter :: b2 = ONE/(SIX*b_xi+TWENTYFOUR)
  real(kind=PRC), dimension(0:links), parameter, public :: &
   b_l = (/b0,b1,b1,b1,b1,b1,b1,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2,b2/) 
   
