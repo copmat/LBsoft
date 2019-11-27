@@ -6,7 +6,7 @@
 #define noQUAD_FORCEINT
 #define noLOGFORCES
 #define GRADIENTD3Q27
-#define REGULARIZED
+#define noREGULARIZED
 
 #define STREAM_NOCOPY
 
