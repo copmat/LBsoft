@@ -2275,12 +2275,14 @@
   if(lcolourG)then
   
     if(lunique_omega)then
-      call set_initial_pop_fluids_CG_unique
+      call set_initial_pop_fluids_CG_unique(alphaR_CG,rhoR,u,v,w,aoptpR)
+      call set_initial_pop_fluids_CG_unique(alphaB_CG,rhoB,u,v,w,aoptpB)
     else
-      call set_initial_pop_fluids_CG
+      call set_initial_pop_fluids_CG(alphaR_CG,rhoR,u,v,w,aoptpR)
+      call set_initial_pop_fluids_CG(alphaB_CG,rhoB,u,v,w,aoptpB)
     endif
     
-  else
+   else
   
     call set_initial_pop_fluids(rhoR,u,v,w,f00R,f01R,&
      f02R,f03R,f04R,f05R,f06R,f07R,f08R,f09R,f10R, &
@@ -2292,7 +2294,7 @@
      f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
      f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B,aoptpB)
   
-  endif
+  endif  
   
   return
   
@@ -2424,7 +2426,7 @@
   
  end subroutine set_initial_pop_fluids
  
- subroutine set_initial_pop_fluids_CG_unique()
+ subroutine set_initial_pop_fluids_CG_unique(alpha_CG,rhosub,usub,vsub,wsub,aoptp)
  
 !***********************************************************************
 !     
@@ -2439,9 +2441,12 @@
   
   implicit none
   
+  real(kind=PRC), intent(in) :: alpha_CG
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub,usub,vsub, &
+   wsub
+  type(REALPTR), dimension(0:links):: aoptp
   
-  real(kind=PRC) :: grad_rhoRx,grad_rhoRy,grad_rhoRz, &
-   grad_rhoBx,grad_rhoBy,grad_rhoBz,myalpha,locrhoR,locrhoB,temp_omega
+  real(kind=PRC) :: grad_rhox,grad_rhoy,grad_rhoz,temp_omega
   integer :: i,j,k,l
   
   
@@ -2451,68 +2456,45 @@
      do j=miny,maxy
        do i=minx,maxx
   
-         locrhoR = rhoR(i,j,k)
-         locrhoB = rhoB(i,j,k)
-         grad_rhoRx = ZERO
-         grad_rhoRy = ZERO
-         grad_rhoRz = ZERO
-         grad_rhoBx = ZERO
-         grad_rhoBy = ZERO
-         grad_rhoBz = ZERO
+         grad_rhox = ZERO
+            grad_rhoy = ZERO
+            grad_rhoz = ZERO
+
 #ifdef GRADIENTD3Q27
          do l=1,linksd3q27
-           grad_rhoRx=grad_rhoRx + ad3q27(l)*dexd3q27(l)* &
+           grad_rhox=grad_rhox + ad3q27(l)*dexd3q27(l)* &
             (rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
-           grad_rhoRy=grad_rhoRy + ad3q27(l)*deyd3q27(l)* &
+           grad_rhoy=grad_rhoy + ad3q27(l)*deyd3q27(l)* &
             (rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
-           grad_rhoRz=grad_rhoRz + ad3q27(l)*dezd3q27(l)* &
+           grad_rhoz=grad_rhoz + ad3q27(l)*dezd3q27(l)* &
             (rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
-           grad_rhoBx=grad_rhoBx + ad3q27(l)*dexd3q27(l)* &
-            (rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
-           grad_rhoBy=grad_rhoBy + ad3q27(l)*deyd3q27(l)* &
-            (rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
-           grad_rhoBz=grad_rhoBz + ad3q27(l)*dezd3q27(l)* &
-            (rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
          enddo
 #else             
          do l=1,links
-           grad_rhoRx=grad_rhoRx + a(l)*dex(l)* &
+           grad_rhox=grad_rhox + a(l)*dex(l)* &
             (rhoR(i+ex(l),j+ey(l),k+ez(l)))
-           grad_rhoRy=grad_rhoRy + a(l)*dey(l)* &
+           grad_rhoy=grad_rhoy + a(l)*dey(l)* &
             (rhoR(i+ex(l),j+ey(l),k+ez(l)))
-           grad_rhoRz=grad_rhoRz + a(l)*dez(l)* &
+           grad_rhoz=grad_rhoz + a(l)*dez(l)* &
             (rhoR(i+ex(l),j+ey(l),k+ez(l)))
-           grad_rhoBx=grad_rhoBx + a(l)*dex(l)* &
-            (rhoB(i+ex(l),j+ey(l),k+ez(l)))
-           grad_rhoBy=grad_rhoBy + a(l)*dey(l)* &
-            (rhoB(i+ex(l),j+ey(l),k+ez(l)))
-           grad_rhoBz=grad_rhoBz + a(l)*dez(l)* &
-            (rhoB(i+ex(l),j+ey(l),k+ez(l)))
          enddo
 #endif    
-!         myalpha=(locrhoR/meanR)/((locrhoR/meanR)+(locrhoB/meanB))*alphaR_CG + &
-!          (locrhoB/meanB)/((locrhoR/meanR)+(locrhoB/meanB))*alphaB_CG
-   
-         do l=0,links
-           aoptpR(l)%p(i,j,k)= &
-            equil_popCG(l,temp_omega,alphaR_CG, &
-            rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k), &
-            grad_rhoRx,grad_rhoRy,grad_rhoRz)
-           aoptpB(l)%p(i,j,k)= &
-            equil_popCG(l,temp_omega,alphaB_CG, &
-            rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k), &
-            grad_rhoBx,grad_rhoBy,grad_rhoBz)
-         enddo
-  
-       enddo
-     enddo
-  enddo
+
+          do l=0,links
+            aoptp(l)%p(i,j,k)= &
+             equil_popCG(l,temp_omega,alpha_CG,rhosub(i,j,k), &
+             usub(i,j,k),vsub(i,j,k),wsub(i,j,k), &
+             grad_rhox,grad_rhoy,grad_rhoz)
+          enddo
+        enddo
+      enddo
+    enddo
   
   return
   
  end subroutine set_initial_pop_fluids_CG_unique
  
- subroutine set_initial_pop_fluids_CG()
+ subroutine set_initial_pop_fluids_CG(alpha_CG,rhosub,usub,vsub,wsub,aoptp)
  
 !***********************************************************************
 !     
@@ -2527,11 +2509,12 @@
   
   implicit none
   
-  real(kind=PRC) :: grad_rhoRx,grad_rhoRy,grad_rhoRz, &
-   grad_rhoBx,grad_rhoBy,grad_rhoBz,myalpha,locrhoR,locrhoB,temp_omega
+  real(kind=PRC), intent(in) :: alpha_CG
+  real(kind=PRC) :: grad_rhox,grad_rhoy,grad_rhoz,temp_omega
   integer :: i,j,k,l
-  
-  
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub,usub,vsub, &
+   wsub
+  type(REALPTR), dimension(0:links):: aoptp
   
   
    do k=minz,maxz
@@ -2540,62 +2523,39 @@
          
          temp_omega=omega(i,j,k)
          
-         locrhoR = rhoR(i,j,k)
-         locrhoB = rhoB(i,j,k)
-         grad_rhoRx = ZERO
-         grad_rhoRy = ZERO
-         grad_rhoRz = ZERO
-         grad_rhoBx = ZERO
-         grad_rhoBy = ZERO
-         grad_rhoBz = ZERO
+         grad_rhox = ZERO
+            grad_rhoy = ZERO
+            grad_rhoz = ZERO
+
 #ifdef GRADIENTD3Q27
          do l=1,linksd3q27
-           grad_rhoRx=grad_rhoRx + ad3q27(l)*dexd3q27(l)* &
+           grad_rhox=grad_rhox + ad3q27(l)*dexd3q27(l)* &
             (rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
-           grad_rhoRy=grad_rhoRy + ad3q27(l)*deyd3q27(l)* &
+           grad_rhoy=grad_rhoy + ad3q27(l)*deyd3q27(l)* &
             (rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
-           grad_rhoRz=grad_rhoRz + ad3q27(l)*dezd3q27(l)* &
+           grad_rhoz=grad_rhoz + ad3q27(l)*dezd3q27(l)* &
             (rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
-           grad_rhoBx=grad_rhoBx + ad3q27(l)*dexd3q27(l)* &
-            (rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
-           grad_rhoBy=grad_rhoBy + ad3q27(l)*deyd3q27(l)* &
-            (rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
-           grad_rhoBz=grad_rhoBz + ad3q27(l)*dezd3q27(l)* &
-            (rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l)))
          enddo
 #else             
          do l=1,links
-           grad_rhoRx=grad_rhoRx + a(l)*dex(l)* &
+           grad_rhox=grad_rhox + a(l)*dex(l)* &
             (rhoR(i+ex(l),j+ey(l),k+ez(l)))
-           grad_rhoRy=grad_rhoRy + a(l)*dey(l)* &
+           grad_rhoy=grad_rhoy + a(l)*dey(l)* &
             (rhoR(i+ex(l),j+ey(l),k+ez(l)))
-           grad_rhoRz=grad_rhoRz + a(l)*dez(l)* &
+           grad_rhoz=grad_rhoz + a(l)*dez(l)* &
             (rhoR(i+ex(l),j+ey(l),k+ez(l)))
-           grad_rhoBx=grad_rhoBx + a(l)*dex(l)* &
-            (rhoB(i+ex(l),j+ey(l),k+ez(l)))
-           grad_rhoBy=grad_rhoBy + a(l)*dey(l)* &
-            (rhoB(i+ex(l),j+ey(l),k+ez(l)))
-           grad_rhoBz=grad_rhoBz + a(l)*dez(l)* &
-            (rhoB(i+ex(l),j+ey(l),k+ez(l)))
          enddo
 #endif    
-!         myalpha=(locrhoR/meanR)/((locrhoR/meanR)+(locrhoB/meanB))*alphaR_CG + &
-!          (locrhoB/meanB)/((locrhoR/meanR)+(locrhoB/meanB))*alphaB_CG
-   
-         do l=0,links
-           aoptpR(l)%p(i,j,k)= &
-            equil_popCG(l,temp_omega,alphaR_CG, &
-            rhoR(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k), &
-            grad_rhoRx,grad_rhoRy,grad_rhoRz)
-           aoptpB(l)%p(i,j,k)= &
-            equil_popCG(l,temp_omega,alphaB_CG, &
-            rhoB(i,j,k),u(i,j,k),v(i,j,k),w(i,j,k), &
-            grad_rhoBx,grad_rhoBy,grad_rhoBz)
-         enddo
-  
-       enddo
-     enddo
-  enddo
+
+          do l=0,links
+            aoptp(l)%p(i,j,k)= &
+             equil_popCG(l,temp_omega,alpha_CG,rhosub(i,j,k), &
+             usub(i,j,k),vsub(i,j,k),wsub(i,j,k), &
+             grad_rhox,grad_rhoy,grad_rhoz)
+          enddo
+        enddo
+      enddo
+    enddo
   
   return
   
@@ -4750,10 +4710,7 @@
           locv = v(i,j,k)
           locw = w(i,j,k)
           
-!          myalpha=(locrhoR/meanR)/((locrhoR/meanR)+(locrhoB/meanB))*alphaR_CG + &
-!           (locrhoB/meanB)/((locrhoR/meanR)+(locrhoB/meanB))*alphaB_CG
-  
-         grad_rhoRx = ZERO
+          grad_rhoRx = ZERO
          grad_rhoRy = ZERO
          grad_rhoRz = ZERO
          grad_rhoBx = ZERO
@@ -4790,19 +4747,18 @@
             (rhoB(i+ex(l),j+ey(l),k+ez(l)))
          enddo
 #endif    
-  
-  
+          
 #ifdef REGULARIZED
           pxxR = ZERO
-          pyyR = ZERO
+		  pyyR = ZERO
           pzzR = ZERO
-          pxyR = ZERO
+		  pxyR = ZERO
           pxzR = ZERO
           pyzR = ZERO
-          pxxB = ZERO
-          pyyB = ZERO
+		  pxxB = ZERO
+		  pyyB = ZERO
           pzzB = ZERO
-          pxyB = ZERO
+		  pxyB = ZERO
           pxzB = ZERO
           pyzB = ZERO
           do l=0,links
@@ -4816,23 +4772,23 @@
              
             fneqR = aoptpR(l)%p(i,j,k) - feqR(l)
             fneqB = aoptpB(l)%p(i,j,k) - feqB(l)
-	        		
-	        !non equilibrium part of the momentum flux tensor
-            pxxR=pxxR + (dex(l)*dex(l) - cssq)*fneqR
-            pyyR=pyyR + (dey(l)*dey(l) - cssq)*fneqR
-            pzzR=pzzR + (dez(l)*dez(l) - cssq)*fneqR
-            pxyR=pxyR +  dex(l)*dey(l)*fneqR
-            pxzR=pxzR +  dex(l)*dez(l)*fneqR
+			
+			!non equilibrium part of the momentum flux tensor
+			pxxR=pxxR + (dex(l)*dex(l) - cssq)*fneqR
+			pyyR=pyyR + (dey(l)*dey(l) - cssq)*fneqR
+			pzzR=pzzR + (dez(l)*dez(l) - cssq)*fneqR
+			pxyR=pxyR +  dex(l)*dey(l)*fneqR
+			pxzR=pxzR +  dex(l)*dez(l)*fneqR
             pyzR=pyzR +  dey(l)*dez(l)*fneqR
-	        		
-            pxxB=pxxB + (dex(l)*dex(l) - cssq)*fneqB
-            pyyB=pyyB + (dey(l)*dey(l) - cssq)*fneqB
-            pzzB=pzzB + (dez(l)*dez(l) - cssq)*fneqB
-            pxyB=pxyB +  dex(l)*dey(l)*fneqB
-            pxzB=pxzB +  dex(l)*dez(l)*fneqB
+			
+			pxxB=pxxB + (dex(l)*dex(l) - cssq)*fneqB
+			pyyB=pyyB + (dey(l)*dey(l) - cssq)*fneqB
+			pzzB=pzzB + (dez(l)*dez(l) - cssq)*fneqB
+			pxyB=pxyB +  dex(l)*dey(l)*fneqB
+			pxzB=pxzB +  dex(l)*dez(l)*fneqB
             pyzB=pyzB +  dey(l)*dez(l)*fneqB
           enddo
-  
+          
           do l=0,links
             aoptpR(l)%p(i,j,k)= feqR(l) + &
              ((HALF*p(l))/(cssq**TWO))*((dex(l)*dex(l) - cssq)*pxxR + &
@@ -4851,14 +4807,8 @@
              TWO*dey(l)*dez(l)*pyzB)
           enddo
           
-          !bgk step
-          do l=0,links
-            aoptpR(l)%p(i,j,k)=aoptpR(l)%p(i,j,k)*oneminusomega+feqR(l)*temp_omega
-            aoptpB(l)%p(i,j,k)=aoptpB(l)%p(i,j,k)*oneminusomega+feqB(l)*temp_omega
-          enddo
-  
-#else
-        
+#endif
+
           !bgk step
           do l=0,links
             aoptpR(l)%p(i,j,k)=aoptpR(l)%p(i,j,k)*oneminusomega + &
@@ -4871,8 +4821,7 @@
              * temp_omega
           enddo
           
-#endif
-  
+          
           !perturbation step
           phis=(locrhoR/meanR-locrhoB/meanB)/(locrhoR/meanR+locrhoB/meanB)
           !if(abs(phis)<phislim)then
@@ -4893,7 +4842,7 @@
               psiy=psiy + ad3q27(l)*deyd3q27(l)*(rhodiff(l)/rhosum(l))
               psiz=psiz + ad3q27(l)*dezd3q27(l)*(rhodiff(l)/rhosum(l))
             enddo
-#else     
+#else             
             do l=1,links
               rhodiff(l)=(rhoR(i+ex(l),j+ey(l),k+ez(l))/meanR- &
                rhoB(i+ex(l),j+ey(l),k+ez(l))/meanB)
@@ -4907,7 +4856,7 @@
             enddo
 #endif
             psinorm_sq = psix**TWO + psiy**TWO + psiz**TWO
-            if(psinorm_sq<gradlim**TWO)return
+            if(psinorm_sq<gradlim**TWO)cycle
             psinorm=sqrt(psinorm_sq)
             acoeff=( NINE / FOUR )*temp_omega*sigma_CG
             do l=0,links
@@ -4917,14 +4866,15 @@
               aoptpR(l)%p(i,j,k)=aoptpR(l)%p(i,j,k) +(HALF*acoeff)*temp 
               aoptpB(l)%p(i,j,k)=aoptpB(l)%p(i,j,k) +(HALF*acoeff)*temp 
             enddo
-    
+            
             !recolouring step
             do l=0,links
               !compute the sum of the two equilibriums at zero velocity 
+              !feq(l)=locrhoR*phiR_CG(l) + locrhoB*phib_CG(l)
               feq(l)=equil_popCG(l,temp_omega,alphaR_CG,locrhoR, &
-                ZERO,ZERO,ZERO,grad_rhoRx,grad_rhoRy,grad_rhoRz)+ &
-               equil_popCG(l,temp_omega,alphaB_CG,locrhoB, &
-                ZERO,ZERO,ZERO,grad_rhoBx,grad_rhoBy,grad_rhoBz)
+             ZERO,ZERO,ZERO,grad_rhoRx,grad_rhoRy,grad_rhoRz)+ &
+             equil_popCG(l,temp_omega,alphaB_CG,locrhoB, &
+             ZERO,ZERO,ZERO,grad_rhoBx,grad_rhoBy,grad_rhoBz)
             enddo
             rhoapp=locrhoR+locrhoB
             do l=0,links
@@ -4940,10 +4890,11 @@
               aoptpR(l)%p(i,j,k)=fsum*locrhoR/rhoapp + temp*feq(l)
               aoptpB(l)%p(i,j,k)=fsum*locrhoB/rhoapp - temp*feq(l)
             enddo
+            
           !endif
         enddo
-     enddo
-  enddo
+      enddo
+    enddo
   
   return
   
@@ -5011,10 +4962,7 @@
           locv = v(i,j,k)
           locw = w(i,j,k)
           
-!          myalpha=(locrhoR/meanR)/((locrhoR/meanR)+(locrhoB/meanB))*alphaR_CG + &
-!           (locrhoB/meanB)/((locrhoR/meanR)+(locrhoB/meanB))*alphaB_CG
-  
-         grad_rhoRx = ZERO
+          grad_rhoRx = ZERO
          grad_rhoRy = ZERO
          grad_rhoRz = ZERO
          grad_rhoBx = ZERO
@@ -5051,19 +4999,18 @@
             (rhoB(i+ex(l),j+ey(l),k+ez(l)))
          enddo
 #endif    
-  
-  
+          
 #ifdef REGULARIZED
           pxxR = ZERO
-          pyyR = ZERO
+		  pyyR = ZERO
           pzzR = ZERO
-          pxyR = ZERO
+		  pxyR = ZERO
           pxzR = ZERO
           pyzR = ZERO
-          pxxB = ZERO
-          pyyB = ZERO
+		  pxxB = ZERO
+		  pyyB = ZERO
           pzzB = ZERO
-          pxyB = ZERO
+		  pxyB = ZERO
           pxzB = ZERO
           pyzB = ZERO
           do l=0,links
@@ -5077,23 +5024,23 @@
              
             fneqR = aoptpR(l)%p(i,j,k) - feqR(l)
             fneqB = aoptpB(l)%p(i,j,k) - feqB(l)
-	        		
-	        !non equilibrium part of the momentum flux tensor
-            pxxR=pxxR + (dex(l)*dex(l) - cssq)*fneqR
-            pyyR=pyyR + (dey(l)*dey(l) - cssq)*fneqR
-            pzzR=pzzR + (dez(l)*dez(l) - cssq)*fneqR
-            pxyR=pxyR +  dex(l)*dey(l)*fneqR
-            pxzR=pxzR +  dex(l)*dez(l)*fneqR
+			
+			!non equilibrium part of the momentum flux tensor
+			pxxR=pxxR + (dex(l)*dex(l) - cssq)*fneqR
+			pyyR=pyyR + (dey(l)*dey(l) - cssq)*fneqR
+			pzzR=pzzR + (dez(l)*dez(l) - cssq)*fneqR
+			pxyR=pxyR +  dex(l)*dey(l)*fneqR
+			pxzR=pxzR +  dex(l)*dez(l)*fneqR
             pyzR=pyzR +  dey(l)*dez(l)*fneqR
-	        		
-            pxxB=pxxB + (dex(l)*dex(l) - cssq)*fneqB
-            pyyB=pyyB + (dey(l)*dey(l) - cssq)*fneqB
-            pzzB=pzzB + (dez(l)*dez(l) - cssq)*fneqB
-            pxyB=pxyB +  dex(l)*dey(l)*fneqB
-            pxzB=pxzB +  dex(l)*dez(l)*fneqB
+			
+			pxxB=pxxB + (dex(l)*dex(l) - cssq)*fneqB
+			pyyB=pyyB + (dey(l)*dey(l) - cssq)*fneqB
+			pzzB=pzzB + (dez(l)*dez(l) - cssq)*fneqB
+			pxyB=pxyB +  dex(l)*dey(l)*fneqB
+			pxzB=pxzB +  dex(l)*dez(l)*fneqB
             pyzB=pyzB +  dey(l)*dez(l)*fneqB
           enddo
-  
+          
           do l=0,links
             aoptpR(l)%p(i,j,k)= feqR(l) + &
              ((HALF*p(l))/(cssq**TWO))*((dex(l)*dex(l) - cssq)*pxxR + &
@@ -5112,14 +5059,8 @@
              TWO*dey(l)*dez(l)*pyzB)
           enddo
           
-          !bgk step
-          do l=0,links
-            aoptpR(l)%p(i,j,k)=aoptpR(l)%p(i,j,k)*oneminusomega+feqR(l)*temp_omega
-            aoptpB(l)%p(i,j,k)=aoptpB(l)%p(i,j,k)*oneminusomega+feqB(l)*temp_omega
-          enddo
-  
-#else
-        
+#endif
+
           !bgk step
           do l=0,links
             aoptpR(l)%p(i,j,k)=aoptpR(l)%p(i,j,k)*oneminusomega + &
@@ -5132,8 +5073,7 @@
              * temp_omega
           enddo
           
-#endif
-  
+          
           !perturbation step
           phis=(locrhoR/meanR-locrhoB/meanB)/(locrhoR/meanR+locrhoB/meanB)
           !if(abs(phis)<phislim)then
@@ -5154,7 +5094,7 @@
               psiy=psiy + ad3q27(l)*deyd3q27(l)*(rhodiff(l)/rhosum(l))
               psiz=psiz + ad3q27(l)*dezd3q27(l)*(rhodiff(l)/rhosum(l))
             enddo
-#else     
+#else             
             do l=1,links
               rhodiff(l)=(rhoR(i+ex(l),j+ey(l),k+ez(l))/meanR- &
                rhoB(i+ex(l),j+ey(l),k+ez(l))/meanB)
@@ -5168,7 +5108,7 @@
             enddo
 #endif
             psinorm_sq = psix**TWO + psiy**TWO + psiz**TWO
-            if(psinorm_sq<gradlim**TWO)return
+            if(psinorm_sq<gradlim**TWO)cycle
             psinorm=sqrt(psinorm_sq)
             acoeff=( NINE / FOUR )*temp_omega*sigma_CG
             do l=0,links
@@ -5178,14 +5118,15 @@
               aoptpR(l)%p(i,j,k)=aoptpR(l)%p(i,j,k) +(HALF*acoeff)*temp 
               aoptpB(l)%p(i,j,k)=aoptpB(l)%p(i,j,k) +(HALF*acoeff)*temp 
             enddo
-    
+            
             !recolouring step
             do l=0,links
               !compute the sum of the two equilibriums at zero velocity 
+              !feq(l)=locrhoR*phiR_CG(l) + locrhoB*phib_CG(l)
               feq(l)=equil_popCG(l,temp_omega,alphaR_CG,locrhoR, &
-                ZERO,ZERO,ZERO,grad_rhoRx,grad_rhoRy,grad_rhoRz)+ &
-               equil_popCG(l,temp_omega,alphaB_CG,locrhoB, &
-                ZERO,ZERO,ZERO,grad_rhoBx,grad_rhoBy,grad_rhoBz)
+             ZERO,ZERO,ZERO,grad_rhoRx,grad_rhoRy,grad_rhoRz)+ &
+             equil_popCG(l,temp_omega,alphaB_CG,locrhoB, &
+             ZERO,ZERO,ZERO,grad_rhoBx,grad_rhoBy,grad_rhoBz)
             enddo
             rhoapp=locrhoR+locrhoB
             do l=0,links
@@ -5201,10 +5142,11 @@
               aoptpR(l)%p(i,j,k)=fsum*locrhoR/rhoapp + temp*feq(l)
               aoptpB(l)%p(i,j,k)=fsum*locrhoB/rhoapp - temp*feq(l)
             enddo
+            
           !endif
         enddo
-     enddo
-  enddo
+      enddo
+    enddo
   
   return
   
@@ -5276,7 +5218,7 @@
            mydey(myl)*mydez(myl)*myG(2,3) + &
            mydey(myl)*mydez(myl)*myG(3,2)
   dotugrad=dot_product(myvel,mygrad)
-  myviscos=mycssq*(ONE/myomega-HALF)
+  myviscos=mycssq*(ONE / myomega - HALF)
   uv=(ONE/mycssq)*(myu*mydex(myl) + myv*mydey(myl) + myw*mydez(myl))
   equil_popCG=myrho*(myphi(myl)+myvarphi(myl)*myalpha+myp(myl)*(uv+HALF*(uv*uv)-(HALF/mycssq)* &
    (myu**TWO+myv**TWO+myw**TWO))) + &
