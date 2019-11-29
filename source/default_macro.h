@@ -7,6 +7,7 @@
 #define noLOGFORCES
 #define noGRADIENTD3Q27
 #define noREGULARIZED
+#define STABILIZED
 
 #define STREAM_NOCOPY
 
@@ -64,6 +65,7 @@
 #define FOURTH    0.25e0
 
 #define MINDENS   1.e-8
+#define MAXVEL    2.e-1
 
 #elif PRC==8
 
@@ -92,6 +94,7 @@
 #define FOURTH    0.25d0
 
 #define MINDENS   1.d-16
+#define MAXVEL    2.d-1
 
 #else
 
