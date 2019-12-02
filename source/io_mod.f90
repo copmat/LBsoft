@@ -2104,12 +2104,12 @@
       call bcast_world_f(dtemp_backR)
       call bcast_world_f(dtemp_backB)
       if(lsingle_fluid)then
-        if(dtemp_backR<=ZERO)then
+        if(dtemp_backR<MINDENS)then
           call warning(52)
           call error(7)
         endif
       else
-        if(dtemp_backR<=ZERO .or. dtemp_backB<=ZERO)then
+        if(dtemp_backR<MINDENS .or. dtemp_backB<MINDENS)then
           call warning(52)
           call error(7)
         endif
