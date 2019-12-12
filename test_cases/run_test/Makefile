@@ -5,6 +5,9 @@
 FC=gfortran
 FFLAGS= -O0 -cpp -c
 LDFLAGS= -O0 -cpp -o
+#FC=ifort
+#FFLAGS= -O0 -cpp -DINTEL -c
+#LDFLAGS= -O0 -cpp -o
 EX=test.x
 SHELL=/bin/sh
 

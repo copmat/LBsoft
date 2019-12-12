@@ -1871,9 +1871,9 @@
   
   if(linit_seed)then
   
-    do k=1,nz
-      do j=1,ny
-        do i=1,nx
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
           rhoR(i,j,k)=meanR+stdevR*gauss()
         enddo
       enddo
@@ -1881,9 +1881,9 @@
     
     if(lsingle_fluid)return
     
-    do k=1,nz
-      do j=1,ny
-        do i=1,nx
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
           rhoB(i,j,k)=meanB+stdevB*gauss()
         enddo
       enddo
@@ -1891,15 +1891,23 @@
   
   else
   
-    forall (i=minx:maxx,j=miny:maxy,k=minz:maxz)
-      rhoR(i,j,k)=meanR+stdevR*gauss_noseeded(i,j,k,1)
-    end forall
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          rhoR(i,j,k)=meanR+stdevR*gauss_noseeded(i,j,k,1)
+        enddo
+      enddo
+    enddo
     
     if(lsingle_fluid)return
     
-    forall (i=minx:maxx,j=miny:maxy,k=minz:maxz)
-      rhoB(i,j,k)=meanB+stdevB*gauss_noseeded(i,j,k,100)
-    end forall
+    do k=minz,maxz
+      do j=miny,maxy
+        do i=minx,maxx
+          rhoB(i,j,k)=meanB+stdevB*gauss_noseeded(i,j,k,100)
+        enddo
+      enddo
+    enddo
   
   endif
   
@@ -13968,7 +13976,7 @@ if(mod(nstep,1)==0)then
  end subroutine helper_init_particle_2_isfluid
 
 
- subroutine init_particle_2_isfluid(isub,jsub,ksub,nspheres, &
+ subroutine init_particle_2_isfluid(myi,isub,jsub,ksub,nspheres, &
   spherelists,spheredists,nspheredeads,spherelistdeads, isInternal)
   
 !***********************************************************************
@@ -13984,17 +13992,17 @@ if(mod(nstep,1)==0)then
   
   implicit none
   
-  integer, intent(in) :: isub,jsub,ksub,nspheres,nspheredeads
+  integer, intent(in) :: myi,isub,jsub,ksub,nspheres,nspheredeads
   integer, allocatable, dimension(:,:), intent(in) :: spherelists
   integer, allocatable, dimension(:,:), intent(in) :: spherelistdeads
   real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
   logical, intent(in) :: isInternal
   
 
-    call helper_init_particle_2_isfluid(isub,jsub,ksub,nspheres, spherelists, .true.)
-    call helper_init_particle_2_isfluid(isub,jsub,ksub,nspheredeads, spherelistdeads, .false.)
+  call helper_init_particle_2_isfluid(isub,jsub,ksub,nspheres, spherelists, .true.)
+  call helper_init_particle_2_isfluid(isub,jsub,ksub,nspheredeads, spherelistdeads, .false.)
 
-   if (isInternal) then
+  if (isInternal) then
     isfluid(isub,jsub,ksub)=5
     rhoR(isub,jsub,ksub)=MINDENS
     u(isub,jsub,ksub)=ZERO
@@ -14004,9 +14012,9 @@ if(mod(nstep,1)==0)then
     if(.not. lsingle_fluid)then
      rhoB(isub,jsub,ksub)=MINDENS
     endif
-   endif
- end subroutine init_particle_2_isfluid
+  endif
  
+ end subroutine init_particle_2_isfluid
 
  subroutine particle_bounce_back(debug, nstep,iatm,lown,lrotate,isub,jsub,ksub,nspheres, &
   spherelists,spheredists,rdimx,rdimy,rdimz,xx,yy,zz,vx,vy,vz,&

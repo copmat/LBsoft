@@ -1143,6 +1143,7 @@
   !mxlist=max(mxlist,32)
   
   msatms=ceiling(real(natms_tot/mxrank,kind=PRC)*densvar)
+  msatms=max(msatms,1)
   
   cell(1)=real(nx,kind=PRC)
   cell(2)=ZERO
@@ -1276,8 +1277,8 @@
   
 #endif
   
-  allocate(lentry(mxatms),stat=istat(23))
-  allocate(list(mxlist,mxatms),stat=istat(24))
+  allocate(lentry(msatms),stat=istat(23))
+  allocate(list(mxlist,msatms),stat=istat(24))
 
   
   ltest=.false.
@@ -1350,8 +1351,8 @@
     tzbo(1:mxatms)=ZERO
   endif
   
-  lentry(1:mxatms)=0
-  list(1:mxlist,1:mxatms)=0
+  lentry(1:msatms)=0
+  list(1:mxlist,1:msatms)=0
  end subroutine allocate_particles
  
 
@@ -1484,6 +1485,10 @@
             enddo
           endif
       enddo
+      
+      ! periodic boundary condition
+      call pbc_images_centered_tot(imcon,natms_tot,cell,cx,cy,cz, &
+       xxx,yyy,zzz)
   endif
 
   call bcast_world_i(natms_tot)
@@ -1788,7 +1793,7 @@
     i=nint(xxx(iatm))
     j=nint(yyy(iatm))
     k=nint(zzz(iatm))
-    call init_particle_2_isfluid(i,j,k,nsphere,spherelist,spheredist, &
+    call init_particle_2_isfluid(myi,i,j,k,nsphere,spherelist,spheredist, &
      nspheredead,spherelistdead, myi <= natms)
   enddo
   endif
@@ -2767,6 +2772,7 @@ else
   real(kind=PRC) :: xdc,ydc,zdc,tx,ty,tz,dens,ratio
   real(kind=PRC) :: rcell(9),celprp(10),det
   
+  lentry(1:msatms)=0
   
   if(lnolink)then
 
@@ -2777,14 +2783,12 @@ else
     
     ! call allocate_array_bdf(natms)
     
-    lentry(1:mxatms)=0
-    
     ! if (debug) call OpenLogFile(nstep, "parlst", 300)
 
     ii = 0
-    do iatm = 1,natms_tot
-      ii=iatm
-      myi=iatm
+    do myi=1,natms
+      iatm = atmbook(myi)
+      ii=ii+1
 
       ! if (debug) write(300,fmt=1002) myi, iatm
 1002 format ("my=", I4, " iatm=", I4, 8I4,X)
@@ -2833,8 +2837,6 @@ else
     rsqcut = (rcut+delr)**TWO
     rlimit = rcut+delr
     ! call allocate_array_bdf(natms)
-    
-    lentry(1:mxatms)=0
     
     ! if (debug) call OpenLogFile(nstep, "parlst", 300)
     
@@ -2926,9 +2928,10 @@ else
     lchk=.false.
     ibig=0
     
-    do iatm=1,natms_tot
-      
-      ii=iatm
+    ii = 0
+    do myi=1,natms
+      iatm = atmbook(myi)
+      ii=ii+1
       
       ix=min(int(xdc*uxx(iatm)),ilx-1)
       iy=min(int(ydc*uyy(iatm)),ily-1)
@@ -2986,7 +2989,7 @@ else
     enddo
     
     if(.not. lchk(1))then
-      call bubble_sort_list(natms_tot,lentry,list)
+      call bubble_sort_list(natms,lentry,list)
     endif
   endif
   
@@ -3269,8 +3272,8 @@ else
       itype=ltype(iatm)
       if(all(mskvdw(1:ntpvdw,itype)/=ivdw))cycle
       ii = 0
-      do k = 1,lentrysub(iatm)
-        jatm=listsub(k,iatm)
+      do k = 1,lentrysub(myi)
+        jatm=listsub(k,myi)
         jtype=ltype(jatm)
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
@@ -3283,8 +3286,8 @@ else
       call pbc_images(imcon,iimax,cell,xdf,ydf,zdf)
       
       ii = 0
-      do k = 1,lentrysub(iatm)
-        jatm=listsub(k,iatm)
+      do k = 1,lentrysub(myi)
+        jatm=listsub(k,myi)
         jtype=ltype(jatm)
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
@@ -3381,8 +3384,8 @@ else
       itype=ltype(iatm)
       if(all(mskvdw(1:ntpvdw,itype)/=ivdw))cycle
       ii = 0
-      do k = 1,lentrysub(iatm)
-        jatm=listsub(k,iatm)
+      do k = 1,lentrysub(myi)
+        jatm=listsub(k,myi)
         jtype=ltype(jatm)
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
@@ -3395,8 +3398,8 @@ else
       call pbc_images(imcon,iimax,cell,xdf,ydf,zdf)
       
       ii = 0
-      do k = 1,lentrysub(iatm)
-        jatm=listsub(k,iatm)
+      do k = 1,lentrysub(myi)
+        jatm=listsub(k,myi)
         jtype=ltype(jatm)
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
@@ -3485,14 +3488,13 @@ else
     mxrsqcut=max(rsrparcut,rsqcut)
     rparcap=rpar+lubricrparcap
     
-  
     do myi = 1,natms
       iatm = atmbook(myi)
       itype=ltype(iatm)
       if(all(mskvdw(1:ntpvdw,itype)/=ivdw))cycle
       ii = 0
-      do k = 1,lentrysub(iatm)
-        jatm=listsub(k,iatm)
+      do k = 1,lentrysub(myi)
+        jatm=listsub(k,myi)
         jtype=ltype(jatm)
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
@@ -3505,8 +3507,8 @@ else
       call pbc_images(imcon,iimax,cell,xdf,ydf,zdf)
       
       ii = 0
-      do k = 1,lentrysub(iatm)
-        jatm=listsub(k,iatm)
+      do k = 1,lentrysub(myi)
+        jatm=listsub(k,myi)
         jtype=ltype(jatm)
 
         ! if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "jatm=", jatm
