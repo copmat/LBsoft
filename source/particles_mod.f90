@@ -1277,8 +1277,8 @@
   
 #endif
   
-  allocate(lentry(msatms),stat=istat(23))
-  allocate(list(mxlist,msatms),stat=istat(24))
+  allocate(lentry(mxatms),stat=istat(23))
+  allocate(list(mxlist,mxatms),stat=istat(24))
 
   
   ltest=.false.
@@ -1351,8 +1351,8 @@
     tzbo(1:mxatms)=ZERO
   endif
   
-  lentry(1:msatms)=0
-  list(1:mxlist,1:msatms)=0
+  lentry(1:mxatms)=0
+  list(1:mxlist,1:mxatms)=0
  end subroutine allocate_particles
  
 
@@ -2667,7 +2667,7 @@ else
   integer :: fail=0
   real(kind=PRC) :: rmax,dr, checkSpace
   real(kind=PRC), allocatable, save :: xold(:),yold(:),zold(:)
-  
+  logical :: ltest(1)
 
 
 
@@ -2720,7 +2720,9 @@ else
 
         
 !   test for new verlet list
-    newlst=(moved(1).ge.2)
+    ltest(1)=(moved(1).ge.2)
+    call or_world_larr(ltest,1)
+    newlst=ltest(1)
         
 !   update stored positions
     if(newlst)then
@@ -2772,7 +2774,7 @@ else
   real(kind=PRC) :: xdc,ydc,zdc,tx,ty,tz,dens,ratio
   real(kind=PRC) :: rcell(9),celprp(10),det
   
-  lentry(1:msatms)=0
+  lentry(1:mxatms)=0
   
   if(lnolink)then
 
@@ -2786,9 +2788,12 @@ else
     ! if (debug) call OpenLogFile(nstep, "parlst", 300)
 
     ii = 0
-    do myi=1,natms
-      iatm = atmbook(myi)
-      ii=ii+1
+!    do myi=1,natms
+!      iatm = atmbook(myi)
+!      ii=ii+1
+    do iatm=1,natms_tot
+      ii=iatm
+      myi=iatm
 
       ! if (debug) write(300,fmt=1002) myi, iatm
 1002 format ("my=", I4, " iatm=", I4, 8I4,X)
@@ -2929,9 +2934,12 @@ else
     ibig=0
     
     ii = 0
-    do myi=1,natms
-      iatm = atmbook(myi)
-      ii=ii+1
+!    do myi=1,natms
+!      iatm = atmbook(myi)
+!      ii=ii+1
+    do iatm=1,natms_tot
+      ii=iatm
+      myi=iatm
       
       ix=min(int(xdc*uxx(iatm)),ilx-1)
       iy=min(int(ydc*uyy(iatm)),ily-1)
@@ -5968,19 +5976,19 @@ else
 
   forall(i=1:natms_tot, .not. mine(i))
     ! Erase atoms by others
-    xxx(i) = 0
-    yyy(i) = 0
-    zzz(i) = 0
-    vxx(i) = 0
-    vyy(i) = 0
-    vzz(i) = 0
+    xxx(i) = ZERO
+    yyy(i) = ZERO
+    zzz(i) = ZERO
+    vxx(i) = ZERO
+    vyy(i) = ZERO
+    vzz(i) = ZERO
 
-    xxo(i) = 0
-    yyo(i) = 0
-    zzo(i) = 0
-    vxo(i) = 0
-    vyo(i) = 0
-    vzo(i) = 0
+    xxo(i) = ZERO
+    yyo(i) = ZERO
+    zzo(i) = ZERO
+    vxo(i) = ZERO
+    vyo(i) = ZERO
+    vzo(i) = ZERO
 
     fxx(i) = ZERO
     fyy(i) = ZERO
@@ -5997,10 +6005,10 @@ else
     tybo(i) = ZERO
     tzbo(i) = ZERO
 
-    q0(i) = 0
-    q1(i) = 0
-    q2(i) = 0
-    q3(i) = 0
+    q0(i) = ZERO
+    q1(i) = ZERO
+    q2(i) = ZERO
+    q3(i) = ZERO
 
     oxx(i) = ZERO
     oyy(i) = ZERO

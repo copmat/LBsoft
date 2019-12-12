@@ -208,8 +208,7 @@
 
   !debug  = nstep >= 147
   !debug1  = nstep >= 564
-
-
+  
   new_time = real(nstep,kind=PRC)*tstep
   
   if(lmass_rescale)then
@@ -233,7 +232,7 @@
   if(ldiagnostic)call start_timing2("LB","moments_fluids")
   call moments_fluids(nstep)
   if(ldiagnostic)call end_timing2("LB","moments_fluids")
-
+  
   if(ldiagnostic)call start_timing2("LB","driver_bc_densities")
   call driver_bc_densities
   if(ldiagnostic)call end_timing2("LB","driver_bc_densities")
@@ -247,7 +246,7 @@
   if(ldiagnostic)call end_timing2("LB","compute_omega")
   
   ! if (debug1) call print_all_pops2(131, "aft_compute_omega", nstep)
-
+  
   if(lparticles)then
     if(ldiagnostic)call start_timing2("MD","inter_part_and_grid")
     call inter_part_and_grid(nstep, lparticles, debug)
@@ -258,7 +257,7 @@
     call driver_bc_isfluid
     if(ldiagnostic)call end_timing2("MD","inter_part_and_grid")
     ! if (debug1) call print_all_pops2(131, "aft_inter_part_and_grid", nstep)
-
+    
     newlst=.false.
     if(ldiagnostic)call start_timing2("MD","vertest")
     call vertest(nstep, newlst)
@@ -319,8 +318,7 @@
     if(ldiagnostic)call end_timing2("LB","apply_bback_pop_hf")
   endif
   ! if (debug1) call print_all_pops2(131, "aft_apply_bback_pop_hf", nstep)
-
-
+  
   if(lparticles)then
     call driver_bc_pops
 
@@ -345,9 +343,9 @@
     call nve_lf(nstep, debug)
     call merge_particle_energies
     if(ldiagnostic)call end_timing2("MD","integrate_lf")
-
+    
     call restore_particles
-
+    
     call driver_bc_pops
   endif
 
