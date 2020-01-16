@@ -34,6 +34,9 @@
   integer :: ny=64
   integer :: nz=64
   
+  integer :: inx,iny,inz
+  integer :: fnx,fny,fnz
+  
   integer :: ntot,i,j,k,natms,rotate,ongrid,inode,nmax,nxy,ii,jj,kk,l,ll
   integer, parameter :: imcon=2
   integer, parameter :: idrank=0
@@ -65,13 +68,17 @@
   
   
    
-  if(iargc()/=9)then
+  if(iargc()/=12)then
     write(6,*) 'error!'
     write(6,*) 'the command line should be'
-    write(6,*) '[executable] [natms] [nx] [ny] [nz] [seed] [rcut] [rotate]'
+    write(6,*) '[executable] [natms] [inx] [nx] [iny] [ny] [inz] [nz] ', &
+     '[seed] [sigm] [rcut] [ongrid] [rotate]'
     write(6,*) 'natms = integer indicating the number of particle'
+    write(6,*) 'inx    = integer indicating the box lenght along y'
     write(6,*) 'nx    = integer indicating the box lenght along y'
+    write(6,*) 'iny    = integer indicating the box lenght along y'
     write(6,*) 'ny    = integer indicating the box lenght along y'
+    write(6,*) 'inz    = integer indicating the box lenght along z'
     write(6,*) 'nz    = integer indicating the box lenght along z'
     write(6,*) 'seed  = seed of the random generator             '
     write(6,*) 'rcut  = float indicating the smallest distance   '
@@ -92,29 +99,41 @@
       write(6,*) 'natms = ',natms
     elseif(i==2)then
       call copystring(arg,directive,maxlen)
-      nx=intstr(directive,maxlen,inumchar)
-      write(6,*) 'nx    = ',nx
+      inx=intstr(directive,maxlen,inumchar)
+      write(6,*) 'inx   = ',inx
     elseif(i==3)then
       call copystring(arg,directive,maxlen)
-      ny=intstr(directive,maxlen,inumchar)
-      write(6,*) 'ny    = ',ny
+      fnx=intstr(directive,maxlen,inumchar)
+      write(6,*) 'nx    = ',fnx
     elseif(i==4)then
       call copystring(arg,directive,maxlen)
-      nz=intstr(directive,maxlen,inumchar)
-      write(6,*) 'nz    = ',nz
+      iny=intstr(directive,maxlen,inumchar)
+      write(6,*) 'iny   = ',iny
     elseif(i==5)then
+      call copystring(arg,directive,maxlen)
+      fny=intstr(directive,maxlen,inumchar)
+      write(6,*) 'ny    = ',fny
+    elseif(i==6)then
+      call copystring(arg,directive,maxlen)
+      inz=intstr(directive,maxlen,inumchar)
+      write(6,*) 'inz   = ',inz
+    elseif(i==7)then
+      call copystring(arg,directive,maxlen)
+      fnz=intstr(directive,maxlen,inumchar)
+      write(6,*) 'nz    = ',fnz
+    elseif(i==8)then
       call copystring(arg,directive,maxlen)
       iseed=intstr(directive,maxlen,inumchar)
       write(6,*) 'seed    = ',iseed
-    elseif(i==6)then
+    elseif(i==9)then
       call copystring(arg,directive,maxlen)
       rcut=dblstr(directive,maxlen,inumchar)
       write(6,*) 'rcut  = ',rcut
-    elseif(i==7)then
+    elseif(i==10)then
       call copystring(arg,directive,maxlen)
       sigm=dblstr(directive,maxlen,inumchar)
       write(6,*) 'sigm  = ',sigm
-    elseif(i==8)then
+    elseif(i==11)then
       call copystring(arg,directive,maxlen)
       ongrid=intstr(directive,maxlen,inumchar)
       write(6,*) 'ongrid= ',ongrid
@@ -122,7 +141,7 @@
         write(6,*)'ERROR: ongrid should be 0 or 1'
         stop
       endif
-    elseif(i==9)then
+    elseif(i==12)then
       call copystring(arg,directive,maxlen)
       rotate=intstr(directive,maxlen,inumchar)
       write(6,*) 'rotate= ',rotate
@@ -141,14 +160,17 @@
   if(rotate==1)then
     allocate(q0(natms),q1(natms),q2(natms),q3(natms))
   endif
+  
+  nx=fnx-inx+1
+  ny=fny-iny+1
+  nz=fnz-inz+1
    
   cell(:)=0.d0
   cell(1)=dble(nx)+1.d0
   cell(5)=dble(ny)+1.d0
   cell(9)=dble(nz)+1.d0
   
-
-        
+  
   
   if(ongrid==1)then
     
@@ -305,6 +327,12 @@
 #endif
     enddo
   endif
+  
+  do i=1,natms
+    xxx(i)=xxx(i)+dble(inx)-1.d0
+    yyy(i)=yyy(i)+dble(iny)-1.d0
+    zzz(i)=zzz(i)+dble(inz)-1.d0
+  enddo
   
   open(unit=ioxyz,file=filexyz,status='replace',action='write')
   
