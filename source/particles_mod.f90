@@ -2937,6 +2937,7 @@ else
 !    do myi=1,natms
 !      iatm = atmbook(myi)
 !      ii=ii+1
+    
     do iatm=1,natms_tot
       ii=iatm
       myi=iatm
@@ -2994,7 +2995,7 @@ else
         enddo
       enddo
       lentry(ii)=ilentry
-    enddo
+    enddo  
     
     if(.not. lchk(1))then
       call bubble_sort_list(natms,lentry,list)
@@ -3153,7 +3154,7 @@ else
       fzb(i) = ZERO
   enddo
 #endif
-
+  
   call compute_inter_force(lentry,list, debug,nstepsub)
   call compute_sidewall_force(nstepsub, debug)
 
@@ -3232,7 +3233,6 @@ else
   real(kind=PRC), parameter :: s2rmin=TWO**(ONE/SIX)
   logical, intent(in) :: debug
   integer, intent(in) :: nstep
-  
   real(kind=PRC) :: fxi,fxj,fyi,fyj,fzi,fzj
   real(kind=PRC) :: bxi,bxj,byi,byj,bzi,bzj
 
@@ -3280,8 +3280,8 @@ else
       itype=ltype(iatm)
       if(all(mskvdw(1:ntpvdw,itype)/=ivdw))cycle
       ii = 0
-      do k = 1,lentrysub(myi)
-        jatm=listsub(k,myi)
+      do k = 1,lentrysub(iatm)
+        jatm=listsub(k,iatm)
         jtype=ltype(jatm)
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
@@ -3294,8 +3294,8 @@ else
       call pbc_images(imcon,iimax,cell,xdf,ydf,zdf)
       
       ii = 0
-      do k = 1,lentrysub(myi)
-        jatm=listsub(k,myi)
+      do k = 1,lentrysub(iatm)
+        jatm=listsub(k,iatm)
         jtype=ltype(jatm)
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
@@ -3307,6 +3307,7 @@ else
             vvv=FOUR*eps*(sig/rrr)**SIX*((sig/rrr)**SIX-ONE)+vmin
             ggg=TWENTYFOUR*eps/rrr*(sig/rrr)**SIX*(TWO*(sig/rrr)**SIX-ONE)
             engcfg=engcfg+vvv
+            
 #ifdef DEBUG_FORCEINT
             fxb(iatm)=fxb(iatm)-ggg*xdf(ii)/rrr
             fxb(jatm)=fxb(jatm)+ggg*xdf(ii)/rrr
@@ -3392,8 +3393,8 @@ else
       itype=ltype(iatm)
       if(all(mskvdw(1:ntpvdw,itype)/=ivdw))cycle
       ii = 0
-      do k = 1,lentrysub(myi)
-        jatm=listsub(k,myi)
+      do k = 1,lentrysub(iatm)
+        jatm=listsub(k,iatm)
         jtype=ltype(jatm)
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
@@ -3406,8 +3407,8 @@ else
       call pbc_images(imcon,iimax,cell,xdf,ydf,zdf)
       
       ii = 0
-      do k = 1,lentrysub(myi)
-        jatm=listsub(k,myi)
+      do k = 1,lentrysub(iatm)
+        jatm=listsub(k,iatm)
         jtype=ltype(jatm)
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
@@ -3418,6 +3419,7 @@ else
           vvv=FOUR*eps*(sig/rrr)**SIX*((sig/rrr)**SIX-ONE)
           ggg=TWENTYFOUR*eps/rrr*(sig/rrr)**SIX*(TWO*(sig/rrr)**SIX-ONE)
           engcfg=engcfg+vvv
+          
 #ifdef DEBUG_FORCEINT
           fxb(iatm)=fxb(iatm)-ggg*xdf(ii)/rrr
           fxb(jatm)=fxb(jatm)+ggg*xdf(ii)/rrr
@@ -3501,8 +3503,8 @@ else
       itype=ltype(iatm)
       if(all(mskvdw(1:ntpvdw,itype)/=ivdw))cycle
       ii = 0
-      do k = 1,lentrysub(myi)
-        jatm=listsub(k,myi)
+      do k = 1,lentrysub(iatm)
+        jatm=listsub(k,iatm)
         jtype=ltype(jatm)
         if(mskvdw(itype,jtype)/=ivdw)cycle
         ii=ii+1
@@ -3515,8 +3517,8 @@ else
       call pbc_images(imcon,iimax,cell,xdf,ydf,zdf)
       
       ii = 0
-      do k = 1,lentrysub(myi)
-        jatm=listsub(k,myi)
+      do k = 1,lentrysub(iatm)
+        jatm=listsub(k,iatm)
         jtype=ltype(jatm)
 
         ! if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "jatm=", jatm
@@ -3622,6 +3624,9 @@ else
     end select
   
   enddo
+  
+120 continue
+  
   
   ! if (debug) close(118)
 
