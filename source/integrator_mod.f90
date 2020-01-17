@@ -344,7 +344,7 @@
     call merge_particle_energies
     if(ldiagnostic)call end_timing2("MD","integrate_lf")
     
-    call restore_particles
+    call restore_particles(nstep)
     
     call driver_bc_pops
   endif

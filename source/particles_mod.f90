@@ -2294,8 +2294,7 @@ else
   
 !***********************************************************************
 !     
-!     LBsoft subroutine to initialize particle templates
-!     and particle fluid interactions
+!     LBsoft subroutine to check if particle was moved
 !     
 !     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
@@ -2668,7 +2667,8 @@ else
   real(kind=PRC) :: rmax,dr, checkSpace
   real(kind=PRC), allocatable, save :: xold(:),yold(:),zold(:)
   logical :: ltest(1)
-
+  integer, allocatable, save :: atmbook_test(:)
+  integer, save :: natms_test
 
 
   checkSpace = (natms+mxrank-1)/mxrank
@@ -2678,12 +2678,16 @@ else
 !   set up initial arrays 
     allocate (xold(mxatms),yold(mxatms),zold(mxatms),stat=fail)
     if(fail.ne.0)call error(25)
-
+    allocate (atmbook_test(mxatms),stat=fail)
+    if(fail.ne.0)call error(25)
+    natms_test=natms
+    atmbook_test(1:natms_test)=atmbook(1:natms)
+    
 !    do i=1,natms
 !      i = atmbook(myi)
-      xold(:)=ZERO
-      yold(:)=ZERO
-      zold(:)=ZERO
+    xold(1:natms_test)=ZERO
+    yold(1:natms_test)=ZERO
+    zold(1:natms_test)=ZERO
 !    enddo
 
     newjob=.false.
@@ -2693,16 +2697,17 @@ else
   endif
     
 !   integrate velocities 
-    do i=1,natms_tot
+    do myi=1,natms_test
+      i = atmbook_test(myi)
 !      write (200+idrank,*) "nstep",nstep, "i", i
 !      call flush(200+idrank)
 !      write (200+idrank,*) i, xold(i),yold(i),zold(i)
 !      call flush(200+idrank)
 !      write (200+idrank,*) i, vxx(i),vyy(i),vzz(i)
 !      call flush(200+idrank)
-      xold(i)=xold(i)+vxx(i)
-      yold(i)=yold(i)+vyy(i)
-      zold(i)=zold(i)+vzz(i)
+      xold(myi)=xold(myi)+vxx(i)*tstepatm
+      yold(myi)=yold(myi)+vyy(i)*tstepatm
+      zold(myi)=zold(myi)+vzz(i)*tstepatm
     enddo
     
 !   maximum displacement 
@@ -2710,7 +2715,7 @@ else
     
 !   test atomic displacements
     moved(1)=0
-    do i=1,natms_tot
+    do i=1,natms_test
       dr=tstepatm**2*(xold(i)**2+yold(i)**2+zold(i)**2)
       if(dr.gt.rmax)moved(1)=moved(1)+1
     enddo
@@ -2726,12 +2731,13 @@ else
         
 !   update stored positions
     if(newlst)then
-!      do myi=1,natms
-!        i = atmbook(myi)
-        xold(:)=ZERO
-        yold(:)=ZERO
-        zold(:)=ZERO
-!      enddo
+      natms_test=natms
+      atmbook_test(1:natms_test)=atmbook(1:natms)
+      
+      xold(1:natms_test)=ZERO
+      yold(1:natms_test)=ZERO
+      zold(1:natms_test)=ZERO
+      if(idrank==0)write(6,*)'new_list',nstep
     endif
  end subroutine vertest
 
@@ -5955,7 +5961,7 @@ else
 
  end subroutine spherical_template
  
- subroutine restore_particles
+ subroutine restore_particles(nstep)
  
 !***********************************************************************
 !     
@@ -5968,8 +5974,32 @@ else
 !***********************************************************************
  
   implicit none
+  integer, intent(in) :: nstep
+  
   integer :: i, myi, iatm, ids, num_ext
   logical(kind=1), dimension(natms_tot) :: mine
+  
+  logical :: ltest(1) 
+  
+!  ltest(1)=.false.
+!  do myi=1,natms
+!    i = atmbook(myi)
+!#ifndef DEOWERN
+!    ids=ownernfind_arr(nint(xxx(i)),nint(yyy(i)),nint(zzz(i)), &
+!      nx,ny,nz,nbuff,ownern)
+!#else
+!    ids=ownernfind(nint(xxx(i)),nint(yyy(i)),nint(zzz(i)), &
+!      mxrank,gminx,gmaxx,gminy,gmaxy,gminz,gmaxz)
+!#endif
+!    if(idrank/=ids)then
+!      ltest(1)=.true.
+!      exit
+!    endif
+!  enddo
+!  call or_world_larr(ltest,1)
+!  if(.not. ltest(1))return
+!  write(6,*)'restore_particles',nstep
+  
 
 !  if (mxrank==1) return
 
@@ -6252,7 +6282,7 @@ else
         natms = 0
       endif
 
-      call restore_particles
+      call restore_particles(nstep)
    end subroutine restorePart_oneFile
 
  end module particles_mod
