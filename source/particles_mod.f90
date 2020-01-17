@@ -2737,7 +2737,7 @@ else
       xold(1:natms_test)=ZERO
       yold(1:natms_test)=ZERO
       zold(1:natms_test)=ZERO
-      if(idrank==0)write(6,*)'new_list',nstep
+      !if(idrank==0)write(6,*)'new_list',nstep
     endif
  end subroutine vertest
 
