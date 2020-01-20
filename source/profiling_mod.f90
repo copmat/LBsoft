@@ -76,6 +76,11 @@
  integer, protected, public, save :: idiagnostic = 50 !< make diagnostic every
  logical, protected, public, save :: ldiagnostic = .false.
  
+ integer, save :: clock_max_param=0 
+ integer, save :: clock_rate_param=0
+ 
+ real(kind=PRC), save :: clock_huge=real(0.d0,kind=PRC)
+ 
 INTERFACE
     FUNCTION get_mem ( ) bind ( C, name = "get_mem" )
       USE ISO_C_BINDING, ONLY : c_double
@@ -88,7 +93,7 @@ END INTERFACE
  public :: timer_init,startPreprocessingTime,reset_timing_partial
  public :: print_timing_partial,printSimulationTime
  public :: print_timing_final,start_timing2,end_timing2
- public :: set_value_idiagnostic,set_value_ldiagnostic
+ public :: set_value_idiagnostic,set_value_ldiagnostic,startSimulationTime
  
  
  contains
@@ -484,15 +489,15 @@ DO isec=1, nsection
 
       WRITE(ioout_l,1) 100.*section_cum(isec)%timing / MAX(1.d-6,total_time), &
                      TRIM(section_cum(isec)%name), &
-                     section_cum(isec)%timing,' sec/call,', &
-                     section_cum(isec)%icall,' calls,', &
-                     section_cum(isec)%icall / (1.*ifreq_l),' calls/step'
+                     section_cum(isec)%timing,' time/call[s],', &
+                     section_cum(isec)%icall,' calls'!, &
+                     !section_cum(isec)%icall / (real(ifreq_l,kind=PRC)),' calls/step'
 
       WRITE(iotiming,1) 100.*section_cum(isec)%timing / MAX(1.d-6,total_time), &
                      TRIM(section_cum(isec)%name), &
-                     section_cum(isec)%timing,' sec/call,', &
-                     section_cum(isec)%icall,' calls,', &
-                     section_cum(isec)%icall / (1.*ifreq_l),' calls/step'
+                     section_cum(isec)%timing,' time/call[s],', &
+                     section_cum(isec)%icall,' calls'!, &
+                     !section_cum(isec)%icall / (real(ifreq_l,kind=PRC)),' calls/step'
 
 1     FORMAT(/'(',f5.1,'%)',1x,a,2x,g10.3,a,1x,i0,a,1x,g10.3,a)
    ENDIF
@@ -500,7 +505,7 @@ DO isec=1, nsection
 
    !
    ! print statistics for block timing
-   CALL print_routine_timing(section_cum(isec),itime-itime_start+1,ioout_l)
+   !CALL print_routine_timing(section_cum(isec),itime-itime_start+1,ioout_l)
 
 ENDDO
 IF(idrank==0) THEN
@@ -932,13 +937,18 @@ SUBROUTINE start_timing2(secname,subname)
      section_cum(isec)%timer_routine%icall(isub) + 1
     section_blk(isec)%timer_routine%icall(isub) = &
      section_blk(isec)%timer_routine%icall(isub) + 1
+     
+    section_cum(isec)%icall = section_cum(isec)%icall + 1
+    section_blk(isec)%icall = section_blk(isec)%icall + 1
 
     lactive_routine = .true.
     active_level = active_level + 1
 
-
+#ifdef WALLCLOCK
+    timing_routine(isub)=wtime()
+#else
     CALL CPU_TIME(timing_routine(isub))
-
+#endif
 
   END SUBROUTINE start_timing
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -979,15 +989,30 @@ SUBROUTINE start_timing2(secname,subname)
     ENDIF
 
 
+    
+#ifdef WALLCLOCK
+    ttt=wtime()
+#else
     CALL CPU_TIME(ttt)
+#endif
 
+    
 
-    timing_routine(isub) = ttt - timing_routine(isub)
-
-    IF(timing_routine(isub)<0) THEN
-       print *,'Warning. Negative timing for routine ', &
-        TRIM(subname),timing_routine(isub),ttt
+    IF((ttt - timing_routine(isub))<0) THEN
+       !print *,'Warning. Negative timing for routine ', &
+       ! TRIM(subname),timing_routine(isub),ttt
+#ifdef WALLCLOCK
+       if(abs(ttt - timing_routine(isub))>(clock_huge*0.5d0))then
+         timing_routine(isub) = ttt - timing_routine(isub) + clock_huge
+         if(timing_routine(isub)<0)timing_routine(isub) = 0
+       else
+         timing_routine(isub) = 0
+       endif
+#else
        timing_routine(isub) = 0
+#endif
+    else
+      timing_routine(isub) = ttt - timing_routine(isub)
     ENDIF
 
     ! accumulate times
@@ -1002,6 +1027,9 @@ SUBROUTINE start_timing2(secname,subname)
      timing_routine(isub)
     timer_standalone(isub)%aroutine = TRIM(subname)
     timer_standalone(isub)%asection = TRIM(secname)
+    
+    section_cum(isec)%timing = section_cum(isec)%timing + timing_routine(isub)
+    section_blk(isec)%timing = section_blk(isec)%timing + timing_routine(isub)
 
 
     timing_routine(isub) = 0. ! -99.0
@@ -1059,20 +1087,25 @@ SUBROUTINE start_timing2(secname,subname)
   
   FUNCTION current_time() RESULT(out)
   REAL(kind=PRC) :: out
-  INTEGER, SAVE :: clock_rate, clock_start, clock_stop, clock_max
+  INTEGER, SAVE :: clock_start, clock_stop,c1
   LOGICAL, SAVE :: newjob=.true.
 
   IF(newjob) THEN
 
-     CALL system_clock(clock_stop, clock_rate, clock_max)
-
+     CALL system_clock(clock_stop, clock_rate_param, clock_max_param)
+     clock_huge = &
+      real(clock_max_param,kind=PRC)/real(clock_rate_param,kind=PRC)
      newjob=.false.
   ENDIF
 
+  !CALL SYSTEM_CLOCK(c1)
+  !out=real(c1,kind=PRC)/real(clock_rate,kind=PRC)
 
-
-  CALL CPU_TIME(out)
-
+#ifdef WALLCLOCK
+    out=wtime()
+#else
+    CALL CPU_TIME(out)
+#endif
 
 
   END FUNCTION current_time
@@ -1105,5 +1138,33 @@ SUBROUTINE start_timing2(secname,subname)
     ENDDO
 
   END SUBROUTINE compress_blanks
+  
+  function wtime()
+
+!***********************************************************************
+!     
+!     LBsoft subroutine for computing the wall-clock time
+!     
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
+!     modified by: M. Lauricella
+!     last modification June 2018
+!     
+!***********************************************************************
+  
+  implicit none
+
+  integer :: clock_max
+  integer :: clock_rate
+  integer :: clock_reading
+  real(kind=PRC) wtime
+
+  call system_clock ( clock_reading, clock_rate, clock_max )
+
+  wtime = real ( clock_reading, kind = PRC ) &
+        / real ( clock_rate, kind = PRC )
+
+  return
+  
+ end function wtime
   
  end module profiling_mod

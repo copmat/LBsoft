@@ -28,6 +28,8 @@
 
 #define IOOUT 6
 
+#define WALLCLOCK
+
 #define _LB_(content) \
     CALL start_timing2("LB",#content);\
     CALL content;\
