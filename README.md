@@ -79,7 +79,7 @@ Example command to run LBsoft in serial mode:
                                                                         
 ./main.x                                                                
                                                                         
-Example command to run LBsoft in parallel mode on 4 CPUs:               
+Example command to run LBsoft in parallel mode on 8 CPUs:               
                                                                         
 mpirun -np 8 ./main_mpi.x                                               
                                                                         
