@@ -172,6 +172,7 @@
  public :: finalize_world
  public :: abort_world
  public :: time_world
+ public :: wtime
  public :: bcast_world_i
  public :: bcast_world_l
  public :: bcast_world_f
@@ -539,6 +540,28 @@
   return
   
  end subroutine time_world
+ 
+ function wtime()
+
+!***********************************************************************
+!     
+!     LBsoft subroutine for computing the wall-clock time
+!     
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
+!     modified by: M. Lauricella
+!     last modification January 2020
+!     
+!***********************************************************************
+  
+  implicit none
+  
+  real(kind=PRC) wtime
+  
+  wtime =  MPI_Wtime()
+  
+  return
+  
+ end function wtime
  
  subroutine bcast_world_i(argument)
  
