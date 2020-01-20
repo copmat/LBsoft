@@ -241,15 +241,6 @@
           enddo
         enddo
       case(3)
-          if(allocated(u))deallocate(u)
-          if(allocated(v))deallocate(v)
-          if(allocated(w))deallocate(w)
-          nx=enx
-          ny=eny
-          nz=enz
-          allocate(u(1:nx,1:ny,1:nz))
-          allocate(v(1:nx,1:ny,1:nz))
-          allocate(w(1:nx,1:ny,1:nz))
         read(ifileio)nbyte,(myvar1d(ii),myvar2d(ii), &
          myvar3d(ii),ii=1,nn)
         ii=0
