@@ -57,6 +57,7 @@
  public :: zcross
  public :: sig
  public :: write_fmtnumb
+ public :: write_fmtnumb8
  public :: get_prntime
  public :: rand_noseeded
  public :: gauss_noseeded
@@ -757,6 +758,42 @@
   return
 
  end function write_fmtnumb
+ 
+ function write_fmtnumb8(inum)
+ 
+!***********************************************************************
+!     
+!     LBsoft function for returning the string of eight characters 
+!     with integer digits and leading zeros to the left
+!     originally written in JETSPIN by M. Lauricella et al.
+!     
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
+!     author: M. Lauricella
+!     last modification July 2018
+!     
+!***********************************************************************
+ 
+  implicit none
+
+  integer,intent(in) :: inum
+  character(len=8) :: write_fmtnumb8
+  integer :: numdigit,irest
+  real(kind=PRC) :: tmp
+  character(len=22) :: cnumberlabel
+
+  numdigit=dimenumb(inum)
+  irest=8-numdigit
+  if(irest>0)then
+    write(cnumberlabel,"(a,i8,a,i8,a)")"(a",irest,",i",numdigit,")"
+    write(write_fmtnumb8,fmt=cnumberlabel)repeat('0',irest),inum
+  else
+    write(cnumberlabel,"(a,i8,a)")"(i",numdigit,")"
+    write(write_fmtnumb8,fmt=cnumberlabel)inum
+  endif
+  
+  return
+
+ end function write_fmtnumb8
  
  subroutine get_prntime(hms,timelp,prntim)
   

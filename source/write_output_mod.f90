@@ -19,7 +19,7 @@
   driving_print_binary_3d_vtk
  use error_mod
  use utility_mod,    only : write_fmtnumb,ltest_mode, &
-  test_little_endian,space_fmtnumb12,space_fmtnumb
+  test_little_endian,space_fmtnumb12,space_fmtnumb,write_fmtnumb8
   
 
 
@@ -330,7 +330,7 @@
   
   sevt=repeat(' ',120)
   sevt=trim(dir_out)//trim(fnamesub)// &
-   trim(write_fmtnumb(istepsub))//'.vtk'
+   trim(write_fmtnumb8(istepsub))//'.vtk'
    
   
   open(unit=iotest,file=trim(sevt),status='replace',action='write')
@@ -728,7 +728,7 @@
   sevt=repeat(' ',120)
   
   sevt = trim(dir_out) // trim(filenamevtk)//'_'//trim(filenamevar)// &
-   '_'//trim(write_fmtnumb(nstepsub)) // '.vti'
+   '_'//trim(write_fmtnumb8(nstepsub)) // '.vti'
   
   call open_file_vtk(ioprint,120,sevt,e_io)
   
@@ -824,7 +824,7 @@
   sevt=repeat(' ',120)
   
   sevt = trim(dir_out) // trim(filenamevtk)//'_'//trim(filenamevar)// &
-   '_'//trim(write_fmtnumb(nstepsub)) // '.vti'
+   '_'//trim(write_fmtnumb8(nstepsub)) // '.vti'
   
   call open_file_vtk_par(ioprint,120,sevt,e_io)
   
@@ -954,7 +954,7 @@
   sevt=repeat(' ',120)
   
   sevt = trim(dir_out) // trim(filenamevtk)//'_'//trim(filenamevar)// &
-   '_'//trim(write_fmtnumb(nstepsub)) // '.vti'
+   '_'//trim(write_fmtnumb8(nstepsub)) // '.vti'
   
   call open_file_vtk(ioprint,120,sevt,e_io)
   
@@ -1087,7 +1087,7 @@
   sevt=repeat(' ',120)
   
   sevt = trim(dir_out) // trim(filenamevtk)//'_'//trim(filenamevar)// &
-   '_'//trim(write_fmtnumb(nstepsub)) // '.vti'
+   '_'//trim(write_fmtnumb8(nstepsub)) // '.vti'
   
   call open_file_vtk_par(ioprint,120,sevt,e_io)
   
