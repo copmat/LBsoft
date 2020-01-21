@@ -916,7 +916,7 @@
        do k=minz,maxz
         do j=miny,maxy
           do i=minx,maxx
-            if(isfluid(i,j,k)==3 .or. isfluid(i,j,k)==0)cycle
+            if(isfluid(i,j,k)/=1)cycle
             r4temp=real(myvar(i,j,k),kind=4)
             b4temp=real(myvary(i,j,k),kind=4)
             service1(i,j,k)=(r4temp-b4temp)/(r4temp+b4temp)
@@ -1047,7 +1047,7 @@
        do k=minz,maxz
         do j=miny,maxy
           do i=minx,maxx
-            if(isfluid(i,j,k)==3 .or. isfluid(i,j,k)==0)cycle
+            if(isfluid(i,j,k)/=1)cycle
             r4temp=real(myvar(i,j,k),kind=4)
             b4temp=real(myvary(i,j,k),kind=4)
             service1(i,j,k)=(r4temp-b4temp)/(r4temp+b4temp)
