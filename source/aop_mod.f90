@@ -12,11 +12,15 @@ MODULE aop_mod
 !     last modification October 2019
 !     
 !***********************************************************************
-
+#ifdef INTEL
+TYPE REALPTR
+   REAL(kind=PRC), contiguous, pointer:: p(:,:,:)
+END TYPE REALPTR
+#else
 TYPE REALPTR
    REAL(kind=PRC), pointer:: p(:,:,:)
 END TYPE REALPTR
-
+#endif
 TYPE REALPTR_S
    REAL(kind=PRC), pointer:: p
 END TYPE REALPTR_S
