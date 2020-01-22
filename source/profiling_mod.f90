@@ -455,9 +455,12 @@ END SUBROUTINE print_timing_partial
 
 INTEGER,INTENT(in) :: ifreq_l,itime,itime_start,natms_l,natms_tot_l,ioout_l
 CHARACTER(len=30),SAVE :: strtmp
-INTEGER :: nmax,nmin,nave,i,isec,nrout
-REAL(kind=PRC) :: total_time
+INTEGER :: nmax,nmin,nave,i,j,isec,nrout,itemp
+REAL(kind=PRC) :: total_time,dtemp
 LOGICAL,SAVE :: newjob=.true.
+REAL(kind=PRC), allocatable, dimension(:) :: mytime_sec
+INTEGER, allocatable, dimension(:) :: myorder_sec
+LOGICAL :: lswapped
 
 IF(idrank==0) THEN
    WRITE(ioout_l,'(/a/)') '********** GLOBAL TIMINGS (full simulation) **********'
@@ -476,9 +479,38 @@ CALL print_standalone(ifreq_l,ioout_l,nrout,total_time)
 
 total_time = SUM(section_cum(1:nsection)%timing)
 
-DO isec=1, nsection
+WRITE(ioout_l,*)
+WRITE(iotiming,*)
+
+allocate(mytime_sec(nsection))
+allocate(myorder_sec(nsection))
+
+DO i=1, nsection
+  mytime_sec(i)=section_cum(i)%timing
+  myorder_sec(i)=i
+ENDDO
 
 
+DO j=nsection-1,1,-1
+  lswapped=.false.
+  DO i=1,j
+    IF(mytime_sec(i)>mytime_sec(i+1))THEN
+      dtemp=mytime_sec(i)
+      itemp=myorder_sec(i)
+      mytime_sec(i)=mytime_sec(i+1)
+      mytime_sec(i+1)=dtemp
+      myorder_sec(i)=myorder_sec(i+1)
+      myorder_sec(i+1)=itemp
+      lswapped=.true.
+    ENDIF
+  ENDDO
+  IF(.not.lswapped)EXIT
+ENDDO
+
+
+DO i=nsection,1,-1
+   
+   isec=myorder_sec(i)
 
    IF(idrank==0) THEN
 
@@ -494,7 +526,7 @@ DO isec=1, nsection
                      section_cum(isec)%icall,' calls'!, &
                      !section_cum(isec)%icall / (real(ifreq_l,kind=PRC)),' calls/step'
 
-1     FORMAT(/'(',f5.1,'%)',1x,a,2x,g10.3,a,1x,i0,a,1x,g10.3,a)
+1     FORMAT('(',f5.1,'%)',1x,a,2x,g10.3,a,1x,i0,a,1x,g10.3,a)
    ENDIF
 
 
@@ -508,6 +540,8 @@ IF(idrank==0) THEN
    WRITE(iotiming,'(/a,f12.3/)') 'Sum of section timings:',SUM(section_cum(1:nsection)%timing)
 ENDIF
 
+deallocate(mytime_sec)
+deallocate(myorder_sec)
 
 
 END SUBROUTINE print_timing_final
