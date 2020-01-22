@@ -42,7 +42,7 @@
  end type
   
  type section_t
-   character(len=FUNCTION_NAME_LEN) :: name=' ' !< registered section name
+   character(len=FUNCTION_NAME_LEN) :: name_sec=' ' !< registered section name
    real(kind=PRC) :: timing             !< cumulated section timing
    integer :: icall                   !< number of section calls
    character(len=FUNCTION_NAME_LEN) :: aroutine(mxroutine)=' ' !< registered routine names
@@ -318,9 +318,9 @@ END INTERFACE
 !***********************************************************************
 
      IF(idrank==0) THEN
-        WRITE(*,'(/a/)') '             --------- END OF TIME CYCLE --------- '
-        WRITE(*,'(a,f16.6,1x,a)') 'TOTAL TIME (PREPARE+SIM)',current_time()-tstart0,'Seconds'
-        WRITE(*,'(a,f16.6,1x,a)') 'TOTAL TIME (SIM)        ',current_time()-tstart,'Seconds'
+        WRITE(IOOUT,'(/a/)') '             --------- END OF TIME CYCLE --------- '
+        WRITE(IOOUT,'(a,f16.6,1x,a)') 'TOTAL TIME (PREPARE+SIM)',current_time()-tstart0,'Seconds'
+        WRITE(IOOUT,'(a,f16.6,1x,a)') 'TOTAL TIME (SIM)        ',current_time()-tstart,'Seconds'
      ENDIF
   ENDSUBROUTINE
   
@@ -393,7 +393,7 @@ ENDIF
 !OPEN(iotempo_partial,FILE=strtmp)
 
 !DO isec=1, nsection
-!   WRITE(iotempo_partial,*)  TRIM(ADJUSTL(section_blk(isec)%name)),section_blk(isec)%timing
+!   WRITE(iotempo_partial,*)  TRIM(ADJUSTL(section_blk(isec)%name_sec)),section_blk(isec)%timing
 !ENDDO
 
 !CLOSE(iotempo_partial)
@@ -410,7 +410,7 @@ DO isec=1, nsection
    IF(idrank==0) THEN
 
       WRITE(ioout_l,1) 100.*section_blk(isec)%timing / MAX(1.d-6,total_time), &
-                     TRIM(section_blk(isec)%name), &
+                     TRIM(section_blk(isec)%name_sec), &
                      section_blk(isec)%timing,' sec/call,', &
                      section_blk(isec)%icall,' calls,', &
                      section_blk(isec)%icall / (1.*ifreq_l),' calls/step'
@@ -472,11 +472,6 @@ DO i=1, mxroutine
    nrout = nrout + 1
 ENDDO
 
-DO i=1, mxroutine
-   IF(timer_standalone(i)%icall<=0) CYCLE
-
-
-ENDDO
 CALL print_standalone(ifreq_l,ioout_l,nrout,total_time)
 
 total_time = SUM(section_cum(1:nsection)%timing)
@@ -488,13 +483,13 @@ DO isec=1, nsection
    IF(idrank==0) THEN
 
       WRITE(ioout_l,1) 100.*section_cum(isec)%timing / MAX(1.d-6,total_time), &
-                     TRIM(section_cum(isec)%name), &
+                     TRIM(section_cum(isec)%name_sec), &
                      section_cum(isec)%timing,' time/call[s],', &
                      section_cum(isec)%icall,' calls'!, &
                      !section_cum(isec)%icall / (real(ifreq_l,kind=PRC)),' calls/step'
 
       WRITE(iotiming,1) 100.*section_cum(isec)%timing / MAX(1.d-6,total_time), &
-                     TRIM(section_cum(isec)%name), &
+                     TRIM(section_cum(isec)%name_sec), &
                      section_cum(isec)%timing,' time/call[s],', &
                      section_cum(isec)%icall,' calls'!, &
                      !section_cum(isec)%icall / (real(ifreq_l,kind=PRC)),' calls/step'
@@ -554,7 +549,7 @@ SUBROUTINE print_standalone(ifreq,ioout_l,nroutine,total_time)
   t_routine_ave(nroutine+1) = total_time - f
 
   IF(t_routine_max(nroutine+1) < 0) THEN
-      print *,idrank,'negative time for untimed routine',total_time,f
+      write(ioout_l,*)idrank,'negative time for untimed routine',total_time,f 
   ENDIF
 
   ! total timing
@@ -572,7 +567,7 @@ SUBROUTINE print_standalone(ifreq,ioout_l,nroutine,total_time)
 
   IF(idrank==0) THEN
 
-      print '(a10,4x,a10,1x,a30,5x,20(a12))', &
+      write(ioout_l,'(a10,4x,a10,1x,a30,5x,20(a12))') &
               'Time Share', &
               'Section', &
               'Routine', &
@@ -877,30 +872,38 @@ SUBROUTINE start_timing2(secname,subname)
 !***********************************************************************
 
     CHARACTER(len=*) :: secname,subname
-    INTEGER :: isub,j,isec
-    CHARACTER(len=LEN(secname)+LEN(subname)) :: reconame
-
-
-    isec = id_timing_sec(secname,nsection,section_cum(:)%name)
-
+    INTEGER :: isub,j,isec,sec_ilenght,sub_ilenght,myend
+    CHARACTER(len=FUNCTION_NAME_LEN) :: reconame
+    CHARACTER(len=FUNCTION_NAME_LEN) :: sec_temp,sub_temp
+    
+    sec_ilenght=LEN_TRIM(secname)
+    sub_ilenght=LEN_TRIM(subname) 
+    sec_temp=repeat(' ',FUNCTION_NAME_LEN)
+    sec_temp(1:sec_ilenght)=trim(secname)
+    isec = id_timing_sec(sec_temp,nsection,section_cum(:)%name_sec)
+    
     IF(isec<0) THEN ! section not in list. It is registered now.
 
        nsection = nsection + 1
 
        IF(nsection>mxsection) THEN
-          write(6,*)'timing limit reached:'//TRIM(secname)
+          write(IOOUT,*)'timing limit reached:'//TRIM(secname)
        ENDIF
-
-       section_cum(nsection)%name = secname
-       section_blk(nsection)%name = secname
+       
+       section_cum(nsection)%name_sec = sec_temp
+       section_blk(nsection)%name_sec = sec_temp
 
        isec = nsection
 
     ENDIF
+    
+    sub_temp = repeat(' ',FUNCTION_NAME_LEN)
+    sub_temp = trim(subname(1:sub_ilenght))
+    myend= FUNCTION_NAME_LEN - sec_ilenght
+    reconame = repeat(' ',FUNCTION_NAME_LEN)
+    reconame = secname(1:sec_ilenght)//sub_temp(1:myend)
 
-    reconame = ''; reconame = secname(:LEN_TRIM(secname))//subname
-
-    isub = id_timing_sub(reconame(:LEN_TRIM(reconame)))
+    isub = id_timing_sub(reconame)
 
     IF(isub<0) THEN ! routine not in list. It is registered now.
 
@@ -910,7 +913,7 @@ SUBROUTINE start_timing2(secname,subname)
        section_blk(isec)%nroutine = section_blk(isec)%nroutine + 1
 
        IF(section_cum(isec)%nroutine>mxroutine) THEN
-          write(6,*)'timing limit reached:'//TRIM(subname)
+          write(IOOUT,*)'timing limit reached:'//TRIM(subname)
           stop
        ENDIF
 
@@ -924,11 +927,13 @@ SUBROUTINE start_timing2(secname,subname)
 
        id_routine_global(nroutine_global) = nroutine_global
        routine_name_global(nroutine_global) = reconame
+       !write(IOOUT,'(a,i2,a,i2,3a)')'sec ',isec,' sub ',isub,' name: "', &
+       ! trim(reconame),'"'
 
     ENDIF
 
-    IF(timing_routine(isub)>0) THEN
-       write(6,*)'timer already running for routine ',TRIM(subname)
+    IF(timing_routine(isub)>ZERO) THEN
+       write(IOOUT,*)'timer already running for routine ',TRIM(subname)
        stop
     ENDIF
 
@@ -966,25 +971,34 @@ SUBROUTINE start_timing2(secname,subname)
 !***********************************************************************
 
     CHARACTER(len=*) :: secname,subname
-    INTEGER :: isub,j,isec
+    INTEGER :: isub,j,isec,sec_ilenght,sub_ilenght,myend
     REAL(kind=PRC) :: ttt
-    CHARACTER(len=LEN(secname)+LEN(subname)) :: reconame
-
-
-    isec = id_timing_sec(secname,nsection,section_cum(:)%name)
+    CHARACTER(len=FUNCTION_NAME_LEN) :: reconame
+    CHARACTER(len=FUNCTION_NAME_LEN) :: sec_temp,sub_temp
+    
+    sec_ilenght=LEN_TRIM(secname)
+    sub_ilenght=LEN_TRIM(subname) 
+    sec_temp=repeat(' ',FUNCTION_NAME_LEN)
+    sec_temp(1:sec_ilenght)=trim(secname)
+    
+    isec = id_timing_sec(sec_temp,nsection,section_cum(:)%name_sec)
 
     IF(isec<0) THEN
-       write(6,*)'end_timing: section:'//TRIM(secname)//' not started for timing'
+       write(IOOUT,*)'end_timing: section:'//TRIM(sec_temp)//' not started for timing'
        stop
     ENDIF
+    
+    sub_temp = repeat(' ',FUNCTION_NAME_LEN)
+    sub_temp = trim(subname(1:sub_ilenght))
+    myend= FUNCTION_NAME_LEN - sec_ilenght
+    reconame = repeat(' ',FUNCTION_NAME_LEN)
+    reconame = secname(1:sec_ilenght)//sub_temp(1:myend)
 
-    reconame = ''; reconame = secname(:LEN_TRIM(secname))//subname
-
-    isub = id_timing_sub(reconame(:LEN_TRIM(reconame)))
+    isub = id_timing_sub(reconame)
 
     IF(isub<0) THEN ! should never happen that the routine is not found
-       write(6,*)'end_timing: section:'//TRIM(secname)// &
-        ' routine not registered : '//TRIM(subname)
+       write(IOOUT,*)'end_timing: section:'//TRIM(sec_temp)// &
+        ' routine not registered : '//TRIM(sub_temp)
        stop
     ENDIF
 
@@ -998,18 +1012,18 @@ SUBROUTINE start_timing2(secname,subname)
 
     
 
-    IF((ttt - timing_routine(isub))<0) THEN
-       !print *,'Warning. Negative timing for routine ', &
-       ! TRIM(subname),timing_routine(isub),ttt
-#ifdef WALLCLOCK
+    IF((ttt - timing_routine(isub))< ZERO ) THEN
+       write(IOOUT,*)'Warning. Negative timing for routine ', &
+        TRIM(reconame),timing_routine(isub),ttt
+#ifdef WALL
        if(abs(ttt - timing_routine(isub))>(clock_huge*0.5d0))then
          timing_routine(isub) = ttt - timing_routine(isub) + clock_huge
-         if(timing_routine(isub)<0)timing_routine(isub) = 0
+         if(timing_routine(isub)<0)timing_routine(isub) = ZERO
        else
-         timing_routine(isub) = 0
+         timing_routine(isub) = ZERO
        endif
 #else
-       timing_routine(isub) = 0
+       timing_routine(isub) = ZERO
 #endif
     else
       timing_routine(isub) = ttt - timing_routine(isub)
@@ -1032,7 +1046,7 @@ SUBROUTINE start_timing2(secname,subname)
     section_blk(isec)%timing = section_blk(isec)%timing + timing_routine(isub)
 
 
-    timing_routine(isub) = 0. ! -99.0
+    timing_routine(isub) = ZERO ! -99.0
 
     lactive_routine = .false.
     active_level = active_level - 1
@@ -1040,7 +1054,7 @@ SUBROUTINE start_timing2(secname,subname)
   END SUBROUTINE end_timing
   
   FUNCTION id_timing_sec(secname,n,atiming_l)
-    CHARACTER(len=*) :: secname
+    CHARACTER(len=FUNCTION_NAME_LEN) :: secname
     INTEGER :: n
     CHARACTER(len=FUNCTION_NAME_LEN) :: atiming_l(:)
     INTEGER :: id_timing_sec
@@ -1048,7 +1062,7 @@ SUBROUTINE start_timing2(secname,subname)
 
     id_timing_sec = -99
     DO i=1, n
-       IF(atiming_l(i) == secname) THEN
+       IF(trim(atiming_l(i))==trim(secname)) THEN
           id_timing_sec = i
           RETURN
        ENDIF
@@ -1069,7 +1083,7 @@ SUBROUTINE start_timing2(secname,subname)
 !     
 !***********************************************************************
 
-    CHARACTER(len=*) :: subname
+    CHARACTER(len=FUNCTION_NAME_LEN) :: subname
     INTEGER :: id_timing_sub
     INTEGER :: i,j,isec,isub
 
@@ -1077,7 +1091,7 @@ SUBROUTINE start_timing2(secname,subname)
     id_timing_sub = -99
 
     DO i=1, nroutine_global
-       IF(subname == routine_name_global(i)) THEN
+       IF(trim(subname) == trim(routine_name_global(i))) THEN
           id_timing_sub = id_routine_global(i)
           RETURN
        ENDIF
