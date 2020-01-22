@@ -49,7 +49,8 @@
                         startPreprocessingTime,print_timing_partial, &
                         reset_timing_partial,printSimulationTime, &
                         print_timing_final,itime_counter,idiagnostic, &
-                        ldiagnostic,start_timing2,end_timing2
+                        ldiagnostic,start_timing2,end_timing2, &
+                        startSimulationTime
   use utility_mod,     only : init_random_seed,allocate_array_buffservice3d
   use fluids_mod,      only : allocate_fluids,initialize_isfluid_bcfluid, &
                         nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
@@ -224,12 +225,6 @@
   
 ! open the binary file (only for developers) 
   !call open_dat_file(lprintdat,130,'traj.dat')
-  
-! start diagnostic if requested
-  if(ldiagnostic)then
-    call print_timing_partial(1,1,itime_start,IOOUT)
-    call reset_timing_partial()
-  endif
  
   call write_vtk_frame(0,wantRestore)
   if(.not. wantRestore)call write_vtk_isfluid(0)
@@ -247,11 +242,17 @@
     call driver_bc_isfluid
   endif
   
-  
 ! initialize lrecycle 
   lrecycle=(nstep<nstepmax)
   mytime=real(nstep,kind=PRC)*tstep
   if(.not. lrecycle)call dumpForOutput(nstep,mytime,.false.)
+  
+! start diagnostic if requested
+  if(ldiagnostic)then
+    call print_timing_partial(1,1,itime_start,IOOUT)
+    call reset_timing_partial()
+    call startSimulationTime()
+  endif
   
 !max  write(0,*)'Going to sleep...',idrank
 !max  call sleep(30)  
