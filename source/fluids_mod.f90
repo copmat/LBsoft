@@ -3836,7 +3836,8 @@
       call collision_fluids_EDM(rhoB,u,v,w,fuB,fvB,fwB,omega,f00B,f01B,&
        f02B,f03B,f04B,f05B,f06B,f07B,f08B,f09B,f10B, &
        f11B,f12B,f13B,f14B,f15B,f16B,f17B,f18B,aoptpB,nstep)
-
+      call update_velocity_EDM(rhoR,rhoB,fuR,fvR,fwR,fuB,fvB,fwB, &
+       u,v,w,nstep)
     case default
       call error(14)
     end select
@@ -4205,9 +4206,7 @@
           locfv = fvsub(i,j,k)*t_LB / locrho + locv
           locfw = fwsub(i,j,k)*t_LB / locrho + locw
 #endif
-          fusub(i,j,k) = locfu
-          fvsub(i,j,k) = locfv
-          fwsub(i,j,k) = locfw
+          
           
 #ifdef REGULARIZED
           pxx = ZERO
@@ -4431,9 +4430,7 @@
         locfv = fvsub(i,j,k)*t_LB / locrho + locv
         locfw = fwsub(i,j,k)*t_LB / locrho + locw
 #endif
-        fusub(i,j,k) = locfu
-        fvsub(i,j,k) = locfv
-        fwsub(i,j,k) = locfw
+        
         
 #ifdef REGULARIZED
         pxx = ZERO
@@ -4631,6 +4628,53 @@
   return
   
  end subroutine collision_fluids_EDM
+ 
+ subroutine update_velocity_EDM(rhoRsub,rhoBsub,fuRsub,fvRsub, &
+  fwRsub,fuBsub,fvBsub,fwBsub,usub,vsub,wsub,nstep)
+ 
+!***********************************************************************
+!     
+!     LBsoft subroutine for applying the update to the velocity at
+!     half time step in case of EDM forcing scheme
+!     
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
+!     author: M. Lauricella
+!     last modification January 2020
+!     
+!***********************************************************************
+  
+  implicit none
+  integer, intent(in) :: nstep
+  
+  real(kind=PRC), allocatable, dimension(:,:,:)  :: rhoRsub, &
+   rhoBsub,fuRsub,fvRsub,fwRsub,fuBsub,fvBsub,fwBsub,usub,vsub,wsub
+  real(kind=PRC) :: locrho,locu,locv,locw
+  
+  integer :: i,j,k,l
+  
+  
+  do k=minz,maxz
+    do j=miny,maxy
+      do i=minx,maxx
+
+        if (isfluid(i,j,k)/=1) cycle
+
+        locrho = rhoRsub(i,j,k) + rhoBsub(i,j,k)
+        locu = usub(i,j,k)
+        locv = vsub(i,j,k)
+        locw = wsub(i,j,k)
+        
+        usub(i,j,k) = HALF*(fuRsub(i,j,k)+fuBsub(i,j,k))*t_LB/locrho+locu
+        vsub(i,j,k) = HALF*(fvRsub(i,j,k)+fvBsub(i,j,k))*t_LB/locrho+locv
+        wsub(i,j,k) = HALF*(fwRsub(i,j,k)+fwBsub(i,j,k))*t_LB/locrho+locw
+        
+      enddo
+    enddo
+  enddo
+  
+  return
+  
+ end subroutine update_velocity_EDM
  
  subroutine compute_omega
  
@@ -6380,37 +6424,7 @@
     return
   endif
   
-  if(lColourG)then
-
-    do k=minz,maxz
-      do j=miny,maxy
-        do i=minx,maxx
-          if(isfluid(i,j,k).eq.1)then
-            rhoR(i,j,k)=0.0d0
-            rhoB(i,j,k)=0.0d0
-            u(i,j,k)=0.0d0
-            v(i,j,k)=0.0d0
-            w(i,j,k)=0.0d0
-            do l=0,links
-              rhoR(i,j,k)=rhoR(i,j,k) + aoptpR(l)%p(i,j,k)
-              rhoB(i,j,k)=rhoB(i,j,k) + aoptpB(l)%p(i,j,k)
-              u(i,j,k)=u(i,j,k)+aoptpR(l)%p(i,j,k)*dex(l)+aoptpB(l)%p(i,j,k)*dex(l)
-              v(i,j,k)=v(i,j,k)+aoptpR(l)%p(i,j,k)*dey(l)+aoptpB(l)%p(i,j,k)*dey(l)
-              w(i,j,k)=w(i,j,k)+aoptpR(l)%p(i,j,k)*dez(l)+aoptpB(l)%p(i,j,k)*dez(l)
-            enddo
-            rhosum=rhoR(i,j,k)+rhoB(i,j,k)
-            u(i,j,k)=u(i,j,k)/rhosum
-            v(i,j,k)=v(i,j,k)/rhosum
-            w(i,j,k)=w(i,j,k)/rhosum
-          endif
-        enddo
-      enddo
-    enddo
-    return
-  endif
-
-#define NEW_MOMENTS_2FL
-#ifdef NEW_MOMENTS_2FL
+#ifdef SCANDREA
   factR = ONE/tauR
   factB = ONE/tauB
   nfluidnodes=0
@@ -6475,289 +6489,71 @@
       enddo
      enddo
     enddo
-    !end forall
   
-  !compute speed from mass flux
-  ! forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-  !   u(i,j,k) = u(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
-  !   v(i,j,k) = v(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
-  !   w(i,j,k) = w(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
-  !end forall
 #else
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
-    rhoR(i,j,k) = ZERO
-    rhoB(i,j,k) = ZERO
-    u(i,j,k)    = ZERO
-    v(i,j,k)    = ZERO
-    w(i,j,k)    = ZERO
-  end forall
+  nfluidnodes=0
+  nfluidmassR=ZERO
+  nfluidmassB=ZERO
+   ! forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)
+   do k=minz,maxz
+    do j=miny,maxy
+     do i=minx,maxx
+      locrhor = &
+ f00R(i,j,k) + f01R(i,j,k) + f02R(i,j,k) + f03R(i,j,k) + f04R(i,j,k) + &
+ f05R(i,j,k) + f06R(i,j,k) + f07R(i,j,k) + f08R(i,j,k) + f09R(i,j,k) + &
+ f10R(i,j,k) + f11R(i,j,k) + f12R(i,j,k) + f13R(i,j,k) + f14R(i,j,k) + &
+ f15R(i,j,k) + f16R(i,j,k) + f17R(i,j,k) + f18R(i,j,k)
 
-  !red and blue fluid
+      locrhob = &
+ f00B(i,j,k) + f01B(i,j,k) + f02B(i,j,k) + f03B(i,j,k) + f04B(i,j,k) + &
+ f05B(i,j,k) + f06B(i,j,k) + f07B(i,j,k) + f08B(i,j,k) + f09B(i,j,k) + &
+ f10B(i,j,k) + f11B(i,j,k) + f12B(i,j,k) + f13B(i,j,k) + f14B(i,j,k) + &
+ f15B(i,j,k) + f16B(i,j,k) + f17B(i,j,k) + f18B(i,j,k)
 
-  l=0
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f00R(i,j,k)
-    rhoB(i,j,k) = f00B(i,j,k)
-  end forall
+      locu  =  ( &
+ f01R(i,j,k) - f02R(i,j,k) + f07R(i,j,k) - f08R(i,j,k) - f09R(i,j,k) + &
+ f10R(i,j,k) + f11R(i,j,k) - f12R(i,j,k) - f13R(i,j,k) + f14R(i,j,k) ) + &
+       ( &
+ f01B(i,j,k) - f02B(i,j,k) + f07B(i,j,k) - f08B(i,j,k) - f09B(i,j,k) + &
+ f10B(i,j,k) + f11B(i,j,k) - f12B(i,j,k) - f13B(i,j,k) + f14B(i,j,k) )
 
-  l=1
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f01R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f01B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f01R(i,j,k)*ddx + f01B(i,j,k)*ddxB + u(i,j,k)
-  end forall
+      locv    =  ( &
+ f03R(i,j,k) - f04R(i,j,k) + f07R(i,j,k) - f08R(i,j,k) + f09R(i,j,k) - &
+ f10R(i,j,k) + f15R(i,j,k) - f16R(i,j,k) - f17R(i,j,k) + f18R(i,j,k) ) + &
+        ( &
+ f03B(i,j,k) - f04B(i,j,k) + f07B(i,j,k) - f08B(i,j,k) + f09B(i,j,k) - &
+ f10B(i,j,k) + f15B(i,j,k) - f16B(i,j,k) - f17B(i,j,k) + f18B(i,j,k) )
 
-  l=2
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f02R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f02B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f02R(i,j,k)*ddx + f02B(i,j,k)*ddxB + u(i,j,k)
-  end forall
+      locw    =  ( &
+ f05R(i,j,k) - f06R(i,j,k) + f11R(i,j,k) - f12R(i,j,k) + f13R(i,j,k) - &
+ f14R(i,j,k) + f15R(i,j,k) - f16R(i,j,k) + f17R(i,j,k) - f18R(i,j,k) ) + &
+        ( &
+ f05B(i,j,k) - f06B(i,j,k) + f11B(i,j,k) - f12B(i,j,k) + f13B(i,j,k) - &
+ f14B(i,j,k) + f15B(i,j,k) - f16B(i,j,k) + f17B(i,j,k) - f18B(i,j,k) )
 
-  l=3
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f03R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f03B(i,j,k) + rhoB(i,j,k)
-    v(i,j,k)    = f03R(i,j,k)*ddy + f03B(i,j,k)*ddyB + v(i,j,k)
-  end forall
-
-  l=4
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f04R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f04B(i,j,k) + rhoB(i,j,k)
-    v(i,j,k)    = f04R(i,j,k)*ddy + f04B(i,j,k)*ddyB + v(i,j,k)
-  end forall
-
-  l=5
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f05R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f05B(i,j,k) + rhoB(i,j,k)
-    w(i,j,k)    = f05R(i,j,k)*ddz + f05B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-
-  l=6
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f06R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f06B(i,j,k) + rhoB(i,j,k)
-    w(i,j,k)    = f06R(i,j,k)*ddz + f06B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-
-  l=7
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f07R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f07B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f07R(i,j,k)*ddx + f07B(i,j,k)*ddxB + u(i,j,k)
-    v(i,j,k)    = f07R(i,j,k)*ddy + f07B(i,j,k)*ddyB + v(i,j,k)
-  end forall
-
-  l=8
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f08R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f08B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f08R(i,j,k)*ddx + f08B(i,j,k)*ddxB + u(i,j,k)
-    v(i,j,k)    = f08R(i,j,k)*ddy + f08B(i,j,k)*ddyB + v(i,j,k)
-  end forall
-
-  l=9
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f09R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f09B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f09R(i,j,k)*ddx + f09B(i,j,k)*ddxB + u(i,j,k)
-    v(i,j,k)    = f09R(i,j,k)*ddy + f09B(i,j,k)*ddyB + v(i,j,k)
-  end forall
-
-  l=10
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f10R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f10B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f10R(i,j,k)*ddx + f10B(i,j,k)*ddxB + u(i,j,k)
-    v(i,j,k)    = f10R(i,j,k)*ddy + f10B(i,j,k)*ddyB + v(i,j,k)
-  end forall
-
-  l=11
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f11R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f11B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f11R(i,j,k)*ddx + f11B(i,j,k)*ddxB + u(i,j,k)
-    w(i,j,k)    = f11R(i,j,k)*ddz + f11B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-
-  l=12
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f12R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f12B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f12R(i,j,k)*ddx + f12B(i,j,k)*ddxB + u(i,j,k)
-    w(i,j,k)    = f12R(i,j,k)*ddz + f12B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-
-  l=13
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f13R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f13B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f13R(i,j,k)*ddx + f13B(i,j,k)*ddxB + u(i,j,k)
-    w(i,j,k)    = f13R(i,j,k)*ddz + f13B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-
-  l=14
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f14R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f14B(i,j,k) + rhoB(i,j,k)
-    u(i,j,k)    = f14R(i,j,k)*ddx + f14B(i,j,k)*ddxB + u(i,j,k)
-    w(i,j,k)    = f14R(i,j,k)*ddz + f14B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-
-  l=15
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f15R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f15B(i,j,k) + rhoB(i,j,k)
-    v(i,j,k)    = f15R(i,j,k)*ddy + f15B(i,j,k)*ddyB + v(i,j,k)
-    w(i,j,k)    = f15R(i,j,k)*ddz + f15B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-
-  l=16
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f16R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f16B(i,j,k) + rhoB(i,j,k)
-    v(i,j,k)    = f16R(i,j,k)*ddy + f16B(i,j,k)*ddyB + v(i,j,k)
-    w(i,j,k)    = f16R(i,j,k)*ddz + f16B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-
-  l=17
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f17R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f17B(i,j,k) + rhoB(i,j,k)
-    v(i,j,k)    = f17R(i,j,k)*ddy + f17B(i,j,k)*ddyB + v(i,j,k)
-    w(i,j,k)    = f17R(i,j,k)*ddz + f17B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-
-  l=18
-  ddx=dex(l)/tauR
-  ddy=dey(l)/tauR
-  ddz=dez(l)/tauR
-  ddxB=dex(l)/tauB
-  ddyB=dey(l)/tauB
-  ddzB=dez(l)/tauB
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    rhoR(i,j,k) = f18R(i,j,k) + rhoR(i,j,k)
-    rhoB(i,j,k) = f18B(i,j,k) + rhoB(i,j,k)
-    v(i,j,k)    = f18R(i,j,k)*ddy + f18B(i,j,k)*ddyB + v(i,j,k)
-    w(i,j,k)    = f18R(i,j,k)*ddz + f18B(i,j,k)*ddzB + w(i,j,k)
-  end forall
-
-  !compute speed from mass flux
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz,isfluid(i,j,k)==1)
-    u(i,j,k) = u(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
-    v(i,j,k) = v(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
-    w(i,j,k) = w(i,j,k)/(rhoR(i,j,k)/tauR + rhoB(i,j,k)/tauB)
-  end forall
+    if (isfluid(i,j,k)==1) then
+      if (locrhor < MINDENS) locrhor = MINDENS
+      if (locrhob < MINDENS) locrhob = MINDENS
+      rhoR(i,j,k) = locrhor
+      rhoB(i,j,k) = locrhob
+      weight_RB = ONE / (locrhor + locrhob)
+      u(i,j,k) = locu * weight_RB
+      v(i,j,k) = locv * weight_RB
+      w(i,j,k) = locw * weight_RB
+      nfluidnodes=nfluidnodes+1
+      nfluidmassR=nfluidmassR+locrhor
+      nfluidmassB=nfluidmassB+locrhob
+    else
+      rhoR(i,j,k) = MINDENS
+      rhoB(i,j,k) = MINDENS
+      u(i,j,k) = ZERO
+      v(i,j,k) = ZERO
+      w(i,j,k) = ZERO
+    endif
+      enddo
+     enddo
+    enddo
+    
 #endif
  end subroutine moments_fluids
 
