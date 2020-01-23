@@ -353,14 +353,16 @@ REAL(kind=PRC), DIMENSION(1) :: ttt1,ttt2
        ttt2 = ZERO
 #endif
      ENDIF
-     
+ 
+#ifdef MPI_DIAGNOSTIC    
      IF(mxrank>1)THEN
        CALL sum_world_farr(ttt1,1)
        CALL sum_world_farr(ttt2,1)
        ttt1=ttt1/REAL(mxrank,kind=PRC)
        ttt2=ttt2/REAL(mxrank,kind=PRC)
      ENDIF
-
+#endif
+     
      IF(idrank==0) THEN
         WRITE(IOOUT,'(/a/)') '             --------- END OF TIME CYCLE --------- '
         WRITE(IOOUT,'(a,f16.6,1x,a)') 'TOTAL TIME (PREPARE+SIM)',ttt1(1),'Seconds'
@@ -520,6 +522,7 @@ DO i=1, mxroutine
    nrout = nrout + 1
 ENDDO
 
+#ifdef MPI_DIAGNOSTIC
 IF(mxrank>1)THEN
   itempa(1)=nrout
   CALL sum_world_iarr(itempa,1)
@@ -570,18 +573,20 @@ IF(mxrank>1)THEN
   ENDDO
   deallocate(dtemp_temp)
 ENDIF
- 
+#ENDIF 
 
 
 CALL print_standalone(ifreq_l,ioout_l,nrout,total_time)
 
 total_time = SUM(section_cum(1:nsection)%timing)
 
+#ifdef MPI_DIAGNOSTIC
 IF(mxrank>1)THEN
   dtempa(1)=total_time
   call sum_world_farr(dtempa,1)
   total_time=dtempa(1)/REAL(mxrank,kind=PRC)
 ENDIF
+#endif
 
 WRITE(ioout_l,*)
 WRITE(iotiming,*)
@@ -594,6 +599,7 @@ DO i=1, nsection
   myorder_sec(i)=i
 ENDDO
 
+#ifdef MPI_DIAGNOSTIC
 IF(mxrank>1)THEN
   allocate(dtemp_temp(1:nsection))
   dtemp_temp(1:nsection)=section_cum(1:nsection)%timing
@@ -602,6 +608,7 @@ IF(mxrank>1)THEN
    dtemp_temp(1:nsection)/REAL(mxrank,kind=PRC)
   deallocate(dtemp_temp)
 ENDIF
+#endif
   
 DO j=nsection-1,1,-1
   lswapped=.false.
@@ -1095,6 +1102,10 @@ SUBROUTINE start_timing2(secname,subname)
     lactive_routine = .true.
     active_level = active_level + 1
 
+#ifdef BARRIER_DIAGNOSTIC
+  CALL get_sync_world
+#endif
+
 #ifdef WALLCLOCK
     timing_routine(isub)=wtime()
 #else
@@ -1148,7 +1159,9 @@ SUBROUTINE start_timing2(secname,subname)
        stop
     ENDIF
 
-
+#ifdef BARRIER_DIAGNOSTIC
+  CALL get_sync_world
+#endif
     
 #ifdef WALLCLOCK
     ttt=wtime()
@@ -1260,6 +1273,10 @@ SUBROUTINE start_timing2(secname,subname)
 
   !CALL SYSTEM_CLOCK(c1)
   !out=real(c1,kind=PRC)/real(clock_rate,kind=PRC)
+
+#ifdef BARRIER_DIAGNOSTIC
+  CALL get_sync_world
+#endif
 
 #ifdef WALLCLOCK
     out=wtime()
