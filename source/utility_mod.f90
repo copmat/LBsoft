@@ -401,7 +401,7 @@
 !     
 !     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
-!     last modification July 2018
+!     last modification January 2020
 !     
 !***********************************************************************
   
@@ -409,20 +409,22 @@
   
   real(kind=PRC) :: gauss
   real(kind=PRC) :: dtemp1,dtemp2
-  logical :: lredo
+  
+#if PRC==8
+  real(kind=PRC), parameter :: mylimit=1.d-100
+#elif PRC==4
+  real(kind=PRC), parameter :: mylimit=1.e-50
+#endif
   
   call random_number(dtemp1)
   call random_number(dtemp2)
   
-  lredo=.true.
+  dtemp1=dtemp1*(ONE-mylimit)+mylimit
+
+! Box-Muller transformation
+  gauss=sqrt(- TWO *log(dtemp1))*cos(TWO*pi*dtemp2)
   
-! the number is extract again if it is nan
-  do while(lredo)
-    lredo=.false.
-!   Box-Muller transformation
-    gauss=sqrt(- TWO *log(dtemp1))*cos(2*pi*dtemp2)
-    if(isnan(cos(gauss)))lredo=.true.
-  enddo
+  return
   
  end function gauss
  
@@ -435,7 +437,7 @@
 !     
 !     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
-!     last modification July 2018
+!     last modification January 2020
 !     
 !***********************************************************************
   
@@ -444,20 +446,23 @@
   integer :: kk
   real(kind=PRC) :: gauss_noseeded
   real(kind=PRC) :: dtemp1,dtemp2
-  logical :: lredo
   
-  lredo=.true.
-  kk=0
-! the number is extract again if it is nan
-  do while(lredo)
-    lredo=.false.
-    dtemp1=rand_noseeded(i,j,k,l+kk)
-    dtemp2=rand_noseeded(i,j,k,l+1+kk)
-!   Box-Muller transformation
-    gauss_noseeded=sqrt(- TWO *log(dtemp1))*cos(2*pi*dtemp2)
-    if(isnan(cos(gauss_noseeded)))lredo=.true.
-    kk=kk+1
-  enddo
+#if PRC==8
+  real(kind=PRC), parameter :: mylimit=1.d-100
+#elif PRC==4
+  real(kind=PRC), parameter :: mylimit=1.e-50
+#endif
+  
+  dtemp1=rand_noseeded(i,j,k,l)
+  kk=nint(dtemp1*FIFTY)
+  dtemp2=rand_noseeded(i,j,k,l+kk)
+  
+  dtemp1=dtemp1*(ONE-mylimit)+mylimit
+  
+! Box-Muller transformation
+  gauss_noseeded=sqrt(- TWO *log(dtemp1))*cos(TWO*pi*dtemp2)
+  
+  return
   
  end function gauss_noseeded
  
