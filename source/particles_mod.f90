@@ -2662,33 +2662,30 @@ else
   integer, intent(in) :: nstep
   logical, intent(out) :: newlst
   logical, save :: newjob=.true.
-  integer :: myi, i,moved(1)
+  integer :: myi, i
   integer :: fail=0
-  real(kind=PRC) :: rmax,dr, checkSpace
+  real(kind=PRC) :: dr
+  real(kind=PRC), save :: rmax
   real(kind=PRC), allocatable, save :: xold(:),yold(:),zold(:)
   logical :: ltest(1)
   integer, allocatable, save :: atmbook_test(:)
   integer, save :: natms_test
-
-
-  checkSpace = (natms+mxrank-1)/mxrank
-  if(checkSpace > mxatms) call error(24)
       
   if(newjob)then
 !   set up initial arrays 
-    allocate (xold(mxatms),yold(mxatms),zold(mxatms),stat=fail)
+    allocate (xold(msatms),yold(msatms),zold(msatms),stat=fail)
     if(fail.ne.0)call error(25)
-    allocate (atmbook_test(mxatms),stat=fail)
+    allocate (atmbook_test(msatms),stat=fail)
     if(fail.ne.0)call error(25)
     natms_test=natms
     atmbook_test(1:natms_test)=atmbook(1:natms)
     
-!    do i=1,natms
-!      i = atmbook(myi)
+!   maximum displacement 
+    rmax=(delr)**TWO
+    
     xold(1:natms_test)=ZERO
     yold(1:natms_test)=ZERO
     zold(1:natms_test)=ZERO
-!    enddo
 
     newjob=.false.
     newlst=.true.
@@ -2699,39 +2696,29 @@ else
 !   integrate velocities 
     do myi=1,natms_test
       i = atmbook_test(myi)
-!      write (200+idrank,*) "nstep",nstep, "i", i
-!      call flush(200+idrank)
-!      write (200+idrank,*) i, xold(i),yold(i),zold(i)
-!      call flush(200+idrank)
-!      write (200+idrank,*) i, vxx(i),vyy(i),vzz(i)
-!      call flush(200+idrank)
       xold(myi)=xold(myi)+vxx(i)*tstepatm
       yold(myi)=yold(myi)+vyy(i)*tstepatm
       zold(myi)=zold(myi)+vzz(i)*tstepatm
     enddo
     
-!   maximum displacement 
-    rmax=(delr/TWO)**TWO
-    
 !   test atomic displacements
-    moved(1)=0
+    ltest(1)=.false.
     do i=1,natms_test
-      dr=tstepatm**2*(xold(i)**2+yold(i)**2+zold(i)**2)
-      if(dr.gt.rmax)moved(1)=moved(1)+1
+      dr=(xold(i)**TWO+yold(i)**TWO+zold(i)**TWO)
+      if(dr >= rmax)then
+        ltest(1)=.true.
+        exit
+      endif
     enddo
-        
-!   global sum of moved atoms
-!!!!!!!!!!!!!!!!!!!!!!!!!! MPI: Done on every atom - call sum_world_iarr(moved,1)
-
-        
-!   test for new verlet list
-    ltest(1)=(moved(1).ge.2)
+    
+!   test for new verlet list with global or
     call or_world_larr(ltest,1)
     newlst=ltest(1)
         
 !   update stored positions
     if(newlst)then
       natms_test=natms
+      if(natms_test>msatms)call error(24)
       atmbook_test(1:natms_test)=atmbook(1:natms)
       
       xold(1:natms_test)=ZERO
@@ -2739,6 +2726,9 @@ else
       zold(1:natms_test)=ZERO
       !if(idrank==0)write(6,*)'new_list',nstep
     endif
+    
+    return
+    
  end subroutine vertest
 
  
