@@ -354,7 +354,7 @@ REAL(kind=PRC), DIMENSION(1) :: ttt1,ttt2
 #endif
      ENDIF
      
-     IF(mxrank>1)then
+     IF(mxrank>1)THEN
        CALL sum_world_farr(ttt1,1)
        CALL sum_world_farr(ttt2,1)
        ttt1=ttt1/REAL(mxrank,kind=PRC)
@@ -553,10 +553,21 @@ IF(mxrank>1)THEN
   call sum_world_farr(dtempa,1)
   total_time=dtempa(1)/REAL(mxrank,kind=PRC)
   allocate(dtemp_temp(1:nrout))
-  dtemp_temp(1:nrout)=timer_standalone(1:nrout)%timing
+  j=0
+  DO i=1, mxroutine
+     IF(timer_standalone(i)%icall<=0) CYCLE
+     j=j+1
+     dtemp_temp(j)=timer_standalone(i)%timing
+  ENDDO
   call sum_world_farr(dtemp_temp,nrout)
-  timer_standalone(1:nrout)%timing= &
+  dtemp_temp(1:nrout)= &
    dtemp_temp(1:nrout)/REAL(mxrank,kind=PRC)
+  j=0
+  DO i=1, mxroutine
+     IF(timer_standalone(i)%icall<=0) CYCLE
+     j=j+1
+     timer_standalone(i)%timing=dtemp_temp(j)
+  ENDDO
   deallocate(dtemp_temp)
 ENDIF
  
