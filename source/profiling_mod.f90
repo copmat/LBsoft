@@ -13,7 +13,8 @@
 !     
 !***********************************************************************
  
- use version_mod, only : idrank,mxrank,wtime
+ use version_mod, only : idrank,mxrank,wtime,sum_world_farr, &
+  sum_world_iarr,or1_world_larr
  
  
  implicit none
@@ -317,10 +318,53 @@ END INTERFACE
 !     
 !***********************************************************************
 
+REAL(kind=PRC) :: ttt
+REAL(kind=PRC), DIMENSION(1) :: ttt1,ttt2
+  
+      ttt = current_time()
+      
+      ttt1=ttt - tstart0
+      
+
+     IF(ttt1(1)< ZERO ) THEN
+#ifdef WALLCLOCK
+       if(abs(ttt1(1))>(clock_huge*0.5d0))then
+         ttt1 = ttt - tstart0 + clock_huge
+         if(ttt1(1)<0)ttt1 = ZERO
+       else
+         ttt1 = ZERO
+       endif
+#else
+       ttt1 = ZERO
+#endif
+     ENDIF
+     
+     
+     ttt2=ttt - tstart
+     IF(ttt2(1)< ZERO ) THEN
+#ifdef WALLCLOCK
+       if(abs(ttt2(1))>(clock_huge*0.5d0))then
+         ttt2 = ttt - tstart + clock_huge
+         if(ttt2(1)<0)ttt2 = ZERO
+       else
+         ttt2 = ZERO
+       endif
+#else
+       ttt2 = ZERO
+#endif
+     ENDIF
+     
+     IF(mxrank>1)then
+       CALL sum_world_farr(ttt1,1)
+       CALL sum_world_farr(ttt2,1)
+       ttt1=ttt1/REAL(mxrank,kind=PRC)
+       ttt2=ttt2/REAL(mxrank,kind=PRC)
+     ENDIF
+
      IF(idrank==0) THEN
         WRITE(IOOUT,'(/a/)') '             --------- END OF TIME CYCLE --------- '
-        WRITE(IOOUT,'(a,f16.6,1x,a)') 'TOTAL TIME (PREPARE+SIM)',current_time()-tstart0,'Seconds'
-        WRITE(IOOUT,'(a,f16.6,1x,a)') 'TOTAL TIME (SIM)        ',current_time()-tstart,'Seconds'
+        WRITE(IOOUT,'(a,f16.6,1x,a)') 'TOTAL TIME (PREPARE+SIM)',ttt1(1),'Seconds'
+        WRITE(IOOUT,'(a,f16.6,1x,a)') 'TOTAL TIME (SIM)        ',ttt2(1),'Seconds'
      ENDIF
   ENDSUBROUTINE
   
@@ -424,9 +468,9 @@ DO isec=1, nsection
    CALL print_routine_timing(section_blk(isec),ifreq_l,ioout_l)
 
 ENDDO
-IF(idrank==0) THEN
-   WRITE(ioout_l,'(/a,f12.3/)') 'Sum of section timings:',SUM(section_cum(1:nsection)%timing)
-ENDIF
+!IF(idrank==0) THEN
+!   WRITE(ioout_l,'(/a,f12.3/)') 'Sum of section timings:',SUM(section_cum(1:nsection)%timing)
+!ENDIF
 
 DO isec=1, nsection
 
@@ -455,12 +499,13 @@ END SUBROUTINE print_timing_partial
 
 INTEGER,INTENT(in) :: ifreq_l,itime,itime_start,natms_l,natms_tot_l,ioout_l
 CHARACTER(len=30),SAVE :: strtmp
-INTEGER :: nmax,nmin,nave,i,j,isec,nrout,itemp
-REAL(kind=PRC) :: total_time,dtemp
+INTEGER :: nmax,nmin,nave,i,j,isec,nrout,itemp,itempa(1)
+REAL(kind=PRC) :: total_time,dtemp,dtempa(1)
 LOGICAL,SAVE :: newjob=.true.
-REAL(kind=PRC), allocatable, dimension(:) :: mytime_sec
-INTEGER, allocatable, dimension(:) :: myorder_sec
+REAL(kind=PRC), allocatable, dimension(:) :: mytime_sec,dtemp_temp
+INTEGER, allocatable, dimension(:) :: myorder_sec,tot_calls
 LOGICAL :: lswapped
+LOGICAL :: ltemp
 
 IF(idrank==0) THEN
    WRITE(ioout_l,'(/a/)') '********** GLOBAL TIMINGS (full simulation) **********'
@@ -475,9 +520,57 @@ DO i=1, mxroutine
    nrout = nrout + 1
 ENDDO
 
+IF(mxrank>1)THEN
+  itempa(1)=nrout
+  CALL sum_world_iarr(itempa,1)
+  IF(mod(itempa(1),mxrank)/=0)THEN
+    WRITE(ioout_l,'(/a/)') &
+     'UNBALANCED NUMBER OF ROUTINES DIAGNOSED AMONG MPI PROCESSES'
+     WRITE(iotiming,'(/a/)') &
+     'UNBALANCED NUMBER OF ROUTINES DIAGNOSED AMONG MPI PROCESSES'
+     RETURN
+  ENDIF
+  allocate(tot_calls(nrout))
+  j=0
+  DO i=1, mxroutine
+     IF(timer_standalone(i)%icall<=0) CYCLE
+     j=j+1
+     tot_calls(j)=timer_standalone(i)%icall
+  ENDDO
+  CALL sum_world_iarr(tot_calls,nrout)
+  ltemp=.false.
+  DO i=1, nrout
+    IF(mod(tot_calls(i),mxrank)/=0)THEN
+      ltemp=.true.
+      IF(idrank==0)WRITE(ioout_l,'(/2a/)') &
+       'UNBALANCED NUMBER OF CALLS AMONG MPI PROCESSES FOR ROUTINE: ', &
+       TRIM(timer_standalone(i)%aroutine)
+    ENDIF
+  ENDDO
+  IF(ltemp)RETURN
+  deallocate(tot_calls)
+  dtempa(1)=total_time
+  call sum_world_farr(dtempa,1)
+  total_time=dtempa(1)/REAL(mxrank,kind=PRC)
+  allocate(dtemp_temp(1:nrout))
+  dtemp_temp(1:nrout)=timer_standalone(1:nrout)%timing
+  call sum_world_farr(dtemp_temp,nrout)
+  timer_standalone(1:nrout)%timing= &
+   dtemp_temp(1:nrout)/REAL(mxrank,kind=PRC)
+  deallocate(dtemp_temp)
+ENDIF
+ 
+
+
 CALL print_standalone(ifreq_l,ioout_l,nrout,total_time)
 
 total_time = SUM(section_cum(1:nsection)%timing)
+
+IF(mxrank>1)THEN
+  dtempa(1)=total_time
+  call sum_world_farr(dtempa,1)
+  total_time=dtempa(1)/REAL(mxrank,kind=PRC)
+ENDIF
 
 WRITE(ioout_l,*)
 WRITE(iotiming,*)
@@ -490,7 +583,15 @@ DO i=1, nsection
   myorder_sec(i)=i
 ENDDO
 
-
+IF(mxrank>1)THEN
+  allocate(dtemp_temp(1:nsection))
+  dtemp_temp(1:nsection)=section_cum(1:nsection)%timing
+  call sum_world_farr(dtemp_temp,nsection)
+  section_cum(1:nsection)%timing= &
+   dtemp_temp(1:nsection)/REAL(mxrank,kind=PRC)
+  deallocate(dtemp_temp)
+ENDIF
+  
 DO j=nsection-1,1,-1
   lswapped=.false.
   DO i=1,j
@@ -1049,7 +1150,7 @@ SUBROUTINE start_timing2(secname,subname)
     IF((ttt - timing_routine(isub))< ZERO ) THEN
        write(IOOUT,*)'Warning. Negative timing for routine ', &
         TRIM(reconame),timing_routine(isub),ttt
-#ifdef WALL
+#ifdef WALLCLOCK
        if(abs(ttt - timing_routine(isub))>(clock_huge*0.5d0))then
          timing_routine(isub) = ttt - timing_routine(isub) + clock_huge
          if(timing_routine(isub)<0)timing_routine(isub) = ZERO
