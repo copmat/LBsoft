@@ -2742,7 +2742,7 @@ else
  end subroutine vertest
 
  
- subroutine parlst(nstep, debug)
+ subroutine parlst(nstep,ldolist)
   
 !***********************************************************************
 !     
@@ -2756,7 +2756,7 @@ else
   
   implicit none
   integer, intent(in) :: nstep
-  logical, intent(in) :: debug
+  logical, intent(in) :: ldolist
 ! separation vectors and powers thereof
   real(kind=PRC) :: rsq,xm,ym,zm,rsqcut,rlimit
   real(kind=PRC) :: dists(3)
@@ -2779,6 +2779,8 @@ else
 ! Service floating numbers
   real(kind=PRC) :: xdc,ydc,zdc,tx,ty,tz,dens,ratio
   real(kind=PRC) :: rcell(9),celprp(10),det
+  
+  if(.not. ldolist)return
   
   lentry(1:mxatms)=0
   

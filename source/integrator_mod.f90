@@ -263,9 +263,11 @@
     call vertest(nstep, newlst)
     if(ldiagnostic)call end_timing2("MD","vertest")
     
-    if(ldiagnostic)call start_timing2("MD","driver_nlist")
-    if(newlst) call parlst(nstep, .true.)
-    if(ldiagnostic)call end_timing2("MD","driver_nlist")
+    if(newlst)then
+      if(ldiagnostic)call start_timing2("MD","driver_nlist")
+      call parlst(nstep,newlst)
+      if(ldiagnostic)call end_timing2("MD","driver_nlist")
+    endif
     
     if(ldiagnostic)call start_timing2("MD","driver_inter_f")
     call initialize_particle_energy
