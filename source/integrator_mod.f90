@@ -314,11 +314,7 @@
   if(ldiagnostic)call end_timing2("LB","collision_fluids")
   ! if (debug1) call print_all_pops2(131, "aft_collision_fluids", nstep)
   
-  if(lbc_halfway)then
-    if(ldiagnostic)call start_timing2("LB","apply_bback_pop_hf")
-    call driver_apply_bounceback_halfway_pop(nstep)
-    if(ldiagnostic)call end_timing2("LB","apply_bback_pop_hf")
-  endif
+  
   ! if (debug1) call print_all_pops2(131, "aft_apply_bback_pop_hf", nstep)
   
   if(lparticles)then
@@ -349,6 +345,12 @@
     call restore_particles(nstep)
     
     call driver_bc_pops
+  endif
+  
+  if(lbc_halfway)then
+    if(ldiagnostic)call start_timing2("LB","apply_bback_pop_hf")
+    call driver_apply_bounceback_halfway_pop(nstep)
+    if(ldiagnostic)call end_timing2("LB","apply_bback_pop_hf")
   endif
 
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")

@@ -14,7 +14,7 @@
 !***********************************************************************
  
  use version_mod, only : idrank,mxrank,wtime,sum_world_farr, &
-  sum_world_iarr,or1_world_larr
+  sum_world_iarr,or1_world_larr,get_sync_world
  
  
  implicit none
