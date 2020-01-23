@@ -10,7 +10,7 @@
 #define noSTABILIZED
 #define noORIGCG
 #define noBARRIER_DIAGNOSTIC
-#define noMPI_DIAGNOSTIC
+#define MPI_DIAGNOSTIC
 
 #define STREAM_NOCOPY
 
