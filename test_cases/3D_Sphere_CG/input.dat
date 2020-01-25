@@ -1,14 +1,14 @@
 [ROOM SYSTEM]
 box 64 64 64
-steps 500
+steps 100
 diagnostic yes
 boundary condition 0 0 0
 decomposition type  7
 decomposition dimension    1   1   1
-print list maxd1 mind1 dens1 maxvx maxvy maxvz
+print list maxd1 mind1 dens1 maxvx maxvy maxvz cpu
 print every 10
 print vtk yes
-print vtk every 10
+print vtk every 50
 print vtk list rho1 rho2 
 job time 4 d
 close time 10 s
@@ -17,15 +17,15 @@ close time 10 s
 components 2
 density special
 density object 1
-density sphere 1  32.5  32.5  32.5  10.0  4.0  1.d0  1.d-8
-density mean 1.d0 1.d-8
-density back 1.d-8 1.d0
+density sphere 1  32.5  32.5  32.5  11.0  3.0  837.d0  1.d-16
+density mean 837.d0 1.d0
+density back 1.d-16 1.d0
 velocity mean 0.d0 0.d0 0.d0
 force colour gradient yes
-force colour gradien sigma 0.096
-force colour gradient alphaR 0.2
+force colour gradien sigma 0.1
+force colour gradient alphaR 0.999044205495818
 force colour gradient alphaB 0.2
-force colour gradient beta 0.7
-fluid tau 1.d0 1.d0
+force colour gradient beta 0.8
+fluid tau 1.89d0 0.53d0
 [END ROOM]
 [END]

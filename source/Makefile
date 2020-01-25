@@ -26,12 +26,13 @@ all:
 	@echo "intel-mpi                          "
 	@echo "intel-mpi-skylake                  "
 	@echo "intel-mpi-knl                      "
-	@echo "intel-mpidebugger		  "
 	@echo "                                   "
 	@echo "Possible choices for debugging are:"
 	@echo "                                   "
 	@echo "gfortran-debugger                  "
 	@echo "gfortran-mpidebugger               "
+	@echo "intel-debugger                     "
+	@echo "intel-mpidebugger                  "
 	@echo "                                   "
 	@echo "Please examine Makefile for further details "
 
@@ -128,6 +129,15 @@ gfortran-mpidebugger:
 	-cpp -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi
+	
+intel-debugger:
+	$(MAKE) CC=icc \
+	FC=ifort \
+	CFLAGS="-O0 -g -I $(CURDIR) -c" \
+	FFLAGS="-O0 -g -check all -traceback -check bounds -cpp -DINTEL -I $(CURDIR) -c" \
+	LDFLAGS="-O0 -g -check all -traceback -check bounds -cpp -DINTEL -I $(CURDIR) -o" \
+	TYPE=seq \
+	EX=$(EX) BINROOT=$(BINROOT) seq
 	
 intel-mpidebugger:
 	$(MAKE) CC=mpiicc \
