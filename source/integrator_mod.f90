@@ -250,12 +250,23 @@
   if(lparticles)then
     if(ldiagnostic)call start_timing2("MD","inter_part_and_grid")
     call inter_part_and_grid(nstep, lparticles, debug)
-
-    call driver_bc_densities
-    call driver_bc_velocities
-    call update_isfluid
-    call driver_bc_isfluid
     if(ldiagnostic)call end_timing2("MD","inter_part_and_grid")
+    
+    if(ldiagnostic)call start_timing2("MD","driver_bc_densities")
+    call driver_bc_densities
+    if(ldiagnostic)call end_timing2("MD","driver_bc_densities")
+    
+    if(ldiagnostic)call start_timing2("MD","driver_bc_velocities")
+    call driver_bc_velocities
+    if(ldiagnostic)call end_timing2("MD","driver_bc_velocities")
+    
+    if(ldiagnostic)call start_timing2("MD","update_isfluid")
+    call update_isfluid
+    if(ldiagnostic)call end_timing2("MD","update_isfluid")
+    
+    if(ldiagnostic)call start_timing2("MD","driver_bc_isfluid")
+    call driver_bc_isfluid
+    if(ldiagnostic)call end_timing2("MD","driver_bc_isfluid")
     ! if (debug1) call print_all_pops2(131, "aft_inter_part_and_grid", nstep)
     
     newlst=.false.
@@ -278,9 +289,11 @@
   if(lpair_SC .or. lColourG .or. lparticles)then
     if(ldiagnostic)call start_timing2("LB","compute_densities_wall")
     call compute_densities_wall(nstep)
-
-    call driver_bc_densities
     if(ldiagnostic)call end_timing2("LB","compute_densities_wall")
+    
+    if(ldiagnostic)call start_timing2("LB","driver_bc_densities")
+    call driver_bc_densities
+    if(ldiagnostic)call end_timing2("LB","driver_bc_densities")
     ! if (debug1) call print_all_pops2(131, "aft_compute_densities_wall", nstep)
   endif
     
@@ -301,12 +314,14 @@
     if(ldiagnostic)call start_timing2("LB","compute_force_sc")
     call compute_fluid_force_sc
     if(ldiagnostic)call end_timing2("LB","compute_force_sc")
+    
     ! if (debug1) call print_all_pops2(131, "aft_compute_force_sc", nstep)
   endif
 
   if(ldiagnostic)call start_timing2("IO","write_vtk_frame")
    call write_vtk_frame(nstep)
   if(ldiagnostic)call end_timing2("IO","write_vtk_frame")
+  
   if (debug1) call print_all_pops2(131, "aft_vtk", nstep)
 
   if(ldiagnostic)call start_timing2("LB","collision_fluids")
@@ -314,37 +329,48 @@
   if(ldiagnostic)call end_timing2("LB","collision_fluids")
   ! if (debug1) call print_all_pops2(131, "aft_collision_fluids", nstep)
   
-  
-  ! if (debug1) call print_all_pops2(131, "aft_apply_bback_pop_hf", nstep)
-  
   if(lparticles)then
+    if(ldiagnostic)call start_timing2("MD","driver_bc_pops")
     call driver_bc_pops
+    if(ldiagnostic)call end_timing2("MD","driver_bc_pops")
 
     if(ldiagnostic)call start_timing2("IO","write_xyz")
     call write_xyz(nstep)
     if(ldiagnostic)call end_timing2("IO","write_xyz")
     
-    if(ldiagnostic)call start_timing2("LB","apply_part_bback")
+    if(ldiagnostic)call start_timing2("MD","apply_part_bback")
     call apply_particle_bounce_back(nstep, debug)
-    if(ldiagnostic)call end_timing2("LB","apply_part_bback")
+    if(ldiagnostic)call end_timing2("MD","apply_part_bback")
     ! if (debug1) call print_all_pops2(131, "aft_apply_part_bback", nstep)
     
+    if(ldiagnostic)call start_timing2("MD","merge_part_force")
     call merge_particle_force(nstep, debug)
+    if(ldiagnostic)call end_timing2("MD","merge_part_force")
     
+    if(ldiagnostic)call start_timing2("MD","force_particle_bb")
     call force_particle_bounce_back(nstep, debug)
+    if(ldiagnostic)call end_timing2("MD","force_particle_bb")
     
+    if(ldiagnostic)call start_timing2("MD","mean_partf")
     call compute_mean_particle_force
+    if(ldiagnostic)call end_timing2("MD","mean_partf")
     
+    if(ldiagnostic)call start_timing2("MD","store_old_part")
     call store_old_pos_vel_part
+    if(ldiagnostic)call end_timing2("MD","store_old_part")
 
     if(ldiagnostic)call start_timing2("MD","integrate_lf")
     call nve_lf(nstep, debug)
     call merge_particle_energies
     if(ldiagnostic)call end_timing2("MD","integrate_lf")
     
+    if(ldiagnostic)call start_timing2("MD","restore_partic")
     call restore_particles(nstep)
+    if(ldiagnostic)call end_timing2("MD","restore_partic")
     
+    if(ldiagnostic)call start_timing2("MD","driver_bc_pops")
     call driver_bc_pops
+    if(ldiagnostic)call end_timing2("MD","driver_bc_pops")
   endif
   
   if(lbc_halfway)then
@@ -352,6 +378,8 @@
     call driver_apply_bounceback_halfway_pop(nstep)
     if(ldiagnostic)call end_timing2("LB","apply_bback_pop_hf")
   endif
+  
+  ! if (debug1) call print_all_pops2(131, "aft_apply_bback_pop_hf", nstep)
 
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
   call driver_streaming_fluids(lparticles)
@@ -363,8 +391,8 @@
     if(ldiagnostic)call end_timing2("LB","apply_bback_pop")
   endif
   
-  if (debug1) call print_all_pops2(131, "aft_apply_bounceback_pop", nstep)
-
+  if(debug1)call print_all_pops2(131, "aft_apply_bounceback_pop", nstep)
+  
   mytime = new_time
   
   return

@@ -573,7 +573,7 @@ IF(mxrank>1)THEN
   ENDDO
   deallocate(dtemp_temp)
 ENDIF
-#ENDIF 
+#endif 
 
 
 CALL print_standalone(ifreq_l,ioout_l,nrout,total_time)
@@ -1101,16 +1101,10 @@ SUBROUTINE start_timing2(secname,subname)
 
     lactive_routine = .true.
     active_level = active_level + 1
-
-#ifdef BARRIER_DIAGNOSTIC
-  CALL get_sync_world
-#endif
-
-#ifdef WALLCLOCK
-    timing_routine(isub)=wtime()
-#else
-    CALL CPU_TIME(timing_routine(isub))
-#endif
+    
+    timing_routine(isub)=current_time()
+    
+    RETURN
 
   END SUBROUTINE start_timing
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1158,17 +1152,8 @@ SUBROUTINE start_timing2(secname,subname)
         ' routine not registered : '//TRIM(sub_temp)
        stop
     ENDIF
-
-#ifdef BARRIER_DIAGNOSTIC
-  CALL get_sync_world
-#endif
     
-#ifdef WALLCLOCK
-    ttt=wtime()
-#else
-    CALL CPU_TIME(ttt)
-#endif
-
+    ttt = current_time()
     
 
     IF((ttt - timing_routine(isub))< ZERO ) THEN
@@ -1258,33 +1243,34 @@ SUBROUTINE start_timing2(secname,subname)
 
   END FUNCTION id_timing_sub
   
-  FUNCTION current_time() RESULT(out)
-  REAL(kind=PRC) :: out
+  FUNCTION current_time() RESULT(myout)
+  REAL(kind=PRC) :: myout
   INTEGER, SAVE :: clock_start, clock_stop,c1
   LOGICAL, SAVE :: newjob=.true.
 
   IF(newjob) THEN
-
+  
      CALL system_clock(clock_stop, clock_rate_param, clock_max_param)
      clock_huge = &
       real(clock_max_param,kind=PRC)/real(clock_rate_param,kind=PRC)
      newjob=.false.
   ENDIF
-
+  
   !CALL SYSTEM_CLOCK(c1)
   !out=real(c1,kind=PRC)/real(clock_rate,kind=PRC)
 
 #ifdef BARRIER_DIAGNOSTIC
   CALL get_sync_world
 #endif
-
+  
 #ifdef WALLCLOCK
-    out=wtime()
+    myout=wtime()
 #else
-    CALL CPU_TIME(out)
+    CALL CPU_TIME(myout)
 #endif
-
-
+  
+  RETURN
+  
   END FUNCTION current_time
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
