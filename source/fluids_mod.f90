@@ -553,7 +553,6 @@
      iy=miny-nbuff
      iz=minz-nbuff
      mynx=maxx+nbuff
-     !if(mod(nx,2)==0)mynx=mynx+1
      myny=maxy+nbuff
      mynz=maxz+nbuff
 
