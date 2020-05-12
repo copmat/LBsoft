@@ -16,7 +16,6 @@
 !     
 !***********************************************************************
  use, intrinsic ::  iso_c_binding
- use aop_mod 
  
  implicit none
  
@@ -2455,7 +2454,7 @@
 
     
     
-  END SUBROUTINE cartdeco
+  end subroutine cartdeco
  
  subroutine set_domdec(itemp)
  
@@ -4517,7 +4516,8 @@
 
  end subroutine commwait_vel_component
  
- subroutine commexch_single_halo(dtemp)
+ subroutine commexch_single_halo(dtemp,nbuff, &
+  ix,fx,iy,fy,iz,fz)
  
 !***********************************************************************
 !     
@@ -4531,8 +4531,11 @@
 !***********************************************************************
 
   IMPLICIT NONE
-
-  REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp
+  
+  integer, intent(in) :: nbuff,ix,fx,iy,fy,iz,fz
+  real(kind=PRC), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff) :: &
+   dtemp
   INTEGER :: status(MPI_STATUS_SIZE,0:maxneigh-1)
   INTEGER :: i,j,mym(3)
   INTEGER(kind=IPRC) :: i4, itemp, jtemp, ktemp
@@ -4565,7 +4568,7 @@
 
  end subroutine commexch_single_halo
    
- subroutine commwait_single_halo(dtemp)
+ subroutine commwait_single_halo(dtemp,nbuff,ix,fx,iy,fy,iz,fz)
  
 !***********************************************************************
 !     
@@ -4580,7 +4583,10 @@
 
   IMPLICIT NONE
 
-  REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp
+  integer, intent(in) :: nbuff,ix,fx,iy,fy,iz,fz
+  real(kind=PRC), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff) :: &
+   dtemp
   INTEGER :: request(0:maxneigh-1)
   INTEGER :: status(MPI_STATUS_SIZE,0:maxneigh-1)
   INTEGER :: i,j,mym(3)
@@ -4609,7 +4615,7 @@
 
  end subroutine commwait_single_halo
  
- subroutine commspop(pop_ptr)
+ subroutine commspop(fluidsub)
  
 !***********************************************************************
 !     
@@ -4624,7 +4630,7 @@
 
   implicit none
 
-  type(REALPTR), dimension(0:links):: pop_ptr
+  real(kind=PRC), allocatable, dimension(:,:,:,:)  :: fluidsub
   integer :: request(0:maxneigh-1)
   integer :: istatus(MPI_STATUS_SIZE,0:maxneigh-1)
   integer :: i,j,mym(3)
@@ -4647,7 +4653,7 @@
       ktemp = mym(3)
       jtemp = mym(2)
       itemp = mym(1)
-      buffpops(j,i)=pop_ptr(i_pop2send_fluid(0,j,i))%p(itemp,jtemp,ktemp)
+      buffpops(j,i)=fluidsub(itemp,jtemp,ktemp,i_pop2send_fluid(0,j,i))
     enddo
     if(syncsend.eq.1) then
       call MPI_SEND(buffpops(0,i),n_pop2send_fluid(i),MYFLOAT, &
@@ -4662,7 +4668,7 @@
 
  end subroutine commspop
  
- subroutine commrpop(pop_ptr,lparticles,isfluid)
+ subroutine commrpop(fluidsub,lparticles,isfluid)
  
 !***********************************************************************
 !     
@@ -4677,7 +4683,7 @@
 
   implicit none
 
-  type(REALPTR), dimension(0:links):: pop_ptr
+  real(kind=PRC), allocatable, dimension(:,:,:,:)  :: fluidsub
   logical, intent(in) :: lparticles
   integer(kind=1), allocatable, dimension(:,:,:), intent(in) :: isfluid
   
@@ -4703,7 +4709,7 @@
          iopp=opp(idir)
          if(isfluid(itemp+ex(iopp),jtemp+ey(iopp),ktemp+ez(iopp))<2 .or. &
           isfluid(itemp+ex(iopp),jtemp+ey(iopp),ktemp+ez(iopp))>5)then
-           pop_ptr(idir)%p(itemp,jtemp,ktemp)=buffpopr(j,i)
+           fluidsub(itemp,jtemp,ktemp,idir)=buffpopr(j,i)
          endif
        enddo
      enddo
@@ -4715,7 +4721,7 @@
          ktemp = mym(3)
          jtemp = mym(2)
          itemp = mym(1)
-         pop_ptr(i_pop2recv_fluid(0,j,i))%p(itemp,jtemp,ktemp)=buffpopr(j,i)
+         fluidsub(itemp,jtemp,ktemp,i_pop2recv_fluid(0,j,i))=buffpopr(j,i)
        enddo
      enddo
    endif
@@ -4864,7 +4870,8 @@
   
  end subroutine print_binary_1d_vtk_serial
  
- subroutine collective_writeFile(it, mynamefile, myvar, nbuff)
+ subroutine collective_writeFile(it,mynamefile,myvar,nbuff, &
+  ix,fx,iy,fy,iz,fz)
   
 !***********************************************************************
 !     
@@ -4878,8 +4885,11 @@
 !***********************************************************************
   
   implicit none
-  REAL(KIND=PRC), dimension(:,:,:), allocatable :: myvar
-  integer, intent(in) :: it, nbuff
+  
+  integer, intent(in) :: it,nbuff,ix,fx,iy,fy,iz,fz
+  real(kind=PRC), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff), &
+   intent(in)  :: myvar
   character(len=120),intent(in) :: mynamefile
   integer :: ierr,fh, filetype,mystarts(3),i
   integer :: memDims(3),memOffs(3), imemtype
@@ -4926,7 +4936,8 @@
   
  end subroutine collective_writeFile
 
- subroutine collective_writeFile_int(it, mynamefile, myvar, nbuff)
+ subroutine collective_writeFile_int(it,mynamefile,myvar,nbuff, &
+  ix,fx,iy,fy,iz,fz)
  
 !***********************************************************************
 !     
@@ -4940,8 +4951,11 @@
 !***********************************************************************
  
   implicit none
-  integer(kind=1), allocatable, dimension(:,:,:) :: myvar
-  integer, intent(in) :: it, nbuff
+  
+  integer, intent(in) :: it,nbuff,ix,fx,iy,fy,iz,fz
+  integer(kind=1), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff), &
+   intent(in)  :: myvar
   character(len=120),intent(in) :: mynamefile
   integer :: ierr,fh, filetype,mystarts(3),i
   integer :: memDims(3),memOffs(3), imemtype
@@ -4988,7 +5002,8 @@
   
  end subroutine collective_writeFile_int
  
- subroutine collective_readFile(it, mynamefile, myvar, nbuff)
+ subroutine collective_readFile(it,mynamefile,myvar,nbuff, &
+  ix,fx,iy,fy,iz,fz)
 
 !***********************************************************************
 !     
@@ -5002,8 +5017,11 @@
 !***********************************************************************
 
   implicit none
-  REAL(KIND=PRC), dimension(:,:,:), allocatable :: myvar
-  integer, intent(in) :: it, nbuff
+  
+  integer, intent(in) :: it,nbuff,ix,fx,iy,fy,iz,fz
+  real(kind=PRC), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff) :: &
+   myvar
   character(len=120),intent(in) :: mynamefile
   integer :: ierr,fh, filetype,mystarts(3),i
   integer :: memDims(3),memOffs(3), imemtype
@@ -5049,7 +5067,8 @@
  
  end subroutine collective_readFile
 
- subroutine collective_readFile_int(it, mynamefile, myvar, nbuff)
+ subroutine collective_readFile_int(it,mynamefile,myvar,nbuff, &
+  ix,fx,iy,fy,iz,fz)
     
 !***********************************************************************
 !     
@@ -5062,8 +5081,11 @@
 !     
 !***********************************************************************
   implicit none
-  integer(kind=1), allocatable, dimension(:,:,:) :: myvar
-  integer, intent(in) :: it, nbuff
+  
+  integer, intent(in) :: it,nbuff,ix,fx,iy,fy,iz,fz
+  integer(kind=1), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff) :: &
+   myvar
   character(len=120),intent(in) :: mynamefile
   integer :: ierr,fh, filetype,mystarts(3),i
   integer :: memDims(3),memOffs(3), imemtype
@@ -5105,9 +5127,9 @@
   
  end subroutine collective_readFile_int
  
- subroutine collective_readFile_pops(it, mynamefile, f00,f01, &
+ subroutine collective_readFile_pops(it,mynamefile,f00,f01, &
   f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18, &
-  nbuff)
+  nbuff,ix,fx,iy,fy,iz,fz)
 
 !***********************************************************************
 !     
@@ -5121,9 +5143,11 @@
 !***********************************************************************
   
   implicit none
-  REAL(kind=PRC), allocatable, dimension(:,:,:)  :: f00,f01, &
+  integer, intent(in) :: it,nbuff,ix,fx,iy,fy,iz,fz
+  real(kind=PRC), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff) :: &
+   f00,f01, &
    f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18
-  integer, intent(in) :: it, nbuff
   character(len=120),intent(in) :: mynamefile
   integer :: ierr,fh, filetype,mystarts(3),i
   integer :: memDims(3),memOffs(3), imemtype
@@ -5184,7 +5208,8 @@
  end subroutine collective_readFile_pops
  
  subroutine collective_writeFile_pops(it, mynamefile, f00,f01, &
-  f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18,nbuff)
+  f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18, &
+  nbuff,ix,fx,iy,fy,iz,fz)
   
 !***********************************************************************
 !     
@@ -5198,14 +5223,17 @@
 !***********************************************************************
   
   implicit none
-  REAL(kind=PRC), allocatable, dimension(:,:,:)  :: f00,f01, &
+  
+  integer, intent(in) :: it,nbuff,ix,fx,iy,fy,iz,fz
+  real(kind=PRC), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff) :: &
+   f00,f01, &
    f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18
-  integer, intent(in) :: it, nbuff
   character(len=120),intent(in) :: mynamefile
   integer :: ierr,fh, filetype,mystarts(3),i
   integer :: memDims(3),memOffs(3), imemtype
   integer (kind=MPI_OFFSET_KIND) offset
-  INTEGER STATUS(MPI_STATUS_SIZE)
+  integer :: istatus(MPI_STATUS_SIZE)
 
 
   call MPI_FILE_OPEN(MPI_COMM_WORLD, mynamefile, &
@@ -5237,25 +5265,25 @@
   
   call MPI_TYPE_COMMIT(imemtype, ierr)
   
-  call MPI_FILE_WRITE_ALL(fh, f00, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f01, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f02, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f03, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f04, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f05, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f06, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f07, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f08, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f09, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f10, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f11, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f12, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f13, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f14, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f15, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f16, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f17, 1, imemtype, status, ierr)
-  call MPI_FILE_WRITE_ALL(fh, f18, 1, imemtype, status, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f00, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f01, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f02, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f03, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f04, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f05, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f06, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f07, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f08, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f09, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f10, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f11, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f12, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f13, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f14, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f15, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f16, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f17, 1, imemtype, istatus, ierr)
+  call MPI_FILE_WRITE_ALL(fh, f18, 1, imemtype, istatus, ierr)
   !if (idrank== 0) print *, "MPI_FILE_WRITE_ALL)ierr=",ierr
 
   call MPI_FILE_CLOSE(fh, ierr)

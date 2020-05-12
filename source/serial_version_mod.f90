@@ -12,7 +12,6 @@
 !     last modification October 2018
 !     
 !***********************************************************************
- use aop_mod 
  
  implicit none
  
@@ -1591,7 +1590,8 @@
    
  END SUBROUTINE commwait_vel_component
  
- subroutine commexch_single_halo(dtemp)
+ subroutine commexch_single_halo(dtemp,nbuff, &
+  ix,fx,iy,fy,iz,fz)
 
 !***********************************************************************
 !     
@@ -1604,15 +1604,19 @@
 !     
 !***********************************************************************
    
-   IMPLICIT NONE
+  implicit none
    
-   REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp
+  integer, intent(in) :: nbuff,ix,fx,iy,fy,iz,fz
+  real(kind=PRC), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff) :: &
+   dtemp
    
-   return
+  return
    
  END SUBROUTINE commexch_single_halo
    
- SUBROUTINE commwait_single_halo(dtemp)
+ SUBROUTINE commwait_single_halo(dtemp,nbuff, &
+  ix,fx,iy,fy,iz,fz)
 
 !***********************************************************************
 !     
@@ -1625,9 +1629,12 @@
 !     
 !***********************************************************************
    
-   IMPLICIT NONE
+  implicit none
    
-   REAL(KIND=PRC), dimension(:,:,:), allocatable :: dtemp
+  integer, intent(in) :: nbuff,ix,fx,iy,fy,iz,fz
+  real(kind=PRC), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff) :: &
+   dtemp
    
    return
    
@@ -1698,7 +1705,7 @@
   
  end function ownernfind
  
- subroutine commspop(pop_ptr)
+ subroutine commspop(fluidsub)
  
 !***********************************************************************
 !     
@@ -1713,7 +1720,7 @@
 
   implicit none
 
-  type(REALPTR), dimension(0:links):: pop_ptr
+  real(kind=PRC), allocatable, dimension(:,:,:,:)  :: fluidsub
   
   if(mxrank==1)return
   
@@ -1721,7 +1728,7 @@
 
  end subroutine commspop
  
- subroutine commrpop(pop_ptr,lparticles,isfluid)
+ subroutine commrpop(fluidsub,lparticles,isfluid)
  
 !***********************************************************************
 !     
@@ -1736,7 +1743,7 @@
 
   implicit none
 
-  type(REALPTR), dimension(0:links):: pop_ptr
+  real(kind=PRC), allocatable, dimension(:,:,:,:)  :: fluidsub
   logical, intent(in) :: lparticles
   integer(kind=1), allocatable, dimension(:,:,:), intent(in) :: isfluid
   
@@ -1819,7 +1826,8 @@
 
  end subroutine deallocate_ownern
  
- subroutine collective_writeFile(it, mynamefile, myvar, nbuff)
+ subroutine collective_writeFile(it,mynamefile,myvar,nbuff, &
+  ix,fx,iy,fy,iz,fz)
   
 !***********************************************************************
 !     
@@ -1833,8 +1841,10 @@
 !***********************************************************************
   
   implicit none
-  REAL(KIND=PRC), dimension(:,:,:), allocatable :: myvar
-  integer, intent(in) :: it, nbuff
+  integer, intent(in) :: it,nbuff,ix,fx,iy,fy,iz,fz
+  real(kind=PRC), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff), &
+   intent(in)  :: myvar
   character(len=120),intent(in) :: mynamefile
   integer :: ierr
   
@@ -1843,7 +1853,8 @@
   open(unit=fh,file=trim(mynamefile),action='write', &
    status='replace',form='unformatted',access='stream',iostat=ierr)
   
-  call write_binary_1d_bynary(fh,globalDims,myvar)
+  call write_binary_1d_bynary(fh,globalDims,myvar,nbuff, &
+   ix,fx,iy,fy,iz,fz)
   
   close(unit=fh,iostat=ierr)
   
@@ -1851,7 +1862,8 @@
   
  end subroutine collective_writeFile
 
- subroutine collective_writeFile_int(it, mynamefile, myvar, nbuff)
+ subroutine collective_writeFile_int(it,mynamefile,myvar,nbuff, &
+  ix,fx,iy,fy,iz,fz)
  
 !***********************************************************************
 !     
@@ -1865,8 +1877,11 @@
 !***********************************************************************
  
   implicit none
-  integer(kind=1), allocatable, dimension(:,:,:) :: myvar
-  integer, intent(in) :: it, nbuff
+  
+  integer, intent(in) :: it,nbuff,ix,fx,iy,fy,iz,fz
+  integer(kind=1), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff), &
+   intent(in)  :: myvar
   character(len=120),intent(in) :: mynamefile
   integer :: ierr
 
@@ -1875,7 +1890,8 @@
   open(unit=fh,file=trim(mynamefile),action='write', &
    status='replace',form='unformatted',access='stream',iostat=ierr)
   
-  call write_binary_1d_bynary_int(fh,globalDims,myvar)
+  call write_binary_1d_bynary_int(fh,globalDims,myvar,nbuff, &
+   ix,fx,iy,fy,iz,fz)
   
   close(unit=fh,iostat=ierr)
   
@@ -1883,7 +1899,8 @@
   
  end subroutine collective_writeFile_int
  
- subroutine collective_readFile(it, mynamefile, myvar, nbuff)
+ subroutine collective_readFile(it,mynamefile,myvar,nbuff, &
+  ix,fx,iy,fy,iz,fz)
 
 !***********************************************************************
 !     
@@ -1897,8 +1914,11 @@
 !***********************************************************************
 
   implicit none
-  REAL(KIND=PRC), dimension(:,:,:), allocatable :: myvar
-  integer, intent(in) :: it, nbuff
+  
+  integer, intent(in) :: it,nbuff,ix,fx,iy,fy,iz,fz
+  real(kind=PRC), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff) :: &
+   myvar
   character(len=120),intent(in) :: mynamefile
   integer :: ierr
   
@@ -1907,7 +1927,8 @@
   open(unit=fh,file=trim(mynamefile),action='read', &
    status='old',form='unformatted',access='stream',iostat=ierr)
   
-  call read_binary_1d_bynary(fh,globalDims,myvar)
+  call read_binary_1d_bynary(fh,globalDims,myvar,nbuff, &
+   ix,fx,iy,fy,iz,fz)
   
   close(unit=fh,iostat=ierr)
   
@@ -1915,7 +1936,8 @@
  
  end subroutine collective_readFile
 
- subroutine collective_readFile_int(it, mynamefile, myvar, nbuff)
+ subroutine collective_readFile_int(it,mynamefile,myvar,nbuff, &
+  ix,fx,iy,fy,iz,fz)
     
 !***********************************************************************
 !     
@@ -1928,8 +1950,11 @@
 !     
 !***********************************************************************
   implicit none
-  integer(kind=1), allocatable, dimension(:,:,:) :: myvar
-  integer, intent(in) :: it, nbuff
+  
+  integer, intent(in) :: it,nbuff,ix,fx,iy,fy,iz,fz
+  integer(kind=1), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff) :: &
+   myvar
   character(len=120),intent(in) :: mynamefile
   integer :: ierr
   
@@ -1938,7 +1963,8 @@
   open(unit=fh,file=trim(mynamefile),action='read', &
    status='old',form='unformatted',access='stream',iostat=ierr)
   
-  call read_binary_1d_bynary_int(fh,globalDims,myvar)
+  call read_binary_1d_bynary_int(fh,globalDims,myvar,nbuff, &
+   ix,fx,iy,fy,iz,fz)
   
   close(unit=fh,iostat=ierr)
   
@@ -1946,9 +1972,9 @@
   
  end subroutine collective_readFile_int
  
- subroutine collective_readFile_pops(it, mynamefile, f00,f01, &
+ subroutine collective_readFile_pops(it,mynamefile,f00,f01, &
   f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18, &
-  nbuff)
+  nbuff,ix,fx,iy,fy,iz,fz)
 
 !***********************************************************************
 !     
@@ -1962,9 +1988,11 @@
 !***********************************************************************
   
   implicit none
-  REAL(kind=PRC), allocatable, dimension(:,:,:)  :: f00,f01, &
+  integer, intent(in) :: it,nbuff,ix,fx,iy,fy,iz,fz
+  real(kind=PRC), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff) :: &
+   f00,f01, &
    f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18
-  integer, intent(in) :: it, nbuff
   character(len=120),intent(in) :: mynamefile
   integer :: ierr
   
@@ -1974,25 +2002,44 @@
    status='old',form='unformatted',access='stream',iostat=ierr)
   
   
-  call read_binary_1d_bynary(fh,globalDims,f00)
-  call read_binary_1d_bynary(fh,globalDims,f01)
-  call read_binary_1d_bynary(fh,globalDims,f02)
-  call read_binary_1d_bynary(fh,globalDims,f03)
-  call read_binary_1d_bynary(fh,globalDims,f04)
-  call read_binary_1d_bynary(fh,globalDims,f05)
-  call read_binary_1d_bynary(fh,globalDims,f06)
-  call read_binary_1d_bynary(fh,globalDims,f07)
-  call read_binary_1d_bynary(fh,globalDims,f08)
-  call read_binary_1d_bynary(fh,globalDims,f09)
-  call read_binary_1d_bynary(fh,globalDims,f10)
-  call read_binary_1d_bynary(fh,globalDims,f11)
-  call read_binary_1d_bynary(fh,globalDims,f12)
-  call read_binary_1d_bynary(fh,globalDims,f13)
-  call read_binary_1d_bynary(fh,globalDims,f14)
-  call read_binary_1d_bynary(fh,globalDims,f15)
-  call read_binary_1d_bynary(fh,globalDims,f16)
-  call read_binary_1d_bynary(fh,globalDims,f17)
-  call read_binary_1d_bynary(fh,globalDims,f18)
+  call read_binary_1d_bynary(fh,globalDims,f00,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f01,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f02,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f03,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f04,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f05,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f06,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f07,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f08,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f09,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f10,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f11,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f12,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f13,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f14,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f15,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f16,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f17,nbuff, &
+   ix,fx,iy,fy,iz,fz)
+  call read_binary_1d_bynary(fh,globalDims,f18,nbuff, &
+   ix,fx,iy,fy,iz,fz)
   
 
   close(unit=fh,iostat=ierr)
@@ -2001,7 +2048,8 @@
   
  end subroutine collective_readFile_pops
  
- subroutine read_binary_1d_bynary(myio,mydim,myvar)
+ subroutine read_binary_1d_bynary(myio,mydim,myvar, &
+  nbuff,ix,fx,iy,fy,iz,fz)
  
 !***********************************************************************
 !     
@@ -2018,7 +2066,10 @@
   
   integer, intent(in) :: myio
   integer, intent(in), dimension(3) :: mydim
-  real(kind=PRC), allocatable, dimension(:,:,:)  :: myvar
+  integer, intent(in) :: nbuff,ix,fx,iy,fy,iz,fz
+  real(kind=PRC), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff) :: &
+   myvar
   
   integer :: i,j,k
   
@@ -2034,7 +2085,8 @@
  
  end subroutine read_binary_1d_bynary
  
- subroutine read_binary_1d_bynary_int(myio,mydim,myvar)
+ subroutine read_binary_1d_bynary_int(myio,mydim,myvar, &
+  nbuff,ix,fx,iy,fy,iz,fz)
  
 !***********************************************************************
 !     
@@ -2051,7 +2103,10 @@
   
   integer, intent(in) :: myio
   integer, intent(in), dimension(3) :: mydim
-  integer(kind=1), allocatable, dimension(:,:,:)  :: myvar
+  integer, intent(in) :: nbuff,ix,fx,iy,fy,iz,fz
+  integer(kind=1), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff) :: &
+   myvar
   
   integer :: i,j,k
   
@@ -2069,7 +2124,7 @@
  
  subroutine collective_writeFile_pops(it, mynamefile, f00,f01, &
   f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18, &
-  nbuff)
+  nbuff,ix,fx,iy,fy,iz,fz)
 
 !***********************************************************************
 !     
@@ -2083,9 +2138,11 @@
 !***********************************************************************
   
   implicit none
-  REAL(kind=PRC), allocatable, dimension(:,:,:)  :: f00,f01, &
+  integer, intent(in) :: it,nbuff,ix,fx,iy,fy,iz,fz
+  real(kind=PRC), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff) :: &
+   f00,f01, &
    f02,f03,f04,f05,f06,f07,f08,f09,f10,f11,f12,f13,f14,f15,f16,f17,f18
-  integer, intent(in) :: it, nbuff
   character(len=120),intent(in) :: mynamefile
   integer :: ierr
   
@@ -2095,25 +2152,25 @@
    status='replace',form='unformatted',access='stream',iostat=ierr)
   
   
-  call write_binary_1d_bynary(fh,globalDims,f00)
-  call write_binary_1d_bynary(fh,globalDims,f01)
-  call write_binary_1d_bynary(fh,globalDims,f02)
-  call write_binary_1d_bynary(fh,globalDims,f03)
-  call write_binary_1d_bynary(fh,globalDims,f04)
-  call write_binary_1d_bynary(fh,globalDims,f05)
-  call write_binary_1d_bynary(fh,globalDims,f06)
-  call write_binary_1d_bynary(fh,globalDims,f07)
-  call write_binary_1d_bynary(fh,globalDims,f08)
-  call write_binary_1d_bynary(fh,globalDims,f09)
-  call write_binary_1d_bynary(fh,globalDims,f10)
-  call write_binary_1d_bynary(fh,globalDims,f11)
-  call write_binary_1d_bynary(fh,globalDims,f12)
-  call write_binary_1d_bynary(fh,globalDims,f13)
-  call write_binary_1d_bynary(fh,globalDims,f14)
-  call write_binary_1d_bynary(fh,globalDims,f15)
-  call write_binary_1d_bynary(fh,globalDims,f16)
-  call write_binary_1d_bynary(fh,globalDims,f17)
-  call write_binary_1d_bynary(fh,globalDims,f18)
+  call write_binary_1d_bynary(fh,globalDims,f00,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f01,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f02,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f03,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f04,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f05,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f06,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f07,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f08,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f09,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f10,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f11,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f12,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f13,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f14,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f15,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f16,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f17,nbuff,ix,fx,iy,fy,iz,fz)
+  call write_binary_1d_bynary(fh,globalDims,f18,nbuff,ix,fx,iy,fy,iz,fz)
   
 
   close(unit=fh,iostat=ierr)
@@ -2122,7 +2179,8 @@
   
  end subroutine collective_writeFile_pops
  
- subroutine write_binary_1d_bynary(myio,mydim,myvar)
+ subroutine write_binary_1d_bynary(myio,mydim,myvar,nbuff, &
+  ix,fx,iy,fy,iz,fz)
  
 !***********************************************************************
 !     
@@ -2139,7 +2197,10 @@
   
   integer, intent(in) :: myio
   integer, intent(in), dimension(3) :: mydim
-  real(kind=PRC), allocatable, dimension(:,:,:)  :: myvar
+  integer, intent(in) :: nbuff,ix,fx,iy,fy,iz,fz
+  real(kind=PRC), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff), &
+   intent(in)  :: myvar
   
   integer :: i,j,k
   
@@ -2155,7 +2216,8 @@
  
  end subroutine write_binary_1d_bynary
  
- subroutine write_binary_1d_bynary_int(myio,mydim,myvar)
+ subroutine write_binary_1d_bynary_int(myio,mydim,myvar,nbuff, &
+  ix,fx,iy,fy,iz,fz)
  
 !***********************************************************************
 !     
@@ -2172,7 +2234,10 @@
   
   integer, intent(in) :: myio
   integer, intent(in), dimension(3) :: mydim
-  integer(kind=1), allocatable, dimension(:,:,:)  :: myvar
+  integer, intent(in) :: nbuff,ix,fx,iy,fy,iz,fz
+  integer(kind=1), &
+   dimension(ix-nbuff:fx+nbuff,iy-nbuff:fy+nbuff,iz-nbuff:fz+nbuff), &
+   intent(in)  :: myvar
   
   integer :: i,j,k
   

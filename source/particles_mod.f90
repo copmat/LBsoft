@@ -49,7 +49,7 @@
                    erase_fluids_in_particles,lunique_omega,omega, &
                    omega_to_viscosity,viscR,pimage,opp, &
                    compute_sc_particle_interact_phase1, compute_sc_particle_interact_phase2, &
-                   driver_bc_pops, driver_bc_densities, driver_bc_psi, &
+                   driver_bc_densities, driver_bc_psi, &
                    particle_bounce_back_phase2, fixPops,linksd3q27, &
                    exd3q27,eyd3q27,ezd3q27
  

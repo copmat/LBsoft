@@ -20,8 +20,8 @@
                         driver_bc_densities,compute_psi_sc,&
                         driver_collision_fluids,compute_omega, &
                         moments_fluids,compute_densities_wall, &
-                        lpair_SC,driver_apply_bounceback_pop, &
-                        driver_streaming_fluids,aoptpR,test_fake_pops,&
+                        lpair_SC, &
+                        driver_streaming_fluids,test_fake_pops,&
                         probe_pops_in_node,ex,ey,ez,isfluid, &
                         driver_bc_velocities,lbc_halfway, &
                         update_isfluid, driver_bc_isfluid, &
@@ -30,7 +30,7 @@
                         print_all_pops_center,driver_bc_pop_selfcomm, &
                         print_all_pops_area_shpere,ex,ey,ez,pimage, &
                         ixpbc,iypbc,izpbc,nx,ny,nz,opp, &
-                        driver_bc_pops, print_all_pops2, &
+                        driver_bc_all_pops, print_all_pops2, &
                         rescale_fluid_mass,lmass_rescale,lColourG
 
  use particles_mod,    only : parlst,lparticles, &
@@ -330,9 +330,9 @@
   ! if (debug1) call print_all_pops2(131, "aft_collision_fluids", nstep)
   
   if(lparticles)then
-    if(ldiagnostic)call start_timing2("MD","driver_bc_pops")
-    call driver_bc_pops
-    if(ldiagnostic)call end_timing2("MD","driver_bc_pops")
+    if(ldiagnostic)call start_timing2("MD","driver_bc_all_pops")
+    call driver_bc_all_pops
+    if(ldiagnostic)call end_timing2("MD","driver_bc_all_pops")
 
     if(ldiagnostic)call start_timing2("IO","write_xyz")
     call write_xyz(nstep)
@@ -368,9 +368,9 @@
     call restore_particles(nstep)
     if(ldiagnostic)call end_timing2("MD","restore_partic")
     
-    if(ldiagnostic)call start_timing2("MD","driver_bc_pops")
-    call driver_bc_pops
-    if(ldiagnostic)call end_timing2("MD","driver_bc_pops")
+    if(ldiagnostic)call start_timing2("MD","driver_bc_all_pops")
+    call driver_bc_all_pops
+    if(ldiagnostic)call end_timing2("MD","driver_bc_all_pops")
   endif
   
   if(lbc_halfway)then
@@ -384,12 +384,6 @@
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
   call driver_streaming_fluids(lparticles)
   if(ldiagnostic)call end_timing2("LB","streaming_fluids")
-  
-  if(.not.lbc_halfway)then
-    if(ldiagnostic)call start_timing2("LB","apply_bback_pop")
-    call driver_apply_bounceback_pop
-    if(ldiagnostic)call end_timing2("LB","apply_bback_pop")
-  endif
   
   if(debug1)call print_all_pops2(131, "aft_apply_bounceback_pop", nstep)
   
