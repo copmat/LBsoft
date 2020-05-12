@@ -30,7 +30,6 @@
                    ownern,gminx,gmaxx,gminy,gmaxy,gminz,gmaxz
 
  use error_mod
- use aop_mod
  use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
                    allocate_array_ibuffservice,nbuffservice,buffservice, &
                    allocate_array_buffservice,lbuffservice, &

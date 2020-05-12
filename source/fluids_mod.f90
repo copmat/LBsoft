@@ -25,7 +25,6 @@
                    collective_readFile_int,collective_writeFile, &
                    collective_writeFile_int
  use error_mod
- use aop_mod
  use utility_mod, only : Pi,modulvec,cross,dot,gauss,ibuffservice, &
                    allocate_array_ibuffservice,buffservice,conv_rad, &
                    allocate_array_buffservice,lbuffservice, &
@@ -80,13 +79,6 @@
   
  integer, save, protected, public, allocatable, dimension(:) :: &
   typeobjectliq
- 
- integer, save :: nvar_managebc=0
- type(REALPTR_S), allocatable, dimension(:,:) :: rhoR_managebc,psiR_managebc
- type(REALPTR_S), allocatable, dimension(:,:) :: rhoB_managebc,psiB_managebc
- type(REALPTR_S), allocatable, dimension(:,:) :: u_managebc
- type(REALPTR_S), allocatable, dimension(:,:) :: v_managebc
- type(REALPTR_S), allocatable, dimension(:,:) :: w_managebc
  
  !integer denoting the LOCAL fluid nodes at actual time 
  !(it changes if particles are presents)
@@ -827,9 +819,6 @@
   
   implicit none
   
- 
-  call initialiaze_manage_bc_hvar_selfcomm
-  
   call initialiaze_manage_bc_pop_selfcomm
 
   
@@ -1259,7 +1248,7 @@
   call comm_init_isfluid(bcfluid)
   
   !initialize the bc if necessary within the same process
-  call initialiaze_manage_bc_isfluid_selfcomm
+  call initialiaze_manage_bc_selfcomm
   
   !initialize the bc if necessary within the same process for a single halo
   call initialiaze_manage_bc_singlehalo_selfcomm
@@ -1529,7 +1518,6 @@
 
  end subroutine initialize_isfluid_bcfluid
  
-
  subroutine initialize_fluids
  
 !***********************************************************************
@@ -1574,9 +1562,9 @@
 
   call commexch_dens(rhoR,rhoB)
   
-  call manage_bc_hvar_selfcomm(rhoR_managebc)
+  call manage_bc_hvar_selfcomm(rhoR)
   if(.not. lsingle_fluid)then
-    call manage_bc_hvar_selfcomm(rhoB_managebc)
+    call manage_bc_hvar_selfcomm(rhoB)
   endif
   
   call commwait_dens(rhoR,rhoB)
@@ -6748,9 +6736,9 @@
   
     call commexch_dens(rhoR,rhoB)
   
-    call manage_bc_hvar_selfcomm(rhoR_managebc)
+    call manage_bc_hvar_selfcomm(rhoR)
     if(.not. lsingle_fluid)then
-      call manage_bc_hvar_selfcomm(rhoB_managebc)
+      call manage_bc_hvar_selfcomm(rhoB)
     endif
   
     call commwait_dens(rhoR,rhoB)
@@ -6777,9 +6765,9 @@
     call commexch_dens(psiR,psiB)
   
 
-    call manage_bc_hvar_selfcomm(psiR_managebc)
+    call manage_bc_hvar_selfcomm(psiR)
     if(.not. lsingle_fluid)then
-      call manage_bc_hvar_selfcomm(psiB_managebc)
+      call manage_bc_hvar_selfcomm(psiB)
     endif
 
   
@@ -6789,16 +6777,16 @@
  end subroutine driver_bc_psi
 
  
- subroutine initialiaze_manage_bc_isfluid_selfcomm()
+ subroutine initialiaze_manage_bc_selfcomm()
  
 !***********************************************************************
 !     
-!     LBsoft subroutine to manage the buffer of isfluid nodes
+!     LBsoft subroutine to initialize the list of nodes
 !     within the same process for applying the boundary conditions
 !     
 !     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
-!     last modification November 2018
+!     last modification May 2020
 !     
 !***********************************************************************
  
@@ -6917,7 +6905,7 @@
    
   return
    
- end subroutine initialiaze_manage_bc_isfluid_selfcomm
+ end subroutine initialiaze_manage_bc_selfcomm
  
  subroutine manage_bc_isfluid_selfcomm(istemp)
  
@@ -6928,7 +6916,7 @@
 !     
 !     licensed under the 3-Clause BSD License (BSD-3-Clause)
 !     author: M. Lauricella
-!     last modification July 2018
+!     last modification May 2020
 !     
 !***********************************************************************
  
@@ -6939,12 +6927,10 @@
   integer :: i,j,k,l,itemp,jtemp,ktemp,itemp2,jtemp2,ktemp2
   integer(kind=IPRC) :: i4orig,i4
   
-  if(nguards>=1)then
-    forall(i=1:nguards)
-      istemp(isguards(4,i),isguards(5,i),isguards(6,i))= &
-       istemp(isguards(1,i),isguards(2,i),isguards(3,i))
-    end forall
-  endif
+  do i=1,nguards
+    istemp(isguards(4,i),isguards(5,i),isguards(6,i))= &
+     istemp(isguards(1,i),isguards(2,i),isguards(3,i))
+  enddo
    
   return
    
@@ -7103,179 +7089,14 @@
   integer :: i,j,k,l,itemp,jtemp,ktemp,itemp2,jtemp2,ktemp2
   integer(kind=IPRC) :: i4orig,i4
   
-  if(nsinglehalo>=1)then
-    do i=1,nsinglehalo
-      dtemp(isinglehalo(4,i),isinglehalo(5,i),isinglehalo(6,i))= &
-       dtemp(isinglehalo(1,i),isinglehalo(2,i),isinglehalo(3,i))
-    enddo
-  endif
+  do i=1,nsinglehalo
+    dtemp(isinglehalo(4,i),isinglehalo(5,i),isinglehalo(6,i))= &
+     dtemp(isinglehalo(1,i),isinglehalo(2,i),isinglehalo(3,i))
+  enddo
    
   return
    
  end subroutine manage_bc_singlehalo_selfcomm
- 
- subroutine initialiaze_manage_bc_hvar_selfcomm
- 
-!***********************************************************************
-!     
-!     LBsoft subroutine to create a list of nodes which should be
-!     managed within the same process for applying the boundary 
-!     conditions
-!     
-!     licensed under the 3-Clause BSD License (BSD-3-Clause)
-!     author: M. Lauricella
-!     last modification July 2018
-!     
-!***********************************************************************
- 
-  implicit none
-  
-  integer :: i,j,k,l,itemp,jtemp,ktemp,itemp2,jtemp2,ktemp2
-  integer(kind=IPRC) :: i4orig,i4
-  
-  logical, parameter :: lverbose=.false.
-  
-  nvar_managebc=0
-  if(ixpbc.eq.0 .and. iypbc.eq.0 .and. izpbc.eq.0)return
-  
-  do k=minz-nbuff,maxz+nbuff
-    do j=miny-nbuff,maxy+nbuff
-      do i=minx-nbuff,maxx+nbuff
-        if(i<minx.or.j<miny.or.k<minz.or.i>maxx.or.j>maxy.or.k>maxz)then
-          
-          itemp=i
-          jtemp=j
-          ktemp=k
-          itemp2=i
-          jtemp2=j
-          ktemp2=k
-          !apply periodic conditions if necessary
-          if(ixpbc.eq.1) then
-            if(itemp<1) then
-              itemp=itemp+nx
-            endif
-            if(itemp>nx) then
-              itemp=itemp-nx
-            endif
-          endif
-          if(iypbc.eq.1) then
-            if(jtemp<1) then
-              jtemp=jtemp+ny
-            endif
-           if(jtemp>ny) then
-              jtemp=jtemp-ny
-            endif
-          endif
-          if(izpbc.eq.1) then
-            if(ktemp<1) then
-              ktemp=ktemp+nz
-            endif
-            if(ktemp>nz) then
-              ktemp=ktemp-nz
-            endif
-          endif
-          i4=i4back(itemp,jtemp,ktemp) 
-          i4orig=i4back(itemp2,jtemp2,ktemp2) 
-          if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
-            nvar_managebc=nvar_managebc+1
-          endif
-        endif
-      enddo
-    enddo
-  enddo
-  if(lverbose)write(6,*)'id=',idrank,'nvar_managebc=',nvar_managebc
-  
-  allocate(rhoR_managebc(2,nvar_managebc))
-  allocate(psiR_managebc(2,nvar_managebc))
-  if(.not. lsingle_fluid)allocate(rhoB_managebc(2,nvar_managebc))
-  if(.not. lsingle_fluid)allocate(psiB_managebc(2,nvar_managebc))
-  
-  if(lexch_u)then
-    allocate(u_managebc(2,nvar_managebc))
-  endif
-  if(lexch_v)then
-    allocate(v_managebc(2,nvar_managebc))
-  endif
-  if(lexch_w)then
-    allocate(w_managebc(2,nvar_managebc))
-  endif
-  
-  nvar_managebc=0
-  do k=minz-nbuff,maxz+nbuff
-    do j=miny-nbuff,maxy+nbuff
-      do i=minx-nbuff,maxx+nbuff
-        if(i<minx.or.j<miny.or.k<minz.or.i>maxx.or.j>maxy.or.k>maxz)then
-          if(ixpbc.eq.0 .and. iypbc.eq.0 .and. izpbc.eq.0)cycle
-          itemp=i
-          jtemp=j
-          ktemp=k
-          itemp2=i
-          jtemp2=j
-          ktemp2=k
-          !apply periodic conditions if necessary
-          if(ixpbc.eq.1) then
-            if(itemp<1) then
-              itemp=itemp+nx
-            endif
-            if(itemp>nx) then
-              itemp=itemp-nx
-            endif
-          endif
-          if(iypbc.eq.1) then
-            if(jtemp<1) then
-              jtemp=jtemp+ny
-            endif
-           if(jtemp>ny) then
-              jtemp=jtemp-ny
-            endif
-          endif
-          if(izpbc.eq.1) then
-            if(ktemp<1) then
-              ktemp=ktemp+nz
-            endif
-            if(ktemp>nz) then
-              ktemp=ktemp-nz
-            endif
-          endif
-          i4=i4back(itemp,jtemp,ktemp) 
-          i4orig=i4back(itemp2,jtemp2,ktemp2) 
-          if(ownern(i4).EQ.idrank.AND.ownern(i4orig).EQ.idrank) THEN
-            nvar_managebc=nvar_managebc+1
-            rhoR_managebc(1,nvar_managebc)%p=>rhoR(itemp2,jtemp2,ktemp2)   !who must recevice is one
-            rhoR_managebc(2,nvar_managebc)%p=>rhoR(itemp,jtemp,ktemp)
-            if(lShanChen)then
-              psiR_managebc(1,nvar_managebc)%p=>psiR(itemp2,jtemp2,ktemp2)   !who must recevice is one
-              psiR_managebc(2,nvar_managebc)%p=>psiR(itemp,jtemp,ktemp)
-            endif
-            if(.not. lsingle_fluid)then
-              rhoB_managebc(1,nvar_managebc)%p=>rhoB(itemp2,jtemp2,ktemp2) !who must recevice is one
-              rhoB_managebc(2,nvar_managebc)%p=>rhoB(itemp,jtemp,ktemp)
-              if(lShanChen)then
-                psiB_managebc(1,nvar_managebc)%p=>psiB(itemp2,jtemp2,ktemp2) !who must recevice is one
-                psiB_managebc(2,nvar_managebc)%p=>psiB(itemp,jtemp,ktemp)
-              endif
-            endif
-            if(lexch_u)then
-              u_managebc(1,nvar_managebc)%p=>u(itemp2,jtemp2,ktemp2)   !who must recevice is one
-              u_managebc(2,nvar_managebc)%p=>u(itemp,jtemp,ktemp)
-            endif
-            if(lexch_v)then
-              v_managebc(1,nvar_managebc)%p=>v(itemp2,jtemp2,ktemp2)   !who must recevice is one
-              v_managebc(2,nvar_managebc)%p=>v(itemp,jtemp,ktemp)
-            endif
-            if(lexch_w)then
-              w_managebc(1,nvar_managebc)%p=>w(itemp2,jtemp2,ktemp2)   !who must recevice is one
-              w_managebc(2,nvar_managebc)%p=>w(itemp,jtemp,ktemp)
-            endif
-          endif
-        endif
-      enddo
-    enddo
-  enddo
-   
-  return
-   
- end subroutine initialiaze_manage_bc_hvar_selfcomm
  
  subroutine manage_bc_hvar_selfcomm(dtemp)
  
@@ -7294,13 +7115,14 @@
  
   implicit none
   
-  type(REALPTR_S), allocatable, dimension(:,:) :: dtemp
+  real(kind=PRC), allocatable, dimension(:,:,:) :: dtemp
   
   integer :: i
   
-  forall(i=1:nvar_managebc)
-    dtemp(1,i)%p=real(dtemp(2,i)%p,kind=PRC)
-  end forall
+  do i=1,nguards
+    dtemp(isguards(4,i),isguards(5,i),isguards(6,i))= &
+     dtemp(isguards(1,i),isguards(2,i),isguards(3,i))
+  enddo
    
   return
    
@@ -7327,7 +7149,7 @@
 
     call commexch_vel_component(u)
 
-    call manage_bc_hvar_selfcomm(u_managebc)
+    call manage_bc_hvar_selfcomm(u)
 
     call commwait_vel_component(u)
 
@@ -7339,7 +7161,7 @@
 
     call commexch_vel_component(v)
 
-    call manage_bc_hvar_selfcomm(v_managebc)
+    call manage_bc_hvar_selfcomm(v)
 
     call commwait_vel_component(v)
   
@@ -7350,7 +7172,7 @@
 
     call commexch_vel_component(w)
 
-    call manage_bc_hvar_selfcomm(w_managebc)
+    call manage_bc_hvar_selfcomm(w)
 
     call commwait_vel_component(w)
 
