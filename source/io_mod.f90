@@ -22,12 +22,12 @@
   set_value_ldiagnostic,idiagnostic,ldiagnostic
  use utility_mod,           only : write_fmtnumb,pi,get_prntime, &
   linit_seed,ltest_mode,conv_rad
-
+ use fluids_bc_mod,only: ibctype,set_boundary_conditions_type
  use fluids_mod,            only : nx,ny,nz,set_initial_dist_type, &
   set_mean_value_dens_fluids,set_stdev_value_dens_fluids,idistselect, &
   meanR,meanB,stdevR,stdevB,set_initial_dim_box,initial_u,initial_v, &
-  initial_w,set_mean_value_vel_fluids,set_boundary_conditions_type, &
-  ibctype,set_value_ext_force_fluids,ext_fu,ext_fv,ext_fw,lpair_SC, &
+  initial_w,set_mean_value_vel_fluids, &
+  set_value_ext_force_fluids,ext_fu,ext_fv,ext_fw,lpair_SC, &
   pair_SC,set_fluid_force_sc,set_value_viscosity,set_value_tau, &
   viscR,viscB,tauR,tauB,lunique_omega,lforce_add,set_lsingle_fluid, &
   lsingle_fluid,latt_name,set_value_bc_east,set_value_bc_west, &

@@ -32,6 +32,8 @@
                    nbuffservice3d,buffservice3d,int_cube_sphere,fcut, &
                    rand_noseeded,linit_seed,gauss_noseeded,write_fmtnumb, &
                    openLogFile
+ use fluids_bc_mod,only: ibctype,set_boundary_conditions_type, &
+                   ixpbc,iypbc,izpbc
 
  
  implicit none
@@ -51,15 +53,12 @@
  !max
  integer, save, public :: minx, maxx, miny, maxy, minz, maxz
  integer, save, public :: wminx, wmaxx, wminy, wmaxy, wminz, wmaxz
- integer, save, public :: ixpbc, iypbc, izpbc
  integer, save, public :: ix,iy,iz,mynx,myny,mynz
  
  !max
  integer, save, protected, public :: LBintegrator=0
  
  integer, save, protected, public :: idistselect=0
- 
- integer, save, protected, public :: ibctype=0
  
  integer, save, protected, public :: bc_type_east=0
  integer, save, protected, public :: bc_type_west=0
@@ -433,7 +432,6 @@
  public :: set_mean_value_vel_fluids
  public :: allocate_fluids
  public :: initialize_fluids
- public :: set_boundary_conditions_type
  public :: initialize_fluid_force
  public :: set_value_ext_force_fluids
  public :: compute_fluid_force_sc
@@ -765,44 +763,6 @@
 
  end subroutine allocate_fluids
  
- subroutine set_boundary_conditions_type(itemp1,itemp2,itemp3)
- 
-  implicit none
-  
-  integer, intent(in) :: itemp1,itemp2,itemp3
-  integer ::i,j,k
-  integer, dimension(0:1,0:1,0:1), parameter :: iselbct = &
-   reshape((/0,1,2,3,4,5,6,7/),(/2,2,2/))
- ! 0=F    1=T  periodic
- !     itemp1      itemp2      itemp3     ibctype
- !          0           0           0           0
- !          1           0           0           1
- !          0           1           0           2
- !          1           1           0           3
- !          0           0           1           4
- !          1           0           1           5
- !          0           1           1           6
- !          1           1           1           7
-  
-  
-  if( itemp1 .ne. 0 .and. itemp1 .ne. 1)then
-    call error(9)
-  endif
-  
-  if( itemp2 .ne. 0 .and. itemp2 .ne. 1)then
-    call error(9)
-  endif
-  
-  if( itemp3 .ne. 0 .and. itemp3 .ne. 1)then
-    call error(9)
-  endif
-  
-  ibctype=iselbct(itemp1,itemp2,itemp3)
-  
-  return
-  
- end subroutine set_boundary_conditions_type
- 
  subroutine driver_initialiaze_manage_bc_selfcomm()
  
 !***********************************************************************
@@ -820,7 +780,6 @@
   implicit none
   
   call initialiaze_manage_bc_pop_selfcomm
-
   
   return
   
@@ -857,7 +816,7 @@
 ! set isfluid as you like (in future to be given as input file)
 ! all fluid
   
-  forall(i=minx:maxx,j=miny:maxy,k=minz:maxz)isfluid(i,j,k)=1
+  isfluid(minx:maxx,miny:maxy,minz:maxz)=1
   
 ! read isfluid.dat if necessary  
   call read_isfluid_dat(0)

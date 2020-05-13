@@ -16,6 +16,7 @@
  use error_mod
  use profiling_mod,   only : start_timing2,end_timing2, &
                        ldiagnostic
+ use fluids_bc_mod,   only: ixpbc,iypbc,izpbc
  use fluids_mod,      only : initialize_fluid_force,compute_fluid_force_sc, &
                         driver_bc_densities,compute_psi_sc,&
                         driver_collision_fluids,compute_omega, &
@@ -29,7 +30,7 @@
                         probe_red_moments_in_node,print_all_pops, &
                         print_all_pops_center,driver_bc_pop_selfcomm, &
                         print_all_pops_area_shpere,ex,ey,ez,pimage, &
-                        ixpbc,iypbc,izpbc,nx,ny,nz,opp, &
+                        nx,ny,nz,opp, &
                         driver_bc_all_pops, print_all_pops2, &
                         rescale_fluid_mass,lmass_rescale,lColourG
 

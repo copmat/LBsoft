@@ -150,21 +150,21 @@ intel-mpidebugger:
 	
 seq:get_mem.o serial_version_mod.o \
 	profiling_mod.o parse_mod.o error_mod.o utility_mod.o \
-	fluids_mod.o particles_mod.o write_output_mod.o \
+	fluids_bc_mod.o fluids_mod.o particles_mod.o write_output_mod.o \
 	integrator_mod.o statistic_mod.o io_mod.o main.o
 	$(FC) $(LDFLAGS) $(EX) get_mem.o \
 	serial_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
-	utility_mod.o fluids_mod.o particles_mod.o \
+	utility_mod.o fluids_bc_mod.o fluids_mod.o particles_mod.o \
 	write_output_mod.o integrator_mod.o statistic_mod.o io_mod.o main.o
 	mv $(EX) $(EXE)
 	
 mpi:get_mem.o parallel_version_mod.o \
 	profiling_mod.o parse_mod.o error_mod.o utility_mod.o \
-	fluids_mod.o particles_mod.o write_output_mod.o \
+	fluids_bc_mod.o fluids_mod.o particles_mod.o write_output_mod.o \
 	integrator_mod.o statistic_mod.o io_mod.o main.o
 	$(FC) $(LDFLAGS) $(EX) get_mem.o \
 	parallel_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
-	utility_mod.o fluids_mod.o particles_mod.o \
+	utility_mod.o fluids_bc_mod.o fluids_mod.o particles_mod.o \
 	write_output_mod.o integrator_mod.o statistic_mod.o io_mod.o main.o
 	mv $(EXP) $(EXEP)
 	
@@ -188,6 +188,9 @@ error_mod.o:error_mod.f90
 	
 utility_mod.o:utility_mod.f90
 	$(FC) $(FFLAGS) utility_mod.f90
+	
+fluids_bc_mod.o:fluids_bc_mod.f90
+	$(FC) $(FFLAGS) fluids_bc_mod.f90
 	
 fluids_mod.o:fluids_mod.f90
 	$(FC) $(FFLAGS) fluids_mod.f90

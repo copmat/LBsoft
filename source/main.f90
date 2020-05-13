@@ -52,8 +52,9 @@
                         ldiagnostic,start_timing2,end_timing2, &
                         startSimulationTime
   use utility_mod,     only : init_random_seed,allocate_array_buffservice3d
+  use fluids_bc_mod,only: ibctype,ixpbc,iypbc,izpbc
   use fluids_mod,      only : allocate_fluids,initialize_isfluid_bcfluid, &
-                        nx,ny,nz,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
+                        nx,ny,nz,minx,maxx, &
                         miny,maxy,minz,maxz,nbuff,lsingle_fluid, &
                         isfluid,initialize_fluids,driver_bc_isfluid, &
                         driver_initialiaze_manage_bc_selfcomm, restoreHvar, &

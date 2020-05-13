@@ -37,11 +37,11 @@
                    nbuffservice3d,buffservice3d,allocate_array_bdf, &
                    xdf,ydf,zdf,rand_noseeded,linit_seed,gauss_noseeded,&
                    write_fmtnumb,dcell,invert, openLogFile
- 
+ use fluids_bc_mod,only: ixpbc,iypbc,izpbc
  use fluids_mod,  only : nx,ny,nz,nbuff,minx,maxx,miny,maxy,minz,maxz, &
                    set_lbc_halfway,lbc_halfway,cssq,links,ex,ey,ez, &
                    init_particle_2_isfluid,push_comm_isfluid, &
-                   ixpbc,iypbc,izpbc,isfluid,particle_bounce_back, &
+                   isfluid,particle_bounce_back, &
                    initialize_new_isfluid,update_isfluid, &
                    driver_bc_isfluid,driver_bc_new_isfluid,mapping_new_isfluid,&
                    particle_delete_fluids,particle_create_fluids, &
