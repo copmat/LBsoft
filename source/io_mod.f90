@@ -12,6 +12,7 @@
 !     
 !***********************************************************************
  
+ use fluids_lattices_mod
  use version_mod,           only : idrank,set_domdec,set_domain, &
   domdec,nprocx,nprocy,nprocz,bcast_world_l,bcast_world_larr, &
   bcast_world_i,bcast_world_iarr,bcast_world_f,bcast_world_farr, &
@@ -30,7 +31,7 @@
   set_value_ext_force_fluids,ext_fu,ext_fv,ext_fw,lpair_SC, &
   pair_SC,set_fluid_force_sc,set_value_viscosity,set_value_tau, &
   viscR,viscB,tauR,tauB,lunique_omega,lforce_add,set_lsingle_fluid, &
-  lsingle_fluid,latt_name,set_value_bc_east,set_value_bc_west, &
+  lsingle_fluid,set_value_bc_east,set_value_bc_west, &
   set_value_bc_front,set_value_bc_rear,set_value_bc_north, &
   set_value_bc_south,bc_rhoR_east,bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east,&
   bc_type_east,bc_rhoR_west,bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west,&

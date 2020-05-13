@@ -18,6 +18,7 @@
 !     
 !***********************************************************************
  
+ use fluids_lattices_mod
  use version_mod, only : idrank,mxrank,or_world_larr,finalize_world, &
                    get_sync_world,isend_world_farr,bcast_world_iarr, &
                    waitall_world,irecv_world_farr,isend_world_iarr, &
@@ -38,20 +39,19 @@
                    xdf,ydf,zdf,rand_noseeded,linit_seed,gauss_noseeded,&
                    write_fmtnumb,dcell,invert, openLogFile
  use fluids_bc_mod,only: ixpbc,iypbc,izpbc
- use fluids_mod,  only : nx,ny,nz,nbuff,minx,maxx,miny,maxy,minz,maxz, &
-                   set_lbc_halfway,lbc_halfway,cssq,links,ex,ey,ez, &
+ use fluids_mod,  only : nx,ny,nz,minx,maxx,miny,maxy,minz,maxz, &
+                   set_lbc_halfway,lbc_halfway, &
                    init_particle_2_isfluid,push_comm_isfluid, &
                    isfluid,particle_bounce_back, &
                    initialize_new_isfluid,update_isfluid, &
                    driver_bc_isfluid,driver_bc_new_isfluid,mapping_new_isfluid,&
                    particle_delete_fluids,particle_create_fluids, &
                    erase_fluids_in_particles,lunique_omega,omega, &
-                   omega_to_viscosity,viscR,pimage,opp, &
-                   compute_sc_particle_interact_phase1, compute_sc_particle_interact_phase2, &
+                   omega_to_viscosity,viscR,pimage, &
+                   compute_sc_particle_interact_phase1, &
+                   compute_sc_particle_interact_phase2, &
                    driver_bc_densities, driver_bc_psi, &
-                   particle_bounce_back_phase2, fixPops,linksd3q27, &
-                   exd3q27,eyd3q27,ezd3q27
- 
+                   particle_bounce_back_phase2, fixPops
  implicit none
  
  private

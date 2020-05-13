@@ -148,21 +148,21 @@ intel-mpidebugger:
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi
 	
-seq:get_mem.o serial_version_mod.o \
+seq:get_mem.o fluids_lattices_mod.o serial_version_mod.o \
 	profiling_mod.o parse_mod.o error_mod.o utility_mod.o \
 	fluids_bc_mod.o fluids_mod.o particles_mod.o write_output_mod.o \
 	integrator_mod.o statistic_mod.o io_mod.o main.o
-	$(FC) $(LDFLAGS) $(EX) get_mem.o \
+	$(FC) $(LDFLAGS) $(EX) get_mem.o fluids_lattices_mod.o \
 	serial_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
 	utility_mod.o fluids_bc_mod.o fluids_mod.o particles_mod.o \
 	write_output_mod.o integrator_mod.o statistic_mod.o io_mod.o main.o
 	mv $(EX) $(EXE)
 	
-mpi:get_mem.o parallel_version_mod.o \
+mpi:get_mem.o fluids_lattices_mod.o parallel_version_mod.o \
 	profiling_mod.o parse_mod.o error_mod.o utility_mod.o \
 	fluids_bc_mod.o fluids_mod.o particles_mod.o write_output_mod.o \
 	integrator_mod.o statistic_mod.o io_mod.o main.o
-	$(FC) $(LDFLAGS) $(EX) get_mem.o \
+	$(FC) $(LDFLAGS) $(EX) get_mem.o fluids_lattices_mod.o \
 	parallel_version_mod.o profiling_mod.o parse_mod.o error_mod.o \
 	utility_mod.o fluids_bc_mod.o fluids_mod.o particles_mod.o \
 	write_output_mod.o integrator_mod.o statistic_mod.o io_mod.o main.o
@@ -170,6 +170,9 @@ mpi:get_mem.o parallel_version_mod.o \
 	
 get_mem.o:get_mem.c
 	$(CC) $(CFLAGS) get_mem.c
+	
+fluids_lattices_mod.o:fluids_lattices_mod.f90
+	$(FC) $(FFLAGS) fluids_lattices_mod.f90
 	
 serial_version_mod.o:serial_version_mod.f90
 	$(FC) $(FFLAGS) serial_version_mod.f90

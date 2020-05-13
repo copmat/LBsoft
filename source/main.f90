@@ -36,10 +36,11 @@
 !                                                                        
 !
 !
-! (November 2019)
+! (May 2020)
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
+  use fluids_lattices_mod
   use version_mod,     only : init_world,get_rank_world,get_size_world,&
                         time_world,time_world,finalize_world,idrank, &
                         setupcom,create_findneigh_list_hvar_isfluid, &
@@ -55,7 +56,7 @@
   use fluids_bc_mod,only: ibctype,ixpbc,iypbc,izpbc
   use fluids_mod,      only : allocate_fluids,initialize_isfluid_bcfluid, &
                         nx,ny,nz,minx,maxx, &
-                        miny,maxy,minz,maxz,nbuff,lsingle_fluid, &
+                        miny,maxy,minz,maxz,lsingle_fluid, &
                         isfluid,initialize_fluids,driver_bc_isfluid, &
                         driver_initialiaze_manage_bc_selfcomm, restoreHvar, &
                         restore_oneFile

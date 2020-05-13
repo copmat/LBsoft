@@ -13,26 +13,14 @@
 !     
 !***********************************************************************
  
+ use fluids_lattices_mod
+ 
  implicit none
  
  private
  
  integer, public, save :: idrank=0
  integer, public, save :: mxrank=1
- 
-#if LATTICE==319
- integer, parameter :: links=18
-  !lattice vectors
- integer, dimension(0:links), parameter :: &
-  ex = (/ 0, 1,-1, 0, 0, 0, 0, 1,-1,-1, 1, 1,-1,-1, 1, 0, 0, 0, 0/)
-   !      0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,17,18
- integer, dimension(0:links), parameter :: &
-  ey = (/ 0, 0, 0, 1,-1, 0, 0, 1,-1, 1,-1, 0, 0, 0, 0, 1,-1,-1, 1/)
- integer, dimension(0:links), parameter :: &
-  ez = (/ 0, 0, 0, 0, 0, 1,-1, 0, 0, 0, 0, 1,-1, 1,-1, 1,-1, 1,-1/)
- integer, dimension(0:links), parameter, public :: &
-  opp =(/ 0, 2, 1, 4, 3, 6, 5, 8, 7,10, 9,12,11,14,13,16,15,18,17/)
-#endif
  
  integer, protected, public :: nprocz, nprocy, nprocx
  integer, save :: nxy2,nx2,nbuff_comm,nx_comm,ny_comm,nz_comm

@@ -14,6 +14,7 @@
 !     
 !***********************************************************************
  
+ use fluids_lattices_mod
  use version_mod,    only : idrank,mxrank,or_world_larr,finalize_world, &
                    get_sync_world,sum_world_farr,commspop,commrpop, &
                    i4find,i4back,ownern,deallocate_ownern,commexch_dens, &

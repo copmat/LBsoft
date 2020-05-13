@@ -11,7 +11,8 @@
 !     last modification july 2018
 !     
 !***********************************************************************
-
+ 
+ use fluids_lattices_mod
  use version_mod,     only : idrank,finalize_world,i4back,ownern
  use error_mod
  use profiling_mod,   only : start_timing2,end_timing2, &
@@ -23,14 +24,14 @@
                         moments_fluids,compute_densities_wall, &
                         lpair_SC, &
                         driver_streaming_fluids,test_fake_pops,&
-                        probe_pops_in_node,ex,ey,ez,isfluid, &
+                        probe_pops_in_node,isfluid, &
                         driver_bc_velocities,lbc_halfway, &
                         update_isfluid, driver_bc_isfluid, &
                         driver_apply_bounceback_halfway_pop, &
                         probe_red_moments_in_node,print_all_pops, &
                         print_all_pops_center,driver_bc_pop_selfcomm, &
-                        print_all_pops_area_shpere,ex,ey,ez,pimage, &
-                        nx,ny,nz,opp, &
+                        print_all_pops_area_shpere,pimage, &
+                        nx,ny,nz, &
                         driver_bc_all_pops, print_all_pops2, &
                         rescale_fluid_mass,lmass_rescale,lColourG
 
