@@ -38,16 +38,16 @@
                    nbuffservice3d,buffservice3d,allocate_array_bdf, &
                    xdf,ydf,zdf,rand_noseeded,linit_seed,gauss_noseeded,&
                    write_fmtnumb,dcell,invert, openLogFile
- use fluids_bc_mod,only: ixpbc,iypbc,izpbc
+ use fluids_bc_mod,only: ixpbc,iypbc,izpbc,isfluid,driver_bc_isfluid, &
+                   driver_bc_new_isfluid,initialize_new_isfluid, &
+                   update_isfluid,mapping_new_isfluid,pimage
  use fluids_mod,  only : nx,ny,nz,minx,maxx,miny,maxy,minz,maxz, &
                    set_lbc_halfway,lbc_halfway, &
                    init_particle_2_isfluid,push_comm_isfluid, &
-                   isfluid,particle_bounce_back, &
-                   initialize_new_isfluid,update_isfluid, &
-                   driver_bc_isfluid,driver_bc_new_isfluid,mapping_new_isfluid,&
+                   particle_bounce_back, &
                    particle_delete_fluids,particle_create_fluids, &
                    erase_fluids_in_particles,lunique_omega,omega, &
-                   omega_to_viscosity,viscR,pimage, &
+                   omega_to_viscosity,viscR, &
                    compute_sc_particle_interact_phase1, &
                    compute_sc_particle_interact_phase2, &
                    driver_bc_densities, driver_bc_psi, &

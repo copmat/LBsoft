@@ -17,20 +17,21 @@
  use error_mod
  use profiling_mod,   only : start_timing2,end_timing2, &
                        ldiagnostic
- use fluids_bc_mod,   only: ixpbc,iypbc,izpbc
+ use fluids_bc_mod,   only: ixpbc,iypbc,izpbc,isfluid, &
+                        compute_densities_wall,driver_bc_isfluid, &
+                        driver_bc_new_isfluid,update_isfluid,pimage
  use fluids_mod,      only : initialize_fluid_force,compute_fluid_force_sc, &
                         driver_bc_densities,compute_psi_sc,&
                         driver_collision_fluids,compute_omega, &
-                        moments_fluids,compute_densities_wall, &
-                        lpair_SC, &
+                        moments_fluids,rhoR,rhoB, &
+                        lpair_SC,lsingle_fluid, &
                         driver_streaming_fluids,test_fake_pops,&
-                        probe_pops_in_node,isfluid, &
+                        probe_pops_in_node, &
                         driver_bc_velocities,lbc_halfway, &
-                        update_isfluid, driver_bc_isfluid, &
                         driver_apply_bounceback_halfway_pop, &
                         probe_red_moments_in_node,print_all_pops, &
                         print_all_pops_center,driver_bc_pop_selfcomm, &
-                        print_all_pops_area_shpere,pimage, &
+                        print_all_pops_area_shpere, &
                         nx,ny,nz, &
                         driver_bc_all_pops, print_all_pops2, &
                         rescale_fluid_mass,lmass_rescale,lColourG
@@ -290,7 +291,7 @@
 
   if(lpair_SC .or. lColourG .or. lparticles)then
     if(ldiagnostic)call start_timing2("LB","compute_densities_wall")
-    call compute_densities_wall(nstep)
+    call compute_densities_wall(nstep,lsingle_fluid,rhoR,rhoB)
     if(ldiagnostic)call end_timing2("LB","compute_densities_wall")
     
     if(ldiagnostic)call start_timing2("LB","driver_bc_densities")

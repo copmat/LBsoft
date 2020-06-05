@@ -22,9 +22,9 @@
   test_little_endian,space_fmtnumb12,space_fmtnumb,write_fmtnumb8
   
 
-
+ use fluids_bc_mod,  only: isfluid
  use fluids_mod,     only : nx,ny,nz,rhoR,rhoB,u,v,w,lsingle_fluid, &
-  minx, maxx, miny, maxy, minz, maxz,isfluid, dumpHvar,bin_oneFile,dump_oneFile
+  minx, maxx, miny, maxy, minz, maxz, dumpHvar,bin_oneFile,dump_oneFile
 
  use particles_mod,  only : natms,xxx,yyy,zzz,lparticles,cell, &
   ishape,lrotate,natms,natms_tot,q0,q1,q2,q3,vxx,vyy,vzz, &

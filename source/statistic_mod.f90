@@ -14,7 +14,8 @@
  
  use version_mod,           only : time_world,idrank,mxrank,sum_world_farr, &
   max_world_farr,min_world_farr,get_sync_world,finalize_world
- use fluids_mod,            only : nx,ny,nz,isfluid,rhoR,rhoB,u,v,w, &
+ use fluids_bc_mod,         only: isfluid
+ use fluids_mod,            only : nx,ny,nz,rhoR,rhoB,u,v,w, &
   lsingle_fluid, minx, maxx, miny, maxy, minz, maxz
  use particles_mod,         only : lparticles,engke,engcfg,engtot, &
   engrot,tempboltz,degfre,natms,vxx,vyy,vzz,fxx,fyy,fzz,natms_tot, &

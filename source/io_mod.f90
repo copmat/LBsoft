@@ -23,15 +23,8 @@
   set_value_ldiagnostic,idiagnostic,ldiagnostic
  use utility_mod,           only : write_fmtnumb,pi,get_prntime, &
   linit_seed,ltest_mode,conv_rad
- use fluids_bc_mod,only: ibctype,set_boundary_conditions_type
- use fluids_mod,            only : nx,ny,nz,set_initial_dist_type, &
-  set_mean_value_dens_fluids,set_stdev_value_dens_fluids,idistselect, &
-  meanR,meanB,stdevR,stdevB,set_initial_dim_box,initial_u,initial_v, &
-  initial_w,set_mean_value_vel_fluids, &
-  set_value_ext_force_fluids,ext_fu,ext_fv,ext_fw,lpair_SC, &
-  pair_SC,set_fluid_force_sc,set_value_viscosity,set_value_tau, &
-  viscR,viscB,tauR,tauB,lunique_omega,lforce_add,set_lsingle_fluid, &
-  lsingle_fluid,set_value_bc_east,set_value_bc_west, &
+ use fluids_bc_mod,only: ibctype,set_boundary_conditions_type, &
+  set_value_bc_east,set_value_bc_west, &
   set_value_bc_front,set_value_bc_rear,set_value_bc_north, &
   set_value_bc_south,bc_rhoR_east,bc_rhoB_east,bc_u_east,bc_v_east,bc_w_east,&
   bc_type_east,bc_rhoR_west,bc_rhoB_west,bc_u_west,bc_v_west,bc_w_west,&
@@ -39,17 +32,26 @@
   bc_type_north,bc_rhoR_south,bc_rhoB_south,bc_u_south,bc_v_south,bc_w_south,&
   bc_type_south,bc_rhoR_front,bc_rhoB_front,bc_u_front,bc_v_front,bc_w_front,&
   bc_type_front,bc_rhoR_rear,bc_rhoB_rear,bc_u_rear,bc_v_rear,bc_w_rear,&
-  bc_type_rear,set_fluid_wall_sc,wallR_SC,wallB_SC,LBintegrator, &
+  bc_type_rear,iselwetting,lread_isfluid,set_lread_isfluid, &
+  bc_flow_east,bc_flow_west,bc_flow_front,bc_flow_rear,bc_flow_north, &
+  bc_flow_south,set_fluid_wall_mode,densR_wetting,densB_wetting
+ 
+ use fluids_mod,            only : nx,ny,nz,set_initial_dist_type, &
+  set_mean_value_dens_fluids,set_stdev_value_dens_fluids,idistselect, &
+  meanR,meanB,stdevR,stdevB,set_initial_dim_box,initial_u,initial_v, &
+  initial_w,set_mean_value_vel_fluids, &
+  set_value_ext_force_fluids,ext_fu,ext_fv,ext_fw,lpair_SC, &
+  pair_SC,set_fluid_force_sc,set_value_viscosity,set_value_tau, &
+  viscR,viscB,tauR,tauB,lunique_omega,lforce_add,set_lsingle_fluid, &
+  lsingle_fluid,set_fluid_wall_sc,wallR_SC,wallB_SC,LBintegrator, &
   set_LBintegrator_type,lbc_halfway,set_lbc_halfway,set_lbc_fullway, &
   lbc_fullway,partR_SC,partB_SC,set_fluid_particle_sc,theta_SC, &
   devtheta_SC,set_theta_particle_sc,set_back_value_dens_fluids, &
-  backR,backB,set_cap_force,cap_force,lread_isfluid, &
-  imass_rescale,set_mass_rescale,dmass_rescale,iselwetting, &
-  densR_wetting,densB_wetting,set_fluid_wall_mode,set_objectliq, &
-  set_objectdata,nobjectliq,typeobjectliq,objectdata,set_lread_isfluid,&
-  set_fluid_force_cg,lColourG,sigma_CG,alphaR_CG,alphaB_CG,beta_CG, &
-  bc_flow_east,bc_flow_west,bc_flow_front,bc_flow_rear,bc_flow_north, &
-  bc_flow_south
+  backR,backB,set_cap_force,cap_force, &
+  imass_rescale,set_mass_rescale,dmass_rescale, &
+  set_objectliq, &
+  set_objectdata,nobjectliq,typeobjectliq,objectdata,&
+  set_fluid_force_cg,lColourG,sigma_CG,alphaR_CG,alphaB_CG,beta_CG
 
  use particles_mod,         only : set_natms_tot,natms_tot,lparticles, &
   set_ishape,set_densvar,densvar,ishape,set_rcut,rcut,delr, &
