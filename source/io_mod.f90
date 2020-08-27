@@ -167,7 +167,7 @@
   write(iu,of)"*         =========================================================           *"
   write(iu,of)"*                                                                             *"
   write(iu,of)"*                                                                             *"
-  write(iu,of)"*    Version 1.00 (November 2019)                                             *"
+  write(iu,of)"*    Version 1.00 (August 2020)                                               *"
 !  if(ldevelopers) &
 !  write(iu,of)"*    Compiled in developer mode                                               *"
   write(iu,of)"*                                                                             *"
@@ -194,7 +194,8 @@
   write(iu,of)"*                                                                             *"
   write(iu,of)"*    The software development process has received funding from the           *"
   write(iu,of)"*    European Research Council under the Horizon 2020 Programme               *"
-  write(iu,of)"*    Grant Agreement n. 739964 (COPMAT).                                      *"
+  write(iu,of)"*    Grant Agreement n. 739964 (COPMAT). Marco Lauricella acknowledges        *"
+  write(iu,of)"*    the project 3D-Phys (PRIN 2017PHRM8X) for support from MIUR.             *"
   write(iu,of)"*                                                                             *"
   write(iu,of)"*                                                                             *"
   write(iu,of)"*                                                                             *"
