@@ -680,9 +680,9 @@
                     lprintlisterrorvtk=.true.
                   endif
                   if(nprintlistvtk<=0)lprintlisterrorvtk=.true.
-                  if(nprintlistvtk>0)allocate(printlistvtk(nprintlist))
+                  if(nprintlistvtk>0)allocate(printlistvtk(nprintlistvtk))
                   if(allocated(outwords2))deallocate(outwords2)
-                  if(nprintlistvtk>0)allocate(outwords2(nprintlist))
+                  if(nprintlistvtk>0)allocate(outwords2(nprintlistvtk))
                   do i=1,nprintlistvtk
                     outwords2(i)=outwords(i+3)
                     call identify_argument_vtk(i,outwords2,printlistvtk,maxlen, &
