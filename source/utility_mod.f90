@@ -237,7 +237,7 @@
        imiomin_z:nbuffservice_z),stat=ierr)
       ltest=.false.
       if(ierr.ne.0)then
-        call warning(2,dble(1))
+        call warning(2,real(1,kind=PRC) )
         ltest=.true.
       endif
     endif
@@ -249,7 +249,7 @@
      imiomin_z:nbuffservice_z),stat=ierr)
     ltest=.false.
     if(ierr.ne.0)then
-      call warning(2,dble(1))
+      call warning(2,real(1,kind=PRC))
       ltest=.true.
     endif
   endif
@@ -413,7 +413,7 @@
 #if PRC==8
   real(kind=PRC), parameter :: mylimit=1.d-100
 #elif PRC==4
-  real(kind=PRC), parameter :: mylimit=1.e-50
+  real(kind=PRC), parameter :: mylimit=1.e-20
 #endif
   
   call random_number(dtemp1)
@@ -450,7 +450,7 @@
 #if PRC==8
   real(kind=PRC), parameter :: mylimit=1.d-100
 #elif PRC==4
-  real(kind=PRC), parameter :: mylimit=1.e-50
+  real(kind=PRC), parameter :: mylimit=1.e-20
 #endif
   
   dtemp1=rand_noseeded(i,j,k,l)
@@ -484,7 +484,7 @@
   real(kind=PRC) :: modulvec
   real(kind=PRC), dimension(3), intent(in) :: a
 
-  modulvec = dsqrt(a(1)** TWO + a(2)** TWO + a(3)** TWO )
+  modulvec = sqrt(a(1)** TWO + a(2)** TWO + a(3)** TWO )
   
   return
   

@@ -8,15 +8,22 @@
 #define noGRADIENTD3Q27
 #define noREGULARIZED
 #define noSTABILIZED
-#define noORIGCG
+
 #define noBARRIER_DIAGNOSTIC
 #define MPI_DIAGNOSTIC
+
+#define noDEBUG_P2N
+#define noDEBUG_N2P
+#define noDEBUG_MKRM
+#define noDEBUG_ROT
+#define noDEBUG_FORCES
+
 
 #define STREAM_NOCOPY
 
 #define IPRC 4
 #define LPRC 4
-#define PRC 8
+#define PRC 4
 
 #define D3Q19
 

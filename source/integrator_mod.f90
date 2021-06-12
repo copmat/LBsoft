@@ -1,5 +1,5 @@
 
-#include <default_macro.h>
+#include "default_macro.h"
  module integrator_mod
  
 !***********************************************************************
@@ -207,10 +207,10 @@
   integer(kind=IPRC) :: i4
   logical :: newlst
   logical :: debug = .false., debug1 = .false.
-  
+
 
   !debug  = nstep >= 147
-  !debug1  = nstep >= 564
+  !debug1  = nstep >= 265
   
   new_time = real(nstep,kind=PRC)*tstep
   
@@ -225,7 +225,6 @@
     call initialize_particle_force
     call build_new_isfluid(nstep, debug)
     if(ldiagnostic)call end_timing2("LB","build_new_isfluid")
-    ! if (debug1) call print_all_pops2(131, "aft_build_new_isfluid", nstep)
   endif
   
   if(ldiagnostic)call start_timing2("LB","initialize_force")
@@ -235,7 +234,7 @@
   if(ldiagnostic)call start_timing2("LB","moments_fluids")
   call moments_fluids(nstep)
   if(ldiagnostic)call end_timing2("LB","moments_fluids")
-  
+
   if(ldiagnostic)call start_timing2("LB","driver_bc_densities")
   call driver_bc_densities
   if(ldiagnostic)call end_timing2("LB","driver_bc_densities")
@@ -243,6 +242,7 @@
   if(ldiagnostic)call start_timing2("LB","driver_bc_velocities")
   call driver_bc_velocities
   if(ldiagnostic)call end_timing2("LB","driver_bc_velocities")
+  if (debug1) call print_all_pops2(131, "moments_", nstep)
   
   if(ldiagnostic)call start_timing2("LB","compute_omega")
   call compute_omega
@@ -254,6 +254,7 @@
     if(ldiagnostic)call start_timing2("MD","inter_part_and_grid")
     call inter_part_and_grid(nstep, lparticles, debug)
     if(ldiagnostic)call end_timing2("MD","inter_part_and_grid")
+    if (debug1) call print_all_pops2(131, "rmdel_", nstep)
     
     if(ldiagnostic)call start_timing2("MD","driver_bc_densities")
     call driver_bc_densities
@@ -297,7 +298,7 @@
     if(ldiagnostic)call start_timing2("LB","driver_bc_densities")
     call driver_bc_densities
     if(ldiagnostic)call end_timing2("LB","driver_bc_densities")
-    ! if (debug1) call print_all_pops2(131, "aft_compute_densities_wall", nstep)
+    if (debug1) call print_all_pops2(131, "wall_", nstep)
   endif
     
   if(lpair_SC)then
@@ -324,13 +325,12 @@
   if(ldiagnostic)call start_timing2("IO","write_vtk_frame")
    call write_vtk_frame(nstep)
   if(ldiagnostic)call end_timing2("IO","write_vtk_frame")
-  
   if (debug1) call print_all_pops2(131, "aft_vtk", nstep)
 
   if(ldiagnostic)call start_timing2("LB","collision_fluids")
   call driver_collision_fluids(nstep)
   if(ldiagnostic)call end_timing2("LB","collision_fluids")
-  ! if (debug1) call print_all_pops2(131, "aft_collision_fluids", nstep)
+  if (debug1) call print_all_pops2(131, "cg_", nstep)
   
   if(lparticles)then
     if(ldiagnostic)call start_timing2("MD","driver_bc_all_pops")
@@ -342,9 +342,9 @@
     if(ldiagnostic)call end_timing2("IO","write_xyz")
     
     if(ldiagnostic)call start_timing2("MD","apply_part_bback")
-    call apply_particle_bounce_back(nstep, debug)
+    call apply_particle_bounce_back(nstep, debug, debug1)
     if(ldiagnostic)call end_timing2("MD","apply_part_bback")
-    ! if (debug1) call print_all_pops2(131, "aft_apply_part_bback", nstep)
+    if (debug1) call print_all_pops2(131, "partBB_", nstep)
     
     if(ldiagnostic)call start_timing2("MD","merge_part_force")
     call merge_particle_force(nstep, debug)
@@ -381,14 +381,14 @@
     call driver_apply_bounceback_halfway_pop(nstep)
     if(ldiagnostic)call end_timing2("LB","apply_bback_pop_hf")
   endif
-  
-  ! if (debug1) call print_all_pops2(131, "aft_apply_bback_pop_hf", nstep)
+  if (debug1) call print_all_pops2(131, "bb_", nstep)
 
   if(ldiagnostic)call start_timing2("LB","streaming_fluids")
   call driver_streaming_fluids(lparticles)
   if(ldiagnostic)call end_timing2("LB","streaming_fluids")
   
-  if(debug1)call print_all_pops2(131, "aft_apply_bounceback_pop", nstep)
+  
+  if(debug1)call print_all_pops2(131, "step_", nstep)
   
   mytime = new_time
   

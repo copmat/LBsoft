@@ -73,7 +73,7 @@
   real(kind=PRC), parameter :: mydey = dey(myl)
   real(kind=PRC), parameter :: mydez = dez(myl)
   
-  equil_pop00=myrho*myp*(ONE-(HALF/mycssq)*(myu**TWO+myv**TWO+myw**TWO))
+  equil_pop00=myrho*myp*(ONE-(HALF/mycssq)*(myu*myu+myv*myv+myw*myw))
  
   return
   

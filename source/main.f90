@@ -60,7 +60,7 @@
                         miny,maxy,minz,maxz,lsingle_fluid, &
                         initialize_fluids, &
                         driver_initialiaze_manage_bc_selfcomm, restoreHvar, &
-                        restore_oneFile
+                        restore_oneFile, print_all_pops2,readCudaAccum
 
   use particles_mod,   only : allocate_particles,lparticles,vertest, &
                         initialize_map_particles,driver_inter_force, &
@@ -114,6 +114,8 @@
   
 ! read the input file
   call read_input(600,'input.dat')
+
+  call readCudaAccum(nstepmax)
   
 ! setup domain decomposition
   call setupcom(nx,ny,nz,nbuff,ibctype,ixpbc,iypbc,izpbc,minx,maxx, &
@@ -212,6 +214,9 @@
 
 ! initialize particle fluid interaction if requested
   call init_particles_fluid_interaction(wantRestore)
+
+
+  ! call print_all_pops2(131, "step_", 0)
    
   
 ! print memory
@@ -291,7 +296,7 @@
 
 !   dump outdata and print restart file
     if(ldiagnostic)call start_timing2("IO","dump_stats")
-    call dumpForOutput(nstep,mytime,.false.)
+    ! call dumpForOutput(nstep,mytime,.false.)
     if(ldiagnostic)call end_timing2("IO","dump_stats")
     
     
@@ -318,7 +323,7 @@
   call write_particle_xyz
   
 ! print restart file
-  call dumpForOutput(nstep,mytime,.true.)
+  ! call dumpForOutput(nstep,mytime,.true.)
   
 ! close the XYZ formatted output file 
   !call close_xyz_file(lprintxyz,120)

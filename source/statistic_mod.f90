@@ -129,7 +129,7 @@
             statdata(32)=statdata(32)+rhoB(i,j,k)* &
              (u(i,j,k)**TWO+v(i,j,k)**TWO+w(i,j,k)**TWO)
             phfield=(rhoR(i,j,k)-rhoB(i,j,k))/(rhoR(i,j,k)+rhoB(i,j,k))
-            if(dabs(phfield)<=FOURTH)then
+            if(abs(phfield)<=FOURTH)then
               statdata(33)=statdata(33)+ONE
             endif
           endif

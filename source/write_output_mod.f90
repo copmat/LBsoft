@@ -325,6 +325,7 @@
   109 format (I12,I12,I12)
   110 format (I12,I12)
   112 format (A,I12,I12)
+  200 format (4F20.8)
   
   if(idrank/=0)return
   
@@ -350,24 +351,24 @@
   write(iotest,103) 'LOOKUP_TABLE default'
   
   do iatm=1,natms_tot
-    write(iotest,*)1 !ltype(iatm)
+    write(iotest,*) iatm
   enddo
   
   if(lrotate)then
     
     write(iotest,103) 'VECTORS Vectx float'
     do iatm=1,natms_tot
-      write(iotest,*)take_rotversorx(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
+      write(iotest,200)take_rotversorx(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
     enddo
     
     write(iotest,103) 'VECTORS Vecty float'
     do iatm=1,natms_tot
-      write(iotest,*)take_rotversory(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
+      write(iotest,200)take_rotversory(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
     enddo
     
     write(iotest,103) 'VECTORS Vectz float'
     do iatm=1,natms_tot
-      write(iotest,*)take_rotversorz(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
+      write(iotest,200)take_rotversorz(q0(iatm),q1(iatm),q2(iatm),q3(iatm))
     enddo
     
   endif
@@ -537,7 +538,7 @@
   if(present(wantRestore))then
     if(.not.wantRestore)call clean_fluid_inside_particle
   else
-    call clean_fluid_inside_particle
+    ! call clean_fluid_inside_particle
   endif
   
   if(mxrank==1)then

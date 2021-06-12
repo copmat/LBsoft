@@ -14,7 +14,7 @@ EXE = $(BINROOT)/$(EX)
 EXEP = $(BINROOT)/$(EXP)
 SHELL=/bin/sh
 
-def:	all
+def:	gfortran-mpi
 
 all:
 	@echo "Error - you should specify a target machine!"
@@ -120,12 +120,12 @@ gfortran-debugger:
 gfortran-mpidebugger:
 	$(MAKE) CC=mpicc \
 	FC=mpif90 \
-	CFLAGS="-O2 -g -cpp -I $(CURDIR) -c" \
-	FFLAGS="-O2 -g -fcheck=all -fbacktrace \
-	-ffpe-trap=invalid,zero,overflow,underflow,denormal \
+	CFLAGS="-O0 -g -cpp -I $(CURDIR) -c" \
+	FFLAGS="-O0 -g -fcheck=all -fbacktrace \
+	-ffpe-trap=invalid,zero,overflow \
 	-cpp -I $(CURDIR) -c" \
-	LDFLAGS="-O2 -g -fcheck=all -fbacktrace \
-	-ffpe-trap=invalid,zero,overflow,underflow,denormal \
+	LDFLAGS="-O0 -g -fcheck=all -fbacktrace \
+	-ffpe-trap=invalid,zero,overflow \
 	-cpp -I $(CURDIR) -o" \
 	TYPE=mpi \
 	EX=$(EXP) BINROOT=$(BINROOT) mpi

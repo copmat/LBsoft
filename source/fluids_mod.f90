@@ -1,5 +1,5 @@
 
-#include <default_macro.h>
+#include "default_macro.h"
 
  module fluids_mod
  
@@ -214,6 +214,9 @@
  real(kind=PRC),save,public,allocatable,dimension(:,:,:,:) :: &
   fluidR,fluidB
  
+ real(kind=PRC*2), dimension(3, 1000) :: myf, myt
+ real(kind=PRC), dimension(3, 1000) :: cudaf, cudat
+ integer :: countmk, countrm
 
  integer,save, private :: iounit(3)
 
@@ -261,7 +264,7 @@
  public :: init_particle_2_isfluid
  public :: push_comm_isfluid
  public :: particle_bounce_back
- public :: particle_bounce_back_phase2
+ public :: particle_bounce_back_phase1, particle_bounce_back_phase2
  public :: particle_delete_fluids
  public :: particle_create_fluids
  public :: erase_fluids_in_particles
@@ -285,6 +288,7 @@
  public :: set_objectliq
  public :: set_objectdata
  public :: set_fluid_force_cg
+ public :: DoublePrecAccum, ZeroDoublePrecAccum, readCudaAccum, countmk, countrm
  
  contains
  
@@ -377,7 +381,7 @@
         do i=1,nistatmax
            if(istat(i).ne.0)exit
         enddo
-        call warning(2,dble(i))
+        call warning(2,real(i,kind=PRC))
         ltest=.true.
      endif
 
@@ -555,7 +559,7 @@
   integer :: i,j,k,l,imio3(3)
   logical :: ltestout
   character(len=32) :: itesto
-  real(kind=PRC) :: dtemp(3)
+  real(kind=PRC) :: dtemp(3), distx,disty,distz, rdist,tempr, radius
   
 ! initialize isfluid
   
@@ -572,6 +576,37 @@
     call set_initial_dens_fluids
   end select
   
+  radius = nx/8
+  do k=minz,maxz
+    do j=miny,maxy
+      do i=minx,maxx
+        distx = i - (nx/2 + 0.5)
+        disty = j - (ny/2 + 0.5)
+        distz = k - (nz/2 + 0.5)
+        rdist = sqrt(distx*distx + disty*disty + distz*distz)
+        tempr = fcut(rdist, radius, radius+0.1)
+        rhoR(i,j,k) = tempr
+        rhoB(i,j,k) = 1.0 - tempr
+
+        ! distx = i - (nx/2 + 0.5)
+        ! disty = j - (ny/2 + 0.5)
+        ! distz = k - (nz/4 + 0.5)
+        ! rdist = sqrt(distx*distx + disty*disty + distz*distz)
+        ! tempr = fcut(rdist, radius, radius+0.1)
+        ! rhoR(i,j,k) = rhoR(i,j,k) + 0.0 + (1.0 - 0.0) * tempr
+        ! rhoB(i,j,k) = rhoB(i,j,k) + 1.0 + (0.0 - 1.0) * tempr
+
+        ! distx = i - (nx/2 + 0.5)
+        ! disty = j - (ny/2 + 0.5)
+        ! distz = k - (3*nz/4 + 0.5)
+        ! rdist = sqrt(distx*distx + disty*disty + distz*distz)
+        ! tempr = fcut(rdist, radius, radius+0.1)
+        ! rhoR(i,j,k) = rhoR(i,j,k) + 0.0 + (1.0 - 0.0) * tempr
+        ! rhoB(i,j,k) = rhoB(i,j,k) + 1.0 + (0.0 - 1.0) * tempr
+      enddo
+    enddo
+  enddo
+
   call set_initial_vel_fluids
   
 #ifdef DIAGNINIT
@@ -755,7 +790,6 @@
 !***********************************************************************
   
   implicit none
-  
   integer :: i,j,k
   
   if(linit_seed)then
@@ -1175,12 +1209,8 @@
   real*8 :: locrhoR,locrhoB,locu,locv,locw
   
   if(lcolourG)then
-    if(lunique_omega)then
-      call set_initial_pop_fluids_CG_unique
-    else
-      call set_initial_pop_fluids_CG
-    endif
-    
+    call set_initial_pop_fluids(rhoR,u,v,w,fluidR)
+    call set_initial_pop_fluids(rhoB,u,v,w,fluidB)
   else
     
     call set_initial_pop_fluids(rhoR,u,v,w,fluidR)
@@ -3017,9 +3047,7 @@
   integer :: i,j,k
   real(kind=PRC) :: phis,locrhoR,locrhoB
   
-  
   if(lunique_omega)return
-  
   select case(iselomegaint)
   case(1)
     do k=minz,maxz
@@ -3070,21 +3098,11 @@
 !     
 !***********************************************************************
  
-  implicit none
-  
-  integer, intent(in) :: nstep
-  
+  implicit none  
+  integer, intent(in) :: nstep  
   integer :: i,j,k
     
-  
-  if(lunique_omega)then
-    call collision_fluids_CG_unique(nstep)
-  else    
-    call collision_fluids_CG(nstep)
-  endif
-  
-  return
-  
+  call collision_fluids_CG(nstep)   
  end subroutine driver_collision_fluids_CG
     
  pure function qaverage(q,rhoa,rhob,mya,myb)
@@ -3118,9 +3136,9 @@
   
   implicit none
   
-  real*8, intent(in) :: rhoa,rhob,mya,myb
+  real(kind=PRC), intent(in) :: rhoa,rhob,mya,myb
   
-  real*8 :: qaverage1,rhosum
+  real(kind=PRC) :: qaverage1,rhosum
   
   rhosum=rhoa+rhob
   
@@ -3196,7 +3214,7 @@
 #if PRC==8
   real(kind=PRC), parameter :: mylimit=1.d-100
 #elif PRC==4
-  real(kind=PRC), parameter :: mylimit=1.e-50
+  real(kind=PRC), parameter :: mylimit=1.e-20
 #endif
   
 #ifdef REGULARIZED
@@ -3363,7 +3381,7 @@
           
           psinorm_sq=psix**TWO + psiy**TWO + psiz**TWO
           if(psinorm_sq<=mylimit)cycle
-          psinorm=dsqrt(psinorm_sq)
+          psinorm=sqrt(psinorm_sq)
           acoeff=( NINE / FOUR )*temp_omega*sigma_cg
           do l=0,links
             e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
@@ -3426,9 +3444,11 @@
   real(kind=PRC) :: psix,psiy,psiz,cosphi,fsum,acoeff,omega_rel
   real(kind=PRC), dimension(0:links) :: feq
   real(kind=PRC), dimension(0:links) :: feqR,feqB
+  real(kind=PRC), dimension(0:links) :: tempR,tempB, fdum
   real(kind=PRC) :: oneminusomega,uv
   real(kind=PRC) :: locrhoR,locrhoB,locu,locv,locw
-  real(kind=PRC) :: locrhoR_shifted,locrhoB_shifted,locrhosum_shifted
+  ! real(kind=PRC) :: locrhoR_shifted,locrhoB_shifted,locrhosum_shifted
+  real(kind=PRC) :: rhoR_shifted,rhoB_shifted, psi_shifted
   integer :: i,j,k,l
   
   real(kind=PRC) :: temp_omega,grad_rhoRx,grad_rhoRy,grad_rhoRz, &
@@ -3437,15 +3457,10 @@
 #if PRC==8
   real(kind=PRC), parameter :: mylimit=1.d-100
 #elif PRC==4
-  real(kind=PRC), parameter :: mylimit=1.e-50
+  real(kind=PRC), parameter :: mylimit=1.e-20
 #endif
-  
-#ifdef REGULARIZED
-  real(kind=PRC) :: pxxR,pyyR,pzzR,pxyR,pxzR,pyzR
-  real(kind=PRC) :: pxxB,pyyB,pzzB,pxyB,pxzB,pyzB
-  real(kind=PRC) :: fneqR,fneqB
-#endif
-  
+
+
   do k=minz,maxz
     do j=miny,maxy
       do i=minx,maxx
@@ -3460,167 +3475,109 @@
           locu = u(i,j,k)
           locv = v(i,j,k)
           locw = w(i,j,k)
-          
-#ifdef STABILIZED
-          if(abs(locu)>MAXVEL)locu=sign(ONE,locu)*MAXVEL
-          if(abs(locv)>MAXVEL)locv=sign(ONE,locv)*MAXVEL
-          if(abs(locw)>MAXVEL)locw=sign(ONE,locw)*MAXVEL
-#endif
-         
-         grad_rhoRx = ZERO
-         grad_rhoRy = ZERO
-         grad_rhoRz = ZERO
-         
-         grad_rhoBx = ZERO
-         grad_rhoBy = ZERO
-         grad_rhoBz = ZERO
 
-#ifdef GRADIENTD3Q27
-         do l=1,linksd3q27
-           locrhoR_shifted=rhoR(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))
-           locrhoB_shifted=rhoB(i+exd3q27(l),j+eyd3q27(l),k+ezd3q27(l))
-           locrhosum_shifted=locrhoR_shifted+locrhoB_shifted
-           grad_rhoRx=grad_rhoRx + ad3q27(l)*dexd3q27(l)* &
-            (locrhoR_shifted/locrhosum_shifted)
-           grad_rhoRy=grad_rhoRy + ad3q27(l)*deyd3q27(l)* &
-            (locrhoR_shifted/locrhosum_shifted)
-           grad_rhoRz=grad_rhoRz + ad3q27(l)*dezd3q27(l)* &
-            (locrhoR_shifted/locrhosum_shifted)
             
-           grad_rhoBx=grad_rhoBx + ad3q27(l)*dexd3q27(l)* &
-            (locrhoB_shifted/locrhosum_shifted)
-           grad_rhoBy=grad_rhoBy + ad3q27(l)*deyd3q27(l)* &
-            (locrhoB_shifted/locrhosum_shifted)
-           grad_rhoBz=grad_rhoBz + ad3q27(l)*dezd3q27(l)* &
-            (locrhoB_shifted/locrhosum_shifted)
-         enddo
-#else             
-         do l=1,links
-           locrhoR_shifted=rhoR(i+ex(l),j+ey(l),k+ez(l))
-           locrhoB_shifted=rhoB(i+ex(l),j+ey(l),k+ez(l))
-           locrhosum_shifted=locrhoR_shifted+locrhoB_shifted
-           grad_rhoRx=grad_rhoRx + a(l)*dex(l)* &
-            (locrhoR_shifted/locrhosum_shifted)
-           grad_rhoRy=grad_rhoRy + a(l)*dey(l)* &
-            (locrhoR_shifted/locrhosum_shifted)
-           grad_rhoRz=grad_rhoRz + a(l)*dez(l)* &
-            (locrhoR_shifted/locrhosum_shifted)
-           
-           grad_rhoBx=grad_rhoBx + a(l)*dex(l)* &
-            (locrhoB_shifted/locrhosum_shifted)
-           grad_rhoBy=grad_rhoBy + a(l)*dey(l)* &
-            (locrhoB_shifted/locrhosum_shifted)
-           grad_rhoBz=grad_rhoBz + a(l)*dez(l)* &
-            (locrhoB_shifted/locrhosum_shifted)
-         enddo
-#endif     
+          feqR(0) = equil_pop00(locrhoR,locu,locv,locw)
+          feqR(1) = equil_pop01(locrhoR,locu,locv,locw)
+          feqR(2) = equil_pop02(locrhoR,locu,locv,locw)
+          feqR(3) = equil_pop03(locrhoR,locu,locv,locw)
+          feqR(4) = equil_pop04(locrhoR,locu,locv,locw)
+          feqR(5) = equil_pop05(locrhoR,locu,locv,locw)
+          feqR(6) = equil_pop06(locrhoR,locu,locv,locw)
+          feqR(7) = equil_pop07(locrhoR,locu,locv,locw)
+          feqR(8) = equil_pop08(locrhoR,locu,locv,locw)
+          feqR(9) = equil_pop09(locrhoR,locu,locv,locw)
+          feqR(10) = equil_pop10(locrhoR,locu,locv,locw)
+          feqR(11) = equil_pop11(locrhoR,locu,locv,locw)
+          feqR(12) = equil_pop12(locrhoR,locu,locv,locw)
+          feqR(13) = equil_pop13(locrhoR,locu,locv,locw)
+          feqR(14) = equil_pop14(locrhoR,locu,locv,locw)
+          feqR(15) = equil_pop15(locrhoR,locu,locv,locw)
+          feqR(16) = equil_pop16(locrhoR,locu,locv,locw)
+          feqR(17) = equil_pop17(locrhoR,locu,locv,locw)
+          feqR(18) = equil_pop18(locrhoR,locu,locv,locw)
+
+          feqB(0) = equil_pop00(locrhoB,locu,locv,locw)
+          feqB(1) = equil_pop01(locrhoB,locu,locv,locw)
+          feqB(2) = equil_pop02(locrhoB,locu,locv,locw)
+          feqB(3) = equil_pop03(locrhoB,locu,locv,locw)
+          feqB(4) = equil_pop04(locrhoB,locu,locv,locw)
+          feqB(5) = equil_pop05(locrhoB,locu,locv,locw)
+          feqB(6) = equil_pop06(locrhoB,locu,locv,locw)
+          feqB(7) = equil_pop07(locrhoB,locu,locv,locw)
+          feqB(8) = equil_pop08(locrhoB,locu,locv,locw)
+          feqB(9) = equil_pop09(locrhoB,locu,locv,locw)
+          feqB(10) = equil_pop10(locrhoB,locu,locv,locw)
+          feqB(11) = equil_pop11(locrhoB,locu,locv,locw)
+          feqB(12) = equil_pop12(locrhoB,locu,locv,locw)
+          feqB(13) = equil_pop13(locrhoB,locu,locv,locw)
+          feqB(14) = equil_pop14(locrhoB,locu,locv,locw)
+          feqB(15) = equil_pop15(locrhoB,locu,locv,locw)
+          feqB(16) = equil_pop16(locrhoB,locu,locv,locw)
+          feqB(17) = equil_pop17(locrhoB,locu,locv,locw)
+          feqB(18) = equil_pop18(locrhoB,locu,locv,locw)
 
           
-#ifdef CG_CORRECTION
-         do l=0,links
-           feqR(l)= &
-            equil_popCG_corr(l,temp_omega,alphaR_CG,locrhoR, &
-            locu,locv,locw,grad_rhoRx,grad_rhoRy,grad_rhoRz)
-           feqB(l)= &
-            equil_popCG_corr(l,temp_omega,alphaB_CG,locrhoB, &
-            locu,locv,locw,grad_rhoBx,grad_rhoBy,grad_rhoBz)
-          enddo
-#else
-          do l=0,links
-           feqR(l)= &
-            equil_popCG(l,temp_omega,alphaR_CG,locrhoR,locu,locv,locw)
-           feqB(l)= &
-            equil_popCG(l,temp_omega,alphaB_CG,locrhoB,locu,locv,locw)
-          enddo
-#endif
-          
-          
-#ifdef REGULARIZED
-          pxxR = ZERO
-		  pyyR = ZERO
-          pzzR = ZERO
-		  pxyR = ZERO
-          pxzR = ZERO
-          pyzR = ZERO
-		  pxxB = ZERO
-		  pyyB = ZERO
-          pzzB = ZERO
-		  pxyB = ZERO
-          pxzB = ZERO
-          pyzB = ZERO
-          do l=0,links
-            !compute the equilibrium for the two components
-             
-            fneqR = fluidR(i,j,k,l) - feqR(l)
-            fneqB = fluidB(i,j,k,l) - feqB(l)
-			
-			!non equilibrium part of the momentum flux tensor
-			pxxR=pxxR + (dex(l)*dex(l) - cssq)*fneqR
-			pyyR=pyyR + (dey(l)*dey(l) - cssq)*fneqR
-			pzzR=pzzR + (dez(l)*dez(l) - cssq)*fneqR
-			pxyR=pxyR +  dex(l)*dey(l)*fneqR
-			pxzR=pxzR +  dex(l)*dez(l)*fneqR
-            pyzR=pyzR +  dey(l)*dez(l)*fneqR
-			
-			pxxB=pxxB + (dex(l)*dex(l) - cssq)*fneqB
-			pyyB=pyyB + (dey(l)*dey(l) - cssq)*fneqB
-			pzzB=pzzB + (dez(l)*dez(l) - cssq)*fneqB
-			pxyB=pxyB +  dex(l)*dey(l)*fneqB
-			pxzB=pxzB +  dex(l)*dez(l)*fneqB
-            pyzB=pyzB +  dey(l)*dez(l)*fneqB
-          enddo
-          
-          do l=0,links
-            fluidR(i,j,k,l)= feqR(l) + &
-             ((HALF*p(l))/(cssq**TWO))*((dex(l)*dex(l) - cssq)*pxxR + &
-             (dey(l)*dey(l) - cssq)*pyyR + &
-             (dez(l)*dez(l) - cssq)*pzzR + &
-             TWO*dex(l)*dey(l)*pxyR + &
-             TWO*dex(l)*dez(l)*pxzR + &
-             TWO*dey(l)*dez(l)*pyzR)
-            
-            fluidB(i,j,k,l)= feqB(l) + &
-             ((HALF*p(l))/(cssq**TWO))*((dex(l)*dex(l) - cssq)*pxxB + &
-             (dey(l)*dey(l) - cssq)*pyyB + &
-             (dez(l)*dez(l) - cssq)*pzzB + &
-             TWO*dex(l)*dey(l)*pxyB + &
-             TWO*dex(l)*dez(l)*pxzB + &
-             TWO*dey(l)*dez(l)*pyzB)
-          enddo
-          
-#endif
+
           !bgk step
           do l=0,links
-            fluidR(i,j,k,l)=fluidR(i,j,k,l)*oneminusomega + &
-             feqR(l)* temp_omega
-            fluidB(i,j,k,l)=fluidB(i,j,k,l)*oneminusomega + &
-             feqB(l)* temp_omega 
+            tempR(l)=fluidR(i,j,k,l)*oneminusomega + feqR(l)* temp_omega
+            tempB(l)=fluidB(i,j,k,l)*oneminusomega + feqB(l)* temp_omega 
+          enddo
+
+          !perturbation step
+          ! Psi calc
+          psix = ZERO
+          psiy = ZERO
+          psiz = ZERO
+          do l = 1, links          
+            rhoR_shifted=rhoR(i+ex(l),j+ey(l),k+ez(l))
+            rhoB_shifted=rhoB(i+ex(l),j+ey(l),k+ez(l))
+            psi_shifted = (rhoR_shifted - rhoB_shifted) / (rhoR_shifted + rhoB_shifted)
+            psix = psix + a(l)*dex(l) * psi_shifted
+            psiy = psiy + a(l)*dey(l) * psi_shifted
+            psiz = psiz + a(l)*dez(l) * psi_shifted
           enddo
           
-          !perturbation step
-          
-          psix=(locrhoB/rhosum)*grad_rhoRx-(locrhoR/rhosum)*grad_rhoBx
-          psiy=(locrhoB/rhosum)*grad_rhoRy-(locrhoR/rhosum)*grad_rhoBy
-          psiz=(locrhoB/rhosum)*grad_rhoRz-(locrhoR/rhosum)*grad_rhoBz
-          
-          psinorm_sq=psix**TWO + psiy**TWO + psiz**TWO
-          if(psinorm_sq<=mylimit)cycle
-          psinorm=dsqrt(psinorm_sq)
+          psinorm_sq=psix*psix + psiy*psiy + psiz*psiz
+          if(psinorm_sq<=mylimit) then
+            do l=0,links
+              fluidR(i,j,k,l) = tempR(l)
+              fluidB(i,j,k,l) = tempB(l)
+            enddo
+            cycle
+          endif
+
+          psinorm=sqrt(psinorm_sq)
           acoeff=( NINE / FOUR )*temp_omega*sigma_cg
           do l=0,links
             e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
             temp=psinorm*(p(l)*(e_dot_psi**TWO)/psinorm_sq - b_l(l))
             if(isnan(temp)) temp=ZERO
-            fluidR(i,j,k,l)=fluidR(i,j,k,l) + (HALF*acoeff)*temp
-            fluidB(i,j,k,l)=fluidB(i,j,k,l) + (HALF*acoeff)*temp
+            fdum(l) = tempR(l) + tempB(l) + acoeff*temp
           enddo
           
           !recoloring step
-          do l=0,links
-            feq(l)= &
-             equil_popCG(l,temp_omega,alphaR_CG,locrhoR,ZERO,ZERO,ZERO) + &
-             equil_popCG(l,temp_omega,alphaB_CG,locrhoB,ZERO,ZERO,ZERO)
-          enddo
+          feq(0) = equil_pop00(locrhoR,ZERO,ZERO,ZERO) + equil_pop00(locrhoB,ZERO,ZERO,ZERO)
+          feq(1) = equil_pop01(locrhoR,ZERO,ZERO,ZERO) + equil_pop01(locrhoB,ZERO,ZERO,ZERO)
+          feq(2) = equil_pop02(locrhoR,ZERO,ZERO,ZERO) + equil_pop02(locrhoB,ZERO,ZERO,ZERO)
+          feq(3) = equil_pop03(locrhoR,ZERO,ZERO,ZERO) + equil_pop03(locrhoB,ZERO,ZERO,ZERO)
+          feq(4) = equil_pop04(locrhoR,ZERO,ZERO,ZERO) + equil_pop04(locrhoB,ZERO,ZERO,ZERO)
+          feq(5) = equil_pop05(locrhoR,ZERO,ZERO,ZERO) + equil_pop05(locrhoB,ZERO,ZERO,ZERO)
+          feq(6) = equil_pop06(locrhoR,ZERO,ZERO,ZERO) + equil_pop06(locrhoB,ZERO,ZERO,ZERO)
+          feq(7) = equil_pop07(locrhoR,ZERO,ZERO,ZERO) + equil_pop07(locrhoB,ZERO,ZERO,ZERO)
+          feq(8) = equil_pop08(locrhoR,ZERO,ZERO,ZERO) + equil_pop08(locrhoB,ZERO,ZERO,ZERO)
+          feq(9) = equil_pop09(locrhoR,ZERO,ZERO,ZERO) + equil_pop09(locrhoB,ZERO,ZERO,ZERO)
+          feq(10) = equil_pop10(locrhoR,ZERO,ZERO,ZERO) + equil_pop10(locrhoB,ZERO,ZERO,ZERO)
+          feq(11) = equil_pop11(locrhoR,ZERO,ZERO,ZERO) + equil_pop11(locrhoB,ZERO,ZERO,ZERO)
+          feq(12) = equil_pop12(locrhoR,ZERO,ZERO,ZERO) + equil_pop12(locrhoB,ZERO,ZERO,ZERO)
+          feq(13) = equil_pop13(locrhoR,ZERO,ZERO,ZERO) + equil_pop13(locrhoB,ZERO,ZERO,ZERO)
+          feq(14) = equil_pop14(locrhoR,ZERO,ZERO,ZERO) + equil_pop14(locrhoB,ZERO,ZERO,ZERO)
+          feq(15) = equil_pop15(locrhoR,ZERO,ZERO,ZERO) + equil_pop15(locrhoB,ZERO,ZERO,ZERO)
+          feq(16) = equil_pop16(locrhoR,ZERO,ZERO,ZERO) + equil_pop16(locrhoB,ZERO,ZERO,ZERO)
+          feq(17) = equil_pop17(locrhoR,ZERO,ZERO,ZERO) + equil_pop17(locrhoB,ZERO,ZERO,ZERO)
+          feq(18) = equil_pop18(locrhoR,ZERO,ZERO,ZERO) + equil_pop18(locrhoB,ZERO,ZERO,ZERO)
+
           
           do l=0,links
             e_dot_psi=dex(l)*psix + dey(l)*psiy + dez(l)*psiz
@@ -3630,8 +3587,9 @@
             else
               cosphi=e_dot_psi/temp
             endif
-            temp=beta_CG*locrhoR*locrhoB*cosphi/(rhosum**TWO)
-            fsum=fluidR(i,j,k,l) + fluidB(i,j,k,l)
+            
+            temp = beta_CG*locrhoR*locrhoB*cosphi/(rhosum**TWO)
+            fsum = fdum(l)
             fluidR(i,j,k,l)=fsum*locrhoR/rhosum + temp*feq(l)
             fluidB(i,j,k,l)=fsum*locrhoB/rhosum - temp*feq(l)
           enddo
@@ -3639,9 +3597,6 @@
       enddo
     enddo
   enddo
-  
-  return
-  
  end subroutine collision_fluids_CG
  
  subroutine driver_bc_pop_selfcomm(lparticles)
@@ -4308,6 +4263,7 @@
          if (isfluid(i,j,k)==1) then
            if (locrhor < MINDENS) locrhor = MINDENS
            if (locrhob < MINDENS) locrhob = MINDENS
+
            rhoR(i,j,k) = locrhor
            rhoB(i,j,k) = locrhob
            weight_RB = ONE / (locrhor + locrhob)
@@ -6695,6 +6651,13 @@ if(mod(nstep,1)==0)then
   !  enddo
   ! endif
 
+#ifdef DEBUG_N2P
+  mynamefile = 'output/' // 'debugN2P-f_atm' // write_fmtnumb(iatm)//'.step'//write_fmtnumb(nstep) // '.txt'
+  open(unit=111,file=trim(mynamefile),status='replace',action='write')
+
+  mynamefile = 'output/' // 'debugN2P-t_atm' // write_fmtnumb(iatm)//'.step'//write_fmtnumb(nstep) // '.txt'
+  open(unit=112,file=trim(mynamefile),status='replace',action='write')
+#endif
   
   if(lsingle_fluid)then
     do l=1,nspheres
@@ -6730,18 +6693,6 @@ if(mod(nstep,1)==0)then
         !  endif
         ! endif
       endif
-
-      if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. k>=minz .and. k<=maxz)then
-        call particle_to_node_bounce_back_bc2_phase1(lrotate,nstep,i,j,k,fluidR, debug,iatm)
-      endif
-
-      !the fluid bounce back is local so I have to do it
-      if(i/=ii.or.j/=jj.or.k/=kk)then
-       if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. kk>=minz .and. kk<=maxz)then
-          call particle_to_node_bounce_back_bc2_phase1(lrotate,nstep,ii,jj,kk,fluidR, debug,iatm)
-        endif
-      endif
-
     enddo
   else
     do l=1,nspheres
@@ -6765,10 +6716,8 @@ if(mod(nstep,1)==0)then
       endif
 
       if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. k>=minz .and. k<=maxz)then
-        call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
-           otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,fluidR, debug,iatm, A, l)
-        call node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rtemp, &
-           otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoB,fluidB, debug,iatm, A, l)
+        call node_to_particle_bounce_back_bc2_2fl(lrotate,nstep,i,j,k,rtemp, &
+           otemp,vx,vy,vz,fx,fy,fz,tx,ty,tz,rhoR,rhoB,fluidR,fluidB, .false.,iatm, A, l)
 
         ! if (debug) then
         !  if(lrotate) then
@@ -6780,23 +6729,6 @@ if(mod(nstep,1)==0)then
         !  endif
         ! endif
       endif
-
-      if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. k>=minz .and. k<=maxz)then
-        call particle_to_node_bounce_back_bc2_phase1(lrotate,nstep,i,j,k, &
-         fluidR, debug,iatm)
-        call particle_to_node_bounce_back_bc2_phase1(lrotate,nstep,i,j,k, &
-         fluidB, debug,iatm)
-      endif
-
-      !the fluid bounce back is local so I have to do it
-      if(i/=ii.or.j/=jj.or.k/=kk)then
-       if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. kk>=minz .and. kk<=maxz)then
-          call particle_to_node_bounce_back_bc2_phase1(lrotate,nstep,ii,jj,kk, &
-           fluidR, debug,iatm)
-          call particle_to_node_bounce_back_bc2_phase1(lrotate,nstep,ii,jj,kk, &
-           fluidB, debug,iatm)
-        endif
-      endif
       
     enddo
   endif
@@ -6806,9 +6738,14 @@ if(mod(nstep,1)==0)then
   !   close(iounit(l))
   !  enddo
   ! endif
+
+#ifdef DEBUG_N2P
+  close(111)
+  close(112)
+#endif  
  end subroutine particle_bounce_back
 
- subroutine particle_bounce_back_phase2(debug, nstep,iatm,lown,lrotate,isub,jsub,ksub,nspheres, &
+ subroutine particle_bounce_back_phase1(debug, nstep,iatm,lown,lrotate,isub,jsub,ksub,nspheres, &
   spherelists,spheredists,rdimx,rdimy,rdimz,xx,yy,zz,vx,vy,vz,&
   fx,fy,fz, A, ox,oy,oz,tx,ty,tz)
 
@@ -6909,6 +6846,148 @@ if(mod(nstep,1)==0)then
 
 
       if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. k>=minz .and. k<=maxz)then
+        call particle_to_node_bounce_back_bc2_phase1(lrotate,nstep,i,j,k, fluidR, debug,iatm)
+      endif
+
+      !the fluid bounce back is local so I have to do it
+      if(i/=ii.or.j/=jj.or.k/=kk)then
+       if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. kk>=minz .and. kk<=maxz)then
+          call particle_to_node_bounce_back_bc2_phase1(lrotate,nstep,ii,jj,kk, fluidR, debug,iatm)
+        endif
+      endif
+
+    enddo
+  else
+    do l=1,nspheres
+      i=isub+spherelists(1,l)
+      j=jsub+spherelists(2,l)
+      k=ksub+spherelists(3,l)
+      ii=i
+      jj=j
+      kk=k
+      !apply periodic conditions if necessary
+      i=pimage(ixpbc,i,nx)
+      j=pimage(iypbc,j,ny)
+      k=pimage(izpbc,k,nz)
+
+      if(lrotate)then
+        rtemp(1)=real(ii,kind=PRC)-xx
+        rtemp(2)=real(jj,kind=PRC)-yy
+        rtemp(3)=real(kk,kind=PRC)-zz
+        modr=modulvec(rtemp)
+        rtemp(1:3)=rdimx/modr*rtemp(1:3)
+      endif
+
+      if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. k>=minz .and. k<=maxz)then
+        call particle_to_node_bounce_back_bc2_phase1(lrotate,nstep,i,j,k, fluidR, debug,iatm)
+        call particle_to_node_bounce_back_bc2_phase1(lrotate,nstep,i,j,k, fluidB, debug,iatm)
+      endif
+
+      !the fluid bounce back is local so I have to do it
+      if(i/=ii.or.j/=jj.or.k/=kk)then
+       if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. kk>=minz .and. kk<=maxz)then
+          call particle_to_node_bounce_back_bc2_phase1(lrotate,nstep,ii,jj,kk, fluidR, debug,iatm)
+          call particle_to_node_bounce_back_bc2_phase1(lrotate,nstep,ii,jj,kk, fluidB, debug,iatm)
+        endif
+      endif
+
+    enddo
+  endif
+
+  ! if (debug) then
+  !  do l=1,3
+  !   close(iounit(l))
+  !  enddo
+  ! endif
+ end subroutine particle_bounce_back_phase1
+
+ subroutine particle_bounce_back_phase2(debug, nstep,iatm,lown,lrotate,isub,jsub,ksub,nspheres, &
+  spherelists,spheredists,rdimx,rdimy,rdimz,xx,yy,zz,vx,vy,vz, ox,oy,oz)
+
+!***********************************************************************
+!
+!     LBsoft subroutine to initialize isfluid and hydrodynamic
+!     variables according to the particle presence
+!
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
+!     author: M. Lauricella
+!     last modification November 2018
+!
+!***********************************************************************
+
+  implicit none
+
+  logical, intent(in) :: lown,lrotate, debug
+  integer, intent(in) :: nstep,iatm,isub,jsub,ksub,nspheres
+  integer, allocatable, dimension(:,:), intent(in) :: spherelists
+  real(kind=PRC), allocatable, dimension(:), intent(in) :: spheredists
+  real(kind=PRC), intent(in) :: rdimx,rdimy,rdimz
+  real(kind=PRC), intent(in) :: xx,yy,zz
+  real(kind=PRC), intent(in) :: vx,vy,vz
+  real(kind=PRC), intent(in), optional :: ox,oy,oz
+
+  integer :: i,j,k,l,ii,jj,kk
+  integer, save :: imin,imax,jmin,jmax,kmin,kmax
+  logical, save :: lfirst=.true.
+  real(kind=PRC) :: vxt,vyt,vzt,modr,ftx,fty,ftz
+  real(kind=PRC), dimension(3) :: rtemp,otemp,ftemp
+
+  character(len=120) :: mynamefile
+
+
+
+
+  if(lfirst)then
+    lfirst=.false.
+    imin=minx-1
+    imax=maxx+1
+    jmin=miny-1
+    jmax=maxy+1
+    kmin=minz-1
+    kmax=maxz+1
+  endif
+
+  if(lrotate)then
+    otemp(1)=ox
+    otemp(2)=oy
+    otemp(3)=oz
+  endif
+
+
+  ! if (debug) then
+  !  do l=1,3
+  !   mynamefile=repeat(' ',120)
+  !   mynamefile="forceInt_phase2.atom"//write_fmtnumb(iatm)//'.step'//write_fmtnumb(l)
+  !   iounit(l) = 113 + l
+  !   call OpenLogFile(nstep, mynamefile, iounit(l))
+  !  enddo
+  ! endif
+
+
+  if(lsingle_fluid)then
+    do l=1,nspheres
+      i=isub+spherelists(1,l)
+      j=jsub+spherelists(2,l)
+      k=ksub+spherelists(3,l)
+      ii=i
+      jj=j
+      kk=k
+
+      !apply periodic conditions if necessary
+      i=pimage(ixpbc,i,nx)
+      j=pimage(iypbc,j,ny)
+      k=pimage(izpbc,k,nz)
+
+      if(lrotate)then
+        rtemp(1)=real(ii,kind=PRC)-xx
+        rtemp(2)=real(jj,kind=PRC)-yy
+        rtemp(3)=real(kk,kind=PRC)-zz
+        modr=modulvec(rtemp)
+        rtemp(1:3)=rdimx/modr*rtemp(1:3)
+      endif
+
+
+      if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. k>=minz .and. k<=maxz)then
         call particle_to_node_bounce_back_bc2_phase2(lrotate,nstep,i,j,k,rtemp, &
          otemp,vx,vy,vz,rhoR,fluidR, debug,iatm)
       endif
@@ -6944,19 +7023,15 @@ if(mod(nstep,1)==0)then
       endif
 
       if(i>=minx .and. i<=maxx .and. j>=miny .and. j<=maxy .and. k>=minz .and. k<=maxz)then
-        call particle_to_node_bounce_back_bc2_phase2(lrotate,nstep,i,j,k,rtemp, &
-         otemp,vx,vy,vz,rhoR,fluidR, debug,iatm)
-        call particle_to_node_bounce_back_bc2_phase2(lrotate,nstep,i,j,k,rtemp, &
-         otemp,vx,vy,vz,rhoB,fluidB, debug,iatm)
+        call particle_to_node_bounce_back_bc2_phase2_2fl(lrotate,nstep,i,j,k,rtemp, &
+         otemp,vx,vy,vz,rhoR,rhoB,fluidR,fluidB, debug,iatm)
       endif
 
       !the fluid bounce back is local so I have to do it
       if(i/=ii.or.j/=jj.or.k/=kk)then
        if(ii>=minx .and. ii<=maxx .and. jj>=miny .and. jj<=maxy .and. kk>=minz .and. kk<=maxz)then
-          call particle_to_node_bounce_back_bc2_phase2(lrotate,nstep,ii,jj,kk,rtemp, &
-           otemp,vx,vy,vz,rhoR,fluidR, debug,iatm)
-          call particle_to_node_bounce_back_bc2_phase2(lrotate,nstep,ii,jj,kk,rtemp, &
-           otemp,vx,vy,vz,rhoB,fluidB, debug,iatm)
+          call particle_to_node_bounce_back_bc2_phase2_2fl(lrotate,nstep,ii,jj,kk,rtemp, &
+           otemp,vx,vy,vz,rhoR,rhoB,fluidR,fluidB, debug,iatm)
         endif
       endif
 
@@ -6970,6 +7045,13 @@ if(mod(nstep,1)==0)then
   ! endif
  end subroutine particle_bounce_back_phase2
 
+ pure function linear(i,j,k)
+    integer, intent(in) :: i,j,k      
+    integer :: linear
+
+    linear = i*100**2 + j*100 + k
+  end function linear
+  
  subroutine node_to_particle_bounce_back_bc2(lrotate,nstep,i,j,k,rversor, &
    otemp,vxs,vys,vzs,fx,fy,fz,tx,ty,tz,rhosub,fluidsub, debug,iatm, A, l)
  
@@ -7069,10 +7151,15 @@ if(mod(nstep,1)==0)then
       ftemp(1) = f2p*dex(indhig)
       ftemp(2) = f2p*dey(indhig)
       ftemp(3) = f2p*dez(indhig)
+
 #ifndef DEBUG_FORCEINT
       fx = fx + ftemp(1)
       fy = fy + ftemp(2)
       fz = fz + ftemp(3)
+      ! Double prec accumulator
+      myf(1,iatm) = myf(1,iatm) + ftemp(1)
+      myf(2,iatm) = myf(2,iatm) + ftemp(2)
+      myf(3,iatm) = myf(3,iatm) + ftemp(3)
 #else
       A(iatm, l, 1) = A(iatm, l, 1) + ftemp(1)
       A(iatm, l, 2) = A(iatm, l, 2) + ftemp(2)
@@ -7083,10 +7170,15 @@ if(mod(nstep,1)==0)then
         ttemp(1) = xcross(rtemp,ftemp) * abs(dex(indhig))
         ttemp(2) = ycross(rtemp,ftemp) * abs(dey(indhig))
         ttemp(3) = zcross(rtemp,ftemp) * abs(dez(indhig))
+
 #ifndef DEBUG_FORCEINT
         tx = tx + ttemp(1)
         ty = ty + ttemp(2)
         tz = tz + ttemp(3)
+        ! Double prec accumulator
+        myt(1,iatm) = myt(1,iatm) + ttemp(1)
+        myt(2,iatm) = myt(2,iatm) + ttemp(2)
+        myt(3,iatm) = myt(3,iatm) + ttemp(3)
 #else
         A(iatm, l, 4) = A(iatm, l, 4) + ttemp(1)
         A(iatm, l, 5) = A(iatm, l, 5) + ttemp(2)
@@ -7146,6 +7238,10 @@ if(mod(nstep,1)==0)then
       fx = fx + ftemp(1)
       fy = fy + ftemp(2)
       fz = fz + ftemp(3)
+      ! Double prec accumulator
+      myf(1,iatm) = myf(1,iatm) + ftemp(1)
+      myf(2,iatm) = myf(2,iatm) + ftemp(2)
+      myf(3,iatm) = myf(3,iatm) + ftemp(3)
 #else
       A(iatm, l, 1) = A(iatm, l, 1) + ftemp(1)
       A(iatm, l, 2) = A(iatm, l, 2) + ftemp(2)
@@ -7156,10 +7252,15 @@ if(mod(nstep,1)==0)then
         ttemp(1) = xcross(rtemp,ftemp) * abs(dex(indlow))
         ttemp(2) = ycross(rtemp,ftemp) * abs(dey(indlow))
         ttemp(3) = zcross(rtemp,ftemp) * abs(dez(indlow))
+
 #ifndef DEBUG_FORCEINT
         tx = tx + ttemp(1)
         ty = ty + ttemp(2)
         tz = tz + ttemp(3)
+        ! Double prec accumulator
+        myt(1,iatm) = myt(1,iatm) + ttemp(1)
+        myt(2,iatm) = myt(2,iatm) + ttemp(2)
+        myt(3,iatm) = myt(3,iatm) + ttemp(3)
 #else
         A(iatm, l, 4) = A(iatm, l, 4) + ttemp(1)
         A(iatm, l, 5) = A(iatm, l, 5) + ttemp(2)
@@ -7180,6 +7281,376 @@ if(mod(nstep,1)==0)then
  enddo
   
  end subroutine node_to_particle_bounce_back_bc2
+
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+ subroutine node_to_particle_bounce_back_bc2_2fl(lrotate,nstep,i,j,k,rversor, &
+  otemp,vxs,vys,vzs,fx,fy,fz,tx,ty,tz,rhosub,rhosubB,fluidsub,fluidsubB, debug,iatm, A, l)
+
+!***********************************************************************
+!     
+!     LBsoft subroutine to apply the bounce back of the fluid 
+!     on a particle surface node including the pbc
+!     
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
+!     author: M. Lauricella
+!     last modification November 2018
+!     
+!***********************************************************************
+
+ implicit none
+ 
+ logical, intent(in) :: lrotate, debug
+ integer, intent(in) :: nstep,i,j,k,iatm, l
+ real(kind=PRC), intent(in) :: vxs,vys,vzs
+ real(kind=PRC), intent(in), dimension(3) :: rversor,otemp
+
+#ifdef QUAD_FORCEINT
+ real(kind=PRC*2), intent(inout) :: fx,fy,fz
+ real(kind=PRC*2), intent(inout) :: tx,ty,tz
+#else
+ real(kind=PRC), intent(inout) :: fx,fy,fz
+ real(kind=PRC), intent(inout) :: tx,ty,tz
+#endif
+
+ real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub, rhosubB
+ real(kind=PRC), allocatable :: fluidsub(:,:,:,:)
+ real(kind=PRC), allocatable :: fluidsubB(:,:,:,:)
+ 
+ real(kind=PRC), parameter :: onesixth=ONE/SIX
+ real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
+ real(kind=PRC) :: f2p,vx,vy,vz,f2pR,f2pB
+ real(kind=PRC), dimension(3) :: rtemp,ftemp, ttemp
+ 
+ integer :: ii,jj,kk,io,jo,ko, iloop,indlow,indhig
+
+#ifdef QUAD_FORCEINT
+ real(kind=PRC*2), allocatable, dimension(:,:,:) :: A
+#else
+ real(kind=PRC), allocatable, dimension(:,:,:) :: A
+#endif
+
+
+ ttemp = ZERO
+ 
+ vx=vxs
+ vy=vys
+ vz=vzs
+ rtemp=rversor
+ 
+ !force on particle fx fy fz
+ !eq. 11.2 from page 437 Kruger's book "the lattice boltzmann method"
+   
+do iloop = 1, 9
+ 
+ indlow = iloop*2 - 1
+ indhig = iloop*2
+
+
+ ii=i+ex(indlow)
+ jj=j+ey(indlow)
+ kk=k+ez(indlow)
+!  ii=pimage(ixpbc,ii,nx)
+!  jj=pimage(iypbc,jj,ny)
+!  kk=pimage(izpbc,kk,nz)
+
+ io=i+ex(indhig)
+ jo=j+ey(indhig)
+ ko=k+ez(indhig)
+!  io=pimage(ixpbc,io,nx)
+!  jo=pimage(iypbc,jo,ny)
+!  ko=pimage(izpbc,ko,nz)
+
+ if(ii>=minx-1 .and. ii<=maxx+1 .and. jj>=miny-1 .and. jj<=maxy+1 .and. &
+  kk>=minz-1 .and. kk<=maxz+1)then
+   if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
+    ko>=minz-1 .and. ko<=maxz+1)then
+
+ if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
+     if(lrotate)then
+       rtemp=rversor
+       rtemp(1)=rtemp(1)+HALF*dex(indlow)
+       rtemp(2)=rtemp(2)+HALF*dey(indlow)
+       rtemp(3)=rtemp(3)+HALF*dez(indlow)
+       vx=vxs+xcross(otemp,rtemp)
+       vy=vys+ycross(otemp,rtemp)
+       vz=vzs+zcross(otemp,rtemp)
+     endif
+
+     f2pR = TWO * fluidsub(ii,jj,kk,indhig)- &
+      p(indhig)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(indhig)*vx+ &
+      dey(indhig)*vy+dez(indhig)*vz)
+
+     f2pB = TWO * fluidsubB(ii,jj,kk,indhig)- &
+      p(indhig)*pref_bouzidi*rhosubB(ii,jj,kk)*(dex(indhig)*vx+ &
+      dey(indhig)*vy+dez(indhig)*vz)
+
+     f2p = f2pR + f2pB
+
+     ftemp(1) = f2p*dex(indhig)
+     ftemp(2) = f2p*dey(indhig)
+     ftemp(3) = f2p*dez(indhig)
+     
+#ifdef DEBUG_N2P
+     write(111, 200) linear(ii,jj,kk),indhig, ftemp(1),ftemp(2),ftemp(3)
+     200    format(2I8,' ', 3F20.15)
+#endif     
+
+#ifndef DEBUG_FORCEINT
+     fx = fx + ftemp(1)
+     fy = fy + ftemp(2)
+     fz = fz + ftemp(3)
+     ! Double prec accumulator
+     myf(1,iatm) = myf(1,iatm) + ftemp(1)
+     myf(2,iatm) = myf(2,iatm) + ftemp(2)
+     myf(3,iatm) = myf(3,iatm) + ftemp(3)
+#else
+     A(iatm, l, 1) = A(iatm, l, 1) + ftemp(1)
+     A(iatm, l, 2) = A(iatm, l, 2) + ftemp(2)
+     A(iatm, l, 3) = A(iatm, l, 3) + ftemp(3)
+#endif
+
+     if(lrotate)then
+       ttemp(1) = xcross(rtemp,ftemp) * abs(dex(indhig))
+       ttemp(2) = ycross(rtemp,ftemp) * abs(dey(indhig))
+       ttemp(3) = zcross(rtemp,ftemp) * abs(dez(indhig))
+       
+#ifdef DEBUG_N2P
+       write(112,200) linear(ii,jj,kk), indhig, ttemp(1),ttemp(2),ttemp(3)
+#endif       
+      
+#ifndef DEBUG_FORCEINT
+       tx = tx + ttemp(1)
+       ty = ty + ttemp(2)
+       tz = tz + ttemp(3)
+       ! Double prec accumulator
+       myt(1,iatm) = myt(1,iatm) + ttemp(1)
+       myt(2,iatm) = myt(2,iatm) + ttemp(2)
+       myt(3,iatm) = myt(3,iatm) + ttemp(3)
+#else
+       A(iatm, l, 4) = A(iatm, l, 4) + ttemp(1)
+       A(iatm, l, 5) = A(iatm, l, 5) + ttemp(2)
+       A(iatm, l, 6) = A(iatm, l, 6) + ttemp(3)
+#endif
+     endif
+
+     ! if (debug) then
+     !   write (iounit(2),*) __FILE__,9466, pimage(ixpbc,ii,nx),&
+     !       pimage(iypbc,jj,ny),pimage(izpbc,kk,nz), "pop=", indlow,indhig, &
+     !       "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p, &
+     !       "pop",fluidsub(ii,jj,kk,indhig), "rho",rhosub(ii,jj,kk), &
+     !       "v", vx,vy,vz, vxs,vys,vzs
+     ! endif
+   endif
+ endif
+ endif
+
+
+ ii=i+ex(indhig)
+ jj=j+ey(indhig)
+ kk=k+ez(indhig)
+!  ii=pimage(ixpbc,ii,nx)
+!  jj=pimage(iypbc,jj,ny)
+!  kk=pimage(izpbc,kk,nz)
+
+ io=i+ex(indlow)
+ jo=j+ey(indlow)
+ ko=k+ez(indlow)
+!  io=pimage(ixpbc,io,nx)
+!  jo=pimage(iypbc,jo,ny)
+!  ko=pimage(izpbc,ko,nz)
+
+ if(ii>=minx-1 .and. ii<=maxx+1 .and. jj>=miny-1 .and. jj<=maxy+1 .and. &
+  kk>=minz-1 .and. kk<=maxz+1)then
+   if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
+    ko>=minz-1 .and. ko<=maxz+1)then
+
+ if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
+     if(lrotate)then
+       rtemp=rversor
+       rtemp(1)=rtemp(1)+HALF*dex(indhig)
+       rtemp(2)=rtemp(2)+HALF*dey(indhig)
+       rtemp(3)=rtemp(3)+HALF*dez(indhig)
+       vx=vxs+xcross(otemp,rtemp)
+       vy=vys+ycross(otemp,rtemp)
+       vz=vzs+zcross(otemp,rtemp)
+     endif
+
+     f2pR = TWO * fluidsub(ii,jj,kk,indlow) - &
+      p(indlow)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(indlow)*vx+dey(indlow)*vy+dez(indlow)*vz)
+
+     f2pB = TWO * fluidsubB(ii,jj,kk,indlow) - &
+      p(indlow)*pref_bouzidi*rhosubB(ii,jj,kk)*(dex(indlow)*vx+dey(indlow)*vy+dez(indlow)*vz)
+
+     f2p = f2pR + f2pB
+
+     ftemp(1) = f2p*dex(indlow)
+     ftemp(2) = f2p*dey(indlow)
+     ftemp(3) = f2p*dez(indlow)
+     
+#ifdef DEBUG_N2P
+     write(111,200) linear(ii,jj,kk), indlow, ftemp(1),ftemp(2),ftemp(3)
+#endif
+
+#ifndef DEBUG_FORCEINT
+     fx = fx + ftemp(1)
+     fy = fy + ftemp(2)
+     fz = fz + ftemp(3)
+     ! Double prec accumulator
+     myf(1,iatm) = myf(1,iatm) + ftemp(1)
+     myf(2,iatm) = myf(2,iatm) + ftemp(2)
+     myf(3,iatm) = myf(3,iatm) + ftemp(3)
+#else
+     A(iatm, l, 1) = A(iatm, l, 1) + ftemp(1)
+     A(iatm, l, 2) = A(iatm, l, 2) + ftemp(2)
+     A(iatm, l, 3) = A(iatm, l, 3) + ftemp(3)
+#endif
+
+     if(lrotate)then
+       ttemp(1) = xcross(rtemp,ftemp) * abs(dex(indlow))
+       ttemp(2) = ycross(rtemp,ftemp) * abs(dey(indlow))
+       ttemp(3) = zcross(rtemp,ftemp) * abs(dez(indlow))
+       
+#ifdef DEBUG_N2P
+       write(112,200) linear(ii,jj,kk), indlow, ttemp(1),ttemp(2),ttemp(3)
+#endif       
+      
+#ifndef DEBUG_FORCEINT
+       tx = tx + ttemp(1)
+       ty = ty + ttemp(2)
+       tz = tz + ttemp(3)
+       ! Double prec accumulator
+       myt(1,iatm) = myt(1,iatm) + ttemp(1)
+       myt(2,iatm) = myt(2,iatm) + ttemp(2)
+       myt(3,iatm) = myt(3,iatm) + ttemp(3)       
+#else
+       A(iatm, l, 4) = A(iatm, l, 4) + ttemp(1)
+       A(iatm, l, 5) = A(iatm, l, 5) + ttemp(2)
+       A(iatm, l, 6) = A(iatm, l, 6) + ttemp(3)
+#endif
+     endif
+
+     ! if (debug) then
+     !   write (iounit(2),*) __FILE__,9538, pimage(ixpbc,ii,nx),&
+     !       pimage(iypbc,jj,ny),pimage(izpbc,kk,nz), "pop=", indhig,indlow, &
+     !       "ftemp=", ftemp, "ttemp=", ttemp, "f2p", f2p, &
+     !       "pop",fluidsub(ii,jj,kk,indlow), "rho",rhosub(ii,jj,kk), &
+     !       "v", vx,vy,vz, vxs,vys,vzs
+     ! endif
+   endif
+ endif
+ endif
+enddo
+ 
+end subroutine node_to_particle_bounce_back_bc2_2fl
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+subroutine readCudaAccum(nstepmax)
+  implicit none
+  integer, intent(in)   :: nstepmax
+  character(len = 120)  :: string
+  integer               :: nIter, i, itest
+  real(kind=PRC)        :: x,y,z
+
+#define REALFXB  
+#ifdef REALFXB
+  write (*,*) "skipping fxb.cuda"
+  return
+#endif
+
+  open(unit=11, file='fxb.cuda', status='old', form='FORMATTED', action='read', iostat=itest)
+  if (itest/=0) then
+    write (*,*) "fxb.cuda] Error opening file. STOP"
+    stop
+  endif
+
+  ! Number of iterations
+  read(11, *) nIter
+  if (nstepmax/=nIter) then
+    write (*,*) "fxb.cuda] mismatch in nIter. STOP"
+    stop
+  endif
+  write (*,*) "fxb.cuda] Iter=", nIter
+  
+  do i = 1, nIter
+    read(11,*) itest, x,y,z
+    cudaf(1:3, i) = [ x, y, z ]
+    write (*,*) "fxb.cuda] x,y,z=", x,y,z, cudaf(1:3,i)
+    if (itest /= i) then
+      write (*,*) "fxb.cuda] Error in row ",i,". STOP"
+      stop
+    endif
+  enddo
+  close(11)
+
+
+  open(unit=11, file='txb.cuda', status='old', form='FORMATTED', action='read', iostat=itest)
+  if (itest/=0) then
+    write (*,*) "txb.cuda] Error opening file. STOP"
+    stop
+  endif
+
+  ! Number of iterations
+  read(11, *) nIter
+  if (nstepmax/=nIter) then
+    write (*,*) "txb.cuda] mismatch in nIter. STOP"
+    stop
+  endif
+  write (*,*) "txb.cuda] Iter=", nIter
+
+  do i = 1, nIter
+    read(11,*) itest, x,y,z
+    cudat(1:3, i) = [ x, y, z ]
+    write (*,*) "txb.cuda] x,y,z=", x,y,z, cudat(1:3,i)
+    if (itest /= i) then
+      write (*,*) "txb.cuda] Error in row ",i,". STOP"
+      stop
+    endif
+  enddo
+  close(11)
+end subroutine
+
+ subroutine DoublePrecAccum(nstep, iatm, lrotate, fx,fy,fz,tx,ty,tz)
+  implicit none
+  integer, intent(in) :: nstep, iatm
+  logical, intent(in) :: lrotate
+  real(kind=PRC), intent(inout) :: fx,fy,fz
+  real(kind=PRC), intent(inout) :: tx,ty,tz
+
+
+
+#ifdef REALFXB
+  fx = myf(1,iatm)
+  fy = myf(2,iatm)
+  fz = myf(3,iatm)
+
+  if(lrotate)then
+    tx = myt(1,iatm)
+    ty = myt(2,iatm)
+    tz = myt(3,iatm)
+  endif
+#else
+  fx = cudaf(1,nstep)
+  fy = cudaf(2,nstep)
+  fz = cudaf(3,nstep)
+
+  if(lrotate)then
+    tx = cudat(1,nstep)
+    ty = cudat(2,nstep)
+    tz = cudat(3,nstep)
+  endif
+#endif    
+ end subroutine DoublePrecAccum
+
+ subroutine ZeroDoublePrecAccum(lrotate)
+  implicit none
+  logical, intent(in) :: lrotate
+
+  myf(:,:) = 0.0  
+  
+  if(lrotate)then
+    myt(:,:) = 0.0
+  endif
+ end subroutine ZeroDoublePrecAccum
  
  subroutine node_to_particle_bounce_back_bc(lrotate,nstep,i,j,k,rversor, &
    otemp,vxs,vys,vzs,fx,fy,fz,tx,ty,tz,rhosub,fluidsub)
@@ -7891,43 +8362,23 @@ if(mod(nstep,1)==0)then
    kk>=minz-1 .and. kk<=maxz+1)then
     if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
      ko>=minz-1 .and. ko<=maxz+1)then
+
        if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
+#ifdef DEBUG_P2N
+        write(*,*) 'p2n1]',linear(ii,jj,kk), indhig, linear(i,j,k), indlow
+#endif
 	      fluidsub(i,j,k,indlow) = fluidsub(ii,jj,kk,indhig)
-           ! if (debug) then
-           !   write (iounit(3),*) __FILE__,__LINE__, ii,jj,kk, "pop=", indlow,indhig, &
-           !       "pop now",fluidsub(ii,jj,kk,indhig), "@",i,j,k
-           ! endif
+       endif
+
+       if(isfluid(ii,jj,kk)/=1 .and. isfluid(io,jo,ko)==1)then
+#ifdef DEBUG_P2N
+        write(*,*) 'p2n1]',linear(io,jo,ko), indlow, linear(i,j,k), indhig
+#endif
+	      fluidsub(i,j,k,indhig) = fluidsub(io,jo,ko,indlow)
        endif
     endif
   endif
 
-  ii=i+ex(indhig)
-  jj=j+ey(indhig)
-  kk=k+ez(indhig)
-!  ii=pimage(ixpbc,ii,nx)
-!  jj=pimage(iypbc,jj,ny)
-!  kk=pimage(izpbc,kk,nz)
-
-  io=i+ex(indlow)
-  jo=j+ey(indlow)
-  ko=k+ez(indlow)
-!  io=pimage(ixpbc,io,nx)
-!  jo=pimage(iypbc,jo,ny)
-!  ko=pimage(izpbc,ko,nz)
-
-  if(ii>=minx-1 .and. ii<=maxx+1 .and. jj>=miny-1 .and. jj<=maxy+1 .and. &
-   kk>=minz-1 .and. kk<=maxz+1)then
-    if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
-     ko>=minz-1 .and. ko<=maxz+1)then
-       if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
-	      fluidsub(i,j,k,indhig) = fluidsub(ii,jj,kk,indlow)
-	      ! if (debug) then
-              !   write (iounit(3),*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
-              !    "pop now",fluidsub(ii,jj,kk,indlow), "@",i,j,k
-              ! endif
-       endif
-    endif
-  endif
  enddo
   
  end subroutine particle_to_node_bounce_back_bc2_phase1
@@ -8058,6 +8509,150 @@ if(mod(nstep,1)==0)then
  enddo
 
  end subroutine particle_to_node_bounce_back_bc2_phase2
+
+ subroutine particle_to_node_bounce_back_bc2_phase2_2fl(lrotate,nstep,i,j,k,rversor, &
+  otemp,vxs,vys,vzs,rhosub,rhosubB,fluidsub,fluidsubB, debug,iatm)
+
+!***********************************************************************
+!
+!     LBsoft subroutine to apply the bounce back of the fluid due to
+!     the particle surface
+!
+!     licensed under the 3-Clause BSD License (BSD-3-Clause)
+!     author: M. Lauricella
+!     last modification November 2018
+!
+!***********************************************************************
+
+ implicit none
+
+ logical, intent(in) :: lrotate, debug
+ integer, intent(in) :: nstep,i,j,k,iatm
+ real(kind=PRC), intent(in) :: vxs,vys,vzs
+ real(kind=PRC), intent(in), dimension(3) :: rversor,otemp
+ real(kind=PRC), allocatable, dimension(:,:,:)  :: rhosub,rhosubB
+ real(kind=PRC), allocatable :: fluidsub(:,:,:,:)
+ real(kind=PRC), allocatable :: fluidsubB(:,:,:,:)
+
+ real(kind=PRC), parameter :: onesixth=ONE/SIX
+ real(kind=PRC), parameter :: pref_bouzidi=TWO/cssq
+
+ integer :: ii,jj,kk,io,jo,ko, iloop,indlow,indhig
+ real(kind=PRC) :: vx,vy,vz, f2pR, f2pB
+ real(kind=PRC), dimension(3) :: rtemp
+
+ vx=vxs
+ vy=vys
+ vz=vzs
+ rtemp=rversor
+
+
+ !moving walls bounce-back approach
+ !from page 180 Kruger's book "the lattice boltzmann method"
+ !NOTE de[x,y,z]=zero eliminated
+
+do iloop = 1, 9
+
+ indlow = iloop*2 - 1
+ indhig = iloop*2
+
+
+ ii=i+ex(indlow)
+ jj=j+ey(indlow)
+ kk=k+ez(indlow)
+!  ii=pimage(ixpbc,ii,nx)
+!  jj=pimage(iypbc,jj,ny)
+!  kk=pimage(izpbc,kk,nz)
+
+ io=i+ex(indhig)
+ jo=j+ey(indhig)
+ ko=k+ez(indhig)
+!  io=pimage(ixpbc,io,nx)
+!  jo=pimage(iypbc,jo,ny)
+!  ko=pimage(izpbc,ko,nz)
+
+ if(ii>=minx-1 .and. ii<=maxx+1 .and. jj>=miny-1 .and. jj<=maxy+1 .and. &
+  kk>=minz-1 .and. kk<=maxz+1)then
+   if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
+    ko>=minz-1 .and. ko<=maxz+1)then
+      if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
+         if(lrotate)then
+           rtemp=rversor
+           rtemp(1)=rtemp(1)+HALF*dex(indlow)
+           rtemp(2)=rtemp(2)+HALF*dey(indlow)
+           rtemp(3)=rtemp(3)+HALF*dez(indlow)
+           vx=vxs+xcross(otemp,rtemp)
+           vy=vys+ycross(otemp,rtemp)
+           vz=vzs+zcross(otemp,rtemp)
+         endif
+         f2pR = p(indhig)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(indhig)*vx+dey(indhig)*vy+dez(indhig)*vz)
+         fluidsub(i,j,k,indlow)= fluidsub(i,j,k,indlow) - f2pR
+          
+         f2pB = p(indhig)*pref_bouzidi*rhosubB(ii,jj,kk)*(dex(indhig)*vx+dey(indhig)*vy+dez(indhig)*vz)
+         fluidsubB(i,j,k,indlow)= fluidsubB(i,j,k,indlow) - f2pB
+
+#ifdef DEBUG_P2N
+         write(*,*) 'R+B p2nx]', linear(ii,jj,kk), indhig, f2pR, f2pB
+#endif         
+
+          ! if (debug) then
+          !   write (iounit(3),*) __FILE__,__LINE__, ii,jj,kk, "pop=", indlow,indhig, &
+          !       "rho",rhosub(ii,jj,kk), &
+          !       "->pop low", fluidsub(i,j,k,indlow),i,j,k
+          ! endif
+      endif
+   endif
+ endif
+
+ ii=i+ex(indhig)
+ jj=j+ey(indhig)
+ kk=k+ez(indhig)
+!  ii=pimage(ixpbc,ii,nx)
+!  jj=pimage(iypbc,jj,ny)
+!  kk=pimage(izpbc,kk,nz)
+
+ io=i+ex(indlow)
+ jo=j+ey(indlow)
+ ko=k+ez(indlow)
+!  io=pimage(ixpbc,io,nx)
+!  jo=pimage(iypbc,jo,ny)
+!  ko=pimage(izpbc,ko,nz)
+
+ if(ii>=minx-1 .and. ii<=maxx+1 .and. jj>=miny-1 .and. jj<=maxy+1 .and. &
+  kk>=minz-1 .and. kk<=maxz+1)then
+   if(io>=minx-1 .and. io<=maxx+1 .and. jo>=miny-1 .and. jo<=maxy+1 .and. &
+    ko>=minz-1 .and. ko<=maxz+1)then
+      if(isfluid(ii,jj,kk)==1 .and. isfluid(io,jo,ko)/=1)then
+         if(lrotate)then
+           rtemp=rversor
+           rtemp(1)=rtemp(1)+HALF*dex(indhig)
+           rtemp(2)=rtemp(2)+HALF*dey(indhig)
+           rtemp(3)=rtemp(3)+HALF*dez(indhig)
+           vx=vxs+xcross(otemp,rtemp)
+           vy=vys+ycross(otemp,rtemp)
+           vz=vzs+zcross(otemp,rtemp)
+         endif
+         f2pR = p(indlow)*pref_bouzidi*rhosub(ii,jj,kk)*(dex(indlow)*vx+dey(indlow)*vy+dez(indlow)*vz)
+         fluidsub(i,j,k,indhig) = fluidsub(i,j,k,indhig) - f2pR
+
+         f2pB = p(indlow)*pref_bouzidi*rhosubB(ii,jj,kk)*(dex(indlow)*vx+dey(indlow)*vy+dez(indlow)*vz)
+         fluidsubB(i,j,k,indhig) = fluidsubB(i,j,k,indhig) - f2pB
+
+#ifdef DEBUG_P2N
+         write(*,*) 'R+B p2nx]', linear(ii,jj,kk), indlow, f2pR, f2pB
+#endif         
+          
+         ! if (debug) then
+         !    write (iounit(3),*) __FILE__,__LINE__, ii,jj,kk, "pop=", indhig,indlow, &
+         !        "rho",rhosub(ii,jj,kk), &
+         !        "->pop high", fluidsub(i,j,k,indhig),i,j,k
+         !  endif
+      endif
+   endif
+ endif
+enddo
+
+end subroutine particle_to_node_bounce_back_bc2_phase2_2fl
 
  subroutine particle_to_node_bounce_back_bc(lrotate,nstep,i,j,k,rversor, &
    otemp,vxs,vys,vzs,rhosub,fluidsub)
@@ -8754,6 +9349,14 @@ if(mod(nstep,1)==0)then
             ftemp(2)=(rhoR(i,j,k)+rhoB(i,j,k))*v(i,j,k)
             ftemp(3)=(rhoR(i,j,k)+rhoB(i,j,k))*w(i,j,k)
           endif
+
+#ifdef DEBUG_MKRM
+          countrm = countrm + 1
+          write(111,*) 'rm-fl]', linear(i,j,k), ftemp(1),ftemp(2),ftemp(3)
+          ! write(*,*) 'myrm]', linear(i,j,k), u(i,j,k),v(i,j,k),w(i,j,k)
+          ! write(*,*) 'myrm]', linear(i,j,k), rhoR(i,j,k),rhoB(i,j,k)
+#endif
+
 #ifndef DEBUG_FORCEINT
           fx(iatm)=fx(iatm) + ftemp(1)
           fy(iatm)=fy(iatm) + ftemp(2)
@@ -8768,6 +9371,11 @@ if(mod(nstep,1)==0)then
               ttemp(1) = xcross(rtemp,ftemp)
               ttemp(2) = ycross(rtemp,ftemp)
               ttemp(3) = zcross(rtemp,ftemp)
+
+#ifdef DEBUG_MKRM
+          write(112,*) 'rm-fl-tqx]', linear(i,j,k), ttemp(1),ttemp(2),ttemp(3)
+#endif
+
 #ifndef DEBUG_FORCEINT
               tx(iatm)=tx(iatm) + ttemp(1)
               ty(iatm)=ty(iatm) + ttemp(2)
@@ -9542,6 +10150,11 @@ if(mod(nstep,1)==0)then
             ftemp(1)= -(Rsum+Bsum)*myu
             ftemp(2)= -(Rsum+Bsum)*myv
             ftemp(3)= -(Rsum+Bsum)*myw
+#ifdef DEBUG_MKRM
+            countmk = countmk + 1
+            write(111,*) 'mk-fl]', linear(i,j,k), ftemp(1),ftemp(2),ftemp(3)
+#endif
+
 #ifndef DEBUG_FORCEINT
             fx(iatm)=fx(iatm) + ftemp(1)
             fy(iatm)=fy(iatm) + ftemp(2)
@@ -9556,6 +10169,11 @@ if(mod(nstep,1)==0)then
               ttemp(1) = xcross(rtemp,ftemp)
               ttemp(2) = ycross(rtemp,ftemp)
               ttemp(3) = zcross(rtemp,ftemp)
+
+#ifdef DEBUG_MKRM
+              write(112,*) 'mk-fl-tqx]', linear(i,j,k), ttemp(1),ttemp(2),ttemp(3)
+#endif
+
 #ifndef DEBUG_FORCEINT
               tx(iatm)=tx(iatm) + ttemp(1)
               ty(iatm)=ty(iatm) + ttemp(2)
@@ -9618,6 +10236,12 @@ if(mod(nstep,1)==0)then
             ftemp(1)=-(Rsum+Bsum)*myu
             ftemp(2)=-(Rsum+Bsum)*myv
             ftemp(3)=-(Rsum+Bsum)*myw
+
+#ifdef DEBUG_MKRM
+            countmk = countmk + 1
+            write(111,*) 'mk-fl2]', linear(i,j,k), ftemp(1),ftemp(2),ftemp(3)
+#endif
+
 #ifndef DEBUG_FORCEINT
             fx(iatm)=fx(iatm) + ftemp(1)
             fy(iatm)=fy(iatm) + ftemp(2)
@@ -9632,6 +10256,11 @@ if(mod(nstep,1)==0)then
               ttemp(1) = xcross(rtemp,ftemp)
               ttemp(2) = ycross(rtemp,ftemp)
               ttemp(3) = zcross(rtemp,ftemp)
+
+#ifdef DEBUG_MKRM
+              write(112,*) 'mk-fl2-tqx]', linear(i,j,k), ttemp(1),ttemp(2),ttemp(3)
+#endif
+
 #ifndef DEBUG_FORCEINT
               tx(iatm)=tx(iatm) + ttemp(1)
               ty(iatm)=ty(iatm) + ttemp(2)
@@ -10261,7 +10890,7 @@ if(mod(nstep,1)==0)then
         do k=minz,maxz
           do j=miny,maxy
             do i=minx,maxx
-              if(dabs(fluidsub(i,j,k,l)-dtemp2(i,j,k,l))>1.d-9)then
+              if(abs(fluidsub(i,j,k,l)-dtemp2(i,j,k,l))>1.d-9)then
                 ltest(1)=.true.
                 goto 125
               endif
@@ -10809,37 +11438,36 @@ if(mod(nstep,1)==0)then
   integer :: i,j,k,l, iosub1
 
 
+  ! if (filenam(1:5) /= 'step_') return
+  
   mynamefile=repeat(' ',120)
-  mynamefile=trim(filenam)//write_fmtnumb(itersub)//'.'//write_fmtnumb(idrank)//'.dat'
+  mynamefile='output/'//trim(filenam)//write_fmtnumb(itersub)//'.'//write_fmtnumb(idrank)//'.dat'
   open(unit=iosub, file=trim(mynamefile), status='replace')
 
   mynamefile1=repeat(' ',120)
-  mynamefile1=trim(filenam)//write_fmtnumb(itersub)//'.'//write_fmtnumb(idrank)//'.dat1'
+  mynamefile1='output/'//trim(filenam)//write_fmtnumb(itersub)//'.'//write_fmtnumb(idrank)//'.dat1'
   iosub1 = iosub + 1
   open(unit=iosub1,file=trim(mynamefile1),status='replace')
 
-  do k=minz-1,maxz+1
-    do j=miny-1,maxy+1
-      do i=minx-1,maxx+1
+  do k=minz,maxz
+    do j=miny,maxy
+      do i=minx,maxx
           do l=0,links
-!!                        1,2,3,4,  5,                  6
-            write(iosub,*)i,j,k,l,fluidR(i,j,k,l),fluidB(i,j,k,l)
+!!                               1,2,3,4,   5,               6
+            write(iosub,fmt=200) i,j,k,l,fluidR(i,j,k,l),fluidB(i,j,k,l)
+200    format(4I5,' ', 2F20.15)
           enddo
         
-!!                        1,2,3, 4,          5,          6,          
-          write(iosub1,*) i,j,k, rhoR(i,j,k),rhoB(i,j,k),u(i,j,k), &
-!!              7,       8,       9,                  
-                v(i,j,k),w(i,j,k),isfluid(i,j,k), &
-!!              10,        11,        12,         13,        14,        15,                        
-                fuR(i,j,k),fvR(i,j,k),fwR(i,j,k), fuB(i,j,k),fvB(i,j,k),fwB(i,j,k), &
-!!              16,          17,         18                        
-                psiR(i,j,k), psiB(i,j,k),new_isfluid(i,j,k)
+!!                        1,2,3,          4,          5,            6
+          write(iosub1,fmt=201) i,j,k, rhoR(i,j,k),rhoB(i,j,k), isfluid(i,j,k)
+201    format(3I5,' ', 2F20.15, I2)
+
       enddo
     enddo
   enddo
 
   close(iosub)
-  close(iosub1)
+  ! close(iosub1)
 
  end subroutine print_all_pops2
 
@@ -11432,7 +12060,7 @@ if(mod(nstep,1)==0)then
   implicit none
   
   integer, intent(in) :: iotest,nn
-  double precision, intent(in), dimension(nn) :: myvar1d
+  real(kind=PRC), intent(in), dimension(nn) :: myvar1d
   integer, intent(out) :: E_IO
   
   integer :: ii
@@ -11462,7 +12090,7 @@ if(mod(nstep,1)==0)then
   implicit none
   
   integer, intent(in) :: iotest,nn
-  double precision, intent(in), dimension(nn) :: myvar00,myvar01, &
+  real(kind=PRC), intent(in), dimension(nn) :: myvar00,myvar01, &
    myvar02,myvar03,myvar04,myvar05,myvar06,myvar07,myvar08,myvar09, &
    myvar10,myvar11,myvar12,myvar13,myvar14,myvar15,myvar16,myvar17, &
    myvar18

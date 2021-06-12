@@ -513,7 +513,7 @@
     do i=1,nistatmax
       if(istat(i).ne.0)exit
     enddo
-    call warning(2,dble(i))
+    call warning(2,real(i,kind=PRC))
     ltest=.true.
   endif
 
@@ -1196,7 +1196,7 @@
     do i=1,nistatmax
       if(istat(i).ne.0)exit
     enddo
-    call warning(2,dble(i))
+    call warning(2,real(i,kind=PRC))
      ltest=.true.
    endif
    call or_world_larr(ltest,1)
@@ -4112,7 +4112,14 @@
       new_isfluid(i,j,k)= fvalue
   enddo
  end subroutine fill_new_isfluid_inlist
- 
+
+ pure function linear(i,j,k)
+ integer, intent(in) :: i,j,k      
+ integer :: linear
+
+ linear = i*100**2 + j*100 + k
+end function linear
+
 !******************START PART TO MANAGE THE COPY WALL*******************
 
  subroutine compute_densities_wall(nstep,lsingle_fluid,rhoR,rhoB)
@@ -4230,10 +4237,10 @@
                  jshift=j+eyd3q27(l)
                  kshift=k+ezd3q27(l)
                  if(isfluid(ishift,jshift,kshift)==1)then
-                   dsum1=dsum1+pd3q27(l)*rhoR(ishift,jshift,kshift)
+                  dsum1=dsum1+pd3q27(l)*rhoR(ishift,jshift,kshift)
                   dsum2=dsum2+pd3q27(l)*rhoB(ishift,jshift,kshift)
                   isum=isum+pd3q27(l)
-                 endif
+                 endif                 
                enddo
                if(isum==ZERO .and. isfluid(i,j,k)==2)then
                  dsum1=ZERO

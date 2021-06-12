@@ -51,7 +51,8 @@
                    compute_sc_particle_interact_phase1, &
                    compute_sc_particle_interact_phase2, &
                    driver_bc_densities, driver_bc_psi, &
-                   particle_bounce_back_phase2, fixPops
+                   particle_bounce_back_phase1, particle_bounce_back_phase2, fixPops, &
+                   DoublePrecAccum, ZeroDoublePrecAccum, print_all_pops2, countmk, countrm
  implicit none
  
  private
@@ -1024,7 +1025,7 @@
     do i=1,nistatmax
       if(istat(i).ne.0)exit
     enddo
-    call warning(2,dble(i))
+    call warning(2,real(i,kind=PRC))
     ltest=.true.
   endif
 
@@ -1285,7 +1286,7 @@
     do i=1,nistatmax
       if(istat(i).ne.0)exit
     enddo
-    call warning(2,dble(i))
+    call warning(2,real(i,kind=PRC))
     ltest=.true.
   endif
 
@@ -1647,7 +1648,7 @@
         dmio(1)=q1(i)
         dmio(2)=q2(i)
         dmio(3)=q3(i)
-        call eul2q(dmio(1),dmio(3),dmio(2),qs)
+        call eul2q(dmio(1),dmio(3),dmio(2),qs)        
         q0(i)=qs(0)
         q1(i)=qs(1)
         q2(i)=qs(2)
@@ -1930,7 +1931,7 @@
  end subroutine sortSumm
 
 
- subroutine apply_particle_bounce_back(nstep, debug)
+ subroutine apply_particle_bounce_back(nstep, debug, debug1)
  
 !***********************************************************************
 !     
@@ -1945,7 +1946,7 @@
  
   implicit none
   integer, intent(in) :: nstep
-  logical, intent(in) :: debug
+  logical, intent(in) :: debug, debug1
   integer :: myi, iatm,i,j,k,itype
   real(kind=PRC) :: myrot(9),oat(0:3),qtemp(0:3),qversor(0:3), tempconj(0:3)
 
@@ -1968,14 +1969,16 @@
     fzb(iatm)=ZERO
   enddo
   
-   if (lrotate)then
+  call ZeroDoublePrecAccum(lrotate)
+  
+  if (lrotate)then
    do iatm=1,natms_tot
     txb(iatm)=ZERO
     tyb(iatm)=ZERO
     tzb(iatm)=ZERO
    enddo
 
-  do myi=1,natms_ext
+   do myi=1,natms_ext
     iatm = atmbook(myi)
 
     i=nint(xxx(iatm))
@@ -2000,9 +2003,11 @@
      vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm), forceInt, oat(1),oat(2),oat(3), &
      txb(iatm),tyb(iatm),tzb(iatm))
-  enddo
-else
-  do myi=1,natms_ext
+
+     call DoublePrecAccum(nstep, iatm, lrotate, fxb(iatm),fyb(iatm),fzb(iatm), txb(iatm),tyb(iatm),tzb(iatm))
+    enddo
+  else
+   do myi=1,natms_ext
     iatm = atmbook(myi)
 
     i=nint(xxx(iatm))
@@ -2016,10 +2021,57 @@ else
      xxx(iatm),yyy(iatm),zzz(iatm), &
      vxx(iatm),vyy(iatm),vzz(iatm), &
      fxb(iatm),fyb(iatm),fzb(iatm), forceInt)
+   enddo
+  endif
+
+if (debug1) call print_all_pops2(131, "partBB_n2p_", nstep)
+
+if (lrotate)then
+  do myi=1,natms_ext
+    iatm = atmbook(myi)
+
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    itype=ltype(iatm)
+    !transform oxx oyy ozz from body ref to world ref
+    qtemp(0)=q0(iatm)
+    qtemp(1)=q1(iatm)
+    qtemp(2)=q2(iatm)
+    qtemp(3)=q3(iatm)
+    qversor(0)=ZERO
+    qversor(1)=oxx(iatm)
+    qversor(2)=oyy(iatm)
+    qversor(3)=ozz(iatm)
+    tempconj = qconj(qtemp)
+    oat=qtrimult(qtemp,qversor,tempconj)
+
+    call particle_bounce_back_phase1(debug, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
+     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
+     xxx(iatm),yyy(iatm),zzz(iatm), &
+     vxx(iatm),vyy(iatm),vzz(iatm), &
+     fxb(iatm),fyb(iatm),fzb(iatm), forceInt, oat(1),oat(2),oat(3), &
+     txb(iatm),tyb(iatm),tzb(iatm))
+  enddo
+else
+  do myi=1,natms_ext
+    iatm = atmbook(myi)
+
+    i=nint(xxx(iatm))
+    j=nint(yyy(iatm))
+    k=nint(zzz(iatm))
+    itype=ltype(iatm)
+    call particle_bounce_back_phase1(debug, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
+     spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
+     xxx(iatm),yyy(iatm),zzz(iatm), &
+     vxx(iatm),vyy(iatm),vzz(iatm), &
+     fxb(iatm),fyb(iatm),fzb(iatm), forceInt)
   enddo
 endif
 
-   if (lrotate)then
+if (debug1) call print_all_pops2(131, "partBB_p2n1_", nstep)
+
+if (lrotate)then
   do myi=1,natms_ext
     iatm = atmbook(myi)
 
@@ -2042,9 +2094,7 @@ endif
     call particle_bounce_back_phase2(debug, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
-     vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxb(iatm),fyb(iatm),fzb(iatm), forceInt, oat(1),oat(2),oat(3), &
-     txb(iatm),tyb(iatm),tzb(iatm))
+     vxx(iatm),vyy(iatm),vzz(iatm), oat(1),oat(2),oat(3))
   enddo
 else
   do myi=1,natms_ext
@@ -2057,10 +2107,9 @@ else
     call particle_bounce_back_phase2(debug, nstep,iatm,myi<=natms, lrotate,i,j,k,nsphere, &
      spherelist,spheredist,rdimx(itype),rdimy(itype),rdimz(itype), &
      xxx(iatm),yyy(iatm),zzz(iatm), &
-     vxx(iatm),vyy(iatm),vzz(iatm), &
-     fxb(iatm),fyb(iatm),fzb(iatm), forceInt)
+     vxx(iatm),vyy(iatm),vzz(iatm) )
   enddo
-  endif
+endif
 
   ! Fix where pops>0
   do myi=1,natms_ext
@@ -2073,7 +2122,6 @@ else
     call fixPops(debug, nstep, i,j,k, nsphere,spherelist)
   enddo
 
-  
 #ifdef DEBUG_FORCEINT
   call sortSumm(fxb,fyb,fzb, txb,tyb,tzb, "presort.atom", debug, nstep)
 #endif
@@ -2175,18 +2223,38 @@ else
   integer, intent(in) :: nstep
   logical, intent(in) :: debug
   integer :: iatm, myi
+  character(len=120) :: fnameFull
   
   ! if (debug) call OpenLogFile(nstep, "force_particle_bb", 118)
+
+
+  100 format (A,I8, 3G20.7)
+  101 format (A,I8, 3G20.7, I8)
+  102 format (A, 3I8)
 
   !f(t) = (f(t+1/2)+f(t-1/2))/2
   do myi=1,natms
     iatm = atmbook(myi)
     ! if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "f old=", fxx(iatm),fyy(iatm),fzz(iatm), &
     !     "fb old=", fxbo(iatm),fybo(iatm),fzbo(iatm)
+
+#ifdef DEBUG_FORCES
+    fnameFull = 'output/' // 'debugForces_atm' // write_fmtnumb(iatm)//'_step'//write_fmtnumb(nstep) // '.txt'
+    open(unit=111,file=trim(fnameFull),status='replace',action='write')
+    write(111,100) 'fxBx] step:', nstep, fxx(iatm),fyy(iatm),fzz(iatm)
+#endif    
+    
     fxx(iatm)=fxx(iatm)+(fxb(iatm)+fxbo(iatm))*HALF
     fyy(iatm)=fyy(iatm)+(fyb(iatm)+fybo(iatm))*HALF
     fzz(iatm)=fzz(iatm)+(fzb(iatm)+fzbo(iatm))*HALF
+
+#ifdef DEBUG_FORCES
+    write(111,100) 'fxx ] step:', nstep, fxx(iatm),fyy(iatm),fzz(iatm)
+    write(111,100) 'fxb ] step:', nstep, fxb(iatm),fyb(iatm),fzb(iatm)
+    write(111,100) 'fxbo] step:', nstep, fxbo(iatm),fybo(iatm),fzbo(iatm)
     ! if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "f new=", fxx(iatm),fyy(iatm),fzz(iatm)
+    close(111)
+#endif
   enddo
   
   do myi=1,natms
@@ -2196,7 +2264,9 @@ else
     fzbo(iatm)=fzb(iatm)
   enddo
   
-  if(.not. lrotate)return
+  if(.not. lrotate) then
+    return
+  endif
   
 !  forall(iatm=1:natms,abs(txb(iatm))>0.1d0)txb(iatm)=txb(iatm)/abs(txb(iatm))*0.1d0
 !  forall(iatm=1:natms,abs(tyb(iatm))>0.1d0)tyb(iatm)=tyb(iatm)/abs(tyb(iatm))*0.1d0
@@ -2205,12 +2275,29 @@ else
   !f(t) = (f(t+1/2)+f(t-1/2))/2
   do myi=1,natms
     iatm = atmbook(myi)
+    
     tqx(iatm)=tqx(iatm)+(txb(iatm)+txbo(iatm))*HALF
     tqy(iatm)=tqy(iatm)+(tyb(iatm)+tybo(iatm))*HALF
     tqz(iatm)=tqz(iatm)+(tzb(iatm)+tzbo(iatm))*HALF
+
+#ifdef DEBUG_FORCES
+    fnameFull = 'output/' // 'debugForces_atm' // write_fmtnumb(iatm)//'_step'//write_fmtnumb(nstep) // '.txt'
+    open(unit=111,file=trim(fnameFull),status='old',position='append')
+
+    write(111,100) 'tqx ] step:', nstep, tqx(iatm),tqy(iatm),tqz(iatm)
+    write(111,100) 'txb ] step:', nstep, txb(iatm),tyb(iatm),tzb(iatm)
+    write(111,100) 'txbo] step:', nstep, txbo(iatm),tybo(iatm),tzbo(iatm)
+    write(111,101) 'partPos:', nstep, xxx(iatm),yyy(iatm),zzz(iatm)
+    close(111)
+
+    if (countmk+countrm>0) write(111,102) 'countmk, countrm=', nstep, countmk, countrm
+#endif
+    countmk = 0; countrm = 0
+
     ! if (debug) write (118,*) __FILE__,__LINE__, "iatm=", iatm, "t", tqx(iatm),tqy(iatm),tqz(iatm), &
     !     "to", txbo(iatm),tybo(iatm),tzbo(iatm)
   enddo
+
   ! if (debug) close(118)
   
   do myi=1,natms
@@ -2251,6 +2338,34 @@ else
     call GlobalSum
 #endif  
 
+! Fixed Particles....
+#ifdef FIXED_PARTICLES
+  do myi=1, natms_ext
+    iatm = atmbook(myi)
+
+    fxx(iatm) = 0
+    fyy(iatm) = 0
+    fzz(iatm) = 0
+
+    vxx(iatm) = 0
+    vyy(iatm) = 0
+    vzz(iatm) = 0
+
+    fxb(iatm) = 0
+    fyb(iatm) = 0
+    fzb(iatm) = 0
+    fxbo(iatm) = 0
+    fybo(iatm) = 0
+    fzbo(iatm) = 0
+
+    if(lrotate)then
+    txb(iatm) = 0
+    tyb(iatm) = 0
+    tzb(iatm) = 0
+    endif
+  enddo
+#endif
+  
 #ifdef LOGFORCES
   call LogForces("mergeforce", nstep)
 #endif
@@ -2377,6 +2492,7 @@ else
   integer, intent(in) :: nstep
   logical, intent(in) :: debug
   integer             :: i,myi
+  character(len=120) :: mynamefile
   
 !  write (400+idrank,*) "nstep",nstep
 !  do myi=1,natms_ext
@@ -2398,6 +2514,14 @@ else
   call driver_bc_new_isfluid
   ! FAB] End Needed for MPI
      
+#ifdef DEBUG_MKRM
+  mynamefile = 'output/' // 'debugRM-f_' // trim(write_fmtnumb(nstep)) // '.txt'
+  open(unit=111,file=trim(mynamefile),status='replace',action='write')
+
+  mynamefile = 'output/' // 'debugRM-t_' // trim(write_fmtnumb(nstep)) // '.txt'
+  open(unit=112,file=trim(mynamefile),status='replace',action='write')
+#endif  
+
 #ifdef DEBUG_FORCEINT
   forceInt(:,:,:) = ZERO
   call particle_delete_fluids(debug, nstep,natms_ext,atmbook,nsphere, &
@@ -2425,6 +2549,11 @@ else
   endif
 #endif
 
+#ifdef DEBUG_MKRM
+  close(111)
+  close(112)
+#endif
+
 #ifdef LOGFORCES
   call LogForces("particle_delete_fluids", nstep)
 #endif  
@@ -2446,7 +2575,16 @@ else
   implicit none
   integer, intent(in) :: nstep
   logical, intent(in) :: lparticles, debug
-  
+  character(len=120) :: mynamefile
+
+#ifdef DEBUG_MKRM
+  mynamefile = 'output/' // 'debugMK-f_' // trim(write_fmtnumb(nstep)) // '.txt'
+  open(unit=111,file=trim(mynamefile),status='replace',action='write')
+
+  mynamefile = 'output/' // 'debugMK-t_' // trim(write_fmtnumb(nstep)) // '.txt'
+  open(unit=112,file=trim(mynamefile),status='replace',action='write')
+#endif
+
 #ifdef DEBUG_FORCEINT
   forceInt(:,:,:) = ZERO
 
@@ -2471,6 +2609,11 @@ else
      spherelist,spheredist,nspheredead,spherelistdead,lmove,lrotate, &
      ltype,xxx,yyy,zzz,vxx,vyy,vzz,fxx,fyy,fzz,tqx,tqy,tqz,xxo,yyo,zzo, &
      rdimx,rdimy,rdimz)
+#endif
+
+#ifdef DEBUG_MKRM
+  close(111)
+  close(112)
 #endif
 
 #ifdef LOGFORCES
@@ -2813,7 +2956,7 @@ else
             ibig(1)=max(ilentry,ibig(1))
             write(1006,fmt=1006) __FILE__,__LINE__, nstep, iatm,jatm,ilentry,rsq,rsqcut
             call flush(1006)
-1006 format (A,I6, " step=",I4," iatm=",I4," jatm=",I4, 3I5,X)
+1006 format (A,I6, " step=",I4," iatm=",I4," jatm=",I4, I5, 2F20.12,X)
             exit
           else
             ! if (debug) write(300,fmt=1003) jatm, dists(1),dists(2),dists(3)
@@ -3982,7 +4125,7 @@ else
     do i=1,nfailmax
       if(fail(i).ne.0)exit
     enddo
-    call warning(2,dble(i))
+    call warning(2,real(i,kind=PRC))
     ltest=.true.
   endif
 
@@ -4016,6 +4159,7 @@ else
 ! move atoms by leapfrog algorithm    
     do myi=1,natms
       i = atmbook(myi)
+
 !     update velocities       
       bxx(i)=vxx(i)+tstepatm*rmass(ltype(i))*fxx(i)
       byy(i)=vyy(i)+tstepatm*rmass(ltype(i))*fyy(i)
@@ -4089,7 +4233,7 @@ else
 ! periodic boundary condition
   call pbc_images_centered(imcon,natms,cell,cx,cy,cz,xxx,yyy,zzz)
     
-! restore free atom half step velocity   
+! restore free atom half step velocity
   do myi=1,natms
     i = atmbook(myi)
     ! if (debug) write (118,*) __FILE__,__LINE__, "iatm=", i, "xyz", xxx(i),yyy(i),zzz(i)
@@ -4107,7 +4251,7 @@ else
     engrotbuff(1)=ZERO
     
 #ifdef SVANBERG
-    call rot_midstep_impl_lf(engrotbuff(1))
+    call rot_midstep_impl_lf(nstepsub, engrotbuff(1))
 #else
     call rot_fullstep_impl_lf(engrotbuff(1))
 #endif
@@ -4122,11 +4266,13 @@ else
  end subroutine nve_lf
 
  
- subroutine rot_midstep_impl_lf(engrotsum)
+ subroutine rot_midstep_impl_lf(nstep, engrotsum)
   implicit none
+  integer, intent(in) :: nstep
   real(kind=PRC), intent(inout) :: engrotsum
   integer :: i,itq,itype, myi
   real(kind=PRC), parameter :: onefive=real(1.5d0,kind=PRC)
+  character(len=120) :: fnameFull
   
 ! working variables
   real(kind=PRC) :: delx,dely,delz
@@ -4142,7 +4288,7 @@ else
   do myi=1,natms
       i = atmbook(myi)
       itype=ltype(i)
-      
+
       !current rotational matrix 
       call quat_2_rotmat(q0(i),q1(i),q2(i),q3(i),myrot)
       
@@ -4150,6 +4296,24 @@ else
       opx=oxx(i)
       opy=oyy(i)
       opz=ozz(i)
+
+      100 format (A,3G20.7)
+      101 format (A,4G20.7)
+      102 format (A,F6.0,G20.7)
+      200 format (A,4F20.8)
+
+#ifdef DEBUG_ROT
+      fnameFull='output/debugRot_'//write_fmtnumb(nstep)//'.txt'
+      open(unit=111, file=trim(fnameFull), status='replace')
+
+      write(111,101) 'rot1]tqx', tqx(i),tqy(i),tqz(i)
+      write(111,101) 'rot1]q',  q0(i),q1(i),q2(i),q3(i)
+      write(111,100) 'rot1]oxx', oxx(i),oyy(i),ozz(i)
+      write(111,100) 'rot1]rot13',  myrot(1:3)
+      write(111,100) 'rot1]rot46',  myrot(4:6)
+      write(111,100) 'rot1]rot79',  myrot(7:9)
+      write(111,100) 'rot1]rotinx', rotinx(itype),rotiny(itype),rotinz(itype)
+#endif      
       
 !     compute angular velocity increment of one step
       trx=(tqx(i)*myrot(1)+tqy(i)*myrot(4)+tqz(i)*myrot(7))/rotinx(itype)+ &
@@ -4158,6 +4322,10 @@ else
        (rotinz(itype)-rotinx(itype))*opz*opx/rotiny(itype)
       trz=(tqx(i)*myrot(3)+tqy(i)*myrot(6)+tqz(i)*myrot(9))/rotinz(itype)+ &
        (rotinx(itype)-rotiny(itype))*opx*opy/rotinz(itype)
+
+#ifdef DEBUG_ROT
+      write(111,100) 'rot1]tr',  trx,try,trz
+#endif      
       
       delx=tstepatm*trx
       dely=tstepatm*try
@@ -4179,6 +4347,9 @@ else
       dq1=( q0(i)*opx-q3(i)*opy+q2(i)*opz)*HALF
       dq2=( q3(i)*opx+q0(i)*opy-q1(i)*opz)*HALF
       dq3=(-q2(i)*opx+q1(i)*opy+q0(i)*opz)*HALF
+#ifdef DEBUG_ROT      
+      write(111,101) 'rot1]dq',  dq0,dq1,dq2,dq3
+#endif      
       
 !     update at t+1/2
       qn0=q0(i)+dq0*tstepatm*HALF
@@ -4252,18 +4423,23 @@ else
       q1(i)=q1(i)*rnorm
       q2(i)=q2(i)*rnorm
       q3(i)=q3(i)*rnorm
+      
+#ifdef DEBUG_ROT
+      write(111,101) 'rot2]q ',  q0(i),q1(i),q2(i),q3(i)
+      write(111,102) 'rot2]it',  real(itq), eps
+      write(111,200) 'rot2]x ',  take_rotversorx( q0(i),q1(i),q2(i),q3(i) )
+      close(111)
+#endif
+
     enddo
  end subroutine rot_midstep_impl_lf
 
  
- subroutine rot_fullstep_impl_lf(engrotsum)
- 
+ subroutine rot_fullstep_impl_lf(nstep, engrotsum)
   implicit none
-  
+  integer, intent(in) :: nstep
   real(kind=PRC), intent(inout) :: engrotsum
-  
   integer :: i,itq,itype
-  
   real(kind=PRC), parameter :: onefive=real(1.5d0,kind=PRC)
   
 ! working variables

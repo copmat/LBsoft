@@ -573,7 +573,7 @@
     do while(lredo)
       call getline(safe,inputunit,maxlen,redstring)
       if(.not.safe)then
-        call warning(1,dble(iline),redstring)
+        call warning(1,real(iline,kind=PRC),redstring)
         lerror5=.true.
       endif
       iline=iline+1
@@ -593,7 +593,7 @@
           do while(lredo2)
             call getline(safe,inputunit,maxlen,redstring)
             if(.not.safe)then
-              call warning(1,dble(iline),redstring)
+              call warning(1,real(iline,kind=PRC),redstring)
               lerror5=.true.
             endif
             iline=iline+1
@@ -619,7 +619,7 @@
                 elseif(findstring('d',directive,inumchar,maxlen))then
                   timjob=8.64d4*timjob
                 else
-                  call warning(1,dble(iline),redstring)
+                  call warning(1,real(iline,kind=PRC),redstring)
                   lerror6=.true.
                 endif
               endif
@@ -632,7 +632,7 @@
               elseif(findstring('no',directive,inumchar,maxlen))then
                 temp_ldiagnostic=.false.
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('decompos',directive,inumchar,maxlen))then
@@ -654,7 +654,7 @@
               elseif(findstring('no',directive,inumchar,maxlen))then
                 temp_lrestore=.false.
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('print',directive,inumchar,maxlen))then
@@ -694,7 +694,7 @@
                 elseif(findstring('no',directive,inumchar,maxlen))then
                   temp_lvtkfile=.false.
                 else
-                  call warning(1,dble(iline),redstring)
+                  call warning(1,real(iline,kind=PRC),redstring)
                   lerror6=.true.
                 endif
               elseif(findstring('xyz',directive,inumchar,maxlen))then
@@ -705,7 +705,7 @@
                 elseif(findstring('no',directive,inumchar,maxlen))then
                   temp_lxyzfile=.false.
                 else
-                  call warning(1,dble(iline),redstring)
+                  call warning(1,real(iline,kind=PRC),redstring)
                   lerror6=.true.
                 endif
               elseif(findstring('binary',directive,inumchar,maxlen))then
@@ -716,7 +716,7 @@
                 elseif(findstring('no',directive,inumchar,maxlen))then
                   temp_lbinary=.false.
                 else
-                  call warning(1,dble(iline),redstring)
+                  call warning(1,real(iline,kind=PRC),redstring)
                   lerror6=.true.
                 endif
               elseif(findstring('list',directive,inumchar,maxlen))then
@@ -745,7 +745,7 @@
                 printtime=real(intstr(directive,maxlen,inumchar),kind=PRC)
                 lprinttime=.true.
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('read',directive,inumchar,maxlen))then
@@ -755,11 +755,11 @@
                 elseif(findstring('no',directive,inumchar,maxlen))then
                   temp_lread_isfluid=.false.
                 else
-                  call warning(1,dble(iline),redstring)
+                  call warning(1,real(iline,kind=PRC),redstring)
                   lerror6=.true.
                 endif
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('bound',directive,inumchar,maxlen))then
@@ -769,7 +769,7 @@
                 temp_ibcy=intstr(directive,maxlen,inumchar)
                 temp_ibcz=intstr(directive,maxlen,inumchar)
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('test',directive,inumchar,maxlen))then
@@ -778,7 +778,7 @@
               elseif(findstring('no',directive,inumchar,maxlen))then
                 ltest_mode=.false.
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('steps',directive,inumchar,maxlen))then
@@ -800,7 +800,7 @@
               lredo=.false.
               lredo2=.false.
             else
-              call warning(1,dble(iline),redstring)
+              call warning(1,real(iline,kind=PRC),redstring)
               lerror6=.true.
             endif
           enddo
@@ -809,7 +809,7 @@
           do while(lredo2)
             call getline(safe,inputunit,maxlen,redstring)
             if(.not.safe)then
-             call warning(1,dble(iline),redstring)
+             call warning(1,real(iline,kind=PRC),redstring)
              lerror5=.true.
             endif
             iline=iline+1
@@ -832,7 +832,7 @@
                 elseif(findstring('no',directive,inumchar,maxlen))then
                   temp_lbc_halfway=.false.
                 else
-                  call warning(1,dble(iline),redstring)
+                  call warning(1,real(iline,kind=PRC),redstring)
                   lerror6=.true.
                 endif
               elseif(findstring('full',directive,inumchar,maxlen))then
@@ -841,11 +841,11 @@
                 elseif(findstring('no',directive,inumchar,maxlen))then
                   temp_lbc_fullway=.false.
                 else
-                  call warning(1,dble(iline),redstring)
+                  call warning(1,real(iline,kind=PRC),redstring)
                   lerror6=.true.
                 endif
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('bound',directive,inumchar,maxlen))then
@@ -863,7 +863,7 @@
                   elseif(findstring('flow',directive,inumchar,maxlen))then
                     dtemp_bc_flow_east=dblstr(directive,maxlen,inumchar)
                   else
-                    call warning(1,dble(iline),redstring)
+                    call warning(1,real(iline,kind=PRC),redstring)
                     lerror6=.true.
                   endif
                 elseif(findstring('west',directive,inumchar,maxlen))then
@@ -879,7 +879,7 @@
                   elseif(findstring('flow',directive,inumchar,maxlen))then
                     dtemp_bc_flow_west=dblstr(directive,maxlen,inumchar)
                   else
-                    call warning(1,dble(iline),redstring)
+                    call warning(1,real(iline,kind=PRC),redstring)
                     lerror6=.true.
                   endif
                 elseif(findstring('front',directive,inumchar,maxlen))then
@@ -895,7 +895,7 @@
                   elseif(findstring('flow',directive,inumchar,maxlen))then
                     dtemp_bc_flow_front=dblstr(directive,maxlen,inumchar)
                   else
-                    call warning(1,dble(iline),redstring)
+                    call warning(1,real(iline,kind=PRC),redstring)
                     lerror6=.true.
                   endif
                 elseif(findstring('rear',directive,inumchar,maxlen))then
@@ -911,7 +911,7 @@
                   elseif(findstring('flow',directive,inumchar,maxlen))then
                     dtemp_bc_flow_rear=dblstr(directive,maxlen,inumchar)
                   else
-                    call warning(1,dble(iline),redstring)
+                    call warning(1,real(iline,kind=PRC),redstring)
                     lerror6=.true.
                   endif
                 elseif(findstring('north',directive,inumchar,maxlen))then
@@ -927,7 +927,7 @@
                   elseif(findstring('flow',directive,inumchar,maxlen))then
                     dtemp_bc_flow_north=dblstr(directive,maxlen,inumchar)
                   else
-                    call warning(1,dble(iline),redstring)
+                    call warning(1,real(iline,kind=PRC),redstring)
                     lerror6=.true.
                   endif
                 elseif(findstring('south',directive,inumchar,maxlen))then
@@ -943,15 +943,15 @@
                   elseif(findstring('flow',directive,inumchar,maxlen))then
                     dtemp_bc_flow_south=dblstr(directive,maxlen,inumchar)
                   else
-                    call warning(1,dble(iline),redstring)
+                    call warning(1,real(iline,kind=PRC),redstring)
                     lerror6=.true.
                   endif
                 else
-                  call warning(1,dble(iline),redstring)
+                  call warning(1,real(iline,kind=PRC),redstring)
                   lerror6=.true.
                 endif
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('dens',directive,inumchar,maxlen))then
@@ -967,7 +967,7 @@
                 if(temp_nobjectliq>nmaxobjectliq)then
                   lerror5=.true.
                   lredo=.false.
-                  call warning(59,dble(nmaxobjectliq))
+                  call warning(59,real(nmaxobjectliq,kind=PRC))
                 endif
               elseif(findstring('back',directive,inumchar,maxlen))then
                 dtemp_backR=dblstr(directive,maxlen,inumchar)
@@ -977,7 +977,7 @@
                 if(itemp>nmaxobjectliq)then
                   lerror5=.true.
                   lredo=.false.
-                  call warning(60,dble(nmaxobjectliq))
+                  call warning(60,real(nmaxobjectliq,kind=PRC))
                 else
                   temp_lobjectdata(itemp)=.true.
                   temp_typeobjectliq(itemp)=2
@@ -996,7 +996,7 @@
                 if(itemp>nmaxobjectliq)then
                   lerror5=.true.
                   lredo=.false.
-                  call warning(60,dble(nmaxobjectliq))
+                  call warning(60,real(nmaxobjectliq,kind=PRC))
                 else
                   temp_lobjectdata(itemp)=.true.
                   temp_typeobjectliq(itemp)=1
@@ -1021,7 +1021,7 @@
               elseif(findstring('special',directive,inumchar,maxlen))then
                 temp_idistselect=4
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('veloc',directive,inumchar,maxlen))then
@@ -1030,7 +1030,7 @@
                 dtemp_initial_v=dblstr(directive,maxlen,inumchar)
                 dtemp_initial_w=dblstr(directive,maxlen,inumchar)
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('force',directive,inumchar,maxlen))then
@@ -1047,7 +1047,7 @@
                 !  dtemp_wallR_SC = dblstr(directive,maxlen,inumchar)
                 !  dtemp_wallB_SC = dblstr(directive,maxlen,inumchar)
                 else
-                  call warning(1,dble(iline),redstring)
+                  call warning(1,real(iline,kind=PRC),redstring)
                   lerror6=.true.
                 endif
               elseif(findstring('colo',directive,inumchar,maxlen))then
@@ -1069,18 +1069,18 @@
                     dtemp_beta_CG=dblstr(directive,maxlen,inumchar)
                     temp_lbeta_CG=.true.
                   else
-                    call warning(1,dble(iline),redstring)
+                    call warning(1,real(iline,kind=PRC),redstring)
                     lerror6=.true.
                   endif
                 else
-                  call warning(1,dble(iline),redstring)
+                  call warning(1,real(iline,kind=PRC),redstring)
                   lerror6=.true.
                 endif
               elseif(findstring('cap',directive,inumchar,maxlen))then
                 dtemp_cap_force=dblstr(directive,maxlen,inumchar)
                 temp_lcap_force=.true.
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('visc',directive,inumchar,maxlen))then
@@ -1098,7 +1098,7 @@
                 temp_densR_wetting = dblstr(directive,maxlen,inumchar)
                 temp_densB_wetting = dblstr(directive,maxlen,inumchar)
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('[end room',directive,inumchar,maxlen))then
@@ -1107,7 +1107,7 @@
               lredo=.false.
               lredo2=.false.
             else
-              call warning(1,dble(iline),redstring)
+              call warning(1,real(iline,kind=PRC),redstring)
               lerror6=.true.
             endif
           enddo
@@ -1117,7 +1117,7 @@
           do while(lredo2)
             call getline(safe,inputunit,maxlen,redstring)
             if(.not.safe)then
-             call warning(1,dble(iline),redstring)
+             call warning(1,real(iline,kind=PRC),redstring)
              lerror5=.true.
             endif
             iline=iline+1
@@ -1137,13 +1137,13 @@
                 if(temp_ntype>mxntype)then
                   lerror5=.true.
                   lredo=.false.
-                  call warning(39,dble(mxntype))
+                  call warning(39,real(mxntype,kind=PRC))
                 endif
                 temp_lparticlentype=.true.
                 do i=1,temp_ntype
                   call getline(safe,inputunit,maxlen,redstring)
                   if(.not.safe)then
-                    call warning(1,dble(iline),redstring)
+                    call warning(1,real(iline,kind=PRC),redstring)
                     lerror5=.true.
                     lredo=.false.
                     exit
@@ -1154,17 +1154,17 @@
                   if(redstring(1:1)=='#')then
                     lerror7=.true.
                     lredo=.false.
-                    call warning(37,dble(iline))
+                    call warning(37,real(iline,kind=PRC))
                     exit
                   elseif(redstring(1:1)=='!')then
                     lerror7=.true.
                     lredo=.false.
-                    call warning(37,dble(iline))
+                    call warning(37,real(iline,kind=PRC))
                     exit
                   elseif(redstring(1:1)==' ')then
                     lerror7=.true.
                     lredo=.false.
-                    call warning(37,dble(iline))
+                    call warning(37,real(iline,kind=PRC))
                     exit
                   else
                     call findwords(nwords,outwords,directive,maxlen)
@@ -1174,7 +1174,7 @@
                     else
                       lerror7=.true.
                       lredo=.false.
-                      call warning(37,dble(iline))
+                      call warning(37,real(iline,kind=PRC))
                       exit
                     endif
                   endif
@@ -1184,7 +1184,7 @@
               elseif(findstring('no',directive,inumchar,maxlen))then
                 temp_lparticles=.false.
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('shape',directive,inumchar,maxlen))then
@@ -1192,11 +1192,11 @@
                 itype=intstr(directive,maxlen,inumchar)
                 if(itype==0)then
                   call warning(43)
-                  call warning(1,dble(iline),redstring)
+                  call warning(1,real(iline,kind=PRC),redstring)
                   lerror5=.true.
                 elseif(itype>mxntype)then
-                  call warning(42,dble(mxntype))
-                  call warning(1,dble(iline),redstring)
+                  call warning(42,real(mxntype,kind=PRC))
+                  call warning(1,real(iline,kind=PRC),redstring)
                   lerror5=.true.
                 else
                   temp_ishape(itype)=0
@@ -1205,11 +1205,11 @@
                 endif
                 if(mod(dtemp_urdim(itype)-HALF,ONE)/=ZERO)then
                   call warning(30)
-                  call warning(31,dble(iline),redstring)
+                  call warning(31,real(iline,kind=PRC),redstring)
                   lerror5=.true.
                 endif
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('init',directive,inumchar,maxlen))then
@@ -1217,7 +1217,7 @@
                 temp_linit_temp=.true.
                 dtemp_init_temp=dblstr(directive,maxlen,inumchar)
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('densvar',directive,inumchar,maxlen))then
@@ -1235,7 +1235,7 @@
               elseif(findstring('no',directive,inumchar,maxlen))then
                 temp_lrotate=.false.
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
 !            elseif(findstring('velocity',directive,inumchar,maxlen))then
@@ -1245,22 +1245,22 @@
 !                elseif(findstring('no',directive,inumchar,maxlen))then
 !                  temp_lvv=.false.
 !                else
-!                  call warning(1,dble(iline),redstring)
+!                  call warning(1,real(iline,kind=PRC),redstring)
 !                  lerror6=.true.
 !                endif
 !              else
-!                call warning(1,dble(iline),redstring)
+!                call warning(1,real(iline,kind=PRC),redstring)
 !                lerror6=.true.
 !              endif
             elseif(findstring('mass',directive,inumchar,maxlen))then
               itype=intstr(directive,maxlen,inumchar)
               if(itype<=0)then
                 call warning(43)
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror5=.true.
               elseif(itype>mxntype)then
-                call warning(42,dble(mxntype))
-                call warning(1,dble(iline),redstring)
+                call warning(42,real(mxntype,kind=PRC))
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror5=.true.
               else
                 temp_lumass(itype)=.true.
@@ -1281,14 +1281,14 @@
                   dtemp_partR_SC = dblstr(directive,maxlen,inumchar)
                   dtemp_partB_SC = dblstr(directive,maxlen,inumchar)
                 else
-                  call warning(1,dble(iline),redstring)
+                  call warning(1,real(iline,kind=PRC),redstring)
                   lerror6=.true.
                 endif
               elseif(findstring('cap',directive,inumchar,maxlen))then
                 dtemp_cap_force_part=dblstr(directive,maxlen,inumchar)
                 temp_lcap_force_part=.true.
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('torque',directive,inumchar,maxlen))then
@@ -1297,7 +1297,7 @@
                 dtemp_ext_tqy=dblstr(directive,maxlen,inumchar)
                 dtemp_ext_tqz=dblstr(directive,maxlen,inumchar)
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('side',directive,inumchar,maxlen))then
@@ -1310,11 +1310,11 @@
                   dtemp_sidewall_md_rdist= &
                    dblstr(directive,maxlen,inumchar)
                 else
-                  call warning(1,dble(iline),redstring)
+                  call warning(1,real(iline,kind=PRC),redstring)
                   lerror6=.true.
                 endif
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('field',directive,inumchar,maxlen))then
@@ -1323,8 +1323,8 @@
                   temp_field_pair=.true.
                   ifield_pair=ifield_pair+1
                   if(ifield_pair>mxvdw)then
-                    call warning(24,dble(mxvdw))
-                    call warning(1,dble(iline),redstring)
+                    call warning(24,real(mxvdw,kind=PRC))
+                    call warning(1,real(iline,kind=PRC),redstring)
                     lerror6=.true.
                   else
                     temp_ltpvdw(ifield_pair)=1
@@ -1332,17 +1332,17 @@
                     jtype=intstr(directive,maxlen,inumchar)
                     if(itype<=0 .or. jtype<=0 )then
                       call warning(46)
-                      call warning(1,dble(iline),redstring)
+                      call warning(1,real(iline,kind=PRC),redstring)
                       lerror6=.true.
                     elseif(itype>mxntype .or. jtype>mxntype)then
-                      call warning(42,dble(mxntype))
-                      call warning(1,dble(iline),redstring)
+                      call warning(42,real(mxntype,kind=PRC))
+                      call warning(1,real(iline,kind=PRC),redstring)
                       lerror6=.true.
                     else
                       if(temp_mskvdw(itype,jtype)/=0 .or. &
                        temp_mskvdw(jtype,itype)/=0)then
                         call warning(45)
-                        call warning(1,dble(iline),redstring)
+                        call warning(1,real(iline,kind=PRC),redstring)
                         lerror6=.true.
                       else
                         temp_mskvdw(itype,jtype)=ifield_pair
@@ -1356,8 +1356,8 @@
                   temp_field_pair=.true.
                   ifield_pair=ifield_pair+1
                   if(ifield_pair>mxvdw)then
-                    call warning(24,dble(mxvdw))
-                    call warning(1,dble(iline),redstring)
+                    call warning(24,real(mxvdw,kind=PRC))
+                    call warning(1,real(iline,kind=PRC),redstring)
                     lerror6=.true.
                   else
                     temp_ltpvdw(ifield_pair)=2
@@ -1365,17 +1365,17 @@
                     jtype=intstr(directive,maxlen,inumchar)
                     if(itype<=0 .or. jtype<=0 )then
                       call warning(46)
-                      call warning(1,dble(iline),redstring)
+                      call warning(1,real(iline,kind=PRC),redstring)
                       lerror6=.true.
                     elseif(itype>mxntype .or. jtype>mxntype)then
-                      call warning(42,dble(mxntype))
-                      call warning(1,dble(iline),redstring)
+                      call warning(42,real(mxntype,kind=PRC))
+                      call warning(1,real(iline,kind=PRC),redstring)
                       lerror6=.true.
                     else
                       if(temp_mskvdw(itype,jtype)/=0 .or. &
                        temp_mskvdw(jtype,itype)/=0)then
                         call warning(45)
-                        call warning(1,dble(iline),redstring)
+                        call warning(1,real(iline,kind=PRC),redstring)
                         lerror6=.true.
                       else
                         temp_mskvdw(itype,jtype)=ifield_pair
@@ -1389,8 +1389,8 @@
                   temp_field_pair=.true.
                   ifield_pair=ifield_pair+1
                   if(ifield_pair>mxvdw)then
-                    call warning(24,dble(mxvdw))
-                    call warning(1,dble(iline),redstring)
+                    call warning(24,real(mxvdw,kind=PRC))
+                    call warning(1,real(iline,kind=PRC),redstring)
                     lerror6=.true.
                   else
                     temp_ltpvdw(ifield_pair)=3
@@ -1398,17 +1398,17 @@
                     jtype=intstr(directive,maxlen,inumchar)
                     if(itype<=0 .or. jtype<=0 )then
                       call warning(46)
-                      call warning(1,dble(iline),redstring)
+                      call warning(1,real(iline,kind=PRC),redstring)
                       lerror6=.true.
                     elseif(itype>mxntype .or. jtype>mxntype)then
-                      call warning(42,dble(mxntype))
-                      call warning(1,dble(iline),redstring)
+                      call warning(42,real(mxntype,kind=PRC))
+                      call warning(1,real(iline,kind=PRC),redstring)
                       lerror6=.true.
                     else
                       if(temp_mskvdw(itype,jtype)/=0 .or. &
                        temp_mskvdw(jtype,itype)/=0)then
                         call warning(45)
-                        call warning(1,dble(iline),redstring)
+                        call warning(1,real(iline,kind=PRC),redstring)
                         lerror6=.true.
                       else
                         temp_mskvdw(itype,jtype)=ifield_pair
@@ -1420,11 +1420,11 @@
                     endif
                   endif
                 else
-                  call warning(1,dble(iline),redstring)
+                  call warning(1,real(iline,kind=PRC),redstring)
                   lerror6=.true.
                 endif
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('lubric',directive,inumchar,maxlen))then
@@ -1436,7 +1436,7 @@
               elseif(findstring('no',directive,inumchar,maxlen))then
                 temp_llubrication=.false.
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('moment',directive,inumchar,maxlen))then
@@ -1444,7 +1444,7 @@
                 temp_ifix_moment=intstr(directive,maxlen,inumchar)
                 temp_lfix_moment=.true.
               else
-                call warning(1,dble(iline),redstring)
+                call warning(1,real(iline,kind=PRC),redstring)
                 lerror6=.true.
               endif
             elseif(findstring('[end room',directive,inumchar,maxlen))then
@@ -1453,7 +1453,7 @@
               lredo=.false.
               lredo2=.false.
             else
-              call warning(1,dble(iline),redstring)
+              call warning(1,real(iline,kind=PRC),redstring)
               lerror6=.true.
             endif
           enddo
@@ -1461,7 +1461,7 @@
       elseif(findstring('[end',directive,inumchar,maxlen))then
         lredo=.false.
       else
-        call warning(1,dble(iline),redstring)
+        call warning(1,real(iline,kind=PRC),redstring)
         lerror4=.true.
       endif
     enddo
@@ -2133,7 +2133,7 @@
         endif
       enddo
       if(ltest)then
-        call warning(61,dble(itemp))
+        call warning(61,real(itemp, kind=PRC))
         call error(7)
       endif
       call set_objectliq(temp_lobjectliq,temp_nobjectliq)
@@ -2409,16 +2409,19 @@
     mystring=repeat(' ',dimprint)
     mystring='LB integrator'
     mystring12=repeat(' ',dimprint2)
-    select case(LBintegrator)
-    case(0)
-      mystring12='BGK'
-      mystring12=adjustr(mystring12)
-      write(6,'(3a)')mystring,": ",mystring12
-    case(1)
-      mystring12='EDM'
-      mystring12=adjustr(mystring12)
-      write(6,'(3a)')mystring,": ",mystring12
-    end select
+
+    if(.not. lColourG)then     
+      select case(LBintegrator)
+      case(0)
+        mystring12='BGK'        
+      case(1)
+        mystring12='EDM'
+      end select
+    else
+      mystring12='CG'
+    endif
+    mystring12=adjustr(mystring12)
+    write(6,'(3a)')mystring,": ",mystring12
   endif
   
   call bcast_world_l(lmd)
@@ -3494,15 +3497,15 @@
   implicit none
   
   integer, intent(in) :: k
-  double precision, intent(in) :: timesub
+  real(kind=PRC), intent(in) :: timesub
   
   integer :: i,j
-  double precision :: tempint
+  real(kind=PRC) :: tempint
   
   if(.not.lprintlist)return
   if(mod(k,iprinttime)/=0)return
   
-  tempint=dble(iprinttime)*tstep
+  tempint=real(iprinttime, kind=PRC)*tstep
   call compute_statistic(tempint,timesub,k)
   
   if(idrank/=0)return
@@ -3533,7 +3536,7 @@
   implicit none
   
   integer,intent(in) :: k,nprint1
-  double precision,intent(in),dimension(1:nprint1) :: dprint
+  real(kind=PRC),intent(in),dimension(1:nprint1) :: dprint
   character(len=20),intent(in),dimension(1:nprint1) :: printargsub
   
   integer :: i
@@ -3654,7 +3657,7 @@
     call getline(safe,inputunit,maxlen,redstring)
     iline=iline+1
     if(.not.safe)then
-      call warning(11,dble(iline))
+      call warning(11,real(iline,kind=PRC))
       lerror3=.true.
       goto 120
     endif
@@ -3662,7 +3665,7 @@
     call copystring(redstring,directive,maxlen)
     temp_natms_tot=intstr(directive,maxlen,inumchar)
     if(temp_natms_tot<1)then
-      call warning(11,dble(iline))
+      call warning(11,real(iline,kind=PRC))
       lerror3=.true.
       goto 120
     endif
@@ -3670,7 +3673,7 @@
     call getline(safe,inputunit,maxlen,redstring)
     iline=iline+1
     if(.not.safe)then
-      call warning(11,dble(iline))
+      call warning(11,real(iline,kind=PRC))
       lerror3=.true.
       goto 120
     endif
@@ -3700,7 +3703,7 @@
          lfoundprintxyz)
         lxyzlisterror=(lxyzlisterror .or. (.not.lfoundprintxyz))
         if(lxyzlisterror)then
-          call warning(11,dble(iline))
+          call warning(11,real(iline,kind=PRC))
           call warning(12)
           call warning(13)
           goto 120
@@ -3715,7 +3718,7 @@
         if(xyzlist(i)>=3 .and. xyzlist(i)<=5)then
           if(all(ishape==0))then
             lerror4=.true.
-            call warning(11,dble(iline))
+            call warning(11,real(iline,kind=PRC))
             call warning(16)
             goto 120
           endif
@@ -3729,14 +3732,14 @@
       enddo
       if((.not. all(lumass(1:ntype))).and.(.not. lmass))then
         lerror5=.true.
-        call warning(11,dble(iline))
+        call warning(11,real(iline,kind=PRC))
         call warning(25)
         goto 120
       endif
       if(all(ishape==0))then
         if((.not. lrdim).and.(.not. all(lurdim(1:ntype))))then
           lerror5=.true.
-          call warning(11,dble(iline))
+          call warning(11,real(iline,kind=PRC))
           call warning(28)
           goto 120
         endif
@@ -3748,7 +3751,7 @@
       endif
       if((.not. lvelocity).and.(.not. linit_temp))then
         lerror5=.true.
-        call warning(11,dble(iline))
+        call warning(11,real(iline,kind=PRC))
         call warning(27)
         goto 120
       endif
@@ -3768,7 +3771,7 @@
         call getline(safe,inputunit,maxlen,redstring)
         iline=iline+1
         if(.not.safe)then
-          call warning(11,dble(iline))
+          call warning(11,real(iline,kind=PRC))
           lerror3=.true.
           goto 120
         endif
@@ -3777,8 +3780,8 @@
         if(itype==0)then
           !error: itype not found
           lerror5=.true.
-          call warning(11,dble(iline))
-          call warning(41,dble(iline),redstring(1:natmname))
+          call warning(11,real(iline,kind=PRC))
+          call warning(41,real(iline,kind=PRC),redstring(1:natmname))
           goto 120
         endif
         ltypes(i)=itype
@@ -3792,7 +3795,7 @@
           if(xyzlist(j)==6)then
             if(mod(others(j,i)-HALF,ONE)/=ZERO)then
               call warning(32)
-              call warning(11,dble(iline))
+              call warning(11,real(iline,kind=PRC))
               lerror3=.true.
             endif
           endif
@@ -3803,7 +3806,7 @@
         call getline(safe,inputunit,maxlen,redstring)
         iline=iline+1
         if(.not.safe)then
-          call warning(11,dble(iline))
+          call warning(11,real(iline,kind=PRC))
           lerror3=.true.
           goto 120
         endif
@@ -3812,8 +3815,8 @@
         if(itype==0)then
           !error: itype not found
           lerror5=.true.
-          call warning(11,dble(iline))
-          call warning(41,dble(iline),redstring(1:natmname))
+          call warning(11,real(iline,kind=PRC))
+          call warning(41,real(iline,kind=PRC),redstring(1:natmname))
           goto 120
         endif
         ltypes(i)=itype
